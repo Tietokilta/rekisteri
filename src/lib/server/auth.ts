@@ -1,13 +1,13 @@
-import type { RequestEvent } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
-import { sha256 } from '@oslojs/crypto/sha2';
-import { encodeBase64url, encodeHexLowerCase } from '@oslojs/encoding';
-import { db } from '$lib/server/db';
-import * as table from '$lib/server/db/schema';
+import type { RequestEvent } from "@sveltejs/kit";
+import { eq } from "drizzle-orm";
+import { sha256 } from "@oslojs/crypto/sha2";
+import { encodeBase64url, encodeHexLowerCase } from "@oslojs/encoding";
+import { db } from "$lib/server/db";
+import * as table from "$lib/server/db/schema";
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
-export const sessionCookieName = 'auth-session';
+export const sessionCookieName = "auth-session";
 
 export function generateSessionToken() {
 	const bytes = crypto.getRandomValues(new Uint8Array(18));
@@ -20,7 +20,7 @@ export async function createSession(token: string, userId: string) {
 	const session: table.Session = {
 		id: sessionId,
 		userId,
-		expiresAt: new Date(Date.now() + DAY_IN_MS * 30)
+		expiresAt: new Date(Date.now() + DAY_IN_MS * 30),
 	};
 	await db.insert(table.session).values(session);
 	return session;
@@ -32,7 +32,7 @@ export async function validateSessionToken(token: string) {
 		.select({
 			// Adjust user table here to tweak returned data
 			user: { id: table.user.id, username: table.user.username },
-			session: table.session
+			session: table.session,
 		})
 		.from(table.session)
 		.innerJoin(table.user, eq(table.session.userId, table.user.id))
@@ -52,10 +52,7 @@ export async function validateSessionToken(token: string) {
 	const renewSession = Date.now() >= session.expiresAt.getTime() - DAY_IN_MS * 15;
 	if (renewSession) {
 		session.expiresAt = new Date(Date.now() + DAY_IN_MS * 30);
-		await db
-			.update(table.session)
-			.set({ expiresAt: session.expiresAt })
-			.where(eq(table.session.id, session.id));
+		await db.update(table.session).set({ expiresAt: session.expiresAt }).where(eq(table.session.id, session.id));
 	}
 
 	return { session, user };
@@ -70,12 +67,12 @@ export async function invalidateSession(sessionId: string) {
 export function setSessionTokenCookie(event: RequestEvent, token: string, expiresAt: Date) {
 	event.cookies.set(sessionCookieName, token, {
 		expires: expiresAt,
-		path: '/'
+		path: "/",
 	});
 }
 
 export function deleteSessionTokenCookie(event: RequestEvent) {
 	event.cookies.delete(sessionCookieName, {
-		path: '/'
+		path: "/",
 	});
 }
