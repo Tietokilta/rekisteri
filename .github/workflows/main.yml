@@ -1,0 +1,131 @@
+name: CI
+on:
+  push:
+  release:
+    types: [published]
+
+permissions:
+  id-token: write
+  contents: read
+env:
+  # Change this to upload the built image to your own organization.
+  docker_tag_prefix: ghcr.io/tietokilta
+jobs:
+  build:
+    name: Format, Lint, Check types & Build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: mysecretpassword
+          POSTGRES_DB: local
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://root:mysecretpassword@localhost:5432/local
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install browsers
+        run: pnpm exec playwright install
+
+      - name: Push db schema
+        run: pnpm db:push:force
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build all (for paraglide messages)
+        run: pnpm build
+
+      - name: Check
+        run: pnpm check
+
+      - name: Test
+        run: pnpm test
+
+  # enable when we have Dockerfile
+  # docker-build-and-push:
+  #   if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'release' && github.event.action == 'published')
+  #   needs: build
+  #   name: Push Docker image to GitHub Packages
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     packages: write
+  #     contents: read
+  #   steps:
+  #     - name: Check out the repo
+  #       uses: actions/checkout@v4
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v3
+  #     - name: Login to GHCR
+  #       uses: docker/login-action@v3
+  #       with:
+  #         registry: ghcr.io
+  #         username: ${{ github.repository_owner }}
+  #         password: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Generate Docker metadata
+  #       id: meta
+  #       uses: docker/metadata-action@v5
+  #       with:
+  #         images: ${{env.docker_tag_prefix}}/rekisteri
+  #         tags: |
+  #           type=semver,pattern={{version}},enable=${{ github.ref_type == 'tag' }}
+  #           type=semver,pattern={{major}}.{{minor}},enable=${{ github.ref_type == 'tag' }}
+  #           type=raw,value=sha-${{github.sha}}
+  #           type=raw,value=latest,enable={{is_default_branch}}
+
+  #     - name: Push to GitHub Packages
+  #       uses: docker/build-push-action@v6
+  #       with:
+  #         context: .
+  #         push: true
+  #         tags: ${{ steps.meta.outputs.tags }}
+  #         labels: ${{ steps.meta.outputs.labels }}
+  #         build-args: |
+  #           GIT_COMMIT_SHA=${{github.sha}}
+  #         cache-from: type=gha
+  #         cache-to: type=gha,mode=min
+
+  # enable this when we ship to prod
+  # deploy:
+  #   # only run on published releases, enable this when we release
+  #   #if: github.event_name == 'release' && github.event.action == 'published'
+  #   name: Deploy to Azure
+  #   runs-on: ubuntu-latest
+  #   needs: docker-build-and-push
+  #   steps:
+  #     - name: Login via Azure CLI
+  #       uses: azure/login@v2
+  #       with:
+  #         client-id: ${{secrets.AZURE_CLIENT_ID}}
+  #         subscription-id: ${{secrets.AZURE_SUBSCRIPTION_ID}}
+  #         tenant-id: ${{secrets.AZURE_TENANT_ID}}
+  #     - uses: azure/webapps-deploy@v3
+  #       with:
+  #         app-name: tik-rekisteri-prod # TODO: if we ever setup more envs than prod, make this variable customizable
+  #         images: '${{ env.docker_tag_prefix }}/rekisteri:sha-${{ github.sha }}'

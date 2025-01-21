@@ -15,6 +15,7 @@
 		"test": "npm run test:e2e",
 		"db:start": "docker compose up",
 		"db:push": "drizzle-kit push",
+		"db:push:force": "drizzle-kit push --force",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio"
 	},
@@ -51,5 +52,6 @@
 		"@oslojs/encoding": "^1.1.0",
 		"drizzle-orm": "^0.38.4",
 		"postgres": "^3.4.5"
-	}
+	},
+	"packageManager": "pnpm@9.15.4"
 }
