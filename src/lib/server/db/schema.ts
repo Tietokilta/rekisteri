@@ -1,10 +1,8 @@
-import { pgTable, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
 	id: text("id").primaryKey(),
-	age: integer("age"),
-	username: text("username").notNull().unique(),
-	passwordHash: text("password_hash").notNull(),
+	email: text("email").notNull().unique(),
 });
 
 export const session = pgTable("session", {
@@ -14,6 +12,15 @@ export const session = pgTable("session", {
 		.references(() => user.id),
 	expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
 });
+
+export const emailOTP = pgTable("email_otp", {
+	id: text("id").primaryKey(),
+	code: text("code").notNull(),
+	email: text("email").notNull(),
+	expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
+});
+
+export type EmailOTP = typeof emailOTP.$inferSelect;
 
 export type Session = typeof session.$inferSelect;
 
