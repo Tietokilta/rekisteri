@@ -24,6 +24,10 @@ async function main() {
 	await db.insert(user).values({
 		id: generateUserId(),
 		email: "root@tietokilta.fi",
+		firstNames: "Veijo",
+		lastName: "Tietokilta",
+		homeMunicipality: "Espoo",
+		isAllowedEmails: true,
 		isAdmin: true,
 	});
 

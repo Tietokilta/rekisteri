@@ -26,6 +26,7 @@ const SERVERS = {
  * ACTIONS
  */
 const ACTIONS = {
+  "default /": `/`,
   "default /sign-in": `/sign-in`,
   "verify /sign-in/email": `/sign-in/email?/verify`,
   "resend /sign-in/email": `/sign-in/email?/resend`,
@@ -138,7 +139,7 @@ export function route<T extends keyof AllTypes>(key: T, ...params: any[]): strin
 export type KIT_ROUTES = {
   PAGES: { '/': never, '/sign-in': never, '/sign-in/email': never, '/sign-out': never }
   SERVERS: Record<string, never>
-  ACTIONS: { 'default /sign-in': never, 'verify /sign-in/email': never, 'resend /sign-in/email': never, 'logout /sign-out': never }
+  ACTIONS: { 'default /': never, 'default /sign-in': never, 'verify /sign-in/email': never, 'resend /sign-in/email': never, 'logout /sign-out': never }
   LINKS: Record<string, never>
   Params: Record<string, never>
 }
