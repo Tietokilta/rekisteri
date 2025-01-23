@@ -1,11 +1,18 @@
 <script lang="ts">
-	import type { AvailableLanguageTag } from "$lib/paraglide/runtime";
+	import { languageTag, type AvailableLanguageTag } from "$lib/paraglide/runtime";
 	import { i18n } from "$lib/i18n";
 	import { page } from "$app/state";
 	import { goto } from "$app/navigation";
 	import { ParaglideJS } from "@inlang/paraglide-sveltekit";
 	import "../app.css";
+	import "@fontsource-variable/inter";
+	import "@fontsource-variable/roboto-mono";
 	import * as m from "$lib/paraglide/messages.js";
+	import { ModeWatcher } from "mode-watcher";
+	import RatasLogo from "$lib/icons/ratas-logo.svelte";
+	import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
+	import { route } from "$lib/ROUTES";
+
 	let { children } = $props();
 
 	function switchToLanguage(newLanguage: AvailableLanguageTag) {
@@ -15,13 +22,27 @@
 	}
 </script>
 
+<svelte:head>
+	<title>
+		{m.plain_long_maggot_build()}
+	</title>
+</svelte:head>
+
+<ModeWatcher />
 <ParaglideJS {i18n}>
-	<div>
-		<header>
-			<h1>{m.plain_long_maggot_build()}</h1>
-			<div>
-				<button onclick={() => switchToLanguage("fi")}>fi</button>
-				<button onclick={() => switchToLanguage("en")}>en</button>
+	<div class="relative flex min-h-screen flex-col bg-background">
+		<header
+			class="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+		>
+			<div class="container flex h-14 max-w-screen-2xl items-center justify-between">
+				<a href={i18n.resolveRoute(route("/"))} class="flex items-center gap-2">
+					<RatasLogo class="h-12 w-12" />
+					<span class="sr-only font-mono font-medium sm:not-sr-only sm:text-xl">{m.plain_long_maggot_build()}</span>
+				</a>
+				<ToggleGroup.Root type="single" value={languageTag()}>
+					<ToggleGroup.Item value="fi" onclick={() => switchToLanguage("fi")}>fi</ToggleGroup.Item>
+					<ToggleGroup.Item value="en" onclick={() => switchToLanguage("en")}>en</ToggleGroup.Item>
+				</ToggleGroup.Root>
 			</div>
 		</header>
 		{@render children()}
