@@ -2,33 +2,34 @@ import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad, RequestEvent } from "./$types";
 import { i18n } from "$lib/i18n";
 import { route } from "$lib/ROUTES";
-import * as z from "zod";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
+import { schema } from "./schema";
+import { superValidate } from "sveltekit-superforms";
+import { zod } from "sveltekit-superforms/adapters";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
 		return redirect(302, i18n.resolveRoute(route("/sign-in")));
 	}
 
-	return { user: event.locals.user };
+	const form = await superValidate(zod(schema), {
+		defaults: {
+			email: event.locals.user.email,
+			firstNames: event.locals.user.firstNames ?? "",
+			lastName: event.locals.user.lastName ?? "",
+			homeMunicipality: event.locals.user.homeMunicipality ?? "",
+			isAllowedEmails: event.locals.user.isAllowedEmails,
+		},
+	});
+
+	return { user: event.locals.user, form };
 };
 
 export const actions: Actions = {
 	default: action,
 };
-
-const schema = z.object({
-	email: z.string().email(),
-	firstNames: z.string().min(1),
-	lastName: z.string().min(1),
-	homeMunicipality: z.string().min(1),
-	isAllowedEmails: z
-		.null()
-		.or(z.literal("on"))
-		.transform((value) => value === "on"),
-});
 
 async function action(event: RequestEvent) {
 	if (!event.locals.user) {
@@ -65,7 +66,16 @@ async function action(event: RequestEvent) {
 		...inputResult.data,
 	};
 
-	await db.update(table.user).set(user).where(eq(table.user.id, user.id));
+	await db
+		.update(table.user)
+		.set({
+			// don't allow changing email here
+			firstNames: user.firstNames,
+			lastName: user.lastName,
+			homeMunicipality: user.homeMunicipality,
+			isAllowedEmails: user.isAllowedEmails,
+		})
+		.where(eq(table.user.id, user.id));
 
 	return {
 		success: true,

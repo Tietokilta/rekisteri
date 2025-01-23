@@ -1,13 +1,19 @@
 <script lang="ts">
-	import { enhance } from "$app/forms";
-	import { Button } from "$lib/components/ui/button";
 	import { Input } from "$lib/components/ui/input/index.js";
-	import { Label } from "$lib/components/ui/label/index.js";
 	import type { PageServerData } from "./$types";
 	import * as m from "$lib/paraglide/messages.js";
 	import { Switch } from "$lib/components/ui/switch";
+	import { zodClient } from "sveltekit-superforms/adapters";
+	import { superForm } from "sveltekit-superforms";
+	import { schema } from "./schema";
+	import * as Form from "$lib/components/ui/form/index.js";
 
 	let { data }: { data: PageServerData } = $props();
+
+	const form = superForm(data.form, {
+		validators: zodClient(schema),
+	});
+	const { form: formData, enhance } = form;
 </script>
 
 <main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
@@ -17,35 +23,63 @@
 		<h2 class="font-mono text-lg">{m.bold_proof_grizzly_rush()}</h2>
 
 		<form method="post" use:enhance class="flex w-full max-w-xs flex-col gap-4">
-			<p>
-				<Label for="email">{m.dark_weak_vulture_bless()}</Label>
-				<Input id="email" name="email" type="email" required readonly value={data.user.email} />
-			</p>
+			<Form.Field {form} name="email">
+				<Form.Control>
+					{#snippet children({ props })}
+						<Form.Label>{m.dark_weak_vulture_bless()}</Form.Label>
+						<Input {...props} type="email" readonly bind:value={$formData.email} />
+					{/snippet}
+				</Form.Control>
+				<Form.FieldErrors />
+			</Form.Field>
 
-			<p>
-				<Label for="firstNames">{m.giant_jolly_mayfly_lead()}</Label>
-				<Input id="firstNames" name="firstNames" required min="1" value={data.user.firstNames} />
-			</p>
+			<Form.Field {form} name="firstNames">
+				<Form.Control>
+					{#snippet children({ props })}
+						<Form.Label>{m.giant_jolly_mayfly_lead()}</Form.Label>
+						<Input {...props} bind:value={$formData.firstNames} />
+					{/snippet}
+				</Form.Control>
+				<Form.FieldErrors />
+			</Form.Field>
 
-			<p>
-				<Label for="lastName">{m.frail_fine_fish_chop()}</Label>
-				<Input id="lastName" name="lastName" required min="1" value={data.user.lastName} />
-			</p>
+			<Form.Field {form} name="lastName">
+				<Form.Control>
+					{#snippet children({ props })}
+						<Form.Label>{m.frail_fine_fish_chop()}</Form.Label>
+						<Input {...props} bind:value={$formData.lastName} />
+					{/snippet}
+				</Form.Control>
+				<Form.FieldErrors />
+			</Form.Field>
 
-			<p>
-				<Label for="homeMunicipality">{m.lofty_patient_squid_drop()}</Label>
-				<Input id="homeMunicipality" name="homeMunicipality" required min="1" value={data.user.homeMunicipality} />
-			</p>
+			<Form.Field {form} name="homeMunicipality">
+				<Form.Control>
+					{#snippet children({ props })}
+						<Form.Label>{m.lofty_patient_squid_drop()}</Form.Label>
+						<Input {...props} bind:value={$formData.homeMunicipality} />
+					{/snippet}
+				</Form.Control>
+				<Form.FieldErrors />
+			</Form.Field>
 
-			<div class="space-y flex flex-row items-center justify-between rounded-lg border p-4">
-				<div class="space-y-0.5">
-					<Label for="isAllowedEmails">{m.light_frail_poodle_enrich()}</Label>
-					<span class="block text-sm text-muted-foreground">{m.livid_trite_thrush_animate()}</span>
-				</div>
-				<Switch id="isAllowedEmails" name="isAllowedEmails" checked={data.user.isAllowedEmails} />
-			</div>
+			<Form.Field
+				{form}
+				name="isAllowedEmails"
+				class="space-y flex flex-row items-center justify-between rounded-lg border p-4"
+			>
+				<Form.Control>
+					{#snippet children({ props })}
+						<div class="space-y-0.5">
+							<Form.Label>{m.light_frail_poodle_enrich()}</Form.Label>
+							<Form.Description>{m.livid_trite_thrush_animate()}</Form.Description>
+						</div>
+						<Switch {...props} bind:checked={$formData.isAllowedEmails} />
+					{/snippet}
+				</Form.Control>
+			</Form.Field>
 
-			<Button type="submit">{m.tough_mellow_porpoise_explore()}</Button>
+			<Form.Button type="submit">{m.tough_mellow_porpoise_explore()}</Form.Button>
 		</form>
 	</div>
 </main>
