@@ -1,4 +1,12 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"plain_long_maggot_build": "Tietokilta Jäsenrekisteri"
+	"plain_long_maggot_build": "Tietokilta Jäsenrekisteri",
+	"round_tense_spider_lock": "Kirjaudu sisään",
+	"dark_weak_vulture_bless": "Sähköposti",
+	"raw_witty_alligator_strive": "Lähetimme 8-numeroisen koodin osoitteeseen {email}.",
+	"same_nimble_guppy_find": "Vahvista",
+	"day_stale_porpoise_borrow": "Koodi",
+	"large_these_horse_twist": "Lähetä uusi koodi",
+	"brief_early_scallop_bless": "Kirjaudu ulos",
+	"such_wise_mongoose_win": "Hei, {email}!"
 }

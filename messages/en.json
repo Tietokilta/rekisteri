@@ -1,4 +1,12 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"plain_long_maggot_build": "CSG Membership Registry"
+	"plain_long_maggot_build": "CSG Membership Registry",
+	"round_tense_spider_lock": "Sign in",
+	"dark_weak_vulture_bless": "Email",
+	"raw_witty_alligator_strive": "We sent an 8-digit code to {email}.",
+	"same_nimble_guppy_find": "Verify",
+	"day_stale_porpoise_borrow": "Code",
+	"large_these_horse_twist": "Resend code",
+	"brief_early_scallop_bless": "Sign out",
+	"such_wise_mongoose_win": "Hi, {email}!"
 }

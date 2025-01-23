@@ -92,7 +92,8 @@ async function verifyCode(event: RequestEvent) {
 			},
 		};
 	}
-	if (otp.code !== code) {
+	const capitalizedCode = code.toLocaleUpperCase("en");
+	if (otp.code !== capitalizedCode) {
 		return fail(400, {
 			verify: {
 				message: "Incorrect code.",
