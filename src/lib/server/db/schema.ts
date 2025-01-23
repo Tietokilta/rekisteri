@@ -1,8 +1,9 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
 	id: text("id").primaryKey(),
 	email: text("email").notNull().unique(),
+	isAdmin: boolean("is_super_admin").notNull().default(false),
 });
 
 export const session = pgTable("session", {
