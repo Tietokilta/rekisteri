@@ -8,6 +8,7 @@ import { eq } from "drizzle-orm";
 import { schema } from "./schema";
 import { superValidate } from "sveltekit-superforms";
 import { zod } from "sveltekit-superforms/adapters";
+import * as auth from "$lib/server/auth/session";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
@@ -28,10 +29,11 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions: Actions = {
-	default: action,
+	saveInfo,
+	signOut,
 };
 
-async function action(event: RequestEvent) {
+async function saveInfo(event: RequestEvent) {
 	if (!event.locals.user) {
 		return fail(401, {
 			message: "Unauthorized",
@@ -39,31 +41,11 @@ async function action(event: RequestEvent) {
 	}
 
 	const formData = await event.request.formData();
-	const inputData = {
-		email: formData.get("email"),
-		firstNames: formData.get("firstNames"),
-		lastName: formData.get("lastName"),
-		homeMunicipality: formData.get("homeMunicipality"),
-		isAllowedEmails: formData.get("isAllowedEmails"),
-	};
-	const inputResult = schema.safeParse(inputData);
-
-	if (!inputResult.success) {
-		return fail(400, {
-			message: "Invalid input",
-			errors: inputResult.error.formErrors,
-		});
-	}
-
-	if (inputResult.data.email !== event.locals.user.email) {
-		return fail(403, {
-			message: "Forbidden",
-		});
-	}
+	const form = await superValidate(formData, zod(schema));
 
 	const user = {
 		...event.locals.user,
-		...inputResult.data,
+		...form.data,
 	};
 
 	await db
@@ -77,7 +59,15 @@ async function action(event: RequestEvent) {
 		})
 		.where(eq(table.user.id, user.id));
 
-	return {
-		success: true,
-	};
+	return redirect(302, i18n.resolveRoute(route("/")));
+}
+
+async function signOut(event: RequestEvent) {
+	if (!event.locals.session) {
+		return fail(401);
+	}
+	await auth.invalidateSession(event.locals.session.id);
+	auth.deleteSessionTokenCookie(event);
+
+	return redirect(302, i18n.resolveRoute(route("/sign-in")));
 }

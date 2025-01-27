@@ -11,8 +11,7 @@
 const PAGES = {
   "/": `/`,
   "/sign-in": `/sign-in`,
-  "/sign-in/email": `/sign-in/email`,
-  "/sign-out": `/sign-out`
+  "/sign-in/email": `/sign-in/email`
 }
 
 /**
@@ -26,11 +25,11 @@ const SERVERS = {
  * ACTIONS
  */
 const ACTIONS = {
-  "default /": `/`,
+  "saveInfo /": `/?/saveInfo`,
+  "signOut /": `/?/signOut`,
   "default /sign-in": `/sign-in`,
   "verify /sign-in/email": `/sign-in/email?/verify`,
-  "resend /sign-in/email": `/sign-in/email?/resend`,
-  "logout /sign-out": `/sign-out?/logout`
+  "resend /sign-in/email": `/sign-in/email?/resend`
 }
 
 /**
@@ -145,9 +144,9 @@ export function route<T extends keyof AllTypes>(key: T, ...params: any[]): strin
 * ```
 */
 export type KIT_ROUTES = {
-  PAGES: { '/': never, '/sign-in': never, '/sign-in/email': never, '/sign-out': never }
+  PAGES: { '/': never, '/sign-in': never, '/sign-in/email': never }
   SERVERS: Record<string, never>
-  ACTIONS: { 'default /': never, 'default /sign-in': never, 'verify /sign-in/email': never, 'resend /sign-in/email': never, 'logout /sign-out': never }
+  ACTIONS: { 'saveInfo /': never, 'signOut /': never, 'default /sign-in': never, 'verify /sign-in/email': never, 'resend /sign-in/email': never }
   LINKS: Record<string, never>
   Params: Record<string, never>
 }

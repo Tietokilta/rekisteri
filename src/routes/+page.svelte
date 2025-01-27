@@ -7,11 +7,13 @@
 	import { superForm } from "sveltekit-superforms";
 	import { schema } from "./schema";
 	import * as Form from "$lib/components/ui/form/index.js";
+	import { route } from "$lib/ROUTES";
 
 	let { data }: { data: PageServerData } = $props();
 
 	const form = superForm(data.form, {
 		validators: zodClient(schema),
+		validationMethod: "oninput",
 	});
 	const { form: formData, enhance } = form;
 </script>
@@ -22,7 +24,7 @@
 	<div class="w-full max-w-xs">
 		<h2 class="font-mono text-lg">{m.bold_proof_grizzly_rush()}</h2>
 
-		<form method="post" use:enhance class="flex w-full max-w-xs flex-col gap-4">
+		<form method="post" action={route("saveInfo /")} use:enhance class="flex w-full max-w-xs flex-col gap-4">
 			<Form.Field {form} name="email">
 				<Form.Control>
 					{#snippet children({ props })}
@@ -80,6 +82,10 @@
 			</Form.Field>
 
 			<Form.Button type="submit">{m.tough_mellow_porpoise_explore()}</Form.Button>
+
+			<Form.Button formnovalidate formmethod="post" formaction={route("signOut /")} variant="outline"
+				>{m.brief_early_scallop_bless()}</Form.Button
+			>
 		</form>
 	</div>
 </main>

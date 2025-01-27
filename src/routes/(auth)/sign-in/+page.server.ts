@@ -10,7 +10,7 @@ const ipBucket = new RefillingTokenBucket<string>(20, 1);
 
 export const load: PageServerLoad = async (event) => {
 	if (event.locals.user) {
-		redirect(302, i18n.resolveRoute(route("/sign-out")));
+		redirect(302, i18n.resolveRoute(route("/")));
 	}
 	return {};
 };
