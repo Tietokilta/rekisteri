@@ -9,5 +9,7 @@
 				"parser": "svelte"
 			}
 		}
-	]
+	],
+	"tailwindStylesheet": "src/app.css",
+	"tailwindConfig": "tailwind.config.ts"
 }

@@ -32,9 +32,9 @@
 <ParaglideJS {i18n}>
 	<div class="relative flex min-h-screen flex-col bg-background">
 		<header
-			class="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+			class="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60"
 		>
-			<div class="container flex h-14 max-w-screen-2xl items-center justify-between">
+			<div class="container flex h-14 max-w-(--breakpoint-2xl) items-center justify-between">
 				<a href={i18n.resolveRoute(route("/"))} class="flex items-center gap-2">
 					<RatasLogo class="h-12 w-12" />
 					<span class="sr-only font-mono font-medium sm:not-sr-only sm:text-xl">{m.plain_long_maggot_build()}</span>

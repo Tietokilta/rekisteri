@@ -14,6 +14,6 @@
 <InputOTPPrimitive.Root
 	bind:ref
 	bind:value
-	class={cn("flex items-center gap-2 has-[:disabled]:opacity-50 [&_input]:disabled:cursor-not-allowed", className)}
+	class={cn("flex items-center gap-2 has-disabled:opacity-50 disabled:[&_input]:cursor-not-allowed", className)}
 	{...restProps}
 />
