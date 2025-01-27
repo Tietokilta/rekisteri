@@ -1,0 +1,2 @@
+# ignore generating files in diffs
+src/lib/ROUTES.ts linguist-generated=true
