@@ -22,6 +22,9 @@ pnpm db:start
 # push schema
 pnpm db:push
 
+# seed data
+pnpm db:seed
+
 # run dev server
 pnpm dev
 ```
