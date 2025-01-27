@@ -10,5 +10,9 @@ export const i18n = createI18n(runtime, {
 			fi: "/kirjaudu-sisaan",
 			en: "/sign-in",
 		},
+		"/sign-in/email": {
+			fi: "/kirjaudu-sisaan/sahkoposti",
+			en: "/sign-in/email",
+		},
 	} as const satisfies Partial<Record<Routes, unknown /* inferred */>>,
 });
