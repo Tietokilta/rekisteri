@@ -3,45 +3,45 @@ import { boolean, integer, pgEnum, pgTable, text, timestamp } from "drizzle-orm/
 import * as z from "zod";
 
 const timestamps = {
-	createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(new Date()),
-	updatedAt: timestamp("updated_at", { withTimezone: true })
+	createdAt: timestamp({ withTimezone: true }).notNull().default(new Date()),
+	updatedAt: timestamp({ withTimezone: true })
 		.notNull()
 		.default(new Date())
 		.$onUpdateFn(() => new Date()),
 };
 
 export const user = pgTable("user", {
-	id: text("id").primaryKey(),
-	email: text("email").notNull().unique(),
-	isAdmin: boolean("is_admin").notNull().default(false),
-	firstNames: text("first_names"),
-	lastName: text("last_name"),
-	homeMunicipality: text("home_municipality"),
-	isAllowedEmails: boolean("is_allowed_emails").notNull().default(false),
+	id: text().primaryKey(),
+	email: text().notNull().unique(),
+	isAdmin: boolean().notNull().default(false),
+	firstNames: text(),
+	lastName: text(),
+	homeMunicipality: text(),
+	isAllowedEmails: boolean().notNull().default(false),
 	...timestamps,
 });
 
 export const session = pgTable("session", {
-	id: text("id").primaryKey(),
-	userId: text("user_id")
+	id: text().primaryKey(),
+	userId: text()
 		.notNull()
 		.references(() => user.id),
-	expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
+	expiresAt: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 });
 
 export const emailOTP = pgTable("email_otp", {
-	id: text("id").primaryKey(),
-	code: text("code").notNull(),
-	email: text("email").notNull(),
-	expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
+	id: text().primaryKey(),
+	code: text().notNull(),
+	email: text().notNull(),
+	expiresAt: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 });
 
 export const membership = pgTable("membership", {
-	id: text("id").primaryKey(),
-	type: text("type").notNull(), // todo l10n
-	startTime: timestamp("start_time", { withTimezone: true, mode: "date" }).notNull(),
-	endTime: timestamp("end_time", { withTimezone: true, mode: "date" }).notNull(),
-	priceCents: integer("price").notNull().default(0),
+	id: text().primaryKey(),
+	type: text().notNull(), // todo l10n
+	startTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
+	endTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
+	priceCents: integer().notNull().default(0),
 });
 
 export const memberStatusEnum = pgEnum("member_status", [
@@ -55,14 +55,14 @@ export const memberStatusEnum = pgEnum("member_status", [
 export const memberStatusEnumSchema = z.enum(memberStatusEnum.enumValues);
 
 export const member = pgTable("member", {
-	id: text("id").primaryKey(),
-	userId: text("user_id")
+	id: text().primaryKey(),
+	userId: text()
 		.notNull()
 		.references(() => user.id),
-	membershipId: text("membership_id")
+	membershipId: text()
 		.notNull()
 		.references(() => membership.id),
-	status: memberStatusEnum("status").notNull(),
+	status: memberStatusEnum().notNull(),
 	...timestamps,
 });
 
