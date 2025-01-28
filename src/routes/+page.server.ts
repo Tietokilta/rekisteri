@@ -1,6 +1,5 @@
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad, RequestEvent } from "./$types";
-import { i18n } from "$lib/i18n";
 import { route } from "$lib/ROUTES";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
@@ -9,10 +8,11 @@ import { schema } from "./schema";
 import { superValidate } from "sveltekit-superforms";
 import { zod } from "sveltekit-superforms/adapters";
 import * as auth from "$lib/server/auth/session";
+import { localizePath } from "$lib/paraglide/runtime";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
-		return redirect(302, i18n.resolveRoute(route("/sign-in")));
+		return redirect(302, localizePath(route("/sign-in")));
 	}
 
 	const form = await superValidate(zod(schema), {
@@ -59,7 +59,7 @@ async function saveInfo(event: RequestEvent) {
 		})
 		.where(eq(table.user.id, user.id));
 
-	return redirect(302, i18n.resolveRoute(route("/")));
+	return redirect(302, localizePath(route("/")));
 }
 
 async function signOut(event: RequestEvent) {
@@ -69,5 +69,5 @@ async function signOut(event: RequestEvent) {
 	await auth.invalidateSession(event.locals.session.id);
 	auth.deleteSessionTokenCookie(event);
 
-	return redirect(302, i18n.resolveRoute(route("/sign-in")));
+	return redirect(302, localizePath(route("/sign-in")));
 }

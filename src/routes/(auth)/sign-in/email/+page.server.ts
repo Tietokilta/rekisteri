@@ -18,12 +18,12 @@ import { encodeBase32LowerCase } from "@oslojs/encoding";
 import { eq } from "drizzle-orm";
 import { db } from "$lib/server/db";
 import { route } from "$lib/ROUTES";
-import { i18n } from "$lib/i18n";
+import { localizePath } from "$lib/paraglide/runtime";
 
 export async function load(event: RequestEvent) {
 	const email = event.cookies.get(emailCookieName);
 	if (typeof email !== "string") {
-		return redirect(302, i18n.resolveRoute(route("/sign-in")));
+		return redirect(302, localizePath(route("/sign-in")));
 	}
 
 	let otp = await getEmailOTPFromRequest(event);
@@ -119,7 +119,7 @@ async function verifyCode(event: RequestEvent) {
 	deleteEmailOTP(otp.id);
 	deleteEmailOTPCookie(event);
 
-	redirect(302, i18n.resolveRoute(route("/")));
+	redirect(302, localizePath(route("/")));
 }
 
 function generateUserId() {

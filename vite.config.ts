@@ -1,5 +1,5 @@
 import tailwindcss from "@tailwindcss/vite";
-import { paraglide } from "@inlang/paraglide-sveltekit/vite";
+import { paraglideSveltekit } from "@inlang/paraglide-sveltekit";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { kitRoutes } from "vite-plugin-kit-routes";
 import { defineConfig } from "vite";
@@ -10,7 +10,7 @@ export default defineConfig({
 		tailwindcss(),
 		sveltekit(),
 		kitRoutes<KIT_ROUTES>(),
-		paraglide({
+		paraglideSveltekit({
 			project: "./project.inlang",
 			outdir: "./src/lib/paraglide",
 		}),

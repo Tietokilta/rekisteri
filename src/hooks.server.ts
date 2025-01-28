@@ -1,5 +1,5 @@
 import { sequence } from "@sveltejs/kit/hooks";
-import { i18n } from "$lib/i18n";
+import * as paraglideAdapter from "$lib/paraglide/adapter";
 import type { Handle } from "@sveltejs/kit";
 import * as auth from "$lib/server/auth/session.js";
 
@@ -24,5 +24,5 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-const handleParaglide: Handle = i18n.handle();
+const handleParaglide: Handle = paraglideAdapter.handle;
 export const handle: Handle = sequence(handleAuth, handleParaglide);

@@ -1,9 +1,6 @@
 <script lang="ts">
-	import { languageTag, type AvailableLanguageTag } from "$lib/paraglide/runtime";
-	import { i18n } from "$lib/i18n";
-	import { page } from "$app/state";
-	import { goto } from "$app/navigation";
-	import { ParaglideJS } from "@inlang/paraglide-sveltekit";
+	import { getLocale, localizePath, setLocale } from "$lib/paraglide/runtime";
+	import { ParaglideSveltekitProvider } from "$lib/paraglide/adapter";
 	import "../app.css";
 	import "@fontsource-variable/inter";
 	import "@fontsource-variable/roboto-mono";
@@ -14,12 +11,6 @@
 	import { route } from "$lib/ROUTES";
 
 	let { children } = $props();
-
-	function switchToLanguage(newLanguage: AvailableLanguageTag) {
-		const canonicalPath = i18n.route(page.url.pathname);
-		const localisedPath = i18n.resolveRoute(canonicalPath, newLanguage);
-		goto(localisedPath);
-	}
 </script>
 
 <svelte:head>
@@ -29,22 +20,22 @@
 </svelte:head>
 
 <ModeWatcher />
-<ParaglideJS {i18n}>
+<ParaglideSveltekitProvider>
 	<div class="relative flex min-h-screen flex-col bg-background">
 		<header
 			class="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60"
 		>
 			<div class="container flex h-14 max-w-(--breakpoint-2xl) items-center justify-between">
-				<a href={i18n.resolveRoute(route("/"))} class="flex items-center gap-2">
+				<a href={localizePath(route("/"))} class="flex items-center gap-2">
 					<RatasLogo class="h-12 w-12" />
 					<span class="sr-only font-mono font-medium sm:not-sr-only sm:text-xl">{m.plain_long_maggot_build()}</span>
 				</a>
-				<ToggleGroup.Root type="single" value={languageTag()}>
-					<ToggleGroup.Item value="fi" onclick={() => switchToLanguage("fi")}>fi</ToggleGroup.Item>
-					<ToggleGroup.Item value="en" onclick={() => switchToLanguage("en")}>en</ToggleGroup.Item>
+				<ToggleGroup.Root type="single" value={getLocale()}>
+					<ToggleGroup.Item value="fi" onclick={() => setLocale("fi")}>fi</ToggleGroup.Item>
+					<ToggleGroup.Item value="en" onclick={() => setLocale("en")}>en</ToggleGroup.Item>
 				</ToggleGroup.Root>
 			</div>
 		</header>
 		{@render children()}
 	</div>
-</ParaglideJS>
+</ParaglideSveltekitProvider>
