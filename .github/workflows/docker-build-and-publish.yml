@@ -8,10 +8,6 @@ permissions:
   id-token: write
   contents: read
 
-env:
-  # Change this to upload the built image to your own organization.
-  docker_tag_prefix: ghcr.io/tietokilta
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -47,4 +43,4 @@ jobs:
       run: |
           nix build .#docker --accept-flake-config -L
           docker load < result
-          docker push ghcr.io/rekisteri:latest
+          docker push ghcr.io/Tietokilta/rekisteri:latest
