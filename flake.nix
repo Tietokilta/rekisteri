@@ -56,7 +56,7 @@
       docker = pkgs.dockerTools.buildLayeredImage {
         name = "rekisteri";
         tag = self.rev or "latest";
-        config.Cmd = ["${pkgs.nodejs_22}/bin/node" "${default}/index.js"];
+        config.Cmd = ["${pkgs.nodejs-slim_22}/bin/node" "${default}/index.js"];
       };
       devenv-up = self.devShells.${system}.default.config.procfileScript;
       devenv-test = self.devShells.${system}.default.config.test;
