@@ -22,7 +22,7 @@ jobs:
         nix_path: nixpkgs=channel:nixos-24.11
     - uses: DeterminateSystems/magic-nix-cache-action@v2
     - name: nix build
-      run: nix build .
+      run: nix build . --accept-flake-config -L
 
   docker-build-and-publish:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'release' && github.event.action == 'published')
@@ -45,6 +45,6 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: build and push docker image
       run: |
-          nix build .#docker
+          nix build .#docker --accept-flake-config -L
           docker load < result
           docker push ghcr.io/rekisteri:latest
