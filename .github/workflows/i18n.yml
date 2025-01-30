@@ -1,0 +1,34 @@
+name: i18n
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: validate and lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@e303250a2450c28e843bf798954fac81d4835f68
+        with:
+          version: 9.15.4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate
+        run: pnpm i18n:validate
+
+      - name: Lint
+        run: pnpm i18n:lint

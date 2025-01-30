@@ -19,11 +19,14 @@
 		"db:push:force": "drizzle-kit push --force",
 		"db:seed": "tsx --env-file=.env src/lib/server/db/seed.ts",
 		"db:migrate": "drizzle-kit migrate",
-		"db:studio": "drizzle-kit studio"
+		"db:studio": "drizzle-kit studio",
+		"i18n:validate": "inlang validate --project project.inlang",
+		"i18n:lint": "inlang lint --project project.inlang"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",
 		"@eslint/js": "^9.19.0",
+		"@inlang/cli": "^2.18.1",
 		"@playwright/test": "^1.50.0",
 		"@sveltejs/adapter-auto": "^4.0.0",
 		"@sveltejs/kit": "^2.16.1",

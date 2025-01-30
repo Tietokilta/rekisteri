@@ -39,6 +39,9 @@ importers:
       '@eslint/js':
         specifier: ^9.19.0
         version: 9.19.0
+      '@inlang/cli':
+        specifier: ^2.18.1
+        version: 2.18.1
       '@playwright/test':
         specifier: ^1.50.0
         version: 1.50.0
@@ -840,6 +843,11 @@ packages:
   '@humanwhocodes/retry@0.4.1':
     resolution: {integrity: sha512-c7hNEllBlenFTHBky65mhq8WD2kbN9Q6gk0bTk8lSBvc554jpXSkST1iePudpt7+A/AQvuHs9EMqjHDXMY1lrA==}
     engines: {node: '>=18.18'}
+
+  '@inlang/cli@2.18.1':
+    resolution: {integrity: sha512-6C/w7M9PbIs43GTheitckZCsW8Qc6F//S0iWCVL4BY2yIMXJJq1MLv3QC3qPkAHy+wpkJAnLPMnzyCJZBW50EQ==}
+    engines: {node: '>=18.0.0'}
+    hasBin: true
 
   '@inlang/detect-json-formatting@1.0.0':
     resolution: {integrity: sha512-o0jeI8U4TgNlsPwI0y92jld8/18Loh2KEgHCYCJ42rCOdxFrA8R60cydlEd2/6jkdHFn5DxKj8rOyiKv3z9uOw==}
@@ -1788,6 +1796,11 @@ packages:
     hasBin: true
     peerDependencies:
       esbuild: '*'
+
+  esbuild-wasm@0.19.12:
+    resolution: {integrity: sha512-Zmc4hk6FibJZBcTx5/8K/4jT3/oG1vkGTEeKJUQFCUQKimD6Q7+adp/bdVQyYJFolMKaXkQnVZdV4O5ZaTYmyQ==}
+    engines: {node: '>=12'}
+    hasBin: true
 
   esbuild@0.18.20:
     resolution: {integrity: sha512-ceqxoedUrcayh7Y7ZX6NdbbDzGROiyVBgC4PriJThBKSVPWnnFHZAkfI1lJT8QFkOwH4qOS2SJkS4wvpGl8BpA==}
@@ -3262,6 +3275,10 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.1': {}
 
+  '@inlang/cli@2.18.1':
+    dependencies:
+      esbuild-wasm: 0.19.12
+
   '@inlang/detect-json-formatting@1.0.0':
     dependencies:
       guess-json-indent: 2.0.0
@@ -4271,6 +4288,8 @@ snapshots:
       source-map-support: 0.5.21
       tslib: 2.4.0
     optional: true
+
+  esbuild-wasm@0.19.12: {}
 
   esbuild@0.18.20:
     optionalDependencies:

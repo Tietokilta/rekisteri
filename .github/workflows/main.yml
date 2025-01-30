@@ -1,4 +1,4 @@
-name: CI
+name: ci
 on:
   push:
   release:
@@ -11,8 +11,8 @@ env:
   # Change this to upload the built image to your own organization.
   docker_tag_prefix: ghcr.io/tietokilta
 jobs:
-  build:
-    name: Format, Lint, Check types & Build
+  checks:
+    name: validate and test
     runs-on: ubuntu-latest
     services:
       postgres:
