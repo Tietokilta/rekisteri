@@ -1,0 +1,12 @@
+diff --git a/package.json b/package.json
+index ef68e1cae9641c9290c322573f9e10b4b67d99e6..cc619ab062367bda186555e44b62637ed888cbed 100644
+--- a/package.json
++++ b/package.json
+@@ -25,7 +25,6 @@
+     "@inlang/sdk": "0.34.3"
+   },
+   "scripts": {
+-    "postinstall": "patch-package --error-on-fail",
+     "dev": "inlang module build --entry ./src/index.ts --outdir ./dist --watch",
+     "build": "inlang module build --entry ./src/index.ts --outdir ./dist",
+     "test": "tsc --noEmit && vitest run --passWithNoTests --coverage",

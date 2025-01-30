@@ -1,17 +1,20 @@
 {
 	"$schema": "https://inlang.com/schema/project-settings",
+	"telemetry": "off",
 	"modules": [
-		"https://cdn.jsdelivr.net/npm/@inlang/message-lint-rule-empty-pattern@1/dist/index.js",
-		"https://cdn.jsdelivr.net/npm/@inlang/message-lint-rule-identical-pattern@1/dist/index.js",
-		"https://cdn.jsdelivr.net/npm/@inlang/message-lint-rule-missing-translation@1/dist/index.js",
-		"https://cdn.jsdelivr.net/npm/@inlang/message-lint-rule-without-source@1/dist/index.js",
-		"https://cdn.jsdelivr.net/npm/@inlang/message-lint-rule-valid-js-identifier@1/dist/index.js",
-		"https://cdn.jsdelivr.net/npm/@inlang/plugin-message-format@2/dist/index.js",
-		"https://cdn.jsdelivr.net/npm/@inlang/plugin-m-function-matcher@0/dist/index.js"
+		"node_modules/@inlang/message-lint-rule-empty-pattern/dist/index.js",
+		"node_modules/@inlang/message-lint-rule-identical-pattern/dist/index.js",
+		"node_modules/@inlang/message-lint-rule-missing-translation/dist/index.js",
+		"node_modules/@inlang/message-lint-rule-without-source/dist/index.js",
+		"node_modules/@inlang/message-lint-rule-valid-js-identifier/dist/index.js",
+		"node_modules/@inlang/plugin-message-format/dist/index.js",
+		"node_modules/@inlang/plugin-m-function-matcher/dist/index.js"
 	],
 	"plugin.inlang.messageFormat": {
-		"pathPattern": "./messages/{languageTag}.json"
+		"pathPattern": "./messages/{locale}.json"
 	},
+	"baseLocale": "fi",
+	"locales": ["fi", "en"],
 	"sourceLanguageTag": "fi",
 	"languageTags": ["fi", "en"]
 }
