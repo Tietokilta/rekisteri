@@ -25,3 +25,7 @@ vite.config.ts.timestamp-*
 
 # Paraglide
 src/lib/paraglide
+
+# Nix
+.direnv
+.devenv
