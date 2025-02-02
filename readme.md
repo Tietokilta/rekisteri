@@ -29,6 +29,8 @@ pnpm db:seed
 pnpm dev
 ```
 
+Login with `root@tietokilta.fi` to check the admin view, and any other account to check the regular user view.
+
 ## Building
 
 To create a production version of your app:
