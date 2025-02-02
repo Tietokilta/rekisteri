@@ -21,7 +21,9 @@
 </script>
 
 <main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
-	<h1 class="font-mono text-lg">Welcome {data.user.email}!</h1>
+	<h1 class="font-mono text-lg">
+		{m.bad_crazy_termite_jump({ firstNames: data.user.firstNames ?? "", lastName: data.user.lastName ?? "" })}
+	</h1>
 
 	<div class="flex w-full max-w-2xl flex-col items-center gap-4 md:flex-row md:items-stretch">
 		<div class="w-full max-w-xs">
@@ -102,8 +104,8 @@
 				>
 					<UserCog class="h-6 w-6" />
 					<div class="flex-1 space-y-1">
-						<p class="text-sm leading-none font-medium">Manage memberships</p>
-						<p class="text-sm text-muted-foreground">Configure price and period</p>
+						<p class="text-sm leading-none font-medium">{m.raw_nimble_ibex_flow()}</p>
+						<p class="text-sm text-muted-foreground">{m.jolly_due_snake_support()}</p>
 					</div>
 				</a>
 			</div>
