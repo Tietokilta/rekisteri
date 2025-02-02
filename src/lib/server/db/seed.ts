@@ -13,7 +13,7 @@ async function main() {
 	if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set");
 
 	const client = postgres(process.env.DATABASE_URL);
-	const db = drizzle(client);
+	const db = drizzle(client, { schema: table, casing: "snake_case" });
 
 	console.log("Resetting database...");
 	await reset(db, { user: table.user, membership: table.membership, member: table.member });
