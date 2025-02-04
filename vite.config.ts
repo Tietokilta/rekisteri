@@ -2,6 +2,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { paraglide } from "@inlang/paraglide-sveltekit/vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { kitRoutes } from "vite-plugin-kit-routes";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 import { defineConfig } from "vite";
 import type { KIT_ROUTES } from "$lib/ROUTES";
 
@@ -14,5 +15,9 @@ export default defineConfig({
 			project: "./project.inlang",
 			outdir: "./src/lib/paraglide",
 		}),
+		basicSsl(),
 	],
+	server: {
+		proxy: {},
+	},
 });

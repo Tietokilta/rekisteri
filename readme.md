@@ -4,7 +4,7 @@ New project for a membership registry.
 
 ## Developing
 
-Pre-requisites [Node.js v22](https://nodejs.org/en/download).
+Pre-requisites [Node.js v22](https://nodejs.org/en/download). Additionally, [ngrok](TODO) is necessary to test payment webhooks?
 
 ```bash
 # enable corepack (pnpm)
