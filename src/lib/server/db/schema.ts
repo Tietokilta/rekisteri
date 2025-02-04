@@ -3,10 +3,10 @@ import { boolean, integer, pgEnum, pgTable, text, timestamp } from "drizzle-orm/
 import * as z from "zod";
 
 const timestamps = {
-	createdAt: timestamp({ withTimezone: true }).notNull().default(new Date()),
+	createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp({ withTimezone: true })
 		.notNull()
-		.default(new Date())
+		.defaultNow()
 		.$onUpdateFn(() => new Date()),
 };
 
