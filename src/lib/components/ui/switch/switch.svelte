@@ -21,7 +21,7 @@
 >
 	<SwitchPrimitive.Thumb
 		class={cn(
-			"pointer-events-none block size-5 rounded-full bg-background ring-0 shadow-lg transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
+			"pointer-events-none block size-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
 		)}
 	/>
 </SwitchPrimitive.Root>
