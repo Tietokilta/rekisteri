@@ -31,5 +31,7 @@
 	"zippy_proof_parrot_climb": "{count} members",
 	"bad_crazy_termite_jump": "Welcome {firstNames} {lastName}!",
 	"raw_nimble_ibex_flow": "Manage memberships",
-	"jolly_due_snake_support": "Configure price and period"
+	"jolly_due_snake_support": "Configure price and period",
+	"day_many_shark_compose": "CSG Membership Registry Sign In Code",
+	"giant_stale_raven_walk": "Your code is {code}"
 }
