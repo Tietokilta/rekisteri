@@ -9,6 +9,13 @@ interface SendEmailOptions {
 }
 
 export const sendEmail = async (options: SendEmailOptions): Promise<MessagesSendResult> => {
+	if (!env.MAILGUN_API_KEY) {
+		throw Error("MAILGUN API KEY NOT FOUND");
+	}
+	if (!env.MAILGUN_DOMAIN) {
+		throw Error("MAILGUN DOMAIN NOT FOUND");
+	}
+
 	const mailgun = new Mailgun(FormData);
 
 	const mg = mailgun.client({
