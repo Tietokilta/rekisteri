@@ -56,14 +56,16 @@ export async function deleteEmailOTP(id: string): Promise<void> {
 }
 
 export function sendOTPEmail(email: string, code: string): void {
+	const emailOptions = {
+		to: email,
+		subject: m.day_many_shark_compose(),
+		text: m.giant_stale_raven_walk({ code }),
+	};
+
 	if (dev) {
-		console.log(`To ${email}: Your login code is ${code}`);
+		console.log(emailOptions);
 	} else {
-		sendEmail({
-			to: email,
-			subject: m.day_many_shark_compose(),
-			html: m.giant_stale_raven_walk({ code }),
-		}).catch((err) => console.log(err));
+		sendEmail(emailOptions).catch((err) => console.log(err));
 	}
 }
 

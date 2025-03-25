@@ -1,11 +1,10 @@
-import FormData from "form-data";
 import Mailgun, { type MessagesSendResult } from "mailgun.js";
 import { env } from "$env/dynamic/private";
 
 interface SendEmailOptions {
 	to: string;
 	subject: string;
-	html: string;
+	text: string;
 }
 
 export const sendEmail = async (options: SendEmailOptions): Promise<MessagesSendResult> => {
@@ -28,6 +27,6 @@ export const sendEmail = async (options: SendEmailOptions): Promise<MessagesSend
 		from: env.MAILGUN_SENDER,
 		to: options.to,
 		subject: options.subject,
-		html: options.html,
+		text: options.text,
 	});
 };
