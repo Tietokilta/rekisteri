@@ -4,6 +4,9 @@ import { ExpiringTokenBucket } from "./rate-limit";
 import { encodeBase32LowerCaseNoPadding } from "@oslojs/encoding";
 import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
+import { dev } from "$app/environment";
+import { sendEmail } from "$lib/server/mailgun";
+import * as m from "$lib/paraglide/messages.js";
 
 import type { EmailOTP } from "$lib/server/db/schema";
 import type { RequestEvent } from "@sveltejs/kit";
@@ -53,7 +56,17 @@ export async function deleteEmailOTP(id: string): Promise<void> {
 }
 
 export function sendOTPEmail(email: string, code: string): void {
-	console.log(`To ${email}: Your login code is ${code}`);
+	const emailOptions = {
+		to: email,
+		subject: m.day_many_shark_compose(),
+		text: m.giant_stale_raven_walk({ code }),
+	};
+
+	if (dev) {
+		console.log(emailOptions);
+	} else {
+		sendEmail(emailOptions).catch((err) => console.log(err));
+	}
 }
 
 export function setEmailOTPCookie(event: RequestEvent, otp: EmailOTP): void {
