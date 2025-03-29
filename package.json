@@ -71,7 +71,8 @@
 		"drizzle-orm": "^0.43.1",
 		"mailgun.js": "^12.0.1",
 		"mode-watcher": "^1.0.6",
-		"postgres": "^3.4.5"
+		"postgres": "^3.4.5",
+		"stripe": "^18.1.0"
 	},
 	"packageManager": "pnpm@10.10.0",
 	"engines": {
