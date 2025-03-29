@@ -33,5 +33,8 @@
 	"raw_nimble_ibex_flow": "Manage memberships",
 	"jolly_due_snake_support": "Configure price and period",
 	"day_many_shark_compose": "CSG Membership Registry Sign In Code",
-	"giant_stale_raven_walk": "Your code is {code}"
+	"giant_stale_raven_walk": "Your code is {code}",
+	"short_key_crocodile_yell": "Stripe product ID",
+	"home_maroon_vole_pinch": "Product ID found on Stripe dashboard",
+	"zany_upper_antelope_grasp": "Product ID {stripeProductId}"
 }

@@ -39,6 +39,7 @@ export const emailOTP = pgTable("email_otp", {
 export const membership = pgTable("membership", {
 	id: text().primaryKey(),
 	type: text().notNull(), // todo l10n
+	stripeProductId: text().notNull(),
 	startTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 	endTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 	priceCents: integer().notNull().default(0),

@@ -33,5 +33,9 @@
 	"raw_nimble_ibex_flow": "Hallinnoi jäsenyyksiä",
 	"jolly_due_snake_support": "Muokkaa hintoja ja kausia",
 	"day_many_shark_compose": "Tietokillan jäsenrekisterin sisäänkirjautumiskoodi",
-	"giant_stale_raven_walk": "Koodisi on {code}"
+	"giant_stale_raven_walk": "Koodisi on {code}",
+	"short_key_crocodile_yell": "Stripe tuotekoodi",
+	"home_maroon_vole_pinch": "Stripen dashboardilta löytyvä tuotekoodi (Product ID)",
+	"zany_upper_antelope_grasp": "Tuotekoodi {stripeProductId}",
+	"early_cuddly_horse_thrive": "Jäsenyys"
 }
