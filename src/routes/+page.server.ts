@@ -25,7 +25,7 @@ export const load: PageServerLoad = async (event) => {
 		},
 	});
 
-	return { user: event.locals.user, form };
+	return { user: event.locals.user, form, member: event.locals.member };
 };
 
 export const actions: Actions = {

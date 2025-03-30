@@ -63,7 +63,13 @@ export async function validateSessionToken(token: string) {
 		await db.update(table.session).set({ expiresAt: session.expiresAt }).where(eq(table.session.id, session.id));
 	}
 
-	return { session, user };
+	const members = await db.query.member.findMany({
+		where: eq(table.member.userId, user.id),
+		with: { membership: true },
+	});
+	const newestMember = members.sort((a, b) => b.membership.endTime.getTime() - a.membership.endTime.getTime())[0];
+
+	return { session, user, member: newestMember };
 }
 
 export type SessionValidationResult = Awaited<ReturnType<typeof validateSessionToken>>;

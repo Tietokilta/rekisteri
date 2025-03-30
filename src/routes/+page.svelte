@@ -10,6 +10,8 @@
 	import { route } from "$lib/ROUTES";
 	import { Separator } from "$lib/components/ui/separator";
 	import UserCog from "lucide-svelte/icons/user-cog";
+	import HandCoins from "lucide-svelte/icons/hand-coins";
+	import { languageTag } from "$lib/paraglide/runtime";
 
 	let { data }: { data: PageServerData } = $props();
 
@@ -94,21 +96,41 @@
 			</form>
 		</div>
 
-		{#if data.user.isAdmin}
-			<Separator class="hidden md:block" orientation="vertical" />
-			<div class="w-full max-w-xs">
-				<h2 class="font-mono text-lg">{m.each_strong_butterfly_seek()}</h2>
-				<a
-					href={route("/admin/memberships")}
-					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
-				>
-					<UserCog class="h-6 w-6" />
-					<div class="flex-1 space-y-1">
-						<p class="text-sm leading-none font-medium">{m.raw_nimble_ibex_flow()}</p>
-						<p class="text-sm text-muted-foreground">{m.jolly_due_snake_support()}</p>
-					</div>
-				</a>
+		<Separator class="hidden md:block" orientation="vertical" />
+		<div class="flex w-full max-w-xs flex-col gap-y-4">
+			<div class="space-y-1">
+				<h2 class="font-mono text-lg">{m.fit_mushy_marlin_bump()}</h2>
+				{#if data.member}
+					<p class="text-sm">{m.helpful_keen_beetle_ripple()}: {data.member.membership.type}</p>
+					<p class="text-sm">{m.zippy_proud_haddock_emerge()}: {data.member.status}</p>
+					<p class="text-sm">
+						{m.major_knotty_bulldog_list()}: {data.member.membership.endTime.toLocaleDateString(`${languageTag()}-FI`)}
+					</p>
+				{:else}
+					<p class="text-sm">{m.fine_tasty_sparrow_work()}</p>
+					<a href={route("/")} class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10">
+						<HandCoins class="h-6 w-6" />
+						<p class="text-sm leading-none font-medium">{m.sweet_front_leopard_dig()}</p>
+					</a>
+				{/if}
 			</div>
-		{/if}
+
+			{#if data.user.isAdmin}
+				<Separator class="hidden md:block" orientation="horizontal" />
+				<div>
+					<h2 class="font-mono text-lg">{m.each_strong_butterfly_seek()}</h2>
+					<a
+						href={route("/admin/memberships")}
+						class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
+					>
+						<UserCog class="h-6 w-6" />
+						<div class="flex-1 space-y-1">
+							<p class="text-sm leading-none font-medium">{m.raw_nimble_ibex_flow()}</p>
+							<p class="text-sm text-muted-foreground">{m.jolly_due_snake_support()}</p>
+						</div>
+					</a>
+				</div>
+			{/if}
+		</div>
 	</div>
 </main>
