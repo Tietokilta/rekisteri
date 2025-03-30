@@ -18,6 +18,7 @@ export const user = pgTable("user", {
 	lastName: text(),
 	homeMunicipality: text(),
 	isAllowedEmails: boolean().notNull().default(false),
+	stripeCustomerId: text(),
 	...timestamps,
 });
 
@@ -64,6 +65,7 @@ export const member = pgTable("member", {
 		.notNull()
 		.references(() => membership.id),
 	status: memberStatusEnum().notNull(),
+	stripeSessionId: text(),
 	...timestamps,
 });
 
