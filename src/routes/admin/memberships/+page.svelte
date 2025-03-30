@@ -39,7 +39,7 @@
 								>
 							</p>
 							<p class="text-muted-foreground">
-								{m.zany_upper_antelope_grasp({ stripeProductId: membership.stripeProductId })}
+								{m.zany_upper_antelope_grasp({ stripePriceId: membership.stripePriceId })}
 							</p>
 							<p class="text-muted-foreground">{m.active_home_lobster_flip({ price: membership.priceCents / 100 })}</p>
 							<p class="text-muted-foreground">{m.zippy_proof_parrot_climb({ count: membership.memberCount })}</p>
@@ -86,11 +86,11 @@
 					<Form.FieldErrors />
 				</Form.Field>
 
-				<Form.Field {form} name="stripeProductId">
+				<Form.Field {form} name="stripePriceId">
 					<Form.Control>
 						{#snippet children({ props })}
 							<Form.Label>{m.short_key_crocodile_yell()}</Form.Label>
-							<Input {...props} {...$constraints.stripeProductId} bind:value={$formData.stripeProductId} />
+							<Input {...props} {...$constraints.stripePriceId} bind:value={$formData.stripePriceId} />
 							<Form.Description>{m.home_maroon_vole_pinch()}</Form.Description>
 						{/snippet}
 					</Form.Control>

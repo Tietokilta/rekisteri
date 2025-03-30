@@ -18,7 +18,7 @@ export const load: PageServerLoad = async (event) => {
 	const form = await superValidate(zod(createSchema), {
 		defaults: {
 			type: "",
-			stripeProductId: "",
+			stripePriceId: "",
 			startTime: new Date(currentYear, 7, 1, 12).toISOString().split("T")[0],
 			endTime: new Date(currentYear + 1, 6, 31, 12).toISOString().split("T")[0],
 			priceCents: 0,
@@ -30,7 +30,7 @@ export const load: PageServerLoad = async (event) => {
 		.select({
 			id: table.membership.id,
 			type: table.membership.type,
-			stripeProductId: table.membership.stripeProductId,
+			stripePriceId: table.membership.stripePriceId,
 			startTime: table.membership.startTime,
 			endTime: table.membership.endTime,
 			priceCents: table.membership.priceCents,
@@ -68,7 +68,7 @@ async function createMembership(event: RequestEvent) {
 		.values({
 			id: crypto.randomUUID(),
 			type: form.data.type,
-			stripeProductId: form.data.stripeProductId,
+			stripePriceId: form.data.stripePriceId,
 			startTime: new Date(form.data.startTime),
 			endTime: new Date(form.data.endTime),
 			priceCents: form.data.priceCents,

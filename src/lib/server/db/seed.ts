@@ -40,8 +40,12 @@ async function main() {
 			count: 3,
 			columns: {
 				type: f.valuesFromArray({ values: ["varsinainen jäsen", "ulkojäsen", "kannatusjäsen"], isUnique: true }),
-				stripeProductId: f.valuesFromArray({
-					values: ["prod_RiDNq4lfU0JJnU", "prod_RiDS5NrZOdZ9uV", "prod_RiDTKRCG8J0pJD"],
+				stripePriceId: f.valuesFromArray({
+					values: [
+						"price_1R8OQM2a3B4f6jfhOUeOMY74",
+						"price_1R8ORJ2a3B4f6jfheqBz7Pwj",
+						"price_1R8ORc2a3B4f6jfh4mtYKiXl",
+					],
 					isUnique: true,
 				}),
 				startTime: f.default({ defaultValue: new Date("2024-08-01") }),

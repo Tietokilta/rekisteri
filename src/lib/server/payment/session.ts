@@ -1,9 +1,7 @@
-import { route } from "$lib/ROUTES";
 import { stripe } from "$lib/server/payment";
 import * as table from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
 import { eq } from "drizzle-orm";
-import { fail } from "@sveltejs/kit";
 
 /**
  * Start and return a Stripe payment session. Creates a customer in Stripe if one does not exist for
@@ -21,9 +19,7 @@ export async function createSession(userId: string, membershipId: string) {
 		where: eq(table.user.id, userId),
 	});
 	if (!membership || !user) {
-		return fail(400, {
-			message: "Cannot purchase non-existent membership and/or user",
-		});
+		return null;
 	}
 
 	let stripeCustomerId = user.stripeCustomerId;
@@ -44,13 +40,14 @@ export async function createSession(userId: string, membershipId: string) {
 	const session = await stripe.checkout.sessions.create({
 		line_items: [
 			{
-				price: membership.stripeProductId,
+				price: membership.stripePriceId,
 				quantity: 1,
 			},
 		],
 		mode: "payment",
 		customer: stripeCustomerId,
-		success_url: route("/"),
+		success_url: "http://localhost:5173/fi",
+		cancel_url: "http://localhost:5173/fi",
 		metadata: { memberId },
 	});
 	await db.insert(table.member).values({
