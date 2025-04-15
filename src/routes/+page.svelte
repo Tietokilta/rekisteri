@@ -96,7 +96,7 @@
 
 		{#if data.user.isAdmin}
 			<Separator class="hidden md:block" orientation="vertical" />
-			<div class="w-full max-w-xs flex flex-col gap-4">
+			<div class="flex w-full max-w-xs flex-col gap-4">
 				<h2 class="font-mono text-lg">{m.each_strong_butterfly_seek()}</h2>
 				<a
 					href={route("/admin/memberships")}
@@ -116,7 +116,6 @@
 					<div class="flex-1 space-y-1">
 						<p class="text-sm leading-none font-medium">{m.warm_large_otter_push()}</p>
 						<p class="text-sm text-muted-foreground">{m.legal_zany_tortoise_flop()}</p>
-
 					</div>
 				</a>
 			</div>

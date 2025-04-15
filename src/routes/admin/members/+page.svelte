@@ -21,11 +21,11 @@
 			<tbody>
 				{#each data.members as member}
 					<tr class="h-12">
-						<td class="border-t overflow-x-scroll">{member.id}</td>
-						<td class="border-t overflow-x-scroll">{member.firstNames ?? "-"}</td>
-						<td class="border-t overflow-x-scroll">{member.lastName ?? "-"}</td>
-						<td class="border-t overflow-x-scroll">{member.homeMunicipality ?? "-"}</td>
-						<td class="border-t overflow-x-scroll">{member.membershipType ?? "-"}</td>
+						<td class="overflow-x-scroll border-t">{member.id}</td>
+						<td class="overflow-x-scroll border-t">{member.firstNames ?? "-"}</td>
+						<td class="overflow-x-scroll border-t">{member.lastName ?? "-"}</td>
+						<td class="overflow-x-scroll border-t">{member.homeMunicipality ?? "-"}</td>
+						<td class="overflow-x-scroll border-t">{member.membershipType ?? "-"}</td>
 					</tr>
 				{/each}
 			</tbody>

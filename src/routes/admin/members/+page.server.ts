@@ -9,24 +9,23 @@ export const load: PageServerLoad = async (event) => {
 		return error(404, "Not found");
 	}
 
-	const subQuery =  db.select( {
-		id: table.user.id,
-		firstNames: table.user.firstNames,
-		lastName: table.user.lastName,
-		homeMunicipality: table.user.homeMunicipality,
-		isAllowedEmails: table.user.isAllowedEmails,
-		membershipType: table.membership.type
-	})
-	.from(table.member)
-	.leftJoin(table.user, sql`${table.member.userId} = ${table.user.id}`)
-	.leftJoin(table.membership, sql`${table.member.membershipId} = ${table.membership.id}`)
-	.as("subQuery");
+	const subQuery = db
+		.select({
+			id: table.user.id,
+			firstNames: table.user.firstNames,
+			lastName: table.user.lastName,
+			homeMunicipality: table.user.homeMunicipality,
+			isAllowedEmails: table.user.isAllowedEmails,
+			membershipType: table.membership.type,
+		})
+		.from(table.member)
+		.leftJoin(table.user, sql`${table.member.userId} = ${table.user.id}`)
+		.leftJoin(table.membership, sql`${table.member.membershipId} = ${table.membership.id}`)
+		.as("subQuery");
 
-	const members = await db.select()
-		.from(subQuery)
-		.orderBy(asc(subQuery.firstNames), asc(subQuery.lastName));
-	
+	const members = await db.select().from(subQuery).orderBy(asc(subQuery.firstNames), asc(subQuery.lastName));
+
 	return {
-		members
+		members,
 	};
 };
