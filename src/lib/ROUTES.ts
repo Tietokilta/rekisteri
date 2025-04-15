@@ -12,6 +12,7 @@ const PAGES = {
   "/": `/`,
   "/sign-in": `/sign-in`,
   "/sign-in/email": `/sign-in/email`,
+  "/admin/members": `/admin/members`,
   "/admin/memberships": `/admin/memberships`
 }
 
@@ -148,7 +149,7 @@ export function route<T extends keyof AllTypes>(key: T, ...params: any[]): strin
 * ```
 */
 export type KIT_ROUTES = {
-  PAGES: { '/': never, '/sign-in': never, '/sign-in/email': never, '/admin/memberships': never }
+  PAGES: { '/': never, '/sign-in': never, '/sign-in/email': never, '/admin/members': never, '/admin/memberships': never }
   SERVERS: { 'POST /api/webhook/stripe': never }
   ACTIONS: { 'saveInfo /': never, 'signOut /': never, 'payMembership /': never, 'default /sign-in': never, 'verify /sign-in/email': never, 'resend /sign-in/email': never, 'createMembership /admin/memberships': never, 'deleteMembership /admin/memberships': never }
   LINKS: Record<string, never>

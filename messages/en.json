@@ -36,5 +36,15 @@
 	"giant_stale_raven_walk": "Your code is {code}",
 	"short_key_crocodile_yell": "Stripe price ID",
 	"home_maroon_vole_pinch": "Price ID found on Stripe dashboard",
-	"zany_upper_antelope_grasp": "Price ID {stripePriceId}"
+	"zany_upper_antelope_grasp": "Price ID {stripePriceId}",
+	"warm_large_otter_push": "Manage members",
+	"happy_away_guppy_aid": "Members",
+	"fresh_spicy_badger_honor": "Home municipality: {homeMunicipality}",
+	"direct_tough_gibbon_trust": "Membership type: {membershipType}",
+	"grand_moving_capybara_trim": "First names",
+	"front_teal_beetle_earn": "Last names",
+	"tough_dirty_turkey_drip": "Home municipality",
+	"proud_seemly_gull_scoop": "Membership type",
+	"quick_spare_mule_cry": "Identifier",
+	"legal_zany_tortoise_flop": "Manage individual members"
 }
