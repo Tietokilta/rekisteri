@@ -27,7 +27,7 @@
 		<div class="w-full max-w-xs">
 			<h2 class="font-mono text-lg">{m.equal_smug_dolphin_promise()}</h2>
 			<ul class="space-y-4">
-				{#each data.memberships as membership}
+				{#each data.memberships as membership (membership.id)}
 					<li class="flex items-center justify-between space-x-4 rounded-md border p-4">
 						<div class="text-sm">
 							<p class="font-medium">{membership.type}</p>
@@ -74,7 +74,7 @@
 							<Input {...props} {...$constraints.type} list="types" bind:value={$formData.type} />
 							<Form.Description>{m.any_mild_seal_trust()}</Form.Description>
 							<datalist id="types">
-								{#each data.types as type}
+								{#each data.types as type (type)}
 									<option value={type}></option>
 								{/each}
 							</datalist>

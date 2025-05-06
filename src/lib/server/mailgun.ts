@@ -1,4 +1,5 @@
-import Mailgun, { type MessagesSendResult } from "mailgun.js";
+import Mailgun from "mailgun.js";
+import type { MessagesSendResult } from "mailgun.js/definitions";
 import { env } from "$env/dynamic/private";
 
 interface SendEmailOptions {
