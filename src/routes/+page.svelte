@@ -10,6 +10,7 @@
 	import { route } from "$lib/ROUTES";
 	import { Separator } from "$lib/components/ui/separator";
 	import UserCog from "lucide-svelte/icons/user-cog";
+	import { localizeHref } from "$lib/paraglide/runtime";
 
 	let { data }: { data: PageServerData } = $props();
 
@@ -99,7 +100,7 @@
 			<div class="w-full max-w-xs">
 				<h2 class="font-mono text-lg">{m.each_strong_butterfly_seek()}</h2>
 				<a
-					href={route("/admin/memberships")}
+					href={localizeHref(route("/admin/memberships"))}
 					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
 				>
 					<UserCog class="h-6 w-6" />

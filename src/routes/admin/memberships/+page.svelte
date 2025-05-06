@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Separator } from "$lib/components/ui/separator";
-	import { languageTag } from "$lib/paraglide/runtime";
+	import { getLocale } from "$lib/paraglide/runtime";
 	import { route } from "$lib/ROUTES";
 	import { superForm } from "sveltekit-superforms";
 	import type { PageProps } from "./$types";
@@ -33,9 +33,9 @@
 							<p class="font-medium">{membership.type}</p>
 							<p>
 								<time datetime={membership.startTime.toISOString()}
-									>{membership.startTime.toLocaleDateString(`${languageTag()}-FI`)}</time
+									>{membership.startTime.toLocaleDateString(`${getLocale()}-FI`)}</time
 								>–<time datetime={membership.endTime.toISOString()}
-									>{membership.endTime.toLocaleDateString(`${languageTag()}-FI`)}</time
+									>{membership.endTime.toLocaleDateString(`${getLocale()}-FI`)}</time
 								>
 							</p>
 							<p class="text-muted-foreground">

@@ -4,13 +4,13 @@ import { RefillingTokenBucket } from "$lib/server/auth/rate-limit";
 import * as z from "zod";
 import { setEmailCookie } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
-import { i18n } from "$lib/i18n";
+import { localizeHref } from "$lib/paraglide/runtime";
 
 const ipBucket = new RefillingTokenBucket<string>(20, 1);
 
 export const load: PageServerLoad = async (event) => {
 	if (event.locals.user) {
-		redirect(302, i18n.resolveRoute(route("/")));
+		redirect(302, localizeHref(route("/")));
 	}
 	return {};
 };
@@ -47,5 +47,5 @@ async function action(event: RequestEvent) {
 	}
 
 	setEmailCookie(event, email, new Date(Date.now() + 1000 * 60 * 10));
-	redirect(303, i18n.resolveRoute(route("/sign-in/email")));
+	redirect(303, localizeHref(route("/sign-in/email")));
 }
