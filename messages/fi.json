@@ -36,5 +36,15 @@
 	"giant_stale_raven_walk": "Koodisi on {code}",
 	"short_key_crocodile_yell": "Stripe hintakoodi",
 	"home_maroon_vole_pinch": "Stripen dashboardilta löytyvä tuotekoodi (Price ID)",
-	"zany_upper_antelope_grasp": "Hintakoodi {stripePriceId}"
+	"zany_upper_antelope_grasp": "Hintakoodi {stripePriceId}",
+	"warm_large_otter_push": "Hallinnoi jäseniä",
+	"happy_away_guppy_aid": "Jäsenet",
+	"fresh_spicy_badger_honor": "Kotikunta: {homeMunicipality}",
+	"direct_tough_gibbon_trust": "Jäsenyyden tyyppi: {membershipType}",
+	"grand_moving_capybara_trim": "Etunimet",
+	"front_teal_beetle_earn": "Sukunimet",
+	"tough_dirty_turkey_drip": "Kotikunta",
+	"proud_seemly_gull_scoop": "Jäsenyyden tyyppi",
+	"quick_spare_mule_cry": "Tunnus",
+	"legal_zany_tortoise_flop": "Hallinnoi yksittäisiä jäseniä"
 }
