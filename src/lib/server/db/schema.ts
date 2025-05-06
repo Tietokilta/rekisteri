@@ -18,6 +18,7 @@ export const user = pgTable("user", {
 	lastName: text(),
 	homeMunicipality: text(),
 	isAllowedEmails: boolean().notNull().default(false),
+	stripeCustomerId: text(),
 	...timestamps,
 });
 
@@ -39,6 +40,7 @@ export const emailOTP = pgTable("email_otp", {
 export const membership = pgTable("membership", {
 	id: text().primaryKey(),
 	type: text().notNull(), // todo l10n
+	stripePriceId: text().notNull(),
 	startTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 	endTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 	priceCents: integer().notNull().default(0),
@@ -63,6 +65,7 @@ export const member = pgTable("member", {
 		.notNull()
 		.references(() => membership.id),
 	status: memberStatusEnum().notNull(),
+	stripeSessionId: text(),
 	...timestamps,
 });
 

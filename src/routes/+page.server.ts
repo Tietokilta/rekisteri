@@ -9,6 +9,7 @@ import { schema } from "./schema";
 import { superValidate } from "sveltekit-superforms";
 import { zod } from "sveltekit-superforms/adapters";
 import * as auth from "$lib/server/auth/session";
+import { createSession } from "$lib/server/payment/session";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
@@ -31,6 +32,7 @@ export const load: PageServerLoad = async (event) => {
 export const actions: Actions = {
 	saveInfo,
 	signOut,
+	payMembership,
 };
 
 async function saveInfo(event: RequestEvent) {
@@ -70,4 +72,20 @@ async function signOut(event: RequestEvent) {
 	auth.deleteSessionTokenCookie(event);
 
 	return redirect(302, i18n.resolveRoute(route("/sign-in")));
+}
+
+async function payMembership(event: RequestEvent) {
+	if (!event.locals.user) {
+		return fail(401, {
+			message: "Unauthorized",
+		});
+	}
+	const membershipId = "TODO";
+	const paymentSession = await createSession(event.locals.user.id, membershipId);
+	if (!paymentSession || !paymentSession.url) {
+		return fail(400, {
+			message: "Could not create payment session",
+		});
+	}
+	return redirect(303, paymentSession.url);
 }

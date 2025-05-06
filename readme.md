@@ -31,6 +31,31 @@ pnpm dev
 
 Login with `root@tietokilta.fi` to check the admin view, and any other account to check the regular user view.
 
+### Testing payments with Stripe
+
+Pre-prequisites: [Stripe CLI](https://docs.stripe.com/stripe-cli#install)
+
+1. Add your Stripe sandbox API key to `.env`:
+
+```bash
+STRIPE_API_KEY=sk_test_...
+```
+
+2. Start listening to webhooks
+
+```bash
+# required only on the first time
+stripe login
+
+stripe listen --forward-to localhost:"$PORT"/api/webhooks/stripe
+```
+
+3. Set the webhook signing secret from the output of `stripe listen` to `.env`
+
+```bash
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
 ## Building
 
 To create a production version of your app:
