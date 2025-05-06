@@ -24,5 +24,11 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-const handleParaglide: Handle = i18n.handle();
+const handleParaglide: Handle = async ({ event, resolve }) => {
+	// Ignore for API paths
+	if (event.url.pathname.startsWith("/api")) {
+		return resolve(event);
+	}
+	return i18n.handle()({ event, resolve });
+};
 export const handle: Handle = sequence(handleAuth, handleParaglide);
