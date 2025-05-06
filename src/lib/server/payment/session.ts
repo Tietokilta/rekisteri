@@ -60,3 +60,39 @@ export async function createSession(userId: string, membershipId: string) {
 
 	return session;
 }
+
+/**
+ * @param {string} sessionId
+ * @see {@link https://docs.stripe.com/checkout/fulfillment}
+ */
+export async function fulfillSession(sessionId: string) {
+	const session = await stripe.checkout.sessions.retrieve(sessionId);
+	if (session.payment_status === "unpaid") {
+		return;
+	}
+	const member = await db.query.member.findFirst({
+		where: eq(table.member.stripeSessionId, sessionId),
+	});
+	if (!member || member.status !== "awaiting_payment") {
+		return;
+	}
+	await db.update(table.member).set({ status: "awaiting_approval" }).where(eq(table.member.id, member.id));
+}
+
+/**
+ * @param {string} sessionId
+ * @see {@link https://docs.stripe.com/checkout/fulfillment}
+ */
+export async function cancelSession(sessionId: string) {
+	const session = await stripe.checkout.sessions.retrieve(sessionId);
+	if (session.payment_status !== "unpaid") {
+		return;
+	}
+	const member = await db.query.member.findFirst({
+		where: eq(table.member.stripeSessionId, sessionId),
+	});
+	if (!member || member.status !== "awaiting_payment") {
+		return;
+	}
+	await db.update(table.member).set({ status: "cancelled" }).where(eq(table.member.id, member.id));
+}
