@@ -43,4 +43,5 @@ jobs:
         run: |
           nix build .#docker --accept-flake-config -L
           docker load < result
+          docker tag rekisteri:latest ghcr.io/tietokilta/rekisteri:latest
           docker push ghcr.io/tietokilta/rekisteri:latest
