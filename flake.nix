@@ -35,6 +35,8 @@
           pnpm.configHook
         ];
 
+        STRIPE_API_KEY = "sk_test_...";
+        STRIPE_WEBHOOK_SECRET = "whsec_...";
         DATABASE_URL = "postgres://root:mysecretpassword@localhost:5432/local";
 
         pnpmDeps = pnpm.fetchDeps {
