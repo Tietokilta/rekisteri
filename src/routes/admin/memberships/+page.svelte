@@ -90,7 +90,12 @@
 					<Form.Control>
 						{#snippet children({ props })}
 							<Form.Label>{m.short_key_crocodile_yell()}</Form.Label>
-							<Input {...props} {...$constraints.stripePriceId} bind:value={$formData.stripePriceId} />
+							<Input
+								{...props}
+								{...$constraints.stripePriceId}
+								bind:value={$formData.stripePriceId}
+								placeholder="price_xxx"
+							/>
 							<Form.Description>{m.home_maroon_vole_pinch()}</Form.Description>
 						{/snippet}
 					</Form.Control>
