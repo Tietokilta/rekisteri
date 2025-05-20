@@ -31,28 +31,84 @@ async function main() {
 		isAdmin: true,
 	});
 
-	await seed(
-		db,
-		{ user: table.user, member: table.member, membership: table.membership },
-		{ count: 1000, version: "2" },
-	).refine((f) => ({
-		membership: {
-			count: 3,
-			columns: {
-				type: f.valuesFromArray({ values: ["varsinainen jäsen", "ulkojäsen", "kannatusjäsen"], isUnique: true }),
-				stripePriceId: f.valuesFromArray({
-					values: [
-						"price_1R8OQM2a3B4f6jfhOUeOMY74",
-						"price_1R8ORJ2a3B4f6jfheqBz7Pwj",
-						"price_1R8ORc2a3B4f6jfh4mtYKiXl",
-					],
-					isUnique: true,
-				}),
-				startTime: f.default({ defaultValue: new Date("2024-08-01") }),
-				endTime: f.default({ defaultValue: new Date("2025-07-31") }),
-				priceCents: f.valuesFromArray({ values: [700, 5000] }),
-			},
+	const membershipsToSeed = [
+		{
+			id: generateUserId(),
+			type: "varsinainen jäsen",
+			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
+			startTime: new Date("2024-08-01"),
+			endTime: new Date("2025-07-31"),
+			priceCents: 700,
 		},
+		{
+			id: generateUserId(),
+			type: "ulkojäsen",
+			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
+			startTime: new Date("2024-08-01"),
+			endTime: new Date("2025-07-31"),
+			priceCents: 700,
+		},
+		{
+			id: generateUserId(),
+			type: "kannatusjäsen",
+			stripePriceId: "price_1R8ORc2a3B4f6jfh4mtYKiXl",
+			startTime: new Date("2024-08-01"),
+			endTime: new Date("2025-07-31"),
+			priceCents: 5000,
+		},
+		{
+			id: generateUserId(),
+			type: "varsinainen jäsen",
+			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
+			startTime: new Date("2025-08-01"),
+			endTime: new Date("2026-07-31"),
+			priceCents: 700,
+		},
+		{
+			id: generateUserId(),
+			type: "ulkojäsen",
+			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
+			startTime: new Date("2025-08-01"),
+			endTime: new Date("2026-07-31"),
+			priceCents: 700,
+		},
+		{
+			id: generateUserId(),
+			type: "kannatusjäsen",
+			stripePriceId: "price_1R8ORc2a3B4f6jfh4mtYKiXl",
+			startTime: new Date("2025-08-01"),
+			endTime: new Date("2026-07-31"),
+			priceCents: 5000,
+		},
+	];
+
+	const insertedMemberships = await db
+		.insert(table.membership)
+		.values(membershipsToSeed)
+		.returning({ id: table.membership.id });
+
+	const weightedMembershipValues = insertedMemberships.map((insertedMembership, index) => {
+		const originalMembershipDetails = membershipsToSeed[index];
+		let yearWeight = 0;
+		if (originalMembershipDetails.startTime.getFullYear() === 2024) {
+			yearWeight = 0.8;
+		} else if (originalMembershipDetails.startTime.getFullYear() === 2025) {
+			yearWeight = 0.2;
+		}
+
+		let typeWeight = 0;
+		if (originalMembershipDetails.type === "varsinainen jäsen") {
+			typeWeight = 0.9;
+		} else if (originalMembershipDetails.type === "ulkojäsen") {
+			typeWeight = 0.09;
+		} else if (originalMembershipDetails.type === "kannatusjäsen") {
+			typeWeight = 0.01;
+		}
+		return { values: [insertedMembership.id], weight: yearWeight * typeWeight };
+	});
+
+	console.log("Seeding users and members using drizzle-seed...");
+	await seed(db, { user: table.user, member: table.member }, { count: 1000, version: "2" }).refine((f) => ({
 		user: {
 			columns: {
 				homeMunicipality: f.state(),
@@ -71,6 +127,20 @@ async function main() {
 				],
 			},
 		},
+		member: {
+			columns: {
+				membershipId: f.valuesFromArray({ values: weightedMembershipValues }),
+				status: f.valuesFromArray({
+					values: [
+						{ values: ["awaiting_approval"], weight: 0.02 },
+						{ values: ["awaiting_payment"], weight: 0.01 },
+						{ values: ["expired"], weight: 0.0 },
+						{ values: ["cancelled"], weight: 0.01 },
+						{ values: ["active"], weight: 0.96 },
+					],
+				}),
+			},
+		},
 	}));
 
 	console.log("Database seeded!");
@@ -78,4 +148,7 @@ async function main() {
 	await client.end();
 }
 
-main();
+main().catch((e) => {
+	console.error("Seeding failed:", e);
+	process.exit(1);
+});
