@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
     systems.url = "github:nix-systems/default";
     devenv.url = "github:cachix/devenv";
     devenv.inputs.nixpkgs.follows = "nixpkgs";
@@ -22,7 +22,7 @@
   in {
     packages = forEachSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
-      pnpm = pkgs.pnpm.override {nodejs = pkgs.nodejs_22;};
+      pnpm = pkgs.pnpm.override {nodejs = pkgs.nodejs_24;};
 
       default = pkgs.stdenv.mkDerivation (finalAttrs: {
         pname = "rekisteri";
@@ -31,7 +31,7 @@
         src = ./.;
 
         nativeBuildInputs = with pkgs; [
-          nodejs_22
+          nodejs_24
           pnpm.configHook
         ];
 
@@ -41,7 +41,7 @@
 
         pnpmDeps = pnpm.fetchDeps {
           inherit (finalAttrs) pname version src;
-          hash = "sha256-hHptEVSkXA2oJhCbmPrbCcE1p7p8erEqOD+m9TpqXKw=";
+          # hash = "sha256-hHptEVSkXA2oJhCbmPrbCcE1p7p8erEqOD+m9TpqXKw=";
         };
 
         installPhase = ''
@@ -58,7 +58,7 @@
       docker = pkgs.dockerTools.buildLayeredImage {
         name = "rekisteri";
         tag = "latest";
-        config.Cmd = ["${pkgs.nodejs-slim_22}/bin/node" "${default}/index.js"];
+        config.Cmd = ["${pkgs.nodejs-slim_24}/bin/node" "${default}/index.js"];
       };
       devenv-up = self.devShells.${system}.default.config.procfileScript;
       devenv-test = self.devShells.${system}.default.config.test;
@@ -68,7 +68,7 @@
       forEachSystem
       (system: let
         pkgs = nixpkgs.legacyPackages.${system};
-        pnpm = pkgs.pnpm.override {nodejs = pkgs.nodejs_22;};
+        pnpm = pkgs.pnpm.override {nodejs = pkgs.nodejs_24;};
       in {
         default = devenv.lib.mkShell {
           inherit inputs pkgs;
