@@ -11,7 +11,8 @@ export const load: PageServerLoad = async (event) => {
 
 	const subQuery = db
 		.select({
-			id: table.user.id,
+			id: table.member.id,
+			userId: table.member.userId,
 			firstNames: table.user.firstNames,
 			lastName: table.user.lastName,
 			homeMunicipality: table.user.homeMunicipality,
