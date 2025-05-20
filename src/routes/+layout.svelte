@@ -30,23 +30,25 @@
 	<header
 		class="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60"
 	>
-		<div class="container flex h-14 max-w-(--breakpoint-2xl) items-center justify-between">
-			<a href={localizeHref(route("/"))} class="flex items-center gap-2">
-				<RatasLogo class="h-12 w-12" />
-				<span class="sr-only font-mono font-medium sm:not-sr-only sm:text-xl">{m.plain_long_maggot_build()}</span>
-			</a>
-			<ToggleGroup.Root type="single" value={getLocale()} data-sveltekit-reload>
-				<ToggleGroup.Item value="fi">
-					{#snippet child({ props })}
-						<a {...props} href={languageHref("fi")}>fi</a>
-					{/snippet}
-				</ToggleGroup.Item>
-				<ToggleGroup.Item value="en">
-					{#snippet child({ props })}
-						<a {...props} href={languageHref("en")}>en</a>
-					{/snippet}
-				</ToggleGroup.Item>
-			</ToggleGroup.Root>
+		<div class="mx-auto w-full max-w-[1400px]">
+			<div class="container mx-auto flex h-14 items-center justify-between gap-2 px-4 md:gap-4">
+				<a href={localizeHref(route("/"))} class="flex items-center gap-2">
+					<RatasLogo class="h-12 w-12" />
+					<span class="sr-only font-mono font-medium sm:not-sr-only sm:text-xl">{m.plain_long_maggot_build()}</span>
+				</a>
+				<ToggleGroup.Root type="single" value={getLocale()} data-sveltekit-reload>
+					<ToggleGroup.Item value="fi">
+						{#snippet child({ props })}
+							<a {...props} href={languageHref("fi")}>fi</a>
+						{/snippet}
+					</ToggleGroup.Item>
+					<ToggleGroup.Item value="en">
+						{#snippet child({ props })}
+							<a {...props} href={languageHref("en")}>en</a>
+						{/snippet}
+					</ToggleGroup.Item>
+				</ToggleGroup.Root>
+			</div>
 		</div>
 	</header>
 	{@render children()}

@@ -9,7 +9,7 @@
 	import * as Form from "$lib/components/ui/form/index.js";
 	import { route } from "$lib/ROUTES";
 	import { Separator } from "$lib/components/ui/separator";
-	import UserCog from "lucide-svelte/icons/user-cog";
+	import UserCog from "@lucide/svelte/icons/user-cog";
 	import { localizeHref } from "$lib/paraglide/runtime";
 
 	let { data }: { data: PageServerData } = $props();
