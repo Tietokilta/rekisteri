@@ -47,7 +47,7 @@ STRIPE_API_KEY=sk_test_...
 # required only on the first time
 stripe login
 
-stripe listen --forward-to localhost:"$PORT"/api/webhooks/stripe
+stripe listen --forward-to localhost:"$PORT"/api/webhook/stripe
 ```
 
 3. Set the webhook signing secret from the output of `stripe listen` to `.env`

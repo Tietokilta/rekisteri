@@ -19,7 +19,7 @@ export async function createSession(userId: string, membershipId: string) {
 		where: eq(table.user.id, userId),
 	});
 	if (!membership || !user) {
-		return null;
+		throw new Error("Membership or user not found");
 	}
 
 	let stripeCustomerId = user.stripeCustomerId;

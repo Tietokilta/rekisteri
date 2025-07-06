@@ -113,6 +113,7 @@ async function main() {
 			columns: {
 				homeMunicipality: f.state(),
 				isAdmin: f.default({ defaultValue: false }),
+				stripeCustomerId: f.default({ defaultValue: null }),
 			},
 			with: {
 				member: [

@@ -17,6 +17,10 @@ const localizedPaths = {
 		fi: "/kirjaudu-sisaan/sahkoposti",
 		en: "/sign-in/email",
 	},
+	"/new": {
+		fi: "/uusi",
+		en: "/new",
+	},
 	"/admin/memberships": {
 		fi: "/hallinta/jasenyydet",
 		en: "/admin/memberships",

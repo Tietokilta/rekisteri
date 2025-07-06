@@ -10,7 +10,12 @@
 	import { route } from "$lib/ROUTES";
 	import { Separator } from "$lib/components/ui/separator";
 	import UserCog from "@lucide/svelte/icons/user-cog";
-	import { localizeHref } from "$lib/paraglide/runtime";
+	import CircleCheck from "@lucide/svelte/icons/circle-check";
+	import CircleAlert from "@lucide/svelte/icons/circle-alert";
+	import Trash from "@lucide/svelte/icons/trash";
+	import Hourglass from "@lucide/svelte/icons/hourglass";
+	import Banknote from "@lucide/svelte/icons/banknote";
+	import { localizeHref, getLocale } from "$lib/paraglide/runtime";
 
 	let { data }: { data: PageServerData } = $props();
 
@@ -119,6 +124,55 @@
 						<p class="text-sm text-muted-foreground">{m.legal_zany_tortoise_flop()}</p>
 					</div>
 				</a>
+			</div>
+		{:else}
+			<Separator class="hidden md:block" orientation="vertical" />
+			<div class="flex w-full max-w-xs flex-col gap-4">
+				<h2 class="font-mono text-lg">{m.smug_vexed_toucan_dream()}</h2>
+				<a href={route("/new")} class="flex w-full max-w-xs flex-col">
+					<Form.Button variant="default">{m.proof_spicy_mule_loop()}</Form.Button>
+				</a>
+				{#if data.memberships.length === 0}
+					<p class="text-sm text-muted-foreground">{m.weird_sad_gazelle_pet()}</p>
+				{:else}
+					{#each data.memberships as membership (membership.unique_id)}
+						<li class="flex items-center justify-between space-x-4 rounded-md border p-4">
+							{#if membership.status === "active"}
+								<span title={m.curly_equal_impala_strive()}>
+									<CircleCheck class="h-6 w-6" />
+								</span>
+							{:else if membership.status === "expired"}
+								<span title={m.good_elegant_javelina_catch()}>
+									<Trash class="h-6 w-6" />
+								</span>
+							{:else if membership.status === "awaiting_payment"}
+								<span title={m.curly_equal_panda_bake()}>
+									<Banknote class="h-6 w-6" />
+								</span>
+							{:else if membership.status === "awaiting_approval"}
+								<span title={m.inclusive_bright_parrot_hike()}>
+									<Hourglass class="h-6 w-6" />
+								</span>
+							{:else}
+								<span title={m.sea_dull_shark_slurp()}>
+									<CircleAlert class="h-6 w-6" />
+								</span>
+							{/if}
+							<div class="flex-1 space-y-1">
+								<div class="text-sm">
+									<p class="font-medium">{membership.type}</p>
+									<p>
+										<time datetime={membership.startTime.toISOString()}
+											>{membership.startTime.toLocaleDateString(`${getLocale()}-FI`)}</time
+										>–<time datetime={membership.endTime.toISOString()}
+											>{membership.endTime.toLocaleDateString(`${getLocale()}-FI`)}</time
+										>
+									</p>
+								</div>
+							</div>
+						</li>
+					{/each}
+				{/if}
 			</div>
 		{/if}
 	</div>

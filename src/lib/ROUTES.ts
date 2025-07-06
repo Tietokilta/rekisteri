@@ -13,7 +13,8 @@ const PAGES = {
   "/sign-in": `/sign-in`,
   "/sign-in/email": `/sign-in/email`,
   "/admin/members": `/admin/members`,
-  "/admin/memberships": `/admin/memberships`
+  "/admin/memberships": `/admin/memberships`,
+  "/new": `/new`
 }
 
 /**
@@ -29,12 +30,12 @@ const SERVERS = {
 const ACTIONS = {
   "saveInfo /": `/?/saveInfo`,
   "signOut /": `/?/signOut`,
-  "payMembership /": `/?/payMembership`,
   "default /sign-in": `/sign-in`,
   "verify /sign-in/email": `/sign-in/email?/verify`,
   "resend /sign-in/email": `/sign-in/email?/resend`,
   "createMembership /admin/memberships": `/admin/memberships?/createMembership`,
-  "deleteMembership /admin/memberships": `/admin/memberships?/deleteMembership`
+  "deleteMembership /admin/memberships": `/admin/memberships?/deleteMembership`,
+  "payMembership /new": `/new?/payMembership`
 }
 
 /**
@@ -149,9 +150,9 @@ export function route<T extends keyof AllTypes>(key: T, ...params: any[]): strin
 * ```
 */
 export type KIT_ROUTES = {
-  PAGES: { '/': never, '/sign-in': never, '/sign-in/email': never, '/admin/members': never, '/admin/memberships': never }
+  PAGES: { '/': never, '/sign-in': never, '/sign-in/email': never, '/admin/members': never, '/admin/memberships': never, '/new': never }
   SERVERS: { 'POST /api/webhook/stripe': never }
-  ACTIONS: { 'saveInfo /': never, 'signOut /': never, 'payMembership /': never, 'default /sign-in': never, 'verify /sign-in/email': never, 'resend /sign-in/email': never, 'createMembership /admin/memberships': never, 'deleteMembership /admin/memberships': never }
+  ACTIONS: { 'saveInfo /': never, 'signOut /': never, 'default /sign-in': never, 'verify /sign-in/email': never, 'resend /sign-in/email': never, 'createMembership /admin/memberships': never, 'deleteMembership /admin/memberships': never, 'payMembership /new': never }
   LINKS: Record<string, never>
   Params: Record<string, never>
 }
