@@ -4,7 +4,7 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { count, desc } from "drizzle-orm";
 import { fail, superValidate } from "sveltekit-superforms";
-import { zod } from "sveltekit-superforms/adapters";
+import { zod4 } from "sveltekit-superforms/adapters";
 import { createSchema, deleteSchema } from "./schema";
 import { sql, eq } from "drizzle-orm";
 
@@ -15,7 +15,7 @@ export const load: PageServerLoad = async (event) => {
 
 	const currentYear = new Date().getFullYear();
 
-	const form = await superValidate(zod(createSchema), {
+	const form = await superValidate(zod4(createSchema), {
 		defaults: {
 			type: "",
 			stripePriceId: "",
@@ -61,7 +61,7 @@ async function createMembership(event: RequestEvent) {
 	}
 
 	const formData = await event.request.formData();
-	const form = await superValidate(formData, zod(createSchema));
+	const form = await superValidate(formData, zod4(createSchema));
 
 	await db
 		.insert(table.membership)
@@ -86,7 +86,7 @@ async function deleteMembership(event: RequestEvent) {
 	}
 
 	const formData = await event.request.formData();
-	const form = await superValidate(formData, zod(deleteSchema));
+	const form = await superValidate(formData, zod4(deleteSchema));
 
 	const memberCount = await db
 		.select({ count: count() })

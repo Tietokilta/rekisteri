@@ -62,6 +62,8 @@ To create a production version of your app:
 
 ```bash
 pnpm build
+
+pnpm flake:build
 ```
 
 You can preview the production build with `pnpm preview`.

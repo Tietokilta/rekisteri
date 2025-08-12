@@ -4,7 +4,7 @@
 	import { route } from "$lib/ROUTES";
 	import { superForm } from "sveltekit-superforms";
 	import type { PageProps } from "./$types";
-	import { zodClient } from "sveltekit-superforms/adapters";
+	import { zod4Client } from "sveltekit-superforms/adapters";
 	import { createSchema } from "./schema";
 	import * as Form from "$lib/components/ui/form/index.js";
 	import { Input } from "$lib/components/ui/input";
@@ -15,7 +15,7 @@
 	const { data }: PageProps = $props();
 
 	const form = superForm(data.form, {
-		validators: zodClient(createSchema),
+		validators: zod4Client(createSchema),
 	});
 	const { form: formData, enhance, constraints } = form;
 </script>

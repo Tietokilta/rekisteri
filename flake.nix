@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     systems.url = "github:nix-systems/default";
     devenv.url = "github:cachix/devenv";
     devenv.inputs.nixpkgs.follows = "nixpkgs";
@@ -22,7 +22,8 @@
   in {
     packages = forEachSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
-      pnpm = pkgs.pnpm.override {nodejs = pkgs.nodejs_22;};
+      nodejs = pkgs.nodejs_24;
+      pnpm = pkgs.pnpm.override {inherit nodejs;};
 
       default = pkgs.stdenv.mkDerivation (finalAttrs: {
         pname = "rekisteri";
@@ -30,8 +31,9 @@
 
         src = ./.;
 
-        nativeBuildInputs = with pkgs; [
-          nodejs_22
+        nativeBuildInputs = [
+          nodejs
+          pnpm
           pnpm.configHook
         ];
 
@@ -39,10 +41,15 @@
         STRIPE_WEBHOOK_SECRET = "whsec_...";
         DATABASE_URL = "postgres://root:mysecretpassword@localhost:5432/local";
 
-        pnpmDeps = pnpm.fetchDeps {
+        pnpmDeps = (pnpm.fetchDeps {
+          name = "${finalAttrs.pname}-${finalAttrs.version}-pnpm-deps";
           inherit (finalAttrs) pname version src;
-          hash = "sha256-uohEI3o/GWGGNR5MkAvCn41A1ccMvN/84r2BGEifdE0=";
-        };
+          inherit nodejs;
+          fetcherVersion = 2;
+          hash = "sha256-aBdqEA7UGDBz51A9hARPEf7mrIMV30/KnTc/Nb7DFFs=";
+        }).overrideAttrs (old: {
+          nativeBuildInputs = [nodejs pnpm] ++ old.nativeBuildInputs;
+        });
 
         installPhase = ''
           runHook preInstall
@@ -58,7 +65,7 @@
       docker = pkgs.dockerTools.buildLayeredImage {
         name = "rekisteri";
         tag = "latest";
-        config.Cmd = ["${pkgs.nodejs-slim_22}/bin/node" "${default}/index.js"];
+        config.Cmd = ["${nodejs}/bin/node" "${default}/index.js"];
       };
       devenv-up = self.devShells.${system}.default.config.procfileScript;
       devenv-test = self.devShells.${system}.default.config.test;
@@ -68,7 +75,8 @@
       forEachSystem
       (system: let
         pkgs = nixpkgs.legacyPackages.${system};
-        pnpm = pkgs.pnpm.override {nodejs = pkgs.nodejs_22;};
+        nodejs = pkgs.nodejs_24;
+        pnpm = pkgs.pnpm.override {inherit nodejs;};
       in {
         default = devenv.lib.mkShell {
           inherit inputs pkgs;

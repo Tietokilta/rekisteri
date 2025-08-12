@@ -1,7 +1,7 @@
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad, RequestEvent } from "./$types";
 import { RefillingTokenBucket } from "$lib/server/auth/rate-limit";
-import * as z from "zod";
+import * as z from "zod/v4";
 import { setEmailCookie } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
 import { localizeHref } from "$lib/paraglide/runtime";

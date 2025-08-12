@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
 import { boolean, integer, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import * as z from "zod";
+import * as z from "zod/v4";
 
 const timestamps = {
 	createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

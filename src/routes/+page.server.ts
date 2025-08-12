@@ -6,7 +6,7 @@ import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { schema } from "./schema";
 import { superValidate } from "sveltekit-superforms";
-import { zod } from "sveltekit-superforms/adapters";
+import { zod4 } from "sveltekit-superforms/adapters";
 import * as auth from "$lib/server/auth/session";
 import { createSession } from "$lib/server/payment/session";
 import { localizeHref } from "$lib/paraglide/runtime";
@@ -16,7 +16,7 @@ export const load: PageServerLoad = async (event) => {
 		return redirect(302, localizeHref(route("/sign-in")));
 	}
 
-	const form = await superValidate(zod(schema), {
+	const form = await superValidate(zod4(schema), {
 		defaults: {
 			email: event.locals.user.email,
 			firstNames: event.locals.user.firstNames ?? "",
@@ -43,7 +43,7 @@ async function saveInfo(event: RequestEvent) {
 	}
 
 	const formData = await event.request.formData();
-	const form = await superValidate(formData, zod(schema));
+	const form = await superValidate(formData, zod4(schema));
 
 	const user = {
 		...event.locals.user,
