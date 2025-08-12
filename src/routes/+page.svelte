@@ -3,7 +3,7 @@
 	import type { PageServerData } from "./$types";
 	import * as m from "$lib/paraglide/messages.js";
 	import { Switch } from "$lib/components/ui/switch";
-	import { zodClient } from "sveltekit-superforms/adapters";
+	import { zod4Client } from "sveltekit-superforms/adapters";
 	import { superForm } from "sveltekit-superforms";
 	import { schema } from "./schema";
 	import * as Form from "$lib/components/ui/form/index.js";
@@ -15,7 +15,7 @@
 	let { data }: { data: PageServerData } = $props();
 
 	const form = superForm(data.form, {
-		validators: zodClient(schema),
+		validators: zod4Client(schema),
 		validationMethod: "oninput",
 	});
 	const { form: formData, enhance } = form;
