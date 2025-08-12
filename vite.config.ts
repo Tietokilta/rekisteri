@@ -29,6 +29,10 @@ const localizedPaths = {
 		fi: "/hallinta/jasenet",
 		en: "/admin/members",
 	},
+	"/admin/members/import": {
+		fi: "/hallinta/jasenet/tuo",
+		en: "/admin/members/import",
+	},
 } as const satisfies Record<Exclude<PageRoutes, "/">, unknown /* inferred */>;
 
 export default defineConfig({
