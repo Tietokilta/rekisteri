@@ -39,6 +39,7 @@ async function main() {
 			startTime: new Date("2024-08-01"),
 			endTime: new Date("2025-07-31"),
 			priceCents: 700,
+			requiresStudentVerification: true,
 		},
 		{
 			id: generateUserId(),
@@ -47,6 +48,7 @@ async function main() {
 			startTime: new Date("2024-08-01"),
 			endTime: new Date("2025-07-31"),
 			priceCents: 700,
+			requiresStudentVerification: false,
 		},
 		{
 			id: generateUserId(),
@@ -55,6 +57,7 @@ async function main() {
 			startTime: new Date("2024-08-01"),
 			endTime: new Date("2025-07-31"),
 			priceCents: 5000,
+			requiresStudentVerification: false,
 		},
 		{
 			id: generateUserId(),
@@ -63,6 +66,7 @@ async function main() {
 			startTime: new Date("2025-08-01"),
 			endTime: new Date("2026-07-31"),
 			priceCents: 700,
+			requiresStudentVerification: true,
 		},
 		{
 			id: generateUserId(),
@@ -71,6 +75,7 @@ async function main() {
 			startTime: new Date("2025-08-01"),
 			endTime: new Date("2026-07-31"),
 			priceCents: 700,
+			requiresStudentVerification: false,
 		},
 		{
 			id: generateUserId(),
@@ -79,6 +84,7 @@ async function main() {
 			startTime: new Date("2025-08-01"),
 			endTime: new Date("2026-07-31"),
 			priceCents: 5000,
+			requiresStudentVerification: false,
 		},
 	];
 
