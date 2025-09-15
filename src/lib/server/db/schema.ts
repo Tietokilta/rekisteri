@@ -44,6 +44,7 @@ export const membership = pgTable("membership", {
 	startTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 	endTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 	priceCents: integer().notNull().default(0),
+	requiresStudentVerification: boolean().notNull().default(false),
 });
 
 export const memberStatusEnum = pgEnum("member_status", [
