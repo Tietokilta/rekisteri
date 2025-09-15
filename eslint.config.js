@@ -32,6 +32,9 @@ export default ts.config(
 					varsIgnorePattern: "^_",
 				},
 			],
+			// This is handled by `vite-plugin-kit-routes` for now
+			// Will be replaced by SvelteKit's native solution once it covers same patterns
+			"svelte/no-navigation-without-resolve": "off",
 		},
 	},
 	{
