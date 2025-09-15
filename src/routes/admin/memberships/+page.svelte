@@ -132,6 +132,15 @@
 					<Form.FieldErrors />
 				</Form.Field>
 
+				<Form.Field {form} name="requiresStudentVerification">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>{m.brave_swift_falcon_soar()}</Form.Label>
+							<Input {...props} {...$constraints.requiresStudentVerification} type="checkbox" bind:checked={$formData.requiresStudentVerification} />
+						{/snippet}
+					</Form.Control>
+				</Form.Field>
+
 				<Form.Button type="submit">{m.warm_any_penguin_pop()}</Form.Button>
 			</form>
 		</div>
