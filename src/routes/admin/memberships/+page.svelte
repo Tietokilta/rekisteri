@@ -136,7 +136,12 @@
 					<Form.Control>
 						{#snippet children({ props })}
 							<Form.Label>{m.brave_swift_falcon_soar()}</Form.Label>
-							<Input {...props} {...$constraints.requiresStudentVerification} type="checkbox" bind:checked={$formData.requiresStudentVerification} />
+							<Input
+								{...props}
+								{...$constraints.requiresStudentVerification}
+								type="checkbox"
+								bind:checked={$formData.requiresStudentVerification}
+							/>
 						{/snippet}
 					</Form.Control>
 				</Form.Field>
