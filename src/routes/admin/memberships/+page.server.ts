@@ -22,6 +22,7 @@ export const load: PageServerLoad = async (event) => {
 			startTime: new Date(currentYear, 7, 1, 12).toISOString().split("T")[0],
 			endTime: new Date(currentYear + 1, 6, 31, 12).toISOString().split("T")[0],
 			priceCents: 0,
+			requiresStudentVerification: false,
 		},
 	});
 
@@ -72,6 +73,7 @@ async function createMembership(event: RequestEvent) {
 			startTime: new Date(form.data.startTime),
 			endTime: new Date(form.data.endTime),
 			priceCents: form.data.priceCents,
+			requiresStudentVerification: form.data.requiresStudentVerification,
 		})
 		.execute();
 
