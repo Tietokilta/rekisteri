@@ -32,6 +32,45 @@ async function main() {
 	});
 
 	const membershipsToSeed = [
+		// 2022-2023 period (expired)
+		{
+			id: generateUserId(),
+			type: "varsinainen jäsen",
+			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
+			startTime: new Date("2022-08-01"),
+			endTime: new Date("2023-07-31"),
+			priceCents: 700,
+			requiresStudentVerification: true,
+		},
+		{
+			id: generateUserId(),
+			type: "ulkojäsen",
+			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
+			startTime: new Date("2022-08-01"),
+			endTime: new Date("2023-07-31"),
+			priceCents: 700,
+			requiresStudentVerification: false,
+		},
+		// 2023-2024 period (expired)
+		{
+			id: generateUserId(),
+			type: "varsinainen jäsen",
+			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
+			startTime: new Date("2023-08-01"),
+			endTime: new Date("2024-07-31"),
+			priceCents: 700,
+			requiresStudentVerification: true,
+		},
+		{
+			id: generateUserId(),
+			type: "ulkojäsen",
+			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
+			startTime: new Date("2023-08-01"),
+			endTime: new Date("2024-07-31"),
+			priceCents: 700,
+			requiresStudentVerification: false,
+		},
+		// 2024-2025 period (expired)
 		{
 			id: generateUserId(),
 			type: "varsinainen jäsen",
@@ -59,6 +98,7 @@ async function main() {
 			priceCents: 5000,
 			requiresStudentVerification: false,
 		},
+		// 2025-2026 period (current)
 		{
 			id: generateUserId(),
 			type: "varsinainen jäsen",
@@ -96,10 +136,14 @@ async function main() {
 	const weightedMembershipValues = insertedMemberships.map((insertedMembership, index) => {
 		const originalMembershipDetails = membershipsToSeed[index];
 		let yearWeight = 0;
-		if (originalMembershipDetails.startTime.getFullYear() === 2024) {
-			yearWeight = 0.8;
+		if (originalMembershipDetails.startTime.getFullYear() === 2022) {
+			yearWeight = 0.05;
+		} else if (originalMembershipDetails.startTime.getFullYear() === 2023) {
+			yearWeight = 0.15;
+		} else if (originalMembershipDetails.startTime.getFullYear() === 2024) {
+			yearWeight = 0.3;
 		} else if (originalMembershipDetails.startTime.getFullYear() === 2025) {
-			yearWeight = 0.2;
+			yearWeight = 0.5;
 		}
 
 		let typeWeight = 0;
