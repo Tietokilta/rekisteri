@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is "rekisteri", a membership registry application for Tietokilta. It manages user memberships, payments via Stripe, and authentication via email OTP.
 
 **Tech Stack:**
+
 - SvelteKit (Svelte 5) with adapter-node for production
 - TypeScript
 - PostgreSQL via Drizzle ORM
@@ -59,6 +60,7 @@ pnpm flake:build    # Build Docker image with Nix
 ### Authentication System
 
 Custom session-based authentication (no external libraries):
+
 - Email-only authentication with OTP codes (no passwords)
 - Session tokens stored in cookies and hashed in database (`src/lib/server/auth/session.ts`)
 - Sessions expire after 30 days, auto-renewed at 15 days
@@ -69,6 +71,7 @@ Custom session-based authentication (no external libraries):
 ### Database Schema (`src/lib/server/db/schema.ts`)
 
 Core tables:
+
 - `user`: User accounts with email, admin status, personal details, Stripe customer ID
 - `session`: Active sessions linked to users
 - `email_otp`: One-time password codes for email authentication
@@ -82,6 +85,7 @@ Database configuration in `drizzle.config.ts` uses snake_case for column names.
 ### Internationalization (i18n)
 
 Uses Inlang/Paraglide for translations:
+
 - Base locale: Finnish (`fi`)
 - Supported locales: Finnish and English
 - Translation files in `project.inlang/messages/{locale}.json`
@@ -92,6 +96,7 @@ Uses Inlang/Paraglide for translations:
 ### Payment Integration
 
 Stripe integration for membership payments:
+
 - Checkout sessions created in page servers
 - Webhooks handled at `/api/webhook/stripe/+server.ts`
 - Stripe customer IDs stored on user records
@@ -111,6 +116,7 @@ Route type safety via `vite-plugin-kit-routes` generates `$lib/ROUTES.ts`.
 ### UI Components
 
 Shadcn-svelte components in `src/lib/components/ui/`:
+
 - Built on bits-ui primitives
 - Form handling via sveltekit-superforms and formsnap
 - Styling with Tailwind CSS and tailwind-variants
@@ -118,6 +124,7 @@ Shadcn-svelte components in `src/lib/components/ui/`:
 ### Environment Variables
 
 Required for development:
+
 - `DATABASE_URL`: PostgreSQL connection string
 - `STRIPE_API_KEY`: Stripe API key (sandbox for dev)
 - `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret (get via `stripe listen`)

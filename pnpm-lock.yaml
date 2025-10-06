@@ -35,6 +35,9 @@ importers:
       mode-watcher:
         specifier: ^1.1.0
         version: 1.1.0(svelte@5.38.10)
+      papaparse:
+        specifier: ^5.5.3
+        version: 5.5.3
       postgres:
         specifier: ^3.4.7
         version: 3.4.7
@@ -79,13 +82,16 @@ importers:
         specifier: ^0.5.16
         version: 0.5.16(tailwindcss@4.1.13)
       '@tailwindcss/vite':
-        specifier: ^4.1.13
+        specifier: ^4.1.11
         version: 4.1.13(rolldown-vite@7.1.9(@types/node@24.4.0)(esbuild@0.25.4)(jiti@2.5.1)(tsx@4.20.5)(yaml@2.7.0))
       '@types/node':
-        specifier: ^24.4.0
+        specifier: ^24.2.1
         version: 24.4.0
+      '@types/papaparse':
+        specifier: ^5.3.16
+        version: 5.3.16
       bits-ui:
-        specifier: ^2.9.8
+        specifier: ^2.9.2
         version: 2.9.8(@internationalized/date@3.8.1)(svelte@5.38.10)
       clsx:
         specifier: ^2.1.1
@@ -1261,6 +1267,9 @@ packages:
   '@types/node@24.4.0':
     resolution: {integrity: sha512-gUuVEAK4/u6F9wRLznPUU4WGUacSEBDPoC2TrBkw3GAnOLHBL45QdfHOXp1kJ4ypBGLxTOB+t7NJLpKoC3gznQ==}
 
+  '@types/papaparse@5.3.16':
+    resolution: {integrity: sha512-T3VuKMC2H0lgsjI9buTB3uuKj3EMD2eap1MOuEQuBQ44EnDx/IkGhU6EwiTf9zG3za4SKlmwKAImdDKdNnCsXg==}
+
   '@types/resolve@1.20.2':
     resolution: {integrity: sha512-60BCwRFOZCQhDncwQdxxeOEEkbc5dIMccYLwbxsS4TUNeVECQ/pBJ0j09mrHOl/JJvpRPGwO9SvE4nR2Nb/a4Q==}
 
@@ -2261,6 +2270,9 @@ packages:
   p-locate@5.0.0:
     resolution: {integrity: sha512-LaNjtRWUBY++zB5nE/NwcaoMylSPk+S+ZHNB1TzdbMJMny6dynpAGt7X/tl/QYq3TIeE6nxHppbo2LGymrG5Pw==}
     engines: {node: '>=10'}
+
+  papaparse@5.5.3:
+    resolution: {integrity: sha512-5QvjGxYVjxO59MGU2lHVYpRWBBtKHnlIAcSe1uNFCkkptUh63NFRj0FJQm7nR67puEruUci/ZkjmEFrjCAyP4A==}
 
   parent-module@1.0.1:
     resolution: {integrity: sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==}
@@ -3719,6 +3731,10 @@ snapshots:
     dependencies:
       undici-types: 7.11.0
 
+  '@types/papaparse@5.3.16':
+    dependencies:
+      '@types/node': 24.4.0
+
   '@types/resolve@1.20.2': {}
 
   '@types/validator@13.15.2':
@@ -4659,6 +4675,8 @@ snapshots:
     dependencies:
       p-limit: 3.1.0
 
+  papaparse@5.5.3: {}
+
   parent-module@1.0.1:
     dependencies:
       callsites: 3.1.0
@@ -4984,7 +5002,7 @@ snapshots:
     dependencies:
       clsx: 2.1.1
       runed: 0.23.4(svelte@5.38.10)
-      style-to-object: 1.0.8
+      style-to-object: 1.0.9
       svelte: 5.38.10
 
   svelte-toolbelt@0.9.3(svelte@5.38.10):
