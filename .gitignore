@@ -1,6 +1,9 @@
 test-results
 node_modules
 
+# Playwright
+e2e/.auth/
+
 # Output
 .output
 .vercel

@@ -31,6 +31,7 @@ jobs:
 
     env:
       DATABASE_URL: postgres://root:mysecretpassword@localhost:5432/local
+      DATABASE_URL_TEST: postgres://root:mysecretpassword@localhost:5432/local_test
       STRIPE_API_KEY: sk_test_...
       STRIPE_WEBHOOK_SECRET: whsec_...
 
@@ -52,6 +53,9 @@ jobs:
 
       - name: Install browsers
         run: pnpm exec playwright install
+
+      - name: Copy .env example
+        run: cp .env.example .env
 
       - name: Push db schema
         run: pnpm db:push:force
