@@ -130,8 +130,8 @@
 				>
 					<UserCog class="h-6 w-6" />
 					<div class="flex-1 space-y-1">
-						<p class="text-sm leading-none font-medium">Tuo jäseniä</p>
-						<p class="text-sm text-muted-foreground">Tuo jäseniä CSV-tiedostosta</p>
+						<p class="text-sm leading-none font-medium">{m.civil_spare_squirrel_tap()}</p>
+						<p class="text-sm text-muted-foreground">{m.careful_patient_capybara_wish()}</p>
 					</div>
 				</a>
 			</div>

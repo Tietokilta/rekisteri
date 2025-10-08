@@ -57,5 +57,53 @@
 	"proof_spicy_mule_loop": "Osta jäsenyys",
 	"muddy_upper_puma_persist": "Valitse jäsenyys",
 	"brave_swift_falcon_soar": "Vaatii opiskelijastatuksen vahvistuksen",
-	"neat_calm_tiger_leap": "Olen opiskelija Aalto-yliopistossa"
+	"neat_calm_tiger_leap": "Olen opiskelija Aalto-yliopistossa",
+	"civil_spare_squirrel_tap": "Tuo jäseniä",
+	"watery_east_cobra_adapt": "1. Lataa CSV-tiedosto",
+	"inclusive_bright_pug_arise": "CSV-tiedosto",
+	"brave_flat_cod_fear": "Odotetut sarakkeet:",
+	"bright_topical_samuel_advise": "Olemassa olevat jäsenyydet tietokannassa:",
+	"late_every_lobster_gulp": "CSV-rivien tulee vastata näitä täsmälleen (tyyppi + alkamispäivä). Jäsenyyksiä EI luoda tuonnissa.",
+	"trick_nice_poodle_borrow": "Alku:",
+	"home_elegant_reindeer_adore": "Loppu:",
+	"yummy_sharp_parakeet_hunt": "2. Esikatselu ja tuonti",
+	"real_every_skunk_value": "Vahvistusvirheet:",
+	"bad_raw_falcon_swim": "Tuonti onnistui!",
+	"many_solid_carp_love": "Tuotiin {successCount} / {totalRows} jäsentä",
+	"quaint_sad_goat_learn": "Tuotiin {successCount} / {totalRows} jäsentä",
+	"born_glad_alligator_sprout": "Näytä {errorCount} virhe(ttä)",
+	"pretty_green_slug_taste": "Tuonti epäonnistui",
+	"tasty_gaudy_squirrel_rest": "Tuonnin esikatselu",
+	"jolly_close_zebra_propel": "Uniikkeja käyttäjiä (luotu tai päivitetty):",
+	"sleek_novel_mouse_smile": "Luotavia jäsentietueita:",
+	"inner_smug_maggot_flow": "Merkitään aktiivisiksi:",
+	"weary_tense_pig_aid": "Merkitään vanhentuneiksi:",
+	"seemly_lofty_dove_earn": "Huom: Olemassa olevien käyttäjien tiedot päivitetään. Duplikaatti jäsentietueet (sama käyttäjä + jäsenyys) ohitetaan.",
+	"aware_nimble_lobster_push": "CSV-datan esikatselu",
+	"house_grand_wallaby_fond": "Etunimet",
+	"fancy_major_okapi_embrace": "Sukunimi",
+	"stout_weak_bison_feast": "Kotikunta",
+	"antsy_known_lark_jump": "Sähköposti",
+	"dizzy_just_ant_assure": "Jäsenyyden tyyppi",
+	"any_dirty_turtle_swim": "Alkamispäivä",
+	"vivid_brave_lemming_fond": "Näytetään ensimmäiset 10 / {rowCount} riviä",
+	"brief_odd_hawk_believe": "Ei tuotavia rivejä",
+	"merry_sweet_piranha_inspire": "Lataa CSV-tiedosto esikatselua varten",
+	"careful_patient_capybara_wish": "Tuo jäseniä CSV-tiedostosta",
+	"gross_round_felix_bend": "Tuodaan...",
+	"dry_heroic_liger_ask": [
+		{
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
+			"match": {
+				"countPlural=one": "Tuo 1 jäsen",
+				"countPlural=other": "Tuo {count} jäsentä"
+			}
+		}
+	]
 }
