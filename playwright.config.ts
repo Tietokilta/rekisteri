@@ -1,10 +1,25 @@
 import { defineConfig } from "@playwright/test";
+import { loadEnvFile } from "./e2e/utils";
+
+loadEnvFile();
+const testDbUrl = process.env.DATABASE_URL_TEST;
 
 export default defineConfig({
 	webServer: {
-		command: "npm run build && npm run preview",
+		command: "pnpm build && pnpm preview",
 		port: 4173,
+		env: {
+			DATABASE_URL: testDbUrl || "",
+		},
 	},
 
 	testDir: "e2e",
+
+	globalSetup: "./e2e/global-setup.ts",
+
+	use: {
+		baseURL: "http://localhost:4173",
+		locale: "fi-FI",
+		timezoneId: "Europe/Helsinki",
+	},
 });
