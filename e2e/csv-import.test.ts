@@ -22,14 +22,14 @@ test.describe("CSV Import", () => {
 		await adminPage.waitForTimeout(1000);
 
 		// Verify preview shows
-		await expect(adminPage.getByText("Import Preview")).toBeVisible({ timeout: 10000 });
+		await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10000 });
 
 		// Check that it shows correct number of users and records
-		await expect(adminPage.getByText("Unique users (created or updated):")).toBeVisible();
-		await expect(adminPage.getByText("Member records to create:")).toBeVisible();
+		await expect(adminPage.getByText("Uniikkeja käyttäjiä (luotu tai päivitetty):")).toBeVisible();
+		await expect(adminPage.getByText("Luotavia jäsentietueita:")).toBeVisible();
 
 		// Verify table preview shows data
-		await expect(adminPage.getByText("CSV Data Preview")).toBeVisible();
+		await expect(adminPage.getByText("CSV-datan esikatselu")).toBeVisible();
 		await expect(adminPage.getByRole("cell", { name: "Matti" }).first()).toBeVisible();
 	});
 
@@ -51,7 +51,7 @@ value1,value2,value3`;
 			await adminPage.waitForTimeout(1000);
 
 			// Verify error message shows
-			await expect(adminPage.getByText("Validation Errors:")).toBeVisible({ timeout: 5000 });
+			await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible({ timeout: 5000 });
 			await expect(adminPage.getByText(/CSV columns don't match/)).toBeVisible();
 		} finally {
 			// Clean up temp file
@@ -76,7 +76,7 @@ Test,User,Helsinki,not-an-email,varsinainen jäsen,2025-08-01`;
 			await adminPage.waitForTimeout(1000);
 
 			// Verify error message shows
-			await expect(adminPage.getByText("Validation Errors:")).toBeVisible({ timeout: 5000 });
+			await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible({ timeout: 5000 });
 			await expect(adminPage.getByText(/Invalid email format/)).toBeVisible();
 		} finally {
 			fs.unlinkSync(tempPath);
@@ -100,7 +100,7 @@ Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
 			await adminPage.waitForTimeout(1000);
 
 			// Verify error message shows
-			await expect(adminPage.getByText("Validation Errors:")).toBeVisible({ timeout: 5000 });
+			await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible({ timeout: 5000 });
 			await expect(adminPage.getByText(/Invalid membership types/)).toBeVisible();
 		} finally {
 			fs.unlinkSync(tempPath);
@@ -111,8 +111,8 @@ Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
 		await adminPage.goto("/admin/members/import", { waitUntil: "networkidle" });
 
 		// Verify existing memberships section is visible
-		await expect(adminPage.getByText("Existing memberships in database:")).toBeVisible({ timeout: 10000 });
-		await expect(adminPage.getByText("CSV rows must match these exactly")).toBeVisible();
+		await expect(adminPage.getByText("Olemassa olevat jäsenyydet tietokannassa:")).toBeVisible({ timeout: 10000 });
+		await expect(adminPage.getByText("CSV-rivien tulee vastata näitä täsmälleen")).toBeVisible();
 
 		// Verify some membership types are listed
 		await expect(adminPage.getByText("varsinainen jäsen").first()).toBeVisible();
