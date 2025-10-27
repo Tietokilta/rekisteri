@@ -115,13 +115,23 @@
 					</div>
 				</a>
 				<a
-					href={route("/admin/members")}
+					href={localizeHref(route("/admin/members"))}
 					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
 				>
 					<UserCog class="h-6 w-6" />
 					<div class="flex-1 space-y-1">
 						<p class="text-sm leading-none font-medium">{m.warm_large_otter_push()}</p>
 						<p class="text-sm text-muted-foreground">{m.legal_zany_tortoise_flop()}</p>
+					</div>
+				</a>
+				<a
+					href={localizeHref(route("/admin/members/import"))}
+					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
+				>
+					<UserCog class="h-6 w-6" />
+					<div class="flex-1 space-y-1">
+						<p class="text-sm leading-none font-medium">{m.civil_spare_squirrel_tap()}</p>
+						<p class="text-sm text-muted-foreground">{m.careful_patient_capybara_wish()}</p>
 					</div>
 				</a>
 			</div>

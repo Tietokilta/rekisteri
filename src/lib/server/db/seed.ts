@@ -2,12 +2,7 @@ import { seed, reset } from "drizzle-seed";
 import * as table from "./schema";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { encodeBase32LowerCase } from "@oslojs/encoding";
-
-function generateUserId() {
-	const bytes = crypto.getRandomValues(new Uint8Array(15));
-	return encodeBase32LowerCase(bytes);
-}
+import { generateUserId } from "../auth/utils";
 
 async function main() {
 	if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set");
@@ -32,6 +27,45 @@ async function main() {
 	});
 
 	const membershipsToSeed = [
+		// 2022-2023 period (expired)
+		{
+			id: generateUserId(),
+			type: "varsinainen jäsen",
+			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
+			startTime: new Date("2022-08-01"),
+			endTime: new Date("2023-07-31"),
+			priceCents: 700,
+			requiresStudentVerification: true,
+		},
+		{
+			id: generateUserId(),
+			type: "ulkojäsen",
+			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
+			startTime: new Date("2022-08-01"),
+			endTime: new Date("2023-07-31"),
+			priceCents: 700,
+			requiresStudentVerification: false,
+		},
+		// 2023-2024 period (expired)
+		{
+			id: generateUserId(),
+			type: "varsinainen jäsen",
+			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
+			startTime: new Date("2023-08-01"),
+			endTime: new Date("2024-07-31"),
+			priceCents: 700,
+			requiresStudentVerification: true,
+		},
+		{
+			id: generateUserId(),
+			type: "ulkojäsen",
+			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
+			startTime: new Date("2023-08-01"),
+			endTime: new Date("2024-07-31"),
+			priceCents: 700,
+			requiresStudentVerification: false,
+		},
+		// 2024-2025 period (expired)
 		{
 			id: generateUserId(),
 			type: "varsinainen jäsen",
@@ -59,6 +93,7 @@ async function main() {
 			priceCents: 5000,
 			requiresStudentVerification: false,
 		},
+		// 2025-2026 period (current)
 		{
 			id: generateUserId(),
 			type: "varsinainen jäsen",
@@ -93,25 +128,24 @@ async function main() {
 		.values(membershipsToSeed)
 		.returning({ id: table.membership.id });
 
-	const weightedMembershipValues = insertedMemberships.map((insertedMembership, index) => {
-		const originalMembershipDetails = membershipsToSeed[index];
-		let yearWeight = 0;
-		if (originalMembershipDetails.startTime.getFullYear() === 2024) {
-			yearWeight = 0.8;
-		} else if (originalMembershipDetails.startTime.getFullYear() === 2025) {
-			yearWeight = 0.2;
-		}
+	// Direct weights for each membership (must sum to 1.0)
+	const weights = [
+		0.045, // 2022 varsinainen (5% of users * 90% varsinainen)
+		0.005, // 2022 ulkojäsen (5% of users * 10% ulkojäsen)
+		0.135, // 2023 varsinainen (15% of users * 90% varsinainen)
+		0.015, // 2023 ulkojäsen (15% of users * 10% ulkojäsen)
+		0.27, // 2024 varsinainen (30% of users * 90% varsinainen)
+		0.027, // 2024 ulkojäsen (30% of users * 9% ulkojäsen)
+		0.003, // 2024 kannatusjäsen (30% of users * 1% kannatusjäsen)
+		0.45, // 2025 varsinainen (50% of users * 90% varsinainen)
+		0.045, // 2025 ulkojäsen (50% of users * 9% ulkojäsen)
+		0.005, // 2025 kannatusjäsen (50% of users * 1% kannatusjäsen)
+	];
 
-		let typeWeight = 0;
-		if (originalMembershipDetails.type === "varsinainen jäsen") {
-			typeWeight = 0.9;
-		} else if (originalMembershipDetails.type === "ulkojäsen") {
-			typeWeight = 0.09;
-		} else if (originalMembershipDetails.type === "kannatusjäsen") {
-			typeWeight = 0.01;
-		}
-		return { values: [insertedMembership.id], weight: yearWeight * typeWeight };
-	});
+	const weightedMembershipValues = insertedMemberships.map((insertedMembership, index) => ({
+		values: [insertedMembership.id],
+		weight: weights[index],
+	}));
 
 	console.log("Seeding users and members using drizzle-seed...");
 	await seed(db, { user: table.user, member: table.member }, { count: 1000, version: "2" }).refine((f) => ({

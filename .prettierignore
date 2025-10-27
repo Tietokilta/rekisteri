@@ -4,3 +4,6 @@ pnpm-lock.yaml
 yarn.lock
 ROUTES.ts
 flake.lock
+
+# Ignore translation files, Sherlock messes them up 24/7 anyway
+messages
