@@ -18,18 +18,20 @@ import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { db } from "$lib/server/db";
 import { route } from "$lib/ROUTES";
-import { localizeHref } from "$lib/paraglide/runtime";
+import { localizePathname, getLocaleFromPathname } from "$lib/i18n/routing";
 
 export async function load(event: RequestEvent) {
 	const email = event.cookies.get(emailCookieName);
 	if (typeof email !== "string") {
-		return redirect(302, localizeHref(route("/sign-in")));
+		const locale = getLocaleFromPathname(event.url.pathname);
+		return redirect(302, localizePathname(route("/sign-in"), locale));
 	}
 
 	let otp = await getEmailOTPFromRequest(event);
 	if (otp === null || Date.now() >= otp.expiresAt.getTime()) {
 		otp = await createEmailOTP(email);
-		sendOTPEmail(otp.email, otp.code);
+		const locale = getLocaleFromPathname(event.url.pathname);
+		sendOTPEmail(otp.email, otp.code, locale);
 		setEmailOTPCookie(event, otp);
 	}
 	return {
@@ -85,7 +87,8 @@ async function verifyCode(event: RequestEvent) {
 
 	if (Date.now() >= otp.expiresAt.getTime()) {
 		otp = await createEmailOTP(otp.email);
-		sendOTPEmail(otp.email, otp.code);
+		const locale = getLocaleFromPathname(event.url.pathname);
+		sendOTPEmail(otp.email, otp.code, locale);
 		return {
 			verify: {
 				message: "The verification code was expired. We sent another code to your inbox.",
@@ -119,7 +122,8 @@ async function verifyCode(event: RequestEvent) {
 	deleteEmailOTP(otp.id);
 	deleteEmailOTPCookie(event);
 
-	redirect(302, localizeHref(route("/")));
+	const locale = getLocaleFromPathname(event.url.pathname);
+	redirect(302, localizePathname(route("/"), locale));
 }
 
 async function resendEmail(event: RequestEvent) {
@@ -160,7 +164,8 @@ async function resendEmail(event: RequestEvent) {
 		}
 		otp = await createEmailOTP(email);
 	}
-	sendOTPEmail(otp.email, otp.code);
+	const locale = getLocaleFromPathname(event.url.pathname);
+	sendOTPEmail(otp.email, otp.code, locale);
 	setEmailOTPCookie(event, otp);
 	return {
 		resend: {

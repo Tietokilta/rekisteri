@@ -6,7 +6,8 @@ import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { dev } from "$app/environment";
 import { sendEmail } from "$lib/server/mailgun";
-import * as m from "$lib/paraglide/messages.js";
+import { i18nObject } from "$lib/i18n/i18n-util";
+import { loadLocale } from "$lib/i18n/i18n-util.sync";
 
 import type { EmailOTP } from "$lib/server/db/schema";
 import type { RequestEvent } from "@sveltejs/kit";
@@ -55,11 +56,14 @@ export async function deleteEmailOTP(id: string): Promise<void> {
 	await db.delete(table.emailOTP).where(eq(table.emailOTP.id, id));
 }
 
-export function sendOTPEmail(email: string, code: string): void {
+export function sendOTPEmail(email: string, code: string, locale: 'fi' | 'en' = 'fi'): void {
+	loadLocale(locale);
+	const LL = i18nObject(locale);
+
 	const emailOptions = {
 		to: email,
-		subject: m.day_many_shark_compose(),
-		text: m.giant_stale_raven_walk({ code }),
+		subject: LL.auth.emailSubject(),
+		text: LL.auth.emailBody({ code }),
 	};
 
 	if (dev) {

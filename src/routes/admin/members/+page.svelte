@@ -1,22 +1,22 @@
 <script lang="ts">
 	import type { PageProps } from "./$types";
-	import * as m from "$lib/paraglide/messages.js";
+	import { LL } from "$lib/i18n/i18n-svelte";
 
 	const { data }: PageProps = $props();
 </script>
 
 <main class="my-4 flex flex-col items-center justify-center">
-	<h1 class="font-mono text-lg">{m.happy_away_guppy_aid()}</h1>
+	<h1 class="font-mono text-lg">{$LL.admin.members.title()}</h1>
 	<div class="min-w-3xl">
 		<table class="w-full table-auto">
 			<thead>
 				<tr>
-					<th>{m.quick_spare_mule_cry()}</th>
-					<th>{m.fine_deft_impala_blend()}</th>
-					<th>{m.grand_moving_capybara_trim()}</th>
-					<th>{m.front_teal_beetle_earn()}</th>
-					<th>{m.tough_dirty_turkey_drip()}</th>
-					<th>{m.proud_seemly_gull_scoop()}</th>
+					<th>ID</th>
+					<th>{$LL.admin.members.userId()}</th>
+					<th>{$LL.user.firstNames()}</th>
+					<th>{$LL.user.lastName()}</th>
+					<th>{$LL.user.homeMunicipality()}</th>
+					<th>{$LL.membership.type()}</th>
 				</tr>
 			</thead>
 			<tbody>

@@ -26,8 +26,12 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Paraglide
-src/lib/paraglide
+# typesafe-i18n (generated files)
+src/lib/i18n/i18n-types.ts
+src/lib/i18n/i18n-util.ts
+src/lib/i18n/i18n-util.sync.ts
+src/lib/i18n/i18n-util.async.ts
+src/lib/i18n/i18n-svelte.ts
 
 # Nix
 .direnv

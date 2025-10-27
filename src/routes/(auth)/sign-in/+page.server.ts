@@ -4,13 +4,14 @@ import { RefillingTokenBucket } from "$lib/server/auth/rate-limit";
 import * as z from "zod/v4";
 import { setEmailCookie } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
-import { localizeHref } from "$lib/paraglide/runtime";
+import { localizePathname, getLocaleFromPathname } from "$lib/i18n/routing";
 
 const ipBucket = new RefillingTokenBucket<string>(20, 1);
 
 export const load: PageServerLoad = async (event) => {
 	if (event.locals.user) {
-		redirect(302, localizeHref(route("/")));
+		const locale = getLocaleFromPathname(event.url.pathname);
+		redirect(302, localizePathname(route("/"), locale));
 	}
 	return {};
 };
@@ -47,5 +48,6 @@ async function action(event: RequestEvent) {
 	}
 
 	setEmailCookie(event, email, new Date(Date.now() + 1000 * 60 * 10));
-	redirect(303, localizeHref(route("/sign-in/email")));
+	const locale = getLocaleFromPathname(event.url.pathname);
+	redirect(303, localizePathname(route("/sign-in/email"), locale));
 }

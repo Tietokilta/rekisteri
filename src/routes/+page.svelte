@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { Input } from "$lib/components/ui/input/index.js";
 	import type { PageServerData } from "./$types";
-	import * as m from "$lib/paraglide/messages.js";
+	import { LL, locale } from "$lib/i18n/i18n-svelte";
+	import { localizePathname } from "$lib/i18n/routing";
 	import { Switch } from "$lib/components/ui/switch";
 	import { zod4Client } from "sveltekit-superforms/adapters";
 	import { superForm } from "sveltekit-superforms";
@@ -15,7 +16,6 @@
 	import Trash from "@lucide/svelte/icons/trash";
 	import Hourglass from "@lucide/svelte/icons/hourglass";
 	import Banknote from "@lucide/svelte/icons/banknote";
-	import { localizeHref, getLocale } from "$lib/paraglide/runtime";
 
 	let { data }: { data: PageServerData } = $props();
 
@@ -28,18 +28,18 @@
 
 <main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
 	<h1 class="font-mono text-lg">
-		{m.bad_crazy_termite_jump({ firstNames: data.user.firstNames ?? "", lastName: data.user.lastName ?? "" })}
+		{$LL.user.welcome({ firstNames: data.user.firstNames ?? "", lastName: data.user.lastName ?? "" })}
 	</h1>
 
 	<div class="flex w-full max-w-2xl flex-col items-center gap-4 md:flex-row md:items-stretch">
 		<div class="w-full max-w-xs">
-			<h2 class="font-mono text-lg">{m.bold_proof_grizzly_rush()}</h2>
+			<h2 class="font-mono text-lg">{$LL.user.editInfo()}</h2>
 
 			<form method="post" action={route("saveInfo /")} use:enhance class="flex w-full max-w-xs flex-col gap-4">
 				<Form.Field {form} name="email">
 					<Form.Control>
 						{#snippet children({ props })}
-							<Form.Label>{m.dark_weak_vulture_bless()}</Form.Label>
+							<Form.Label>{$LL.user.email()}</Form.Label>
 							<Input {...props} type="email" readonly bind:value={$formData.email} />
 						{/snippet}
 					</Form.Control>
@@ -49,7 +49,7 @@
 				<Form.Field {form} name="firstNames">
 					<Form.Control>
 						{#snippet children({ props })}
-							<Form.Label>{m.giant_jolly_mayfly_lead()}</Form.Label>
+							<Form.Label>{$LL.user.firstNames()}</Form.Label>
 							<Input {...props} bind:value={$formData.firstNames} />
 						{/snippet}
 					</Form.Control>
@@ -59,7 +59,7 @@
 				<Form.Field {form} name="lastName">
 					<Form.Control>
 						{#snippet children({ props })}
-							<Form.Label>{m.frail_fine_fish_chop()}</Form.Label>
+							<Form.Label>{$LL.user.lastName()}</Form.Label>
 							<Input {...props} bind:value={$formData.lastName} />
 						{/snippet}
 					</Form.Control>
@@ -69,7 +69,7 @@
 				<Form.Field {form} name="homeMunicipality">
 					<Form.Control>
 						{#snippet children({ props })}
-							<Form.Label>{m.lofty_patient_squid_drop()}</Form.Label>
+							<Form.Label>{$LL.user.homeMunicipality()}</Form.Label>
 							<Input {...props} bind:value={$formData.homeMunicipality} />
 						{/snippet}
 					</Form.Control>
@@ -84,18 +84,18 @@
 					<Form.Control>
 						{#snippet children({ props })}
 							<div class="space-y-0.5">
-								<Form.Label>{m.light_frail_poodle_enrich()}</Form.Label>
-								<Form.Description>{m.livid_trite_thrush_animate()}</Form.Description>
+								<Form.Label>{$LL.user.allowEmails()}</Form.Label>
+								<Form.Description>{$LL.user.allowEmailsDescription()}</Form.Description>
 							</div>
 							<Switch {...props} bind:checked={$formData.isAllowedEmails} />
 						{/snippet}
 					</Form.Control>
 				</Form.Field>
 
-				<Form.Button type="submit">{m.tough_mellow_porpoise_explore()}</Form.Button>
+				<Form.Button type="submit">{$LL.common.save()}</Form.Button>
 
 				<Form.Button formnovalidate formmethod="post" formaction={route("signOut /")} variant="outline"
-					>{m.brief_early_scallop_bless()}</Form.Button
+					>{$LL.auth.signOut()}</Form.Button
 				>
 			</form>
 		</div>
@@ -103,68 +103,68 @@
 		{#if data.user.isAdmin}
 			<Separator class="hidden md:block" orientation="vertical" />
 			<div class="flex w-full max-w-xs flex-col gap-4">
-				<h2 class="font-mono text-lg">{m.each_strong_butterfly_seek()}</h2>
+				<h2 class="font-mono text-lg">{$LL.admin.title()}</h2>
 				<a
-					href={localizeHref(route("/admin/memberships"))}
+					href={localizePathname(route("/admin/memberships"), $locale)}
 					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
 				>
 					<UserCog class="h-6 w-6" />
 					<div class="flex-1 space-y-1">
-						<p class="text-sm leading-none font-medium">{m.raw_nimble_ibex_flow()}</p>
-						<p class="text-sm text-muted-foreground">{m.jolly_due_snake_support()}</p>
+						<p class="text-sm leading-none font-medium">{$LL.admin.memberships.title()}</p>
+						<p class="text-sm text-muted-foreground">{$LL.admin.memberships.description()}</p>
 					</div>
 				</a>
 				<a
-					href={localizeHref(route("/admin/members"))}
+					href={localizePathname(route("/admin/members"), $locale)}
 					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
 				>
 					<UserCog class="h-6 w-6" />
 					<div class="flex-1 space-y-1">
-						<p class="text-sm leading-none font-medium">{m.warm_large_otter_push()}</p>
-						<p class="text-sm text-muted-foreground">{m.legal_zany_tortoise_flop()}</p>
+						<p class="text-sm leading-none font-medium">{$LL.admin.members.title()}</p>
+						<p class="text-sm text-muted-foreground">{$LL.admin.members.description()}</p>
 					</div>
 				</a>
 				<a
-					href={localizeHref(route("/admin/members/import"))}
+					href={localizePathname(route("/admin/members/import"), $locale)}
 					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
 				>
 					<UserCog class="h-6 w-6" />
 					<div class="flex-1 space-y-1">
-						<p class="text-sm leading-none font-medium">{m.civil_spare_squirrel_tap()}</p>
-						<p class="text-sm text-muted-foreground">{m.careful_patient_capybara_wish()}</p>
+						<p class="text-sm leading-none font-medium">{$LL.admin.import.title()}</p>
+						<p class="text-sm text-muted-foreground">{$LL.admin.import.description()}</p>
 					</div>
 				</a>
 			</div>
 		{:else}
 			<Separator class="hidden md:block" orientation="vertical" />
 			<div class="flex w-full max-w-xs flex-col gap-4">
-				<h2 class="font-mono text-lg">{m.smug_vexed_toucan_dream()}</h2>
-				<a href={route("/new")} class="flex w-full max-w-xs flex-col">
-					<Form.Button variant="default">{m.proof_spicy_mule_loop()}</Form.Button>
+				<h2 class="font-mono text-lg">{$LL.membership.title()}</h2>
+				<a href={localizePathname(route("/new"), $locale)} class="flex w-full max-w-xs flex-col">
+					<Form.Button variant="default">{$LL.membership.buy()}</Form.Button>
 				</a>
 				{#if data.memberships.length === 0}
-					<p class="text-sm text-muted-foreground">{m.weird_sad_gazelle_pet()}</p>
+					<p class="text-sm text-muted-foreground">{$LL.membership.noMembership()}</p>
 				{:else}
 					{#each data.memberships as membership (membership.unique_id)}
 						<li class="flex items-center justify-between space-x-4 rounded-md border p-4">
 							{#if membership.status === "active"}
-								<span title={m.curly_equal_impala_strive()}>
+								<span title={$LL.membership.status.active()}>
 									<CircleCheck class="h-6 w-6" />
 								</span>
 							{:else if membership.status === "expired"}
-								<span title={m.good_elegant_javelina_catch()}>
+								<span title={$LL.membership.status.expired()}>
 									<Trash class="h-6 w-6" />
 								</span>
 							{:else if membership.status === "awaiting_payment"}
-								<span title={m.curly_equal_panda_bake()}>
+								<span title={$LL.membership.status.awaitingPayment()}>
 									<Banknote class="h-6 w-6" />
 								</span>
 							{:else if membership.status === "awaiting_approval"}
-								<span title={m.inclusive_bright_parrot_hike()}>
+								<span title={$LL.membership.status.awaitingApproval()}>
 									<Hourglass class="h-6 w-6" />
 								</span>
 							{:else}
-								<span title={m.sea_dull_shark_slurp()}>
+								<span title={$LL.membership.status.unknown()}>
 									<CircleAlert class="h-6 w-6" />
 								</span>
 							{/if}
@@ -173,9 +173,9 @@
 									<p class="font-medium">{membership.type}</p>
 									<p>
 										<time datetime={membership.startTime.toISOString()}
-											>{membership.startTime.toLocaleDateString(`${getLocale()}-FI`)}</time
+											>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time
 										>–<time datetime={membership.endTime.toISOString()}
-											>{membership.endTime.toLocaleDateString(`${getLocale()}-FI`)}</time
+											>{membership.endTime.toLocaleDateString(`${$locale}-FI`)}</time
 										>
 									</p>
 								</div>
