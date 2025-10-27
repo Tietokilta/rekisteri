@@ -45,4 +45,10 @@ export default ts.config(
 			},
 		},
 	},
+	{
+		files: ["**/*.svelte.ts"],
+		languageOptions: {
+			parser: ts.parser,
+		},
+	},
 );
