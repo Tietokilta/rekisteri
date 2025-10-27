@@ -5,9 +5,5 @@ import { defineConfig } from "vite";
 import type { KIT_ROUTES } from "$lib/ROUTES";
 
 export default defineConfig({
-	plugins: [
-		tailwindcss(),
-		sveltekit(),
-		kitRoutes<KIT_ROUTES>(),
-	],
+	plugins: [tailwindcss(), sveltekit(), kitRoutes<KIT_ROUTES>()],
 });

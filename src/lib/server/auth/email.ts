@@ -56,7 +56,7 @@ export async function deleteEmailOTP(id: string): Promise<void> {
 	await db.delete(table.emailOTP).where(eq(table.emailOTP.id, id));
 }
 
-export function sendOTPEmail(email: string, code: string, locale: 'fi' | 'en' = 'fi'): void {
+export function sendOTPEmail(email: string, code: string, locale: "fi" | "en" = "fi"): void {
 	loadLocale(locale);
 	const LL = i18nObject(locale);
 

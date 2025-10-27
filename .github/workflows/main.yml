@@ -63,7 +63,7 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Build all (for paraglide messages)
+      - name: Build (generates i18n types)
         run: pnpm build
 
       - name: Check
