@@ -1,7 +1,7 @@
 import type { FormattersInitializer } from "typesafe-i18n";
 import type { Locales, Formatters } from "./i18n-types";
 
-export const initFormatters: FormattersInitializer<Locales, Formatters> = (locale: Locales) => {
+export const initFormatters: FormattersInitializer<Locales, Formatters> = (_locale: Locales) => {
 	const formatters: Formatters = {
 		// Pluralization is handled via double curly braces in translation strings
 		// Syntax: '{count} {{singular|plural}}'
