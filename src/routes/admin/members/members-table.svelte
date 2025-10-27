@@ -23,6 +23,7 @@
 	import { goto } from "$app/navigation";
 	import { page } from "$app/state";
 	import { SvelteURLSearchParams } from "svelte/reactivity";
+	import { LL } from "$lib/i18n/i18n-svelte";
 
 	type MemberRow = {
 		id: string;
@@ -237,7 +238,7 @@
 	};
 
 	// Column definitions
-	const columns: ColumnDef<MemberRow>[] = [
+	const columns = $derived<ColumnDef<MemberRow>[]>([
 		{
 			id: "expand",
 			header: "",
@@ -246,31 +247,31 @@
 		},
 		{
 			accessorKey: "firstNames",
-			header: "First Names",
+			header: $LL.admin.members.table.firstNames(),
 			cell: ({ row }) => row.original.firstNames ?? "-",
 			enableSorting: true,
 		},
 		{
 			accessorKey: "lastName",
-			header: "Last Name",
+			header: $LL.admin.members.table.lastName(),
 			cell: ({ row }) => row.original.lastName ?? "-",
 			enableSorting: true,
 		},
 		{
 			accessorKey: "email",
-			header: "Email",
+			header: $LL.admin.members.table.email(),
 			cell: ({ row }) => row.original.email ?? "-",
 			enableSorting: true,
 		},
 		{
 			accessorKey: "membershipType",
-			header: "Membership Type",
+			header: $LL.admin.members.table.membershipType(),
 			cell: ({ row }) => row.original.membershipType ?? "-",
 			enableSorting: true,
 		},
 		{
 			accessorKey: "status",
-			header: "Status",
+			header: $LL.admin.members.table.status(),
 			cell: ({ row }) => row.original.status,
 			enableSorting: true,
 		},
@@ -282,7 +283,7 @@
 			enableSorting: false,
 			filterFn: yearFilterFn,
 		},
-	];
+	]);
 
 	// Apply filters
 	$effect(() => {
@@ -378,27 +379,27 @@
 	<!-- Filters and Search -->
 	<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 		<div class="flex gap-2">
-			<Input placeholder="Search members..." type="search" class="max-w-sm" bind:value={globalFilter} />
+			<Input placeholder={$LL.admin.members.table.search()} type="search" class="max-w-sm" bind:value={globalFilter} />
 			<Button variant="outline" size="default" onclick={copyMembersAsText}>
 				{#if copySuccess}
 					<Check class="mr-2 size-4" />
-					Copied!
+					{$LL.admin.members.table.copied()}
 				{:else}
 					<Copy class="mr-2 size-4" />
-					Copy as Text
+					{$LL.admin.members.table.copyAsText()}
 				{/if}
 			</Button>
 		</div>
 		<div class="flex flex-col gap-3">
 			<!-- Year Filter -->
 			<div class="flex flex-wrap gap-2">
-				<span class="text-sm font-medium">Year:</span>
+				<span class="text-sm font-medium">{$LL.admin.members.table.filterYear()}</span>
 				<Button
 					variant={selectedYear === "all" ? "default" : "outline"}
 					size="sm"
 					onclick={() => (selectedYear = "all")}
 				>
-					All
+					{$LL.admin.members.table.all()}
 				</Button>
 				{#each years as year (year)}
 					<Button
@@ -413,13 +414,13 @@
 
 			<!-- Type Filter -->
 			<div class="flex flex-wrap gap-2">
-				<span class="text-sm font-medium">Type:</span>
+				<span class="text-sm font-medium">{$LL.admin.members.table.filterType()}</span>
 				<Button
 					variant={selectedType === "all" ? "default" : "outline"}
 					size="sm"
 					onclick={() => (selectedType = "all")}
 				>
-					All
+					{$LL.admin.members.table.all()}
 				</Button>
 				{#each membershipTypes as type (type)}
 					<Button
@@ -434,48 +435,48 @@
 
 			<!-- Status Filter -->
 			<div class="flex flex-wrap gap-2">
-				<span class="text-sm font-medium">Status:</span>
+				<span class="text-sm font-medium">{$LL.admin.members.table.filterStatus()}</span>
 				<Button
 					variant={selectedStatus === "all" ? "default" : "outline"}
 					size="sm"
 					onclick={() => (selectedStatus = "all")}
 				>
-					All
+					{$LL.admin.members.table.all()}
 				</Button>
 				<Button
 					variant={selectedStatus === "active" ? "default" : "outline"}
 					size="sm"
 					onclick={() => (selectedStatus = "active")}
 				>
-					Active
+					{$LL.admin.members.table.active()}
 				</Button>
 				<Button
 					variant={selectedStatus === "expired" ? "default" : "outline"}
 					size="sm"
 					onclick={() => (selectedStatus = "expired")}
 				>
-					Expired
+					{$LL.admin.members.table.expired()}
 				</Button>
 				<Button
 					variant={selectedStatus === "awaiting_approval" ? "default" : "outline"}
 					size="sm"
 					onclick={() => (selectedStatus = "awaiting_approval")}
 				>
-					Awaiting Approval
+					{$LL.admin.members.table.awaitingApproval()}
 				</Button>
 				<Button
 					variant={selectedStatus === "awaiting_payment" ? "default" : "outline"}
 					size="sm"
 					onclick={() => (selectedStatus = "awaiting_payment")}
 				>
-					Awaiting Payment
+					{$LL.admin.members.table.awaitingPayment()}
 				</Button>
 				<Button
 					variant={selectedStatus === "cancelled" ? "default" : "outline"}
 					size="sm"
 					onclick={() => (selectedStatus = "cancelled")}
 				>
-					Cancelled
+					{$LL.admin.members.table.cancelled()}
 				</Button>
 			</div>
 		</div>
@@ -546,7 +547,7 @@
 										<span>{row.original.membershipType ?? "-"}</span>
 										{#if filteredMemberships.length > 1}
 											<Badge variant="secondary" class="text-xs">
-												{filteredMemberships.length} memberships
+												{$LL.admin.members.table.membershipsCount({ count: filteredMemberships.length })}
 											</Badge>
 										{/if}
 									</div>
@@ -563,23 +564,25 @@
 								<div class="p-4">
 									<!-- User Details -->
 									<div class="mb-4 space-y-2">
-										<h4 class="font-semibold">User Details</h4>
+										<h4 class="font-semibold">{$LL.admin.members.table.userDetails()}</h4>
 										<dl class="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
 											<div>
-												<dt class="text-muted-foreground">User ID:</dt>
+												<dt class="text-muted-foreground">{$LL.admin.members.table.userIdLabel()}</dt>
 												<dd class="font-mono">{row.original.userId}</dd>
 											</div>
 											<div>
-												<dt class="text-muted-foreground">Email:</dt>
+												<dt class="text-muted-foreground">{$LL.admin.members.table.emailLabel()}</dt>
 												<dd>{row.original.email ?? "-"}</dd>
 											</div>
 											<div>
-												<dt class="text-muted-foreground">Municipality:</dt>
+												<dt class="text-muted-foreground">{$LL.admin.members.table.municipalityLabel()}</dt>
 												<dd>{row.original.homeMunicipality ?? "-"}</dd>
 											</div>
 											<div>
-												<dt class="text-muted-foreground">Email Allowed:</dt>
-												<dd>{row.original.isAllowedEmails ? "Yes" : "No"}</dd>
+												<dt class="text-muted-foreground">{$LL.admin.members.table.emailAllowedLabel()}</dt>
+												<dd>
+													{row.original.isAllowedEmails ? $LL.admin.members.table.yes() : $LL.admin.members.table.no()}
+												</dd>
 											</div>
 										</dl>
 									</div>
@@ -587,28 +590,32 @@
 									<!-- Filtered Memberships -->
 									<div class="space-y-3">
 										<h4 class="font-semibold">
-											Memberships ({filteredMemberships.length}
 											{#if filteredMemberships.length !== row.original.membershipCount}
-												of {row.original.membershipCount} total
-											{/if})
+												{$LL.admin.members.table.memberships()} ({$LL.admin.members.table.membershipsOf({
+													filtered: filteredMemberships.length,
+													total: row.original.membershipCount,
+												})})
+											{:else}
+												{$LL.admin.members.table.memberships()} ({filteredMemberships.length})
+											{/if}
 										</h4>
 										<div class="space-y-3">
 											{#each filteredMemberships as membership (membership.id)}
 												<div class="rounded-md border p-4">
 													<div class="mb-3 grid gap-2 text-sm md:grid-cols-3">
 														<div>
-															<dt class="text-muted-foreground">Type:</dt>
+															<dt class="text-muted-foreground">{$LL.admin.members.table.typeLabel()}</dt>
 															<dd class="font-medium">{membership.membershipType ?? "-"}</dd>
 														</div>
 														<div>
-															<dt class="text-muted-foreground">Period:</dt>
+															<dt class="text-muted-foreground">{$LL.admin.members.table.periodLabel()}</dt>
 															<dd>
 																{membership.membershipStartTime?.toLocaleDateString() ?? "-"} - {membership.membershipEndTime?.toLocaleDateString() ??
 																	"-"}
 															</dd>
 														</div>
 														<div>
-															<dt class="text-muted-foreground">Price:</dt>
+															<dt class="text-muted-foreground">{$LL.admin.members.table.priceLabel()}</dt>
 															<dd>
 																{membership.membershipPriceCents
 																	? `€${(membership.membershipPriceCents / 100).toFixed(2)}`
@@ -616,7 +623,7 @@
 															</dd>
 														</div>
 														<div>
-															<dt class="text-muted-foreground">Status:</dt>
+															<dt class="text-muted-foreground">{$LL.admin.members.table.statusLabel()}</dt>
 															<dd>
 																<Badge variant={getStatusColor(membership.status)}>
 																	{formatStatus(membership.status)}
@@ -624,12 +631,12 @@
 															</dd>
 														</div>
 														<div>
-															<dt class="text-muted-foreground">Created:</dt>
+															<dt class="text-muted-foreground">{$LL.admin.members.table.createdLabel()}</dt>
 															<dd>{membership.createdAt.toLocaleDateString()}</dd>
 														</div>
 														{#if membership.stripeSessionId}
 															<div>
-																<dt class="text-muted-foreground">Stripe Session:</dt>
+																<dt class="text-muted-foreground">{$LL.admin.members.table.stripeSessionLabel()}</dt>
 																<dd class="font-mono text-xs">{membership.stripeSessionId}</dd>
 															</div>
 														{/if}
@@ -640,29 +647,39 @@
 														<div class="flex gap-2 border-t pt-3">
 															<form method="POST" action="?/approve" use:enhance>
 																<input type="hidden" name="memberId" value={membership.id} />
-																<Button type="submit" size="sm" variant="default">Approve</Button>
+																<Button type="submit" size="sm" variant="default"
+																	>{$LL.admin.members.table.approve()}</Button
+																>
 															</form>
 															<form method="POST" action="?/reject" use:enhance>
 																<input type="hidden" name="memberId" value={membership.id} />
-																<Button type="submit" size="sm" variant="destructive">Reject</Button>
+																<Button type="submit" size="sm" variant="destructive"
+																	>{$LL.admin.members.table.reject()}</Button
+																>
 															</form>
 														</div>
 													{:else if membership.status === "expired" || membership.status === "cancelled"}
 														<div class="flex gap-2 border-t pt-3">
 															<form method="POST" action="?/reactivate" use:enhance>
 																<input type="hidden" name="memberId" value={membership.id} />
-																<Button type="submit" size="sm" variant="default">Reactivate</Button>
+																<Button type="submit" size="sm" variant="default"
+																	>{$LL.admin.members.table.reactivate()}</Button
+																>
 															</form>
 														</div>
 													{:else if membership.status === "active" || membership.status === "awaiting_payment"}
 														<div class="flex gap-2 border-t pt-3">
 															<form method="POST" action="?/markExpired" use:enhance>
 																<input type="hidden" name="memberId" value={membership.id} />
-																<Button type="submit" size="sm" variant="outline">Mark as Expired</Button>
+																<Button type="submit" size="sm" variant="outline"
+																	>{$LL.admin.members.table.markExpired()}</Button
+																>
 															</form>
 															<form method="POST" action="?/cancel" use:enhance>
 																<input type="hidden" name="memberId" value={membership.id} />
-																<Button type="submit" size="sm" variant="destructive">Cancel Membership</Button>
+																<Button type="submit" size="sm" variant="destructive"
+																	>{$LL.admin.members.table.cancelMembership()}</Button
+																>
 															</form>
 														</div>
 													{/if}
@@ -682,14 +699,17 @@
 	<!-- Pagination -->
 	<div class="flex items-center justify-between">
 		<div class="text-sm text-muted-foreground">
-			Showing {table.getRowModel().rows.length} of {table.getFilteredRowModel().rows.length} members
+			{$LL.admin.members.table.showing({
+				current: table.getRowModel().rows.length,
+				total: table.getFilteredRowModel().rows.length,
+			})}
 		</div>
 		<div class="flex gap-2">
 			<Button variant="outline" size="sm" onclick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-				Previous
+				{$LL.admin.members.table.previous()}
 			</Button>
 			<Button variant="outline" size="sm" onclick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-				Next
+				{$LL.admin.members.table.next()}
 			</Button>
 		</div>
 	</div>

@@ -82,6 +82,61 @@ const fi = {
 			membershipType: "Jäsenyyden tyyppi: {membershipType}",
 			userId: "Käyttäjätunnus",
 			userIdentifier: "Tunnus",
+
+			// Table
+			table: {
+				search: "Hae jäseniä...",
+				copyAsText: "Kopioi tekstinä",
+				copied: "Kopioitu!",
+				filterYear: "Vuosi:",
+				filterType: "Tyyppi:",
+				filterStatus: "Tila:",
+				all: "Kaikki",
+				active: "Aktiivinen",
+				expired: "Vanhentunut",
+				awaitingApproval: "Odottaa hyväksyntää",
+				awaitingPayment: "Odottaa maksua",
+				cancelled: "Peruutettu",
+
+				// Column headers
+				firstNames: "Etunimet",
+				lastName: "Sukunimi",
+				email: "Sähköposti",
+				membershipType: "Jäsenyyden tyyppi",
+				status: "Tila",
+
+				// Row details
+				membershipsCount: "{count} {{jäsenyys|jäsenyyttä}}",
+				userDetails: "Käyttäjän tiedot",
+				userIdLabel: "Käyttäjätunnus:",
+				emailLabel: "Sähköposti:",
+				municipalityLabel: "Kotikunta:",
+				emailAllowedLabel: "Sähköpostit sallittu:",
+				yes: "Kyllä",
+				no: "Ei",
+
+				// Membership details
+				memberships: "Jäsenyydet",
+				membershipsOf: "{filtered} / {total} jäsenyyttä",
+				typeLabel: "Tyyppi:",
+				periodLabel: "Kausi:",
+				priceLabel: "Hinta:",
+				statusLabel: "Tila:",
+				createdLabel: "Luotu:",
+				stripeSessionLabel: "Stripe-istunto:",
+
+				// Actions
+				approve: "Hyväksy",
+				reject: "Hylkää",
+				reactivate: "Aktivoi uudelleen",
+				markExpired: "Merkitse vanhentuneeksi",
+				cancelMembership: "Peruuta jäsenyys",
+
+				// Pagination
+				showing: "Näytetään {current} / {total} jäsentä",
+				previous: "Edellinen",
+				next: "Seuraava",
+			},
 		},
 
 		import: {

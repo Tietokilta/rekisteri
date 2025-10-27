@@ -81,6 +81,61 @@ const en = {
 			membershipType: "Membership type: {membershipType}",
 			userId: "User Identifier",
 			userIdentifier: "Identifier",
+
+			// Table
+			table: {
+				search: "Search members...",
+				copyAsText: "Copy as Text",
+				copied: "Copied!",
+				filterYear: "Year:",
+				filterType: "Type:",
+				filterStatus: "Status:",
+				all: "All",
+				active: "Active",
+				expired: "Expired",
+				awaitingApproval: "Awaiting Approval",
+				awaitingPayment: "Awaiting Payment",
+				cancelled: "Cancelled",
+
+				// Column headers
+				firstNames: "First Names",
+				lastName: "Last Name",
+				email: "Email",
+				membershipType: "Membership Type",
+				status: "Status",
+
+				// Row details
+				membershipsCount: "{count} {{membership|memberships}}",
+				userDetails: "User Details",
+				userIdLabel: "User ID:",
+				emailLabel: "Email:",
+				municipalityLabel: "Municipality:",
+				emailAllowedLabel: "Email Allowed:",
+				yes: "Yes",
+				no: "No",
+
+				// Membership details
+				memberships: "Memberships",
+				membershipsOf: "{filtered} of {total} memberships",
+				typeLabel: "Type:",
+				periodLabel: "Period:",
+				priceLabel: "Price:",
+				statusLabel: "Status:",
+				createdLabel: "Created:",
+				stripeSessionLabel: "Stripe Session:",
+
+				// Actions
+				approve: "Approve",
+				reject: "Reject",
+				reactivate: "Reactivate",
+				markExpired: "Mark as Expired",
+				cancelMembership: "Cancel Membership",
+
+				// Pagination
+				showing: "Showing {current} of {total} members",
+				previous: "Previous",
+				next: "Next",
+			},
 		},
 
 		import: {
