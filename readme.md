@@ -25,11 +25,13 @@ pnpm db:push
 # seed data
 pnpm db:seed
 
-# run dev server
+# run dev server (includes i18n type generation in watch mode)
 pnpm dev
 ```
 
 Login with `root@tietokilta.fi` to check the admin view, and any other account to check the regular user view.
+
+**Note:** i18n types are auto-generated from `src/lib/i18n/{fi,en}/index.ts` and git-ignored. The dev server automatically watches for translation changes and regenerates types.
 
 ### Testing payments with Stripe
 
