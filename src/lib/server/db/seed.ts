@@ -2,12 +2,7 @@ import { seed, reset } from "drizzle-seed";
 import * as table from "./schema";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { encodeBase32LowerCase } from "@oslojs/encoding";
-
-function generateUserId() {
-	const bytes = crypto.getRandomValues(new Uint8Array(15));
-	return encodeBase32LowerCase(bytes);
-}
+import { generateUserId } from "../auth/utils";
 
 async function main() {
 	if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set");

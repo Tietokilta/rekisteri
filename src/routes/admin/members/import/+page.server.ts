@@ -4,12 +4,7 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, and } from "drizzle-orm";
 import { importSchema, type CsvRow } from "./schema";
-import { encodeBase32LowerCase } from "@oslojs/encoding";
-
-function generateUserId() {
-	const bytes = crypto.getRandomValues(new Uint8Array(15));
-	return encodeBase32LowerCase(bytes);
-}
+import { generateUserId } from "$lib/server/auth/utils";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.session || !event.locals.user?.isAdmin) {

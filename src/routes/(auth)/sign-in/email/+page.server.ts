@@ -13,8 +13,8 @@ import {
 } from "$lib/server/auth/email";
 import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
 import { createSession, generateSessionToken, setSessionTokenCookie } from "$lib/server/auth/session";
+import { generateUserId } from "$lib/server/auth/utils";
 import * as table from "$lib/server/db/schema";
-import { encodeBase32LowerCase } from "@oslojs/encoding";
 import { eq } from "drizzle-orm";
 import { db } from "$lib/server/db";
 import { route } from "$lib/ROUTES";
@@ -120,11 +120,6 @@ async function verifyCode(event: RequestEvent) {
 	deleteEmailOTPCookie(event);
 
 	redirect(302, localizeHref(route("/")));
-}
-
-function generateUserId() {
-	const bytes = crypto.getRandomValues(new Uint8Array(15));
-	return encodeBase32LowerCase(bytes);
 }
 
 async function resendEmail(event: RequestEvent) {
