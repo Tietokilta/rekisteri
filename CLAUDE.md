@@ -13,7 +13,7 @@ This is "rekisteri", a membership registry application for Tietokilta. It manage
 - PostgreSQL via Drizzle ORM
 - Stripe for payments
 - Mailgun for emails
-- Inlang/Paraglide for i18n (Finnish & English)
+- typesafe-i18n for i18n (Finnish & English)
 - Tailwind CSS with shadcn-svelte components
 - Playwright for e2e tests
 
@@ -44,8 +44,7 @@ pnpm db:migrate     # Run migrations
 pnpm db:studio      # Open Drizzle Studio
 
 # Internationalization
-pnpm i18n:validate  # Validate translation files
-pnpm i18n:lint      # Lint translations
+pnpm typesafe-i18n  # Generate i18n types from translations
 
 # Building
 pnpm build          # Build for production
@@ -84,14 +83,18 @@ Database configuration in `drizzle.config.ts` uses snake_case for column names.
 
 ### Internationalization (i18n)
 
-Uses Inlang/Paraglide for translations:
+Uses typesafe-i18n for translations:
 
 - Base locale: Finnish (`fi`)
 - Supported locales: Finnish and English
-- Translation files in `project.inlang/messages/{locale}.json`
-- Localized routes defined in `vite.config.ts` (e.g., `/kirjaudu-sisaan` → `/sign-in`)
-- URL pattern: `/{locale}/{path}` (e.g., `/fi/hallinta/jasenet`, `/en/admin/members`)
+- Translation files in `src/lib/i18n/{locale}/index.ts`
+- Configuration in `.typesafe-i18n.json`
+- URL pattern: `/{locale}/{path}` (e.g., `/fi/admin/members`, `/en/admin/members`)
+- Locale detection in `src/lib/i18n/routing.ts` via `getLocaleFromPathname()`
 - Middleware in `hooks.server.ts` handles locale detection and HTML lang attribute injection
+- Client-side: Use reactive `$LL` store from `$lib/i18n/i18n-svelte` (e.g., `{$LL.user.welcome()}`)
+- Server-side: Use `i18nObject(locale)` and `loadLocale(locale)` from `$lib/i18n/i18n-util.sync`
+- Generated types ensure compile-time safety for all translations
 
 ### Payment Integration
 

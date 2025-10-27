@@ -7,7 +7,7 @@
 	import type { PageData, ActionData } from "./$types";
 	import { enhance } from "$app/forms";
 	import { SvelteSet } from "svelte/reactivity";
-	import * as m from "$lib/paraglide/messages.js";
+	import { LL } from "$lib/i18n/i18n-svelte";
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -123,18 +123,18 @@
 </script>
 
 <main class="my-8 flex flex-col items-center justify-center p-4">
-	<h1 class="mb-6 font-mono text-2xl font-semibold">{m.civil_spare_squirrel_tap()}</h1>
+	<h1 class="mb-6 font-mono text-2xl font-semibold">{$LL.admin.import.title()}</h1>
 
 	<div class="flex w-full max-w-6xl flex-col gap-8 md:flex-row">
 		<!-- Upload Section -->
 		<div class="w-full md:w-1/3">
 			<div class="rounded-lg border p-6">
-				<h2 class="mb-4 text-lg font-medium">{m.watery_east_cobra_adapt()}</h2>
-				<Label for="csv-input" class="mb-2">{m.inclusive_bright_pug_arise()}</Label>
+				<h2 class="mb-4 text-lg font-medium">{$LL.admin.import.step1()}</h2>
+				<Label for="csv-input" class="mb-2">{$LL.admin.import.csvFile()}</Label>
 				<Input id="csv-input" type="file" accept="text/csv,.csv" bind:files class="mb-4" />
 
 				<div class="rounded-md bg-muted p-4 text-sm">
-					<p class="mb-2 font-medium">{m.brave_flat_cod_fear()}</p>
+					<p class="mb-2 font-medium">{$LL.admin.import.expectedColumns()}</p>
 					<ul class="list-inside list-disc space-y-1 text-muted-foreground">
 						{#each expectedColumns as column (column)}
 							<li><code class="rounded bg-background px-1">{column}</code></li>
@@ -143,19 +143,19 @@
 				</div>
 
 				<div class="mt-4">
-					<p class="mb-2 text-sm font-medium">{m.bright_topical_samuel_advise()}</p>
+					<p class="mb-2 text-sm font-medium">{$LL.admin.import.existingMemberships()}</p>
 					<p class="mb-2 text-xs text-muted-foreground">
-						{m.late_every_lobster_gulp()}
+						{$LL.admin.import.matchNote()}
 					</p>
 					<ul class="space-y-2 text-sm text-muted-foreground">
 						{#each data.memberships as membership (membership.id)}
 							<li class="rounded bg-background p-2">
 								<div class="font-medium">{membership.type}</div>
 								<div class="text-xs">
-									{m.trick_nice_poodle_borrow()} <code>{membership.startTime.toISOString().split("T")[0]}</code>
+									{$LL.admin.import.start()} <code>{membership.startTime.toISOString().split("T")[0]}</code>
 								</div>
 								<div class="text-xs">
-									{m.home_elegant_reindeer_adore()} <code>{membership.endTime.toISOString().split("T")[0]}</code>
+									{$LL.admin.import.end()} <code>{membership.endTime.toISOString().split("T")[0]}</code>
 								</div>
 							</li>
 						{/each}
@@ -167,11 +167,11 @@
 		<!-- Preview Section -->
 		<div class="flex-1">
 			<div class="rounded-lg border p-6">
-				<h2 class="mb-4 text-lg font-medium">{m.yummy_sharp_parakeet_hunt()}</h2>
+				<h2 class="mb-4 text-lg font-medium">{$LL.admin.import.step2()}</h2>
 
 				{#if parseErrors.length > 0}
 					<div class="mb-4 rounded-md border border-destructive bg-destructive/10 p-4">
-						<p class="mb-2 font-medium text-destructive">{m.real_every_skunk_value()}</p>
+						<p class="mb-2 font-medium text-destructive">{$LL.admin.import.validationErrors()}</p>
 						<ul class="list-inside list-disc space-y-1 text-sm text-destructive">
 							{#each parseErrors as error, i (i)}
 								<li>{error}</li>
@@ -184,15 +184,15 @@
 					{@const successCount = form.successCount ?? 0}
 					{@const totalRows = form.totalRows ?? 0}
 					<div class="mb-4 rounded-md border border-green-600 bg-green-600/10 p-4">
-						<p class="font-medium text-green-600">{m.bad_raw_falcon_swim()}</p>
+						<p class="font-medium text-green-600">{$LL.admin.import.success()}</p>
 						<p class="text-sm text-green-600">
-							{m.quaint_sad_goat_learn({ successCount, totalRows })}
+							{$LL.admin.import.successCount({ successCount, totalRows })}
 						</p>
 						{#if form.errors && form.errors.length > 0}
 							{@const errorCount = form.errors.length}
 							<details class="mt-2">
 								<summary class="cursor-pointer text-sm text-green-600">
-									{m.born_glad_alligator_sprout({ errorCount })}
+									{$LL.admin.import.viewErrors({ errorCount })}
 								</summary>
 								<ul class="mt-2 list-inside list-disc space-y-1 text-sm">
 									{#each form.errors as error, i (i)}
@@ -204,51 +204,51 @@
 					</div>
 				{:else if form?.success === false}
 					<div class="mb-4 rounded-md border border-destructive bg-destructive/10 p-4">
-						<p class="font-medium text-destructive">{m.pretty_green_slug_taste()}</p>
+						<p class="font-medium text-destructive">{$LL.admin.import.failed()}</p>
 						<p class="text-sm text-destructive">{form.message}</p>
 					</div>
 				{/if}
 
 				{#if rows.length > 0 && importPreview}
 					<div class="mb-4 rounded-md border bg-blue-600/10 p-4">
-						<p class="mb-3 font-medium text-blue-600">{m.tasty_gaudy_squirrel_rest()}</p>
+						<p class="mb-3 font-medium text-blue-600">{$LL.admin.import.preview()}</p>
 						<div class="space-y-2 text-sm">
 							<div class="flex items-center justify-between">
-								<span class="text-muted-foreground">{m.jolly_close_zebra_propel()}</span>
+								<span class="text-muted-foreground">{$LL.admin.import.uniqueUsers()}</span>
 								<span class="font-medium">{importPreview.userCount}</span>
 							</div>
 							<div class="flex items-center justify-between">
-								<span class="text-muted-foreground">{m.sleek_novel_mouse_smile()}</span>
+								<span class="text-muted-foreground">{$LL.admin.import.recordsToCreate()}</span>
 								<span class="font-medium">{importPreview.memberRecords}</span>
 							</div>
 							<div class="mt-3 border-t pt-2">
 								<div class="flex items-center justify-between">
-									<span class="text-muted-foreground">{m.inner_smug_maggot_flow()}</span>
+									<span class="text-muted-foreground">{$LL.admin.import.willBeActive()}</span>
 									<span class="font-medium text-green-600">{importPreview.activeCount}</span>
 								</div>
 								<div class="flex items-center justify-between">
-									<span class="text-muted-foreground">{m.weary_tense_pig_aid()}</span>
+									<span class="text-muted-foreground">{$LL.admin.import.willBeExpired()}</span>
 									<span class="font-medium text-orange-600">{importPreview.expiredCount}</span>
 								</div>
 							</div>
 						</div>
 						<p class="mt-3 text-xs text-muted-foreground">
-							{m.seemly_lofty_dove_earn()}
+							{$LL.admin.import.note()}
 						</p>
 					</div>
 
 					<div class="mb-4">
-						<h3 class="mb-2 text-sm font-medium">{m.aware_nimble_lobster_push()}</h3>
+						<h3 class="mb-2 text-sm font-medium">{$LL.admin.import.dataPreview()}</h3>
 						<div class="overflow-x-auto">
 							<table class="w-full border-collapse text-sm">
 								<thead>
 									<tr class="border-b">
-										<th class="p-2 text-left font-medium">{m.house_grand_wallaby_fond()}</th>
-										<th class="p-2 text-left font-medium">{m.fancy_major_okapi_embrace()}</th>
-										<th class="p-2 text-left font-medium">{m.stout_weak_bison_feast()}</th>
-										<th class="p-2 text-left font-medium">{m.antsy_known_lark_jump()}</th>
-										<th class="p-2 text-left font-medium">{m.dizzy_just_ant_assure()}</th>
-										<th class="p-2 text-left font-medium">{m.any_dirty_turtle_swim()}</th>
+										<th class="p-2 text-left font-medium">{$LL.admin.import.firstNames()}</th>
+										<th class="p-2 text-left font-medium">{$LL.admin.import.lastName()}</th>
+										<th class="p-2 text-left font-medium">{$LL.admin.import.municipality()}</th>
+										<th class="p-2 text-left font-medium">{$LL.admin.import.email()}</th>
+										<th class="p-2 text-left font-medium">{$LL.admin.import.membershipType()}</th>
+										<th class="p-2 text-left font-medium">{$LL.admin.import.startDate()}</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -267,7 +267,7 @@
 							{#if rows.length > 10}
 								{@const rowCount = rows.length}
 								<p class="mt-2 text-sm text-muted-foreground">
-									{m.vivid_brave_lemming_fond({ rowCount })}
+									{$LL.admin.import.showingRows({ rowCount })}
 								</p>
 							{/if}
 						</div>
@@ -286,13 +286,13 @@
 					>
 						<input type="hidden" name="rows" value={JSON.stringify(rows)} />
 						<Button type="submit" disabled={!canImport} class="w-full">
-							{isImporting ? m.gross_round_felix_bend() : m.dry_heroic_liger_ask({ count: rows.length })}
+							{isImporting ? $LL.admin.import.importing() : $LL.admin.import.importButton({ count: rows.length })}
 						</Button>
 					</form>
 				{:else if csvFile}
-					<p class="text-sm text-muted-foreground">{m.brief_odd_hawk_believe()}</p>
+					<p class="text-sm text-muted-foreground">{$LL.admin.import.noRows()}</p>
 				{:else}
-					<p class="text-sm text-muted-foreground">{m.merry_sweet_piranha_inspire()}</p>
+					<p class="text-sm text-muted-foreground">{$LL.admin.import.uploadPrompt()}</p>
 				{/if}
 			</div>
 		</div>

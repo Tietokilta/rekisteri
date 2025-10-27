@@ -1,12 +1,11 @@
 <script lang="ts">
 	import type { PageProps } from "./$types";
-	import * as m from "$lib/paraglide/messages.js";
+	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import { zod4Client } from "sveltekit-superforms/adapters";
 	import { superForm } from "sveltekit-superforms";
 	import { schema } from "./schema";
 	import { route } from "$lib/ROUTES";
 	import * as Form from "$lib/components/ui/form/index.js";
-	import { getLocale } from "$lib/paraglide/runtime";
 
 	const { data }: PageProps = $props();
 
@@ -26,12 +25,12 @@
 </script>
 
 <main class="my-4 flex flex-col items-center justify-center">
-	<h1 class="font-mono text-lg">{m.proof_spicy_mule_loop()}</h1>
+	<h1 class="font-mono text-lg">{$LL.membership.buy()}</h1>
 	<form method="post" action={route("payMembership /new")} use:enhance class="flex w-full max-w-xs flex-col gap-4">
 		<div class="space-y flex flex-col gap-1 rounded-lg border p-4">
 			<Form.Field {form} name="membershipId">
 				<Form.Control>
-					<Form.Label>{m.muddy_upper_puma_persist()}</Form.Label>
+					<Form.Label>{$LL.membership.select()}</Form.Label>
 					{#each filteredMemberships as membership (membership.id)}
 						<label
 							class="flex items-start gap-3 rounded-lg border p-4 focus-within:border-primary hover:border-primary"
@@ -48,8 +47,8 @@
 									{membership.type} ({membership.priceCents / 100} €)
 								</span>
 								<span class="text-sm text-muted-foreground">
-									{new Date(membership.startTime).toLocaleDateString(`${getLocale()}-FI`)}
-									– {new Date(membership.endTime).toLocaleDateString(`${getLocale()}-FI`)}
+									{new Date(membership.startTime).toLocaleDateString(`${$locale}-FI`)}
+									– {new Date(membership.endTime).toLocaleDateString(`${$locale}-FI`)}
 								</span>
 							</div>
 						</label>
@@ -61,14 +60,14 @@
 				<div class="mt-4 rounded-lg border p-4">
 					<label class="flex items-start gap-3">
 						<input type="checkbox" name="isStudent" bind:checked={isStudent} required class="rounded" />
-						<span class="text-sm">{m.neat_calm_tiger_leap()}</span>
+						<span class="text-sm">{$LL.membership.isStudent()}</span>
 					</label>
 				</div>
 			{/if}
 		</div>
 
 		<Form.Button type="submit" disabled={disableForm} class={disableForm ? "cursor-not-allowed opacity-50" : ""}>
-			{m.proof_spicy_mule_loop()}
+			{$LL.membership.buy()}
 			{#if $formData.membershipId}
 				({(availableMemberships.find((x) => x.id === $formData.membershipId)?.priceCents ?? 0) / 100} €)
 			{/if}

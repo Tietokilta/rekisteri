@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Separator } from "$lib/components/ui/separator";
-	import { getLocale } from "$lib/paraglide/runtime";
+	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import { route } from "$lib/ROUTES";
 	import { superForm } from "sveltekit-superforms";
 	import type { PageProps } from "./$types";
@@ -8,7 +8,6 @@
 	import { createSchema } from "./schema";
 	import * as Form from "$lib/components/ui/form/index.js";
 	import { Input } from "$lib/components/ui/input";
-	import * as m from "$lib/paraglide/messages.js";
 	import { Button } from "$lib/components/ui/button";
 	import { enhance as defaultEnhance } from "$app/forms";
 
@@ -21,11 +20,11 @@
 </script>
 
 <main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
-	<h1 class="font-mono text-lg">{m.smug_vexed_toucan_dream()}</h1>
+	<h1 class="font-mono text-lg">{$LL.admin.memberships.title()}</h1>
 
 	<div class="flex w-full max-w-2xl flex-col items-center gap-4 md:flex-row md:items-stretch">
 		<div class="w-full max-w-xs">
-			<h2 class="font-mono text-lg">{m.equal_smug_dolphin_promise()}</h2>
+			<h2 class="font-mono text-lg">{$LL.membership.title()}</h2>
 			<ul class="space-y-4">
 				{#each data.memberships as membership (membership.id)}
 					<li class="flex items-center justify-between space-x-4 rounded-md border p-4">
@@ -33,16 +32,16 @@
 							<p class="font-medium">{membership.type}</p>
 							<p>
 								<time datetime={membership.startTime.toISOString()}
-									>{membership.startTime.toLocaleDateString(`${getLocale()}-FI`)}</time
+									>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time
 								>–<time datetime={membership.endTime.toISOString()}
-									>{membership.endTime.toLocaleDateString(`${getLocale()}-FI`)}</time
+									>{membership.endTime.toLocaleDateString(`${$locale}-FI`)}</time
 								>
 							</p>
 							<p class="text-muted-foreground">
-								{m.zany_upper_antelope_grasp({ stripePriceId: membership.stripePriceId })}
+								{$LL.admin.memberships.stripePriceIdLabel({ stripePriceId: membership.stripePriceId })}
 							</p>
-							<p class="text-muted-foreground">{m.active_home_lobster_flip({ price: membership.priceCents / 100 })}</p>
-							<p class="text-muted-foreground">{m.zippy_proof_parrot_climb({ count: membership.memberCount })}</p>
+							<p class="text-muted-foreground">{$LL.membership.price({ price: membership.priceCents / 100 })}</p>
+							<p class="text-muted-foreground">{$LL.admin.members.count({ count: membership.memberCount })}</p>
 						</div>
 						<div>
 							{#if membership.memberCount === 0}
@@ -53,7 +52,7 @@
 									use:defaultEnhance
 								>
 									<input type="hidden" name="id" value={membership.id} />
-									<Button type="submit" variant="destructive">{m.gray_brief_camel_clasp()}</Button>
+									<Button type="submit" variant="destructive">{$LL.common.delete()}</Button>
 								</form>
 							{/if}
 						</div>
@@ -63,7 +62,7 @@
 		</div>
 		<Separator class="hidden md:block" orientation="vertical" />
 		<div class="w-full max-w-xs">
-			<h2 class="font-mono text-lg">{m.flaky_lower_pig_cut()}</h2>
+			<h2 class="font-mono text-lg">{$LL.membership.createNew()}</h2>
 			<form
 				method="post"
 				action={route("createMembership /admin/memberships")}
@@ -73,9 +72,9 @@
 				<Form.Field {form} name="type">
 					<Form.Control>
 						{#snippet children({ props })}
-							<Form.Label>{m.long_quick_peacock_gulp()}</Form.Label>
+							<Form.Label>{$LL.membership.type()}</Form.Label>
 							<Input {...props} {...$constraints.type} list="types" bind:value={$formData.type} />
-							<Form.Description>{m.any_mild_seal_trust()}</Form.Description>
+							<Form.Description>{$LL.membership.continuityNote()}</Form.Description>
 							<datalist id="types">
 								{#each data.types as type (type)}
 									<option value={type}></option>
@@ -89,14 +88,14 @@
 				<Form.Field {form} name="stripePriceId">
 					<Form.Control>
 						{#snippet children({ props })}
-							<Form.Label>{m.short_key_crocodile_yell()}</Form.Label>
+							<Form.Label>{$LL.admin.memberships.stripePriceId()}</Form.Label>
 							<Input
 								{...props}
 								{...$constraints.stripePriceId}
 								bind:value={$formData.stripePriceId}
 								placeholder="price_xxx"
 							/>
-							<Form.Description>{m.home_maroon_vole_pinch()}</Form.Description>
+							<Form.Description>{$LL.admin.memberships.stripePriceIdDescription()}</Form.Description>
 						{/snippet}
 					</Form.Control>
 					<Form.FieldErrors />
@@ -105,7 +104,7 @@
 				<Form.Field {form} name="startTime">
 					<Form.Control>
 						{#snippet children({ props })}
-							<Form.Label>{m.early_loved_cockroach_radiate()}</Form.Label>
+							<Form.Label>{$LL.membership.startTime()}</Form.Label>
 							<Input {...props} {...$constraints.startTime} type="date" bind:value={$formData.startTime} />
 						{/snippet}
 					</Form.Control>
@@ -115,7 +114,7 @@
 				<Form.Field {form} name="endTime">
 					<Form.Control>
 						{#snippet children({ props })}
-							<Form.Label>{m.trite_plain_dachshund_rest()}</Form.Label>
+							<Form.Label>{$LL.membership.endTime()}</Form.Label>
 							<Input {...props} {...$constraints.endTime} type="date" bind:value={$formData.endTime} />
 						{/snippet}
 					</Form.Control>
@@ -125,7 +124,7 @@
 				<Form.Field {form} name="priceCents">
 					<Form.Control>
 						{#snippet children({ props })}
-							<Form.Label>{m.level_sad_ant_nurture()}</Form.Label>
+							<Form.Label>{$LL.membership.priceCents()}</Form.Label>
 							<Input {...props} {...$constraints.priceCents} inputmode="numeric" bind:value={$formData.priceCents} />
 						{/snippet}
 					</Form.Control>
@@ -135,7 +134,7 @@
 				<Form.Field {form} name="requiresStudentVerification">
 					<Form.Control>
 						{#snippet children({ props })}
-							<Form.Label>{m.brave_swift_falcon_soar()}</Form.Label>
+							<Form.Label>{$LL.membership.requiresStudentVerification()}</Form.Label>
 							<Input
 								{...props}
 								{...$constraints.requiresStudentVerification}
@@ -146,7 +145,7 @@
 					</Form.Control>
 				</Form.Field>
 
-				<Form.Button type="submit">{m.warm_any_penguin_pop()}</Form.Button>
+				<Form.Button type="submit">{$LL.membership.add()}</Form.Button>
 			</form>
 		</div>
 	</div>

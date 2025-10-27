@@ -1,7 +1,7 @@
 import { sequence } from "@sveltejs/kit/hooks";
 import type { Handle } from "@sveltejs/kit";
 import * as auth from "$lib/server/auth/session.js";
-import { paraglideMiddleware } from "$lib/paraglide/server";
+import { getLocaleFromPathname } from "$lib/i18n/routing";
 
 const handleAuth: Handle = async ({ event, resolve }) => {
 	const sessionToken = event.cookies.get(auth.sessionCookieName);
@@ -24,19 +24,14 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-const handleParaglide: Handle = ({ event, resolve }) => {
-	if (event.url.pathname.startsWith("/api")) {
-		return resolve(event);
-	}
+const handleI18n: Handle = ({ event, resolve }) => {
+	const locale = getLocaleFromPathname(event.url.pathname);
 
-	return paraglideMiddleware(event.request, ({ request: localizedRequest, locale }) => {
-		event.request = localizedRequest;
-		return resolve(event, {
-			transformPageChunk: ({ html }) => {
-				return html.replace("%lang%", locale);
-			},
-		});
+	return resolve(event, {
+		transformPageChunk: ({ html }) => {
+			return html.replace("%lang%", locale);
+		},
 	});
 };
 
-export const handle: Handle = sequence(handleAuth, handleParaglide);
+export const handle: Handle = sequence(handleAuth, handleI18n);

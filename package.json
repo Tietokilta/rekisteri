@@ -4,8 +4,8 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build",
+		"dev": "concurrently -n vite,i18n -c cyan,magenta \"vite dev\" \"pnpm i18n:watch\"",
+		"build": "pnpm i18n:generate && vite build",
 		"flake:upgrade": "docker run --rm -v $(pwd):/app -w /app nixpkgs/nix-flakes sh -c \"git config --global --add safe.directory /app && nix flake update\"",
 		"flake:build": "docker run --rm -v $(pwd):/app -w /app nixpkgs/nix-flakes sh -c \"git config --global --add safe.directory /app && nix build .#docker\"",
 		"preview": "vite preview",
@@ -22,15 +22,13 @@
 		"db:seed": "tsx --env-file=.env src/lib/server/db/seed.ts",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
-		"i18n:validate": "inlang validate --project project.inlang",
-		"i18n:lint": "inlang lint --project project.inlang"
+		"i18n:generate": "typesafe-i18n --no-watch",
+		"i18n:watch": "typesafe-i18n",
+		"typesafe-i18n": "typesafe-i18n"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.3.2",
 		"@eslint/js": "^9.35.0",
-		"@inlang/cli": "^3.0.12",
-		"@inlang/plugin-m-function-matcher": "^2.1.0",
-		"@inlang/plugin-message-format": "^4.0.0",
 		"@lucide/svelte": "^0.544.0",
 		"@playwright/test": "^1.55.0",
 		"@sveltejs/adapter-node": "^5.3.2",
@@ -43,6 +41,7 @@
 		"@types/papaparse": "^5.3.16",
 		"bits-ui": "^2.9.2",
 		"clsx": "^2.1.1",
+		"concurrently": "^9.2.1",
 		"drizzle-kit": "^0.31.4",
 		"drizzle-seed": "^0.3.1",
 		"eslint": "^9.35.0",
@@ -70,7 +69,6 @@
 	"dependencies": {
 		"@fontsource-variable/inter": "^5.2.7",
 		"@fontsource-variable/roboto-mono": "^5.2.7",
-		"@inlang/paraglide-js": "^2.3.2",
 		"@oslojs/crypto": "^1.0.1",
 		"@oslojs/encoding": "^1.1.0",
 		"drizzle-orm": "^0.44.5",
@@ -78,7 +76,8 @@
 		"mode-watcher": "^1.1.0",
 		"papaparse": "^5.5.3",
 		"postgres": "^3.4.7",
-		"stripe": "^18.5.0"
+		"stripe": "^18.5.0",
+		"typesafe-i18n": "^5.26.2"
 	},
 	"packageManager": "pnpm@10.16.1",
 	"engines": {

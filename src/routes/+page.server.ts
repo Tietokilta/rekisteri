@@ -8,11 +8,12 @@ import { schema } from "./schema";
 import { superValidate } from "sveltekit-superforms";
 import { zod4 } from "sveltekit-superforms/adapters";
 import * as auth from "$lib/server/auth/session";
-import { localizeHref } from "$lib/paraglide/runtime";
+import { localizePathname, getLocaleFromPathname } from "$lib/i18n/routing";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
-		return redirect(302, localizeHref(route("/sign-in")));
+		const locale = getLocaleFromPathname(event.url.pathname);
+		return redirect(302, localizePathname(route("/sign-in"), locale));
 	}
 
 	const form = await superValidate(zod4(schema), {
@@ -72,7 +73,8 @@ async function saveInfo(event: RequestEvent) {
 		})
 		.where(eq(table.user.id, user.id));
 
-	return redirect(302, localizeHref(route("/")));
+	const locale = getLocaleFromPathname(event.url.pathname);
+	return redirect(302, localizePathname(route("/"), locale));
 }
 
 async function signOut(event: RequestEvent) {
@@ -82,5 +84,6 @@ async function signOut(event: RequestEvent) {
 	await auth.invalidateSession(event.locals.session.id);
 	auth.deleteSessionTokenCookie(event);
 
-	return redirect(302, localizeHref(route("/sign-in")));
+	const locale = getLocaleFromPathname(event.url.pathname);
+	return redirect(302, localizePathname(route("/sign-in"), locale));
 }

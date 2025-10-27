@@ -2,7 +2,7 @@
 	import { enhance } from "$app/forms";
 	import { Label } from "$lib/components/ui/label/index.js";
 	import { Button } from "$lib/components/ui/button/index.js";
-	import * as m from "$lib/paraglide/messages.js";
+	import { LL } from "$lib/i18n/i18n-svelte";
 	import * as InputOTP from "$lib/components/ui/input-otp/index.js";
 
 	import type { ActionData, PageData } from "./$types";
@@ -14,12 +14,12 @@
 </script>
 
 <main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
-	<h1 class="font-mono text-lg">{m.round_tense_spider_lock()}</h1>
-	<p class="max-w-xs">{m.raw_witty_alligator_strive({ email: data.email })}</p>
+	<h1 class="font-mono text-lg">{$LL.auth.signIn()}</h1>
+	<p class="max-w-xs">{$LL.auth.codeSentTo({ email: data.email })}</p>
 	<div class="flex w-full max-w-xs flex-col gap-4">
 		<form bind:this={verifyForm} method="post" use:enhance action="?/verify" class="contents">
 			<div>
-				<Label for="form-verify.code">{m.day_stale_porpoise_borrow()}</Label>
+				<Label for="form-verify.code">{$LL.auth.code()}</Label>
 				<InputOTP.Root
 					maxlength={8}
 					name="code"
@@ -39,10 +39,10 @@
 			{#if form?.verify?.message}
 				<p class="text-red-500">{form.verify.message}</p>
 			{/if}
-			<Button type="submit">{m.same_nimble_guppy_find()}</Button>
+			<Button type="submit">{$LL.auth.verify()}</Button>
 		</form>
 		<form method="post" use:enhance action="?/resend" class="contents">
-			<Button type="submit" variant="outline">{m.large_these_horse_twist()}</Button>
+			<Button type="submit" variant="outline">{$LL.auth.resendCode()}</Button>
 			{#if form?.resend?.message}
 				<p>{form.resend.message}</p>
 			{/if}
