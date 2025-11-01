@@ -36,3 +36,5 @@ src/lib/i18n/i18n-svelte.ts
 # Nix
 .direnv
 .devenv
+
+project.inlang
