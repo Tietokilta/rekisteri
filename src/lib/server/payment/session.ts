@@ -24,8 +24,7 @@ export async function createSession(userId: string, membershipId: string, requir
 
 	// Check if user already has this membership
 	const existingMember = await db.query.member.findFirst({
-		where: (member, { and, eq }) =>
-			and(eq(member.userId, userId), eq(member.membershipId, membershipId)),
+		where: (member, { and, eq }) => and(eq(member.userId, userId), eq(member.membershipId, membershipId)),
 	});
 
 	if (existingMember) {
@@ -87,7 +86,10 @@ export async function fulfillSession(sessionId: string) {
 	if (!member || member.status !== "awaiting_payment") {
 		return;
 	}
-	await db.update(table.member).set({ status: member.requiresApproval ? "awaiting_approval" : "active" }).where(eq(table.member.id, member.id));
+	await db
+		.update(table.member)
+		.set({ status: member.requiresApproval ? "awaiting_approval" : "active" })
+		.where(eq(table.member.id, member.id));
 }
 
 /**
