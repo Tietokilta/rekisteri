@@ -22,10 +22,7 @@ async function findNextYearMembership(currentMembershipId: string) {
 
 	const nextMembership = await db.query.membership.findFirst({
 		where: (membership, { and, eq, gt }) =>
-			and(
-				eq(membership.type, currentMembership.type),
-				gt(membership.startTime, currentMembership.startTime)
-			),
+			and(eq(membership.type, currentMembership.type), gt(membership.startTime, currentMembership.startTime)),
 		orderBy: (membership, { asc }) => asc(membership.startTime),
 	});
 
@@ -63,8 +60,7 @@ export const load: PageServerLoad = async (event) => {
 		result.map(async (m) => {
 			const nextMembership = await findNextYearMembership(m.membership.id);
 			// Only show renew button if next membership exists and user doesn't already have it
-			const hasNextYearMembership =
-				!!nextMembership && !userMembershipIds.has(nextMembership.id);
+			const hasNextYearMembership = !!nextMembership && !userMembershipIds.has(nextMembership.id);
 
 			return {
 				...m.membership,
@@ -72,7 +68,7 @@ export const load: PageServerLoad = async (event) => {
 				unique_id: m.member.id,
 				hasNextYearMembership,
 			};
-		})
+		}),
 	);
 
 	return { user: event.locals.user, form, memberships: membershipsWithRenewInfo };
@@ -81,7 +77,7 @@ export const load: PageServerLoad = async (event) => {
 export const actions: Actions = {
 	saveInfo,
 	signOut,
-	renewMembership
+	renewMembership,
 };
 
 async function saveInfo(event: RequestEvent) {
@@ -155,7 +151,7 @@ async function renewMembership(event: RequestEvent) {
 	}
 
 	const currentMembershipId = form.data.membershipId;
-	
+
 	const nextMembership = await findNextYearMembership(currentMembershipId);
 
 	if (!nextMembership) {

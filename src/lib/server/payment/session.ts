@@ -11,7 +11,12 @@ import type { Locale } from "$lib/i18n/routing";
  *
  * @see {@link https://docs.stripe.com/checkout/quickstart}
  */
-export async function createSession(userId: string, membershipId: string, locale: Locale, requiresApproval: boolean = true) {
+export async function createSession(
+	userId: string,
+	membershipId: string,
+	locale: Locale,
+	requiresApproval: boolean = true,
+) {
 	const membership = await db.query.membership.findFirst({
 		where: eq(table.membership.id, membershipId),
 	});
@@ -24,8 +29,7 @@ export async function createSession(userId: string, membershipId: string, locale
 
 	// Check if user already has this membership
 	const existingMember = await db.query.member.findFirst({
-		where: (member, { and, eq }) =>
-			and(eq(member.userId, userId), eq(member.membershipId, membershipId)),
+		where: (member, { and, eq }) => and(eq(member.userId, userId), eq(member.membershipId, membershipId)),
 	});
 
 	if (existingMember) {
@@ -93,8 +97,11 @@ export async function fulfillSession(sessionId: string) {
 			// Already processed or not found
 			return;
 		}
-		await db.update(table.member).set({ status: member.requiresApproval ? "awaiting_approval" : "active" }).where(eq(table.member.id, member.id));
-	});	
+		await db
+			.update(table.member)
+			.set({ status: member.requiresApproval ? "awaiting_approval" : "active" })
+			.where(eq(table.member.id, member.id));
+	});
 }
 
 /**
