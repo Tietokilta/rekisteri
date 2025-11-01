@@ -11,7 +11,7 @@ import { eq } from "drizzle-orm";
  * @param {string} membershipId
  * @see {@link https://docs.stripe.com/checkout/quickstart}
  */
-export async function createSession(userId: string, membershipId: string) {
+export async function createSession(userId: string, membershipId: string, requiresApproval: boolean = true) {
 	const membership = await db.query.membership.findFirst({
 		where: eq(table.membership.id, membershipId),
 	});
@@ -20,6 +20,16 @@ export async function createSession(userId: string, membershipId: string) {
 	});
 	if (!membership || !user) {
 		throw new Error("Membership or user not found");
+	}
+
+	// Check if user already has this membership
+	const existingMember = await db.query.member.findFirst({
+		where: (member, { and, eq }) =>
+			and(eq(member.userId, userId), eq(member.membershipId, membershipId)),
+	});
+
+	if (existingMember) {
+		throw new Error("User already has this membership");
 	}
 
 	let stripeCustomerId = user.stripeCustomerId;
@@ -56,6 +66,7 @@ export async function createSession(userId: string, membershipId: string) {
 		membershipId: membershipId,
 		stripeSessionId: session.id,
 		status: "awaiting_payment",
+		requiresApproval: requiresApproval,
 	});
 
 	return session;
@@ -76,7 +87,7 @@ export async function fulfillSession(sessionId: string) {
 	if (!member || member.status !== "awaiting_payment") {
 		return;
 	}
-	await db.update(table.member).set({ status: "awaiting_approval" }).where(eq(table.member.id, member.id));
+	await db.update(table.member).set({ status: member.requiresApproval ? "awaiting_approval" : "active" }).where(eq(table.member.id, member.id));
 }
 
 /**

@@ -39,6 +39,7 @@ const en = {
 		current: "Current memberships",
 		createNew: "Create a new membership",
 		buy: "Buy membership",
+		renew: "Renew membership",
 		select: "Select membership type",
 		type: "Type",
 		continuityNote: "Membership continuity is connected by the type",
