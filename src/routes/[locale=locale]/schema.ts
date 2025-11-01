@@ -9,3 +9,7 @@ export const schema = z.object({
 	preferredLanguage: z.enum(PREFERRED_LANGUAGE_VALUES),
 	isAllowedEmails: z.boolean(),
 });
+
+export const renewMembershipSchema = z.object({
+	membershipId: z.string(),
+});

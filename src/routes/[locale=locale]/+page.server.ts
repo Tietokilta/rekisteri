@@ -11,6 +11,27 @@ import * as auth from "$lib/server/auth/session";
 import * as z from "zod";
 import { fi, en } from "zod/locales";
 
+async function findNextYearMembership(currentMembershipId: string) {
+	const currentMembership = await db.query.membership.findFirst({
+		where: eq(table.membership.id, currentMembershipId),
+	});
+
+	if (!currentMembership) {
+		return null;
+	}
+
+	const nextMembership = await db.query.membership.findFirst({
+		where: (membership, { and, eq, gt }) =>
+			and(
+				eq(membership.type, currentMembership.type),
+				gt(membership.startTime, currentMembership.startTime)
+			),
+		orderBy: (membership, { asc }) => asc(membership.startTime),
+	});
+
+	return nextMembership;
+}
+
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
 		return redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
@@ -34,18 +55,33 @@ export const load: PageServerLoad = async (event) => {
 		.where(eq(table.member.userId, event.locals.user.id))
 		.orderBy(desc(table.membership.startTime));
 
-	const memberships = result.map((m) => ({
-		...m.membership,
-		status: m.member.status,
-		unique_id: m.member.id,
-	}));
+	// Get all membership IDs that the user already has
+	const userMembershipIds = new Set(result.map((m) => m.membership.id));
 
-	return { user: event.locals.user, form, memberships };
+	// Check for each membership if there's a next year's membership available
+	const membershipsWithRenewInfo = await Promise.all(
+		result.map(async (m) => {
+			const nextMembership = await findNextYearMembership(m.membership.id);
+			// Only show renew button if next membership exists and user doesn't already have it
+			const hasNextYearMembership =
+				!!nextMembership && !userMembershipIds.has(nextMembership.id);
+
+			return {
+				...m.membership,
+				status: m.member.status,
+				unique_id: m.member.id,
+				hasNextYearMembership,
+			};
+		})
+	);
+
+	return { user: event.locals.user, form, memberships: membershipsWithRenewInfo };
 };
 
 export const actions: Actions = {
 	saveInfo,
 	signOut,
+	renewMembership
 };
 
 async function saveInfo(event: RequestEvent) {
@@ -99,4 +135,42 @@ async function signOut(event: RequestEvent) {
 	auth.deleteSessionTokenCookie(event);
 
 	return redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
+}
+
+async function renewMembership(event: RequestEvent) {
+	if (!event.locals.user) {
+		return fail(401, {
+			message: "Unauthorized",
+		});
+	}
+
+	const formData = await event.request.formData();
+	const form = await superValidate(formData, zod4(renewMembershipSchema));
+
+	if (!form.valid) {
+		return fail(400, {
+			form,
+			message: "Invalid form data",
+		});
+	}
+
+	const currentMembershipId = form.data.membershipId;
+	
+	const nextMembership = await findNextYearMembership(currentMembershipId);
+
+	if (!nextMembership) {
+		return fail(404, {
+			form,
+			message: "No membership available for renewal",
+		});
+	}
+
+	const paymentSession = await createSession(event.locals.user.id, nextMembership.id, false);
+	if (!paymentSession?.url) {
+		return fail(400, {
+			form,
+			message: "Could not create payment session",
+		});
+	}
+	return redirect(303, paymentSession.url);
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "member" ADD COLUMN "requires_approval" boolean DEFAULT true NOT NULL;

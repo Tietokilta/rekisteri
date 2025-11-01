@@ -246,6 +246,12 @@
 									>
 								</p>
 							</div>
+							{#if membership.status === "active" && membership.hasNextYearMembership}
+								<form method="post" action={route("renewMembership /")} class="mt-2">
+									<input type="hidden" name="membershipId" value={membership.id} />
+									<Form.Button type="submit" variant="outline" size="sm">{$LL.membership.renew()}</Form.Button>
+								</form>
+							{/if}
 						</div>
 					</li>
 				{/each}

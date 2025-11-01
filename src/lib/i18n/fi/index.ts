@@ -94,6 +94,7 @@ const fi = {
 		current: "Nykyiset jäsenyydet",
 		createNew: "Luo uusi jäsenyys",
 		buy: "Osta jäsenyys",
+		renew: "Uusi jäsenyys",
 		select: "Valitse jäsenyys",
 		type: "Tyyppi",
 		continuityNote: "Jäsenyyksien jatkuvuus yhdistetään tyypin mukaisesti",
