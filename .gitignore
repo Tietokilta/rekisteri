@@ -38,3 +38,4 @@ src/lib/i18n/i18n-svelte.ts
 .devenv
 
 project.inlang
+result

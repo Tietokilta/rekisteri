@@ -44,7 +44,7 @@
                 inherit (finalAttrs) pname version src;
                 inherit nodejs;
                 fetcherVersion = 2;
-                hash = "sha256-5g43nThfyw74TJHOkkcjQqWgTaLM7ge38QcwWgm+4xA=";
+                hash = "sha256-nGATXci2zXbyIMUGIhECTIwc4GoP9WgT1iRep5xtWCM=";
               }).overrideAttrs
                 (old: {
                   nativeBuildInputs = [
