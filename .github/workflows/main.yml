@@ -7,9 +7,7 @@ on:
 permissions:
   id-token: write
   contents: read
-env:
-  # Change this to upload the built image to your own organization.
-  docker_tag_prefix: ghcr.io/tietokilta
+
 jobs:
   checks:
     name: validate and test
@@ -71,3 +69,77 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@8505cd40ae3d4791ca658f2697c5767212e5ce71
+        with:
+          nix_conf: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+            keep-env-derivations = true
+            keep-outputs = true
+      - name: Restore and save Nix store
+        uses: nix-community/cache-nix-action@76f6697d63b7378f7161d52f3d81784130ecd90d
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+      - name: nix build
+        run: nix build . --accept-flake-config -L
+
+  docker-build-and-publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    name: Push Docker image to GitHub Packages
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@8505cd40ae3d4791ca658f2697c5767212e5ce71
+        with:
+          nix_conf: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+            keep-env-derivations = true
+            keep-outputs = true
+      - name: Restore and save Nix store
+        uses: nix-community/cache-nix-action@76f6697d63b7378f7161d52f3d81784130ecd90d
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: build and push docker image
+        run: |
+          nix build .#docker --accept-flake-config -L
+          docker load < result
+          docker tag rekisteri:latest ghcr.io/tietokilta/rekisteri:latest
+          docker tag rekisteri:latest ghcr.io/tietokilta/rekisteri:sha-${{ github.sha }}
+          docker push ghcr.io/tietokilta/rekisteri:latest
+          docker push ghcr.io/tietokilta/rekisteri:sha-${{ github.sha }}
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    name: Deploy to Azure
+    runs-on: ubuntu-latest
+    needs: docker-build-and-publish
+    steps:
+      - name: Login via Azure CLI
+        uses: azure/login@v2
+        with:
+          client-id: ${{secrets.AZURE_CLIENT_ID}}
+          subscription-id: ${{secrets.AZURE_SUBSCRIPTION_ID}}
+          tenant-id: ${{secrets.AZURE_TENANT_ID}}
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: tik-registry-prod
+          images: "ghcr.io/tietokilta/rekisteri:sha-${{ github.sha }}"
