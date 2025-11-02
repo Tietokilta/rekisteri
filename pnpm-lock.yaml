@@ -41,6 +41,9 @@ importers:
       stripe:
         specifier: ^18.5.0
         version: 18.5.0(@types/node@24.4.0)
+      svelte:
+        specifier: ^5.38.10
+        version: 5.38.10
       typesafe-i18n:
         specifier: ^5.26.2
         version: 5.26.2(typescript@5.9.2)
@@ -120,9 +123,6 @@ importers:
       prettier-plugin-tailwindcss:
         specifier: ^0.6.14
         version: 0.6.14(prettier-plugin-svelte@3.4.0(prettier@3.6.2)(svelte@5.38.10))(prettier@3.6.2)
-      svelte:
-        specifier: ^5.38.10
-        version: 5.38.10
       svelte-check:
         specifier: ^4.3.1
         version: 4.3.1(picomatch@4.0.3)(svelte@5.38.10)(typescript@5.9.2)

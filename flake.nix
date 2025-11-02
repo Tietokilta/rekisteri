@@ -32,6 +32,7 @@
               nodejs
               pnpm
               pnpm.configHook
+              pkgs.makeWrapper
             ];
 
             STRIPE_API_KEY = "sk_test_...";
@@ -57,9 +58,19 @@
             installPhase = ''
               runHook preInstall
               pnpm build
-              cp -r build $out
+
+              mkdir -p $out/{bin,lib}
+
+              cp -r build $out/lib
               pnpm prune --prod
-              cp -r node_modules $out
+              cp -r node_modules $out/lib
+
+
+              makeWrapper ${nodejs}/bin/node $out/bin/rekisteri \
+                --chdir $out/lib \
+                --add-flag $out/lib/build/index.js \
+                --set NODE_ENV production
+
               runHook postInstall
             '';
           });
@@ -70,8 +81,7 @@
             name = "rekisteri";
             tag = "latest";
             config.Cmd = [
-              "${nodejs}/bin/node"
-              "${default}/index.js"
+              "${default}/bin/rekisteri"
             ];
           };
         }
