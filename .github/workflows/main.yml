@@ -72,7 +72,20 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    needs: checks
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: mysecretpassword
+          POSTGRES_DB: local
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - name: Install Nix
@@ -90,10 +103,60 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - name: nix build
         run: nix build . --accept-flake-config -L
+      - name: Load Docker image
+        run: nix build .#docker --accept-flake-config -L && docker load < result
+      - name: Sanity check - Start app with migrations
+        run: |
+          # Run container in background with database connection
+          docker run -d --name rekisteri-test \
+            --network host \
+            -e DATABASE_URL=postgres://root:mysecretpassword@localhost:5432/local \
+            -e STRIPE_API_KEY=sk_test_... \
+            -e STRIPE_WEBHOOK_SECRET=whsec_... \
+            rekisteri:latest
+
+          # Wait for app to start (migrations + server startup)
+          # The startup script should fail fast if migrations fail
+          echo "Waiting for app to start..."
+          for i in {1..30}; do
+            if docker logs rekisteri-test 2>&1 | grep -q "Listening on"; then
+              echo "✓ App started successfully!"
+              docker logs rekisteri-test
+
+              # Verify the server is healthy and database is connected
+              echo ""
+              echo "Testing health endpoint..."
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health || echo "000")
+
+              if [ "$HTTP_CODE" = "200" ]; then
+                echo "✓ Health check passed (HTTP 200)"
+                # Show the health response for debugging
+                curl -s http://localhost:3000/api/health | jq '.' || true
+                docker stop rekisteri-test
+                exit 0
+              else
+                echo "✗ Health check failed with HTTP $HTTP_CODE (expected 200)"
+                curl -s http://localhost:3000/api/health | jq '.' || true
+                docker logs rekisteri-test
+                docker stop rekisteri-test
+                exit 1
+              fi
+            fi
+            if ! docker ps | grep -q rekisteri-test; then
+              echo "✗ Container stopped unexpectedly"
+              docker logs rekisteri-test
+              exit 1
+            fi
+            sleep 1
+          done
+
+          echo "✗ App did not start within 30 seconds"
+          docker logs rekisteri-test
+          exit 1
 
   docker-build-and-publish:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: build
+    needs: [checks, build]
     name: Push Docker image to GitHub Packages
     runs-on: ubuntu-latest
     permissions:
