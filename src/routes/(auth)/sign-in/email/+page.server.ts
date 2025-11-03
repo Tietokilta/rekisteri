@@ -19,6 +19,7 @@ import { eq } from "drizzle-orm";
 import { db } from "$lib/server/db";
 import { route } from "$lib/ROUTES";
 import { localizePathname, getLocaleFromPathname } from "$lib/i18n/routing";
+import { auditLogin, auditLoginFailed } from "$lib/server/audit";
 
 export async function load(event: RequestEvent) {
 	const email = event.cookies.get(emailCookieName);
@@ -98,6 +99,8 @@ async function verifyCode(event: RequestEvent) {
 	}
 	const capitalizedCode = code.toLocaleUpperCase("en");
 	if (otp.code !== capitalizedCode) {
+		await auditLoginFailed(event, otp.email);
+
 		return fail(400, {
 			verify: {
 				message: "Incorrect code.",
@@ -118,6 +121,8 @@ async function verifyCode(event: RequestEvent) {
 	const token = generateSessionToken();
 	await createSession(token, userId);
 	setSessionTokenCookie(event, token, new Date(Date.now() + 1000 * 60 * 60 * 24 * 30));
+
+	await auditLogin(event, userId);
 
 	deleteEmailCookie(event);
 	deleteEmailOTP(otp.id);

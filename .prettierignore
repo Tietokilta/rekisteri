@@ -7,3 +7,5 @@ flake.lock
 
 # Claude Code configuration
 .claude
+
+drizzle

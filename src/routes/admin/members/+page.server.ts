@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { asc, eq, sql } from "drizzle-orm";
+import { auditMemberAction } from "$lib/server/audit";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.session || !event.locals.user?.isAdmin) {
@@ -137,6 +138,10 @@ export const actions: Actions = {
 
 			await db.update(table.member).set({ status: "active" }).where(eq(table.member.id, memberId));
 
+			await auditMemberAction(event, "member.approve", memberId, {
+				previousStatus: member.status,
+			});
+
 			return { success: true, message: "Member approved successfully" };
 		} catch (err) {
 			console.error("Error approving member:", err);
@@ -166,6 +171,10 @@ export const actions: Actions = {
 			}
 
 			await db.update(table.member).set({ status: "cancelled" }).where(eq(table.member.id, memberId));
+
+			await auditMemberAction(event, "member.reject", memberId, {
+				previousStatus: member.status,
+			});
 
 			return { success: true, message: "Member rejected successfully" };
 		} catch (err) {
@@ -197,6 +206,10 @@ export const actions: Actions = {
 
 			await db.update(table.member).set({ status: "expired" }).where(eq(table.member.id, memberId));
 
+			await auditMemberAction(event, "member.expire", memberId, {
+				previousStatus: member.status,
+			});
+
 			return { success: true, message: "Member marked as expired" };
 		} catch (err) {
 			console.error("Error marking member as expired:", err);
@@ -226,6 +239,10 @@ export const actions: Actions = {
 			}
 
 			await db.update(table.member).set({ status: "cancelled" }).where(eq(table.member.id, memberId));
+
+			await auditMemberAction(event, "member.cancel", memberId, {
+				previousStatus: member.status,
+			});
 
 			return { success: true, message: "Membership cancelled successfully" };
 		} catch (err) {
@@ -263,6 +280,10 @@ export const actions: Actions = {
 			}
 
 			await db.update(table.member).set({ status: "active" }).where(eq(table.member.id, memberId));
+
+			await auditMemberAction(event, "member.reactivate", memberId, {
+				previousStatus: member.status,
+			});
 
 			return { success: true, message: "Membership reactivated successfully" };
 		} catch (err) {
