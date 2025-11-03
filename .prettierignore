@@ -4,3 +4,6 @@ pnpm-lock.yaml
 yarn.lock
 ROUTES.ts
 flake.lock
+
+# Claude Code configuration
+.claude

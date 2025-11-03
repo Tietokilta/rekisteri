@@ -16,8 +16,9 @@ async function main() {
 
 	console.log("Seeding database...");
 
+	const rootUserId = generateUserId();
 	await db.insert(table.user).values({
-		id: generateUserId(),
+		id: rootUserId,
 		email: "root@tietokilta.fi",
 		firstNames: "Veijo",
 		lastName: "Tietokilta",
@@ -126,7 +127,7 @@ async function main() {
 	const insertedMemberships = await db
 		.insert(table.membership)
 		.values(membershipsToSeed)
-		.returning({ id: table.membership.id });
+		.returning({ id: table.membership.id, endTime: table.membership.endTime });
 
 	// Direct weights for each membership (must sum to 1.0)
 	const weights = [
@@ -142,49 +143,105 @@ async function main() {
 		0.005, // 2025 kannatusjäsen (50% of users * 1% kannatusjäsen)
 	];
 
-	const weightedMembershipValues = insertedMemberships.map((insertedMembership, index) => ({
-		values: [insertedMembership.id],
-		weight: weights[index],
-	}));
-
-	console.log("Seeding users and members using drizzle-seed...");
-	await seed(db, { user: table.user, member: table.member }, { count: 1000, version: "2" }).refine((f) => ({
+	// Seed users only first
+	console.log("Seeding users...");
+	await seed(db, { user: table.user }, { count: 1000, version: "2" }).refine((f) => ({
 		user: {
 			columns: {
 				homeMunicipality: f.state(),
 				isAdmin: f.default({ defaultValue: false }),
 				stripeCustomerId: f.default({ defaultValue: null }),
 			},
-			with: {
-				member: [
-					{
-						weight: 0.5,
-						count: 1,
-					},
-					{
-						weight: 0.5,
-						count: 2,
-					},
-				],
-			},
-		},
-		member: {
-			columns: {
-				membershipId: f.valuesFromArray({ values: weightedMembershipValues }),
-				status: f.valuesFromArray({
-					values: [
-						{ values: ["awaiting_approval"], weight: 0.02 },
-						{ values: ["awaiting_payment"], weight: 0.01 },
-						{ values: ["expired"], weight: 0.0 },
-						{ values: ["cancelled"], weight: 0.01 },
-						{ values: ["active"], weight: 0.96 },
-					],
-				}),
-			},
 		},
 	}));
 
-	console.log("Database seeded!");
+	// Get all seeded users
+	const allUsers = await db.select({ id: table.user.id }).from(table.user);
+
+	console.log("Seeding members with unique memberships per user...");
+
+	// Helper to select weighted random membership
+	function selectWeightedMembership(exclude?: string): string {
+		const random = Math.random();
+		let cumulativeWeight = 0;
+
+		for (let i = 0; i < insertedMemberships.length; i++) {
+			// Skip if this is the excluded membership
+			if (exclude && insertedMemberships[i].id === exclude) continue;
+
+			cumulativeWeight += weights[i];
+			if (random <= cumulativeWeight) {
+				return insertedMemberships[i].id;
+			}
+		}
+		return insertedMemberships[insertedMemberships.length - 1].id;
+	}
+
+	// Helper to select status based on membership period
+	function selectStatus(
+		membershipId: string,
+	): "awaiting_payment" | "awaiting_approval" | "active" | "expired" | "cancelled" {
+		const membership = insertedMemberships.find((m) => m.id === membershipId);
+		if (!membership) return "active";
+
+		const now = new Date();
+		const isExpired = membership.endTime < now;
+
+		if (isExpired) {
+			// For expired memberships, mostly expired with small chance of cancelled
+			const random = Math.random();
+			if (random < 0.05) return "cancelled";
+			return "expired";
+		} else {
+			// For current/future memberships, use normal distribution
+			const random = Math.random();
+			if (random < 0.02) return "awaiting_approval";
+			if (random < 0.03) return "awaiting_payment";
+			if (random < 0.04) return "cancelled";
+			return "active";
+		}
+	}
+
+	// Create members for each user
+	const membersToInsert = [];
+	for (const user of allUsers) {
+		// Skip the root admin user
+		if (user.id === rootUserId) continue;
+
+		// 50% chance of 1 membership, 50% chance of 2 memberships
+		const membershipCount = Math.random() < 0.5 ? 1 : 2;
+
+		// First membership
+		const firstMembershipId = selectWeightedMembership();
+		membersToInsert.push({
+			id: crypto.randomUUID(),
+			userId: user.id,
+			membershipId: firstMembershipId,
+			status: selectStatus(firstMembershipId),
+			stripeSessionId: null,
+		});
+
+		// Second membership (if applicable) - ensure it's different
+		if (membershipCount === 2) {
+			const secondMembershipId = selectWeightedMembership(firstMembershipId);
+			membersToInsert.push({
+				id: crypto.randomUUID(),
+				userId: user.id,
+				membershipId: secondMembershipId,
+				status: selectStatus(secondMembershipId),
+				stripeSessionId: null,
+			});
+		}
+	}
+
+	// Insert all members in batches
+	const batchSize = 100;
+	for (let i = 0; i < membersToInsert.length; i += batchSize) {
+		const batch = membersToInsert.slice(i, i + batchSize);
+		await db.insert(table.member).values(batch);
+	}
+
+	console.log(`Seeded ${membersToInsert.length} member records for ${allUsers.length - 1} users!`);
 
 	await client.end();
 }
