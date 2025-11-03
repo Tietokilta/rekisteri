@@ -1,8 +1,10 @@
 import { sequence } from "@sveltejs/kit/hooks";
-import type { Handle } from "@sveltejs/kit";
+import type { Handle, ServerInit } from "@sveltejs/kit";
 import * as auth from "$lib/server/auth/session.js";
 import { getLocaleFromPathname } from "$lib/i18n/routing";
 import { dev } from "$app/environment";
+import cron from "node-cron";
+import { cleanupExpiredTokens } from "$lib/server/db/cleanup";
 
 const handleAuth: Handle = async ({ event, resolve }) => {
 	const sessionToken = event.cookies.get(auth.sessionCookieName);
@@ -53,3 +55,16 @@ const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 };
 
 export const handle: Handle = sequence(handleAuth, handleSecurityHeaders, handleI18n);
+
+export const init: ServerInit = () => {
+	// Schedule cleanup tasks
+	// Run database cleanup daily at 3 AM (when traffic is typically lowest)
+	cron.schedule("0 3 * * *", async () => {
+		console.log("[Cron] Running daily database cleanup...");
+		try {
+			await cleanupExpiredTokens();
+		} catch (error) {
+			console.error("[Cron] Database cleanup failed:", error);
+		}
+	});
+};
