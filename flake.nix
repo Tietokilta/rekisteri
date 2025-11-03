@@ -61,14 +61,16 @@
 
               mkdir -p $out/{bin,lib}
 
-              cp -r build $out/lib
+              cp -r build $out/lib/server
+              cp -r drizzle $out/lib/drizzle
+              cp src/start-with-migrations.ts $out/lib/start.ts
               pnpm prune --prod
               cp -r node_modules $out/lib
 
 
               makeWrapper ${nodejs}/bin/node $out/bin/rekisteri \
                 --chdir $out/lib \
-                --add-flag $out/lib/build/index.js \
+                --add-flag $out/lib/start.ts \
                 --set NODE_ENV production
 
               runHook postInstall

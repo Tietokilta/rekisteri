@@ -20,6 +20,7 @@
 		"db:push": "drizzle-kit push",
 		"db:push:force": "drizzle-kit push --force",
 		"db:seed": "tsx --env-file=.env src/lib/server/db/seed.ts",
+		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
 		"i18n:generate": "typesafe-i18n --no-watch",
