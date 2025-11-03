@@ -19,6 +19,9 @@ export function setEmailCookie(event: RequestEvent, email: string, expiresAt: Da
 	event.cookies.set(emailCookieName, email, {
 		expires: expiresAt,
 		path: "/",
+		httpOnly: true,
+		secure: !dev,
+		sameSite: "lax",
 	});
 }
 
@@ -77,7 +80,7 @@ export function setEmailOTPCookie(event: RequestEvent, otp: EmailOTP): void {
 	event.cookies.set(emailOTPCookieName, otp.id, {
 		httpOnly: true,
 		path: "/",
-		secure: import.meta.env.PROD,
+		secure: !dev,
 		sameSite: "lax",
 		expires: otp.expiresAt,
 	});
@@ -87,7 +90,7 @@ export function deleteEmailOTPCookie(event: RequestEvent): void {
 	event.cookies.delete(emailOTPCookieName, {
 		httpOnly: true,
 		path: "/",
-		secure: import.meta.env.PROD,
+		secure: !dev,
 		sameSite: "lax",
 		maxAge: 0,
 	});
