@@ -54,7 +54,18 @@ const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 	return response;
 };
 
-export const handle: Handle = sequence(handleAuth, handleSecurityHeaders, handleI18n);
+const handleAdminAuthorization: Handle = async ({ event, resolve }) => {
+	// Protect all /admin routes - requires authenticated admin user
+	if (event.url.pathname.match(/^\/[a-z]{2}\/admin($|\/)/)) {
+		if (!event.locals.session || !event.locals.user?.isAdmin) {
+			return new Response("Not found", { status: 404 });
+		}
+	}
+
+	return resolve(event);
+};
+
+export const handle: Handle = sequence(handleAuth, handleAdminAuthorization, handleSecurityHeaders, handleI18n);
 
 export const init: ServerInit = () => {
 	// Schedule cleanup tasks
