@@ -29,6 +29,9 @@ export const actions: Actions = {
 };
 
 async function action(event: RequestEvent) {
+	// Lazy cleanup to prevent memory leaks
+	ipBucket.cleanup();
+
 	// Azure App Service adds the real client IP to the rightmost position of X-Forwarded-For
 	// Parse from right to left to get the trusted IP that Azure added
 	const forwardedFor = event.request.headers.get("X-Forwarded-For");

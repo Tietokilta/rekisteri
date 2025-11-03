@@ -49,6 +49,9 @@ export const actions: Actions = {
 };
 
 async function verifyCode(event: RequestEvent) {
+	// Lazy cleanup to prevent memory leaks
+	otpVerifyBucket.cleanup();
+
 	let otp = await getEmailOTPFromRequest(event);
 	if (otp === null) {
 		return fail(401);
@@ -133,6 +136,9 @@ async function verifyCode(event: RequestEvent) {
 }
 
 async function resendEmail(event: RequestEvent) {
+	// Lazy cleanup to prevent memory leaks
+	sendOTPBucket.cleanup();
+
 	const email = event.cookies.get(emailCookieName);
 	if (typeof email !== "string") {
 		return fail(401, {

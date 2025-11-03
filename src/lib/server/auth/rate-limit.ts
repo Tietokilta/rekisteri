@@ -9,6 +9,24 @@ export class RefillingTokenBucket<_Key> {
 
 	private storage = new Map<_Key, RefillBucket>();
 
+	/**
+	 * Clean up fully refilled buckets to prevent memory leaks.
+	 * Only removes buckets that have been idle for at least 10 minutes.
+	 */
+	public cleanup(): void {
+		const now = Date.now();
+		const TEN_MINUTES = 600 * 1000;
+
+		for (const [key, bucket] of this.storage.entries()) {
+			const refill = Math.floor((now - bucket.refilledAt) / (this.refillIntervalSeconds * 1000));
+			const currentCount = Math.min(bucket.count + refill, this.max);
+			// Remove buckets that are fully refilled AND haven't been used in 10+ minutes
+			if (currentCount >= this.max && now - bucket.refilledAt > TEN_MINUTES) {
+				this.storage.delete(key);
+			}
+		}
+	}
+
 	public check(key: _Key, cost: number): boolean {
 		const bucket = this.storage.get(key) ?? null;
 		if (bucket === null) {
@@ -54,6 +72,21 @@ export class Throttler<_Key> {
 		this.timeoutSeconds = timeoutSeconds;
 	}
 
+	/**
+	 * Clean up old throttling counters to prevent memory leaks.
+	 * Should be called periodically (e.g., every 10 minutes).
+	 */
+	public cleanup(): void {
+		const now = Date.now();
+		const maxTimeout = Math.max(...this.timeoutSeconds);
+		for (const [key, counter] of this.storage.entries()) {
+			// Remove counters that haven't been updated in a while
+			if (now - counter.updatedAt > maxTimeout * 1000 * 2) {
+				this.storage.delete(key);
+			}
+		}
+	}
+
 	public consume(key: _Key): boolean {
 		let counter = this.storage.get(key) ?? null;
 		const now = Date.now();
@@ -91,6 +124,20 @@ export class ExpiringTokenBucket<_Key> {
 		this.expiresInSeconds = expiresInSeconds;
 	}
 
+	/**
+	 * Clean up expired buckets to prevent memory leaks.
+	 * Should be called periodically (e.g., every 10 minutes).
+	 */
+	public cleanup(): void {
+		const now = Date.now();
+		for (const [key, bucket] of this.storage.entries()) {
+			// Remove buckets that have expired
+			if (now - bucket.createdAt >= this.expiresInSeconds * 1000) {
+				this.storage.delete(key);
+			}
+		}
+	}
+
 	public check(key: _Key, cost: number): boolean {
 		const bucket = this.storage.get(key) ?? null;
 		const now = Date.now();
@@ -115,7 +162,9 @@ export class ExpiringTokenBucket<_Key> {
 			return true;
 		}
 		if (now - bucket.createdAt >= this.expiresInSeconds * 1000) {
+			// Reset the bucket with a new time window
 			bucket.count = this.max;
+			bucket.createdAt = now;
 		}
 		if (bucket.count < cost) {
 			return false;
