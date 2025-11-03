@@ -29,8 +29,16 @@ export const actions: Actions = {
 };
 
 async function action(event: RequestEvent) {
-	const clientIP = event.request.headers.get("X-Forwarded-For");
-	if (clientIP !== null && !ipBucket.check(clientIP, 1)) {
+	// Azure App Service adds the real client IP to the rightmost position of X-Forwarded-For
+	// Parse from right to left to get the trusted IP that Azure added
+	const forwardedFor = event.request.headers.get("X-Forwarded-For");
+	const clientIP =
+		forwardedFor
+			?.split(",")
+			.map((ip) => ip.trim())
+			.pop() || "unknown";
+
+	if (clientIP !== "unknown" && !ipBucket.check(clientIP, 1)) {
 		return fail(429, {
 			message: "Too many requests",
 			email: "",
@@ -48,7 +56,7 @@ async function action(event: RequestEvent) {
 		});
 	}
 	const email = emailResult.data;
-	if (clientIP !== null && !ipBucket.consume(clientIP, 1)) {
+	if (clientIP !== "unknown" && !ipBucket.consume(clientIP, 1)) {
 		return fail(429, {
 			message: "Too many requests",
 			email: "",
