@@ -2,16 +2,16 @@ import { stripe } from "$lib/server/payment";
 import * as table from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
 import { eq } from "drizzle-orm";
+import { env } from "$env/dynamic/private";
+import type { Locale } from "$lib/i18n/routing";
 
 /**
  * Start and return a Stripe payment session. Creates a customer in Stripe if one does not exist for
  * the user and initializes a member relation.
  *
- * @param {string} userId
- * @param {string} membershipId
  * @see {@link https://docs.stripe.com/checkout/quickstart}
  */
-export async function createSession(userId: string, membershipId: string) {
+export async function createSession(userId: string, membershipId: string, locale: Locale) {
 	const membership = await db.query.membership.findFirst({
 		where: eq(table.membership.id, membershipId),
 	});
@@ -36,6 +36,11 @@ export async function createSession(userId: string, membershipId: string) {
 	}
 
 	const memberId = crypto.randomUUID();
+	const publicUrl = env.PUBLIC_URL;
+	if (!publicUrl) {
+		throw new Error("PUBLIC_URL environment variable is not set");
+	}
+
 	// https://docs.stripe.com/api/checkout/sessions/create
 	const session = await stripe.checkout.sessions.create({
 		line_items: [
@@ -46,8 +51,8 @@ export async function createSession(userId: string, membershipId: string) {
 		],
 		mode: "payment",
 		customer: stripeCustomerId,
-		success_url: "http://localhost:5173/fi",
-		cancel_url: "http://localhost:5173/fi",
+		success_url: `${publicUrl}/${locale}?stripeStatus=success`,
+		cancel_url: `${publicUrl}/${locale}?stripeStatus=cancel`,
 		metadata: { memberId },
 	});
 	await db.insert(table.member).values({

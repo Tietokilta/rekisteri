@@ -149,6 +149,7 @@ jobs:
           docker run -d --name rekisteri-test \
             --network host \
             -e DATABASE_URL=postgres://root:mysecretpassword@localhost:5432/local \
+            -e PUBLIC_URL=http://localhost:5173 \
             -e STRIPE_API_KEY=sk_test_... \
             -e STRIPE_WEBHOOK_SECRET=whsec_... \
             rekisteri:latest

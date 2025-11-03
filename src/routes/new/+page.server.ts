@@ -8,7 +8,7 @@ import { schema } from "./schema";
 import { superValidate } from "sveltekit-superforms";
 import { zod4 } from "sveltekit-superforms/adapters";
 import { createSession } from "$lib/server/payment/session";
-import { localizePathname, getLocaleFromPathname } from "$lib/i18n/routing";
+import { localizePathname, getLocaleFromPathname, type Locale } from "$lib/i18n/routing";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
@@ -54,7 +54,8 @@ async function payMembership(event: RequestEvent) {
 	const form = await superValidate(formData, zod4(schema));
 
 	const membershipId = form.data.membershipId;
-	const paymentSession = await createSession(event.locals.user.id, membershipId);
+	const locale: Locale = getLocaleFromPathname(event.url.pathname);
+	const paymentSession = await createSession(event.locals.user.id, membershipId, locale);
 	if (!paymentSession?.url) {
 		return fail(400, {
 			form,
