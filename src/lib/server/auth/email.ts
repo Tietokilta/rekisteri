@@ -70,9 +70,13 @@ export function sendOTPEmail(email: string, code: string, locale: "fi" | "en" = 
 	};
 
 	if (dev) {
-		console.log(emailOptions);
+		console.log("[Email] OTP email (dev mode):", emailOptions);
 	} else {
-		sendEmail(emailOptions).catch((err) => console.log(err));
+		sendEmail(emailOptions).catch((err) => {
+			// Critical: OTP emails are essential for authentication
+			// Log with high severity and consider alerting in production monitoring
+			console.error("[Email] CRITICAL: Failed to send OTP email to", email, ":", err);
+		});
 	}
 }
 
