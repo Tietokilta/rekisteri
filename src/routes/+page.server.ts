@@ -3,7 +3,7 @@ import type { Actions, PageServerLoad, RequestEvent } from "./$types";
 import { route } from "$lib/ROUTES";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { schema, renewMembershipSchema } from "./schema";
 import { superValidate } from "sveltekit-superforms";
 import { zod4 } from "sveltekit-superforms/adapters";
@@ -46,30 +46,41 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	const result = await db
-		.select()
+		.select({
+			membership: table.membership,
+			member: table.member,
+			nextMembershipId: sql<string>`nm.id`,
+		})
 		.from(table.member)
 		.innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
+		.leftJoin(
+			sql`LATERAL (
+				SELECT * FROM ${table.membership} nm
+				WHERE nm.type = ${table.membership.type} 
+				AND nm.start_time > ${table.membership.startTime}
+				ORDER BY nm.start_time ASC 
+				LIMIT 1
+			) nm`,
+			sql`true`
+		)
 		.where(eq(table.member.userId, event.locals.user.id))
 		.orderBy(desc(table.membership.startTime));
 
 	// Get all membership IDs that the user already has
 	const userMembershipIds = new Set(result.map((m) => m.membership.id));
 
-	// Check for each membership if there's a next year's membership available
-	const membershipsWithRenewInfo = await Promise.all(
-		result.map(async (m) => {
-			const nextMembership = await findNextYearMembership(m.membership.id);
-			// Only show renew button if next membership exists and user doesn't already have it
-			const hasNextYearMembership = !!nextMembership && !userMembershipIds.has(nextMembership.id);
+	// Build the memberships with renew info
+	const membershipsWithRenewInfo = result.map((m) => {
+		// Only show renew button if next membership exists and user doesn't already have it
+		const hasNextYearMembership = !!m.nextMembershipId && !userMembershipIds.has(m.nextMembershipId);
 
-			return {
-				...m.membership,
-				status: m.member.status,
-				unique_id: m.member.id,
-				hasNextYearMembership,
-			};
-		}),
-	);
+		return {
+			...m.membership,
+			status: m.member.status,
+			unique_id: m.member.id,
+			hasNextYearMembership,
+		};
+	});
 
 	return { user: event.locals.user, form, memberships: membershipsWithRenewInfo };
 };
