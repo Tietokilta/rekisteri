@@ -6,7 +6,7 @@ export const createSchema = z.object({
 	startTime: z.iso.date(),
 	endTime: z.iso.date(),
 	priceCents: z.coerce.number().int().nonnegative(),
-	requiresStudentVerification: z.boolean(),
+	requiresStudentVerification: z.coerce.boolean().default(false),
 });
 
 export const deleteSchema = z.object({
