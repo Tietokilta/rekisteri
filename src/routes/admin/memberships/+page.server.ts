@@ -94,7 +94,7 @@ async function deleteMembership(event: RequestEvent) {
 		.select({ count: count() })
 		.from(table.member)
 		.where(eq(table.member.membershipId, form.data.id))
-		.then((result) => result[0].count);
+		.then((result) => result[0]?.count ?? 0);
 
 	if (memberCount > 0) {
 		return fail(400, {

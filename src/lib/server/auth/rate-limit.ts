@@ -63,56 +63,6 @@ export class RefillingTokenBucket<_Key> {
 	}
 }
 
-export class Throttler<_Key> {
-	public timeoutSeconds: number[];
-
-	private storage = new Map<_Key, ThrottlingCounter>();
-
-	constructor(timeoutSeconds: number[]) {
-		this.timeoutSeconds = timeoutSeconds;
-	}
-
-	/**
-	 * Clean up old throttling counters to prevent memory leaks.
-	 * Should be called periodically (e.g., every 10 minutes).
-	 */
-	public cleanup(): void {
-		const now = Date.now();
-		const maxTimeout = Math.max(...this.timeoutSeconds);
-		for (const [key, counter] of this.storage.entries()) {
-			// Remove counters that haven't been updated in a while
-			if (now - counter.updatedAt > maxTimeout * 1000 * 2) {
-				this.storage.delete(key);
-			}
-		}
-	}
-
-	public consume(key: _Key): boolean {
-		let counter = this.storage.get(key) ?? null;
-		const now = Date.now();
-		if (counter === null) {
-			counter = {
-				timeout: 0,
-				updatedAt: now,
-			};
-			this.storage.set(key, counter);
-			return true;
-		}
-		const allowed = now - counter.updatedAt >= this.timeoutSeconds[counter.timeout] * 1000;
-		if (!allowed) {
-			return false;
-		}
-		counter.updatedAt = now;
-		counter.timeout = Math.min(counter.timeout + 1, this.timeoutSeconds.length - 1);
-		this.storage.set(key, counter);
-		return true;
-	}
-
-	public reset(key: _Key): void {
-		this.storage.delete(key);
-	}
-}
-
 export class ExpiringTokenBucket<_Key> {
 	public max: number;
 	public expiresInSeconds: number;
@@ -187,9 +137,4 @@ interface RefillBucket {
 interface ExpiringBucket {
 	count: number;
 	createdAt: number;
-}
-
-interface ThrottlingCounter {
-	timeout: number;
-	updatedAt: number;
 }

@@ -4,6 +4,7 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { asc, eq, sql } from "drizzle-orm";
 import { auditMemberAction } from "$lib/server/audit";
+import type { NonEmptyArray } from "$lib/utils";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.session || !event.locals.user?.isAdmin) {
@@ -37,15 +38,16 @@ export const load: PageServerLoad = async (event) => {
 	const allMembers = await db.select().from(subQuery).orderBy(asc(subQuery.firstNames), asc(subQuery.lastName));
 
 	// Group memberships by user
-	const userMembershipsMap = new Map<string, typeof allMembers>();
+	const userMembershipsMap = new Map<string, NonEmptyArray<(typeof allMembers)[number]>>();
 	for (const member of allMembers) {
 		const userId = member.userId;
-		if (!userMembershipsMap.has(userId)) {
-			userMembershipsMap.set(userId, []);
-		}
-		const userMemberships = userMembershipsMap.get(userId);
-		if (userMemberships) {
-			userMemberships.push(member);
+		if (userMembershipsMap.has(userId)) {
+			const userMemberships = userMembershipsMap.get(userId);
+			if (userMemberships) {
+				userMemberships.push(member);
+			}
+		} else {
+			userMembershipsMap.set(userId, [member]);
 		}
 	}
 
@@ -53,7 +55,7 @@ export const load: PageServerLoad = async (event) => {
 	const members = Array.from(userMembershipsMap.values())
 		.map((userMembers) => {
 			// Sort by: active/awaiting first, then by start date desc
-			const sorted = userMembers.sort((a, b) => {
+			const sorted = userMembers.toSorted((a, b) => {
 				const aIsActive = a.status === "active" || a.status === "awaiting_approval" || a.status === "awaiting_payment";
 				const bIsActive = b.status === "active" || b.status === "awaiting_approval" || b.status === "awaiting_payment";
 
@@ -62,7 +64,7 @@ export const load: PageServerLoad = async (event) => {
 
 				// Sort by start date descending (most recent first)
 				return (b.membershipStartTime?.getTime() ?? 0) - (a.membershipStartTime?.getTime() ?? 0);
-			});
+			}) as NonEmptyArray<(typeof userMembers)[number]>;
 
 			// Return primary membership with all memberships attached
 			const primary = sorted[0];
@@ -72,7 +74,7 @@ export const load: PageServerLoad = async (event) => {
 				membershipCount: sorted.length,
 			};
 		})
-		.sort((a, b) => {
+		.toSorted((a, b) => {
 			// Sort by first name, then last name
 			const aFirst = (a.firstNames ?? "").toLowerCase();
 			const bFirst = (b.firstNames ?? "").toLowerCase();
@@ -98,7 +100,7 @@ export const load: PageServerLoad = async (event) => {
 	const membershipTypes = Array.from(new Set(memberships.map((m) => m.type)));
 	const years = Array.from(
 		new Set(memberships.flatMap((m) => [m.startTime.getFullYear(), m.endTime.getFullYear()])),
-	).sort((a, b) => b - a); // Most recent first
+	).toSorted((a, b) => b - a); // Most recent first
 
 	return {
 		members,

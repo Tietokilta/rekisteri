@@ -1,6 +1,6 @@
 import { test, expect } from "./fixtures/auth";
-import path from "path";
-import fs from "fs";
+import path from "node:path";
+import fs from "node:fs";
 
 test.describe("CSV Import", () => {
 	// Test file upload with actual CSV file
@@ -22,7 +22,7 @@ test.describe("CSV Import", () => {
 		await adminPage.waitForTimeout(1000);
 
 		// Verify preview shows
-		await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10000 });
+		await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
 
 		// Check that it shows correct number of users and records
 		await expect(adminPage.getByText("Uniikkeja käyttäjiä (luotu tai päivitetty):")).toBeVisible();
@@ -111,7 +111,7 @@ Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
 		await adminPage.goto("/admin/members/import", { waitUntil: "networkidle" });
 
 		// Verify existing memberships section is visible
-		await expect(adminPage.getByText("Olemassa olevat jäsenyydet tietokannassa:")).toBeVisible({ timeout: 10000 });
+		await expect(adminPage.getByText("Olemassa olevat jäsenyydet tietokannassa:")).toBeVisible({ timeout: 10_000 });
 		await expect(adminPage.getByText("CSV-rivien tulee vastata näitä täsmälleen")).toBeVisible();
 
 		// Verify some membership types are listed

@@ -2,7 +2,7 @@ import { stripe } from "$lib/server/payment";
 import * as table from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
 import { eq } from "drizzle-orm";
-import { env } from "$env/dynamic/private";
+import { env } from "$lib/server/env";
 import type { Locale } from "$lib/i18n/routing";
 
 /**
@@ -37,9 +37,6 @@ export async function createSession(userId: string, membershipId: string, locale
 
 	const memberId = crypto.randomUUID();
 	const publicUrl = env.PUBLIC_URL;
-	if (!publicUrl) {
-		throw new Error("PUBLIC_URL environment variable is not set");
-	}
 
 	// https://docs.stripe.com/api/checkout/sessions/create
 	const session = await stripe.checkout.sessions.create({

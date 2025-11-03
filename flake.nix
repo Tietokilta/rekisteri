@@ -39,6 +39,10 @@
             STRIPE_WEBHOOK_SECRET = "whsec_...";
             DATABASE_URL = "postgres://root:mysecretpassword@localhost:5432/local";
             PUBLIC_URL = "http://localhost:3000";
+            MAILGUN_API_KEY = "key-...";
+            MAILGUN_DOMAIN = "sandbox...";
+            MAILGUN_SENDER = "Rekisteri <noreply@...>";
+            MAILGUN_URL = "https://api.eu.mailgun.net/v3/sandbox...";
 
             pnpmDeps =
               (pnpm.fetchDeps {
@@ -46,7 +50,7 @@
                 inherit (finalAttrs) pname version src;
                 inherit nodejs;
                 fetcherVersion = 2;
-                hash = "sha256-+P2B8ltFWxtKhWrmLgRhSQ+vGCea0+7fGnr+Y3EnzRQ=";
+                hash = "sha256-W4SAaFpV/wU5YDNUBLvl6Q46xH0BRkMdcbE/H8GHp+U=";
               }).overrideAttrs
                 (old: {
                   nativeBuildInputs = [

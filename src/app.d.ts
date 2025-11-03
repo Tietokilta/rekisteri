@@ -9,4 +9,5 @@ declare global {
 	}
 }
 
+// eslint-disable-next-line unicorn/require-module-specifiers -- needed to make this a module
 export {};

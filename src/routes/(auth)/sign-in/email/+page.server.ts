@@ -106,8 +106,8 @@ async function verifyCode(event: RequestEvent) {
 	// Use constant-time comparison to prevent timing attacks
 	// Pad both strings to same length to ensure timingSafeEqual works
 	const maxLength = Math.max(otp.code.length, capitalizedCode.length);
-	const expectedBuffer = Buffer.from(otp.code.padEnd(maxLength, "\0"), "utf-8");
-	const providedBuffer = Buffer.from(capitalizedCode.padEnd(maxLength, "\0"), "utf-8");
+	const expectedBuffer = Buffer.from(otp.code.padEnd(maxLength, "\0"), "utf8");
+	const providedBuffer = Buffer.from(capitalizedCode.padEnd(maxLength, "\0"), "utf8");
 	const isValid = timingSafeEqual(expectedBuffer, providedBuffer);
 	if (!isValid) {
 		await auditLoginFailed(event, otp.email);

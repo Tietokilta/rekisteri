@@ -17,7 +17,7 @@ async function globalSetup(_config: FullConfig) {
 	}
 
 	const url = new URL(dbUrl);
-	const testDbName = url.pathname.substring(1);
+	const testDbName = url.pathname.slice(1);
 
 	const baseDbUrl = new URL(dbUrl);
 	baseDbUrl.pathname = "/postgres";

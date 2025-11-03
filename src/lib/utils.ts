@@ -13,3 +13,8 @@ export type WithoutChildrenOrChild<T> = WithoutChildren<WithoutChild<T>>;
 export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & {
 	ref?: U | null;
 };
+
+export type NonEmptyArray<T> = [T, ...T[]];
+export const isNonEmpty = <T>(arr: T[] | undefined | null): arr is NonEmptyArray<T> => {
+	return Array.isArray(arr) && arr.length > 0;
+};

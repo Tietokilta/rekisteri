@@ -1,13 +1,13 @@
 import { json } from "@sveltejs/kit";
 import { stripe } from "$lib/server/payment";
-import { env } from "$env/dynamic/private";
+import { env } from "$lib/server/env";
 import { cancelSession, fulfillSession } from "$lib/server/payment/session.js";
 
 const endpointSecret = env.STRIPE_WEBHOOK_SECRET;
 
 // Track processed events to prevent replay attacks
 const processedEvents = new Set<string>();
-const MAX_PROCESSED_EVENTS = 10000;
+const MAX_PROCESSED_EVENTS = 10_000;
 
 export async function POST({ request }) {
 	try {
@@ -40,7 +40,7 @@ export async function POST({ request }) {
 		if (processedEvents.size > MAX_PROCESSED_EVENTS) {
 			// Remove oldest entries (first 1000)
 			const entries = Array.from(processedEvents);
-			entries.slice(0, 1000).forEach((id) => processedEvents.delete(id));
+			for (const id of entries.slice(0, 1000)) processedEvents.delete(id);
 		}
 
 		// Handle webhook events with proper error handling
