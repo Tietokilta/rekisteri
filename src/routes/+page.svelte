@@ -135,55 +135,55 @@
 					</div>
 				</a>
 			</div>
-		{:else}
-			<Separator class="hidden md:block" orientation="vertical" />
-			<div class="flex w-full max-w-xs flex-col gap-4">
-				<h2 class="font-mono text-lg">{$LL.membership.title()}</h2>
-				<a href={localizePathname(route("/new"), $locale)} class="flex w-full max-w-xs flex-col">
-					<Form.Button variant="default">{$LL.membership.buy()}</Form.Button>
-				</a>
-				{#if data.memberships.length === 0}
-					<p class="text-sm text-muted-foreground">{$LL.membership.noMembership()}</p>
-				{:else}
-					{#each data.memberships as membership (membership.unique_id)}
-						<li class="flex items-center justify-between space-x-4 rounded-md border p-4">
-							{#if membership.status === "active"}
-								<span title={$LL.membership.status.active()}>
-									<CircleCheck class="h-6 w-6" />
-								</span>
-							{:else if membership.status === "expired"}
-								<span title={$LL.membership.status.expired()}>
-									<Trash class="h-6 w-6" />
-								</span>
-							{:else if membership.status === "awaiting_payment"}
-								<span title={$LL.membership.status.awaitingPayment()}>
-									<Banknote class="h-6 w-6" />
-								</span>
-							{:else if membership.status === "awaiting_approval"}
-								<span title={$LL.membership.status.awaitingApproval()}>
-									<Hourglass class="h-6 w-6" />
-								</span>
-							{:else}
-								<span title={$LL.membership.status.unknown()}>
-									<CircleAlert class="h-6 w-6" />
-								</span>
-							{/if}
-							<div class="flex-1 space-y-1">
-								<div class="text-sm">
-									<p class="font-medium">{membership.type}</p>
-									<p>
-										<time datetime={membership.startTime.toISOString()}
-											>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time
-										>–<time datetime={membership.endTime.toISOString()}
-											>{membership.endTime.toLocaleDateString(`${$locale}-FI`)}</time
-										>
-									</p>
-								</div>
-							</div>
-						</li>
-					{/each}
-				{/if}
-			</div>
 		{/if}
+
+		<Separator class="hidden md:block" orientation="vertical" />
+		<div class="flex w-full max-w-xs flex-col gap-4">
+			<h2 class="font-mono text-lg">{$LL.membership.title()}</h2>
+			<a href={localizePathname(route("/new"), $locale)} class="flex w-full max-w-xs flex-col">
+				<Form.Button variant="default">{$LL.membership.buy()}</Form.Button>
+			</a>
+			{#if data.memberships.length === 0}
+				<p class="text-sm text-muted-foreground">{$LL.membership.noMembership()}</p>
+			{:else}
+				{#each data.memberships as membership (membership.unique_id)}
+					<li class="flex items-center justify-between space-x-4 rounded-md border p-4">
+						{#if membership.status === "active"}
+							<span title={$LL.membership.status.active()}>
+								<CircleCheck class="h-6 w-6" />
+							</span>
+						{:else if membership.status === "expired"}
+							<span title={$LL.membership.status.expired()}>
+								<Trash class="h-6 w-6" />
+							</span>
+						{:else if membership.status === "awaiting_payment"}
+							<span title={$LL.membership.status.awaitingPayment()}>
+								<Banknote class="h-6 w-6" />
+							</span>
+						{:else if membership.status === "awaiting_approval"}
+							<span title={$LL.membership.status.awaitingApproval()}>
+								<Hourglass class="h-6 w-6" />
+							</span>
+						{:else}
+							<span title={$LL.membership.status.unknown()}>
+								<CircleAlert class="h-6 w-6" />
+							</span>
+						{/if}
+						<div class="flex-1 space-y-1">
+							<div class="text-sm">
+								<p class="font-medium">{membership.type}</p>
+								<p>
+									<time datetime={membership.startTime.toISOString()}
+										>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time
+									>–<time datetime={membership.endTime.toISOString()}
+										>{membership.endTime.toLocaleDateString(`${$locale}-FI`)}</time
+									>
+								</p>
+							</div>
+						</div>
+					</li>
+				{/each}
+			{/if}
+		</div>
 	</div>
 </main>
