@@ -82,6 +82,9 @@
           docker = pkgs.dockerTools.buildLayeredImage {
             name = "rekisteri";
             tag = "latest";
+            contents = [
+              pkgs.cacert # Add CA certificates for HTTPS requests
+            ];
             config = {
               Cmd = [
                 "${default}/bin/rekisteri"
@@ -89,6 +92,9 @@
               ExposedPorts = {
                 "3000/tcp" = {};
               };
+              Env = [
+                "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+              ];
             };
           };
         }
