@@ -32,7 +32,7 @@ async function main() {
 		{
 			id: generateUserId(),
 			type: "varsinainen jäsen",
-			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
+			stripePriceId: "price_1SOfkBJq2arJoAEqAK8aPOEt",
 			startTime: new Date("2022-08-01"),
 			endTime: new Date("2023-07-31"),
 			priceCents: 700,
@@ -41,7 +41,7 @@ async function main() {
 		{
 			id: generateUserId(),
 			type: "ulkojäsen",
-			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
+			stripePriceId: "price_1SOfkBJq2arJoAEqAK8aPOEt",
 			startTime: new Date("2022-08-01"),
 			endTime: new Date("2023-07-31"),
 			priceCents: 700,
@@ -51,7 +51,7 @@ async function main() {
 		{
 			id: generateUserId(),
 			type: "varsinainen jäsen",
-			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
+			stripePriceId: "price_1SOfkBJq2arJoAEqAK8aPOEt",
 			startTime: new Date("2023-08-01"),
 			endTime: new Date("2024-07-31"),
 			priceCents: 700,
@@ -60,7 +60,7 @@ async function main() {
 		{
 			id: generateUserId(),
 			type: "ulkojäsen",
-			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
+			stripePriceId: "price_1SOfkBJq2arJoAEqAK8aPOEt",
 			startTime: new Date("2023-08-01"),
 			endTime: new Date("2024-07-31"),
 			priceCents: 700,
@@ -70,7 +70,7 @@ async function main() {
 		{
 			id: generateUserId(),
 			type: "varsinainen jäsen",
-			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
+			stripePriceId: "price_1SOfkBJq2arJoAEqAK8aPOEt",
 			startTime: new Date("2024-08-01"),
 			endTime: new Date("2025-07-31"),
 			priceCents: 700,
@@ -79,7 +79,7 @@ async function main() {
 		{
 			id: generateUserId(),
 			type: "ulkojäsen",
-			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
+			stripePriceId: "price_1SOfkBJq2arJoAEqAK8aPOEt",
 			startTime: new Date("2024-08-01"),
 			endTime: new Date("2025-07-31"),
 			priceCents: 700,
@@ -88,7 +88,7 @@ async function main() {
 		{
 			id: generateUserId(),
 			type: "kannatusjäsen",
-			stripePriceId: "price_1R8ORc2a3B4f6jfh4mtYKiXl",
+			stripePriceId: "price_1SOfkBJq2arJoAEqAK8aPOEt",
 			startTime: new Date("2024-08-01"),
 			endTime: new Date("2025-07-31"),
 			priceCents: 5000,
@@ -98,7 +98,7 @@ async function main() {
 		{
 			id: generateUserId(),
 			type: "varsinainen jäsen",
-			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
+			stripePriceId: "price_1SOfkBJq2arJoAEqAK8aPOEt",
 			startTime: new Date("2025-08-01"),
 			endTime: new Date("2026-07-31"),
 			priceCents: 700,
@@ -107,7 +107,7 @@ async function main() {
 		{
 			id: generateUserId(),
 			type: "ulkojäsen",
-			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
+			stripePriceId: "price_1SOfkBJq2arJoAEqAK8aPOEt",
 			startTime: new Date("2025-08-01"),
 			endTime: new Date("2026-07-31"),
 			priceCents: 700,
@@ -116,7 +116,7 @@ async function main() {
 		{
 			id: generateUserId(),
 			type: "kannatusjäsen",
-			stripePriceId: "price_1R8ORc2a3B4f6jfh4mtYKiXl",
+			stripePriceId: "price_1SOfkBJq2arJoAEqAK8aPOEt",
 			startTime: new Date("2025-08-01"),
 			endTime: new Date("2026-07-31"),
 			priceCents: 5000,

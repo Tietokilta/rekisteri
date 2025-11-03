@@ -3,12 +3,31 @@ import type { Actions, PageServerLoad, RequestEvent } from "./$types";
 import { route } from "$lib/ROUTES";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { eq, desc } from "drizzle-orm";
-import { schema } from "./schema";
+import { eq, desc, sql } from "drizzle-orm";
+import { schema, renewMembershipSchema } from "./schema";
 import { superValidate } from "sveltekit-superforms";
 import { zod4 } from "sveltekit-superforms/adapters";
 import * as auth from "$lib/server/auth/session";
 import { localizePathname, getLocaleFromPathname } from "$lib/i18n/routing";
+import { createSession } from "$lib/server/payment/session";
+
+async function findNextYearMembership(currentMembershipId: string) {
+	const currentMembership = await db.query.membership.findFirst({
+		where: eq(table.membership.id, currentMembershipId),
+	});
+
+	if (!currentMembership) {
+		return null;
+	}
+
+	const nextMembership = await db.query.membership.findFirst({
+		where: (membership, { and, eq, gt }) =>
+			and(eq(membership.type, currentMembership.type), gt(membership.startTime, currentMembership.startTime)),
+		orderBy: (membership, { asc }) => asc(membership.startTime),
+	});
+
+	return nextMembership;
+}
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
@@ -27,24 +46,49 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	const result = await db
-		.select()
+		.select({
+			membership: table.membership,
+			member: table.member,
+			nextMembershipId: sql<string>`nm.id`,
+		})
 		.from(table.member)
 		.innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
+		.leftJoin(
+			sql`LATERAL (
+				SELECT * FROM ${table.membership} nm
+				WHERE nm.type = ${table.membership.type} 
+				AND nm.start_time > ${table.membership.startTime}
+				ORDER BY nm.start_time ASC 
+				LIMIT 1
+			) nm`,
+			sql`true`
+		)
 		.where(eq(table.member.userId, event.locals.user.id))
 		.orderBy(desc(table.membership.startTime));
 
-	const memberships = result.map((m) => ({
-		...m.membership,
-		status: m.member.status,
-		unique_id: m.member.id,
-	}));
+	// Get all membership IDs that the user already has
+	const userMembershipIds = new Set(result.map((m) => m.membership.id));
 
-	return { user: event.locals.user, form, memberships };
+	// Build the memberships with renew info
+	const membershipsWithRenewInfo = result.map((m) => {
+		// Only show renew button if next membership exists and user doesn't already have it
+		const hasNextYearMembership = !!m.nextMembershipId && !userMembershipIds.has(m.nextMembershipId);
+
+		return {
+			...m.membership,
+			status: m.member.status,
+			unique_id: m.member.id,
+			hasNextYearMembership,
+		};
+	});
+
+	return { user: event.locals.user, form, memberships: membershipsWithRenewInfo };
 };
 
 export const actions: Actions = {
 	saveInfo,
 	signOut,
+	renewMembership,
 };
 
 async function saveInfo(event: RequestEvent) {
@@ -86,4 +130,42 @@ async function signOut(event: RequestEvent) {
 
 	const locale = getLocaleFromPathname(event.url.pathname);
 	return redirect(302, localizePathname(route("/sign-in"), locale));
+}
+
+async function renewMembership(event: RequestEvent) {
+	if (!event.locals.user) {
+		return fail(401, {
+			message: "Unauthorized",
+		});
+	}
+
+	const formData = await event.request.formData();
+	const form = await superValidate(formData, zod4(renewMembershipSchema));
+
+	if (!form.valid) {
+		return fail(400, {
+			form,
+			message: "Invalid form data",
+		});
+	}
+
+	const currentMembershipId = form.data.membershipId;
+
+	const nextMembership = await findNextYearMembership(currentMembershipId);
+
+	if (!nextMembership) {
+		return fail(404, {
+			form,
+			message: "No membership available for renewal",
+		});
+	}
+
+	const paymentSession = await createSession(event.locals.user.id, nextMembership.id, false);
+	if (!paymentSession?.url) {
+		return fail(400, {
+			form,
+			message: "Could not create payment session",
+		});
+	}
+	return redirect(303, paymentSession.url);
 }

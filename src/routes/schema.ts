@@ -7,3 +7,7 @@ export const schema = z.object({
 	homeMunicipality: z.string().min(1),
 	isAllowedEmails: z.boolean(),
 });
+
+export const renewMembershipSchema = z.object({
+	membershipId: z.string(),
+});

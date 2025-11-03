@@ -32,6 +32,7 @@ const SERVERS = {
 const ACTIONS = {
   "saveInfo /": `/?/saveInfo`,
   "signOut /": `/?/signOut`,
+  "renewMembership /": `/?/renewMembership`,
   "default /sign-in": `/sign-in`,
   "verify /sign-in/email": `/sign-in/email?/verify`,
   "resend /sign-in/email": `/sign-in/email?/resend`,
@@ -161,7 +162,7 @@ export function route<T extends keyof AllTypes>(key: T, ...params: any[]): strin
 export type KIT_ROUTES = {
   PAGES: { '/': never, '/sign-in': never, '/sign-in/email': never, '/admin/members': never, '/admin/members/import': never, '/admin/memberships': never, '/new': never }
   SERVERS: { 'GET /api/health': never, 'POST /api/webhook/stripe': never }
-  ACTIONS: { 'saveInfo /': never, 'signOut /': never, 'default /sign-in': never, 'verify /sign-in/email': never, 'resend /sign-in/email': never, 'changeEmail /sign-in/email': never, 'approve /admin/members': never, 'reject /admin/members': never, 'markExpired /admin/members': never, 'cancel /admin/members': never, 'reactivate /admin/members': never, 'import /admin/members/import': never, 'createMembership /admin/memberships': never, 'deleteMembership /admin/memberships': never, 'payMembership /new': never }
+  ACTIONS: { 'saveInfo /': never, 'signOut /': never, 'renewMembership /': never, 'default /sign-in': never, 'verify /sign-in/email': never, 'resend /sign-in/email': never, 'changeEmail /sign-in/email': never, 'approve /admin/members': never, 'reject /admin/members': never, 'markExpired /admin/members': never, 'cancel /admin/members': never, 'reactivate /admin/members': never, 'import /admin/members/import': never, 'createMembership /admin/memberships': never, 'deleteMembership /admin/memberships': never, 'payMembership /new': never }
   LINKS: Record<string, never>
   Params: Record<string, never>
 }
