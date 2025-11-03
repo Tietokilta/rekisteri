@@ -1,7 +1,7 @@
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad, RequestEvent } from "./$types";
 import { RefillingTokenBucket } from "$lib/server/auth/rate-limit";
-import * as z from "zod/v4";
+import * as z from "zod";
 import { setEmailCookie, emailCookieName } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
 import { localizePathname, getLocaleFromPathname } from "$lib/i18n/routing";
@@ -51,7 +51,7 @@ async function action(event: RequestEvent) {
 	const formData = await event.request.formData();
 	const emailInput = formData.get("email");
 
-	const emailResult = z.string().email().safeParse(emailInput);
+	const emailResult = z.email().safeParse(emailInput);
 	if (!emailResult.success) {
 		return fail(400, {
 			message: "Invalid email",

@@ -170,8 +170,8 @@ importers:
         specifier: ^1.0.2
         version: 1.0.2(@sveltejs/kit@2.48.4(@sveltejs/vite-plugin-svelte@6.2.1(rolldown-vite@7.1.20(@types/node@24.9.2)(esbuild@0.25.4)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.7.0))(svelte@5.43.2))(rolldown-vite@7.1.20(@types/node@24.9.2)(esbuild@0.25.4)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.7.0))(svelte@5.43.2))
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.1.12
+        version: 4.1.12
 
 packages:
 
@@ -2876,9 +2876,6 @@ packages:
   zimmerframe@1.1.2:
     resolution: {integrity: sha512-rAbqEGa8ovJy4pyBxZM70hg4pE6gDgaQ0Sl9M3enG3I0d6H4XSAM3GeNGLKnsBpuijUow064sf7ww1nutC5/3w==}
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
-
   zod@4.1.12:
     resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
 
@@ -5182,7 +5179,4 @@ snapshots:
 
   zimmerframe@1.1.2: {}
 
-  zod@3.25.76: {}
-
-  zod@4.1.12:
-    optional: true
+  zod@4.1.12: {}
