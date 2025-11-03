@@ -82,9 +82,14 @@
           docker = pkgs.dockerTools.buildLayeredImage {
             name = "rekisteri";
             tag = "latest";
-            config.Cmd = [
-              "${default}/bin/rekisteri"
-            ];
+            config = {
+              Cmd = [
+                "${default}/bin/rekisteri"
+              ];
+              ExposedPorts = {
+                "3000/tcp" = {};
+              };
+            };
           };
         }
       );
