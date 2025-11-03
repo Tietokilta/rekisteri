@@ -27,20 +27,6 @@ export interface AuditLogParams {
 }
 
 /**
- * Get client IP from request, handling Azure App Service proxy
- */
-function getClientIP(request: Request): string {
-	const forwardedFor = request.headers.get("X-Forwarded-For");
-	// Azure App Service adds real client IP to rightmost position
-	return (
-		forwardedFor
-			?.split(",")
-			.map((ip) => ip.trim())
-			.pop() || "unknown"
-	);
-}
-
-/**
  * Create an audit log entry
  */
 export async function createAuditLog(params: AuditLogParams): Promise<void> {
@@ -65,6 +51,9 @@ export async function createAuditLog(params: AuditLogParams): Promise<void> {
 
 /**
  * Helper to create audit log from a request event
+ * Uses adapter-provided client IP (respects ADDRESS_HEADER environment variable)
+ * Azure App Service provides X-Client-IP header (no port, cannot be spoofed)
+ * See: https://github.com/Azure/app-service-linux-docs/blob/master/Things_You_Should_Know/headers.md
  */
 export async function auditFromEvent(
 	event: RequestEvent,
@@ -81,7 +70,7 @@ export async function auditFromEvent(
 		targetType: options?.targetType,
 		targetId: options?.targetId,
 		metadata: options?.metadata,
-		ipAddress: getClientIP(event.request),
+		ipAddress: event.getClientAddress(),
 		userAgent: event.request.headers.get("user-agent") || undefined,
 	});
 }
@@ -103,7 +92,7 @@ export async function auditLoginFailed(event: RequestEvent, email: string): Prom
 	await createAuditLog({
 		action: "auth.login_failed",
 		metadata: { email },
-		ipAddress: getClientIP(event.request),
+		ipAddress: event.getClientAddress(),
 		userAgent: event.request.headers.get("user-agent") || undefined,
 	});
 }

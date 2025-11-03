@@ -32,16 +32,12 @@ async function action(event: RequestEvent) {
 	// Lazy cleanup to prevent memory leaks
 	ipBucket.cleanup();
 
-	// Azure App Service adds the real client IP to the rightmost position of X-Forwarded-For
-	// Parse from right to left to get the trusted IP that Azure added
-	const forwardedFor = event.request.headers.get("X-Forwarded-For");
-	const clientIP =
-		forwardedFor
-			?.split(",")
-			.map((ip) => ip.trim())
-			.pop() || "unknown";
+	// Use adapter-provided client IP (respects ADDRESS_HEADER environment variable)
+	// Azure App Service provides X-Client-IP header (no port, cannot be spoofed)
+	// See: https://github.com/Azure/app-service-linux-docs/blob/master/Things_You_Should_Know/headers.md
+	const clientIP = event.getClientAddress();
 
-	if (clientIP !== "unknown" && !ipBucket.check(clientIP, 1)) {
+	if (!ipBucket.check(clientIP, 1)) {
 		return fail(429, {
 			message: "Too many requests",
 			email: "",
@@ -59,7 +55,7 @@ async function action(event: RequestEvent) {
 		});
 	}
 	const email = emailResult.data;
-	if (clientIP !== "unknown" && !ipBucket.consume(clientIP, 1)) {
+	if (!ipBucket.consume(clientIP, 1)) {
 		return fail(429, {
 			message: "Too many requests",
 			email: "",
