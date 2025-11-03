@@ -19,7 +19,10 @@ const __dirname = dirname(__filename);
 async function runMigrations(databaseUrl: string) {
 	console.log("Starting database migrations...");
 
-	const migrationClient = postgres(databaseUrl, { max: 1 });
+	const migrationClient = postgres(databaseUrl, {
+		max: 1,
+		ssl: "prefer", // Prefer SSL (required for Azure), but allow non-SSL for CI/local
+	});
 	const db = drizzle(migrationClient, { casing: "snake_case" });
 
 	// The drizzle folder is at the same level as this script
