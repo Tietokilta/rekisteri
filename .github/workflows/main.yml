@@ -1,14 +1,43 @@
 name: ci
 on:
   push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
   release:
     types: [published]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
+  nix-check:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@8505cd40ae3d4791ca658f2697c5767212e5ce71
+        with:
+          nix_conf: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+            keep-env-derivations = true
+            keep-outputs = true
+      - name: Restore and save Nix store
+        uses: nix-community/cache-nix-action@76f6697d63b7378f7161d52f3d81784130ecd90d
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+      - name: nix flake check
+        run: nix flake check --no-pure-eval --all-systems --accept-flake-config -L
+
   checks:
     name: validate and test
     runs-on: ubuntu-latest
@@ -71,6 +100,7 @@ jobs:
         run: pnpm test
 
   build:
+    needs: nix-check
     runs-on: ubuntu-latest
     services:
       postgres:
