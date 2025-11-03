@@ -15,6 +15,7 @@ const fi = {
 		verify: "Vahvista",
 		codeSentTo: "Lähetimme 8-numeroisen koodin osoitteeseen {email}.",
 		resendCode: "Lähetä uusi koodi",
+		changeEmail: "Vaihda sähköpostiosoite",
 		emailSubject: "Tietokillan jäsenrekisterin sisäänkirjautumiskoodi",
 		emailBody: "Koodisi on {code}",
 	},

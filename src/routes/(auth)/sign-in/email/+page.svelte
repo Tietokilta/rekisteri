@@ -47,5 +47,8 @@
 				<p>{form.resend.message}</p>
 			{/if}
 		</form>
+		<form method="post" use:enhance action="?/changeEmail" class="contents">
+			<Button type="submit" variant="outline">{$LL.auth.changeEmail()}</Button>
+		</form>
 	</div>
 </main>

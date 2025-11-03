@@ -15,6 +15,7 @@ const en = {
 		verify: "Verify",
 		codeSentTo: "We sent an 8-digit code to {email}.",
 		resendCode: "Resend code",
+		changeEmail: "Change email address",
 		emailSubject: "CSG Membership Registry Sign In Code",
 		emailBody: "Your code is {code}",
 	},

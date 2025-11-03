@@ -2,7 +2,7 @@ import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad, RequestEvent } from "./$types";
 import { RefillingTokenBucket } from "$lib/server/auth/rate-limit";
 import * as z from "zod/v4";
-import { setEmailCookie } from "$lib/server/auth/email";
+import { setEmailCookie, emailCookieName } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
 import { localizePathname, getLocaleFromPathname } from "$lib/i18n/routing";
 
@@ -13,6 +13,14 @@ export const load: PageServerLoad = async (event) => {
 		const locale = getLocaleFromPathname(event.url.pathname);
 		redirect(302, localizePathname(route("/"), locale));
 	}
+
+	// If email cookie exists, redirect to OTP verification page
+	const emailCookie = event.cookies.get(emailCookieName);
+	if (emailCookie) {
+		const locale = getLocaleFromPathname(event.url.pathname);
+		redirect(302, localizePathname(route("/sign-in/email"), locale));
+	}
+
 	return {};
 };
 
