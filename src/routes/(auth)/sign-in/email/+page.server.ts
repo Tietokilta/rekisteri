@@ -44,6 +44,7 @@ const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
 export const actions: Actions = {
 	verify: verifyCode,
 	resend: resendEmail,
+	changeEmail: changeEmail,
 };
 
 async function verifyCode(event: RequestEvent) {
@@ -172,4 +173,20 @@ async function resendEmail(event: RequestEvent) {
 			message: "A new code was sent to your inbox.",
 		},
 	};
+}
+
+async function changeEmail(event: RequestEvent) {
+	// Get the OTP to delete it if it exists
+	const otp = await getEmailOTPFromRequest(event);
+	if (otp !== null) {
+		deleteEmailOTP(otp.id);
+	}
+
+	// Clear cookies
+	deleteEmailCookie(event);
+	deleteEmailOTPCookie(event);
+
+	// Redirect back to sign-in page
+	const locale = getLocaleFromPathname(event.url.pathname);
+	redirect(303, localizePathname(route("/sign-in"), locale));
 }
