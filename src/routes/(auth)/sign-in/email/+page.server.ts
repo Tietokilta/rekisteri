@@ -20,6 +20,7 @@ import { db } from "$lib/server/db";
 import { route } from "$lib/ROUTES";
 import { localizePathname, getLocaleFromPathname } from "$lib/i18n/routing";
 import { auditLogin, auditLoginFailed } from "$lib/server/audit";
+import { timingSafeEqual } from "node:crypto";
 
 export async function load(event: RequestEvent) {
 	const email = event.cookies.get(emailCookieName);
@@ -101,7 +102,14 @@ async function verifyCode(event: RequestEvent) {
 		};
 	}
 	const capitalizedCode = code.toLocaleUpperCase("en");
-	if (otp.code !== capitalizedCode) {
+
+	// Use constant-time comparison to prevent timing attacks
+	// Pad both strings to same length to ensure timingSafeEqual works
+	const maxLength = Math.max(otp.code.length, capitalizedCode.length);
+	const expectedBuffer = Buffer.from(otp.code.padEnd(maxLength, "\0"), "utf-8");
+	const providedBuffer = Buffer.from(capitalizedCode.padEnd(maxLength, "\0"), "utf-8");
+	const isValid = timingSafeEqual(expectedBuffer, providedBuffer);
+	if (!isValid) {
 		await auditLoginFailed(event, otp.email);
 
 		return fail(400, {
