@@ -19,6 +19,7 @@
 	import ArrowUpDown from "@lucide/svelte/icons/arrow-up-down";
 	import Copy from "@lucide/svelte/icons/copy";
 	import Check from "@lucide/svelte/icons/check";
+	import Download from "@lucide/svelte/icons/download";
 	import { enhance } from "$app/forms";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/state";
@@ -82,6 +83,7 @@
 	let expandedRows = $state<Set<string>>(new Set());
 	let columnVisibility = $state<Record<string, boolean>>({
 		membershipStartTime: false, // Hide the filter column
+		isAllowedEmails: false, // Hide the filter column
 	});
 	let pagination = $state({
 		pageIndex: Number.parseInt(urlParams.get("page") ?? "0"),
@@ -92,6 +94,7 @@
 	let selectedYear = $state<string>(urlParams.get("year") ?? "all");
 	let selectedType = $state<string>(urlParams.get("type") ?? "all");
 	let selectedStatus = $state<string>(urlParams.get("status") ?? "all");
+	let selectedEmailAllowed = $state<string>(urlParams.get("emailAllowed") ?? "all");
 
 	// Debounce timer for URL updates
 	let updateTimer: ReturnType<typeof setTimeout> | null = null;
@@ -103,6 +106,7 @@
 		void selectedYear;
 		void selectedType;
 		void selectedStatus;
+		void selectedEmailAllowed;
 		void sorting;
 		void pagination;
 
@@ -123,6 +127,7 @@
 			if (selectedYear !== "all") urlParams.set("year", selectedYear);
 			if (selectedType !== "all") urlParams.set("type", selectedType);
 			if (selectedStatus !== "all") urlParams.set("status", selectedStatus);
+			if (selectedEmailAllowed !== "all") urlParams.set("emailAllowed", selectedEmailAllowed);
 
 			// Add sorting if present
 			if (isNonEmpty(sorting)) {
@@ -142,6 +147,7 @@
 
 	// Copy to clipboard state
 	let copySuccess = $state(false);
+	let exportSuccess = $state(false);
 
 	// Helper to copy filtered members as text
 	async function copyMembersAsText() {
@@ -183,6 +189,49 @@
 		} catch (err) {
 			console.error("Failed to copy:", err);
 		}
+	}
+
+	// Helper to export filtered members as CSV (Google Groups format)
+	function exportMembersAsCSV() {
+		const filteredRows = table.getFilteredRowModel().rows;
+
+		// Google Groups CSV format: Group Email [Required],Member Email,Member Type,Member Role
+		// We'll use a simpler format: Email,First Name,Last Name
+		const csvRows = ["Email,First Name,Last Name"];
+
+		for (const row of filteredRows) {
+			const email = (row.original.email ?? "").replace(/"/g, '""'); // Escape quotes
+			const firstName = (row.original.firstNames ?? "").replace(/"/g, '""');
+			const lastName = (row.original.lastName ?? "").replace(/"/g, '""');
+
+			// Only export members with email addresses
+			if (email) {
+				csvRows.push(`"${email}","${firstName}","${lastName}"`);
+			}
+		}
+
+		const csvContent = csvRows.join("\n");
+
+		// Create a blob and trigger download
+		const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+		const link = document.createElement("a");
+		const url = URL.createObjectURL(blob);
+
+		// Generate filename with timestamp
+		const timestamp = new Date().toISOString().split("T")[0];
+		link.setAttribute("href", url);
+		link.setAttribute("download", `members-export-${timestamp}.csv`);
+		link.style.visibility = "hidden";
+
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+
+		// Show success message
+		exportSuccess = true;
+		setTimeout(() => {
+			exportSuccess = false;
+		}, 2000);
 	}
 
 	// Helper to filter memberships based on current filters
@@ -281,6 +330,13 @@
 			enableSorting: false,
 			filterFn: yearFilterFn,
 		},
+		// Hidden column for filtering by email allowed
+		{
+			accessorKey: "isAllowedEmails",
+			header: "",
+			enableHiding: true,
+			enableSorting: false,
+		},
 	]);
 
 	// Apply filters
@@ -308,6 +364,14 @@
 			filters.push({
 				id: "status",
 				value: selectedStatus,
+			});
+		}
+
+		// Email allowed filter
+		if (selectedEmailAllowed !== "all") {
+			filters.push({
+				id: "isAllowedEmails",
+				value: selectedEmailAllowed === "allowed",
 			});
 		}
 
@@ -385,6 +449,15 @@
 				{:else}
 					<Copy class="mr-2 size-4" />
 					{$LL.admin.members.table.copyAsText()}
+				{/if}
+			</Button>
+			<Button variant="outline" size="default" onclick={exportMembersAsCSV}>
+				{#if exportSuccess}
+					<Check class="mr-2 size-4" />
+					{$LL.admin.members.table.exported()}
+				{:else}
+					<Download class="mr-2 size-4" />
+					{$LL.admin.members.table.exportCsv()}
 				{/if}
 			</Button>
 		</div>
@@ -475,6 +548,32 @@
 					onclick={() => (selectedStatus = "cancelled")}
 				>
 					{$LL.admin.members.table.cancelled()}
+				</Button>
+			</div>
+
+			<!-- Email Allowed Filter -->
+			<div class="flex flex-wrap gap-2">
+				<span class="text-sm font-medium">{$LL.admin.members.table.filterEmailAllowed()}</span>
+				<Button
+					variant={selectedEmailAllowed === "all" ? "default" : "outline"}
+					size="sm"
+					onclick={() => (selectedEmailAllowed = "all")}
+				>
+					{$LL.admin.members.table.all()}
+				</Button>
+				<Button
+					variant={selectedEmailAllowed === "allowed" ? "default" : "outline"}
+					size="sm"
+					onclick={() => (selectedEmailAllowed = "allowed")}
+				>
+					{$LL.admin.members.table.emailAllowed()}
+				</Button>
+				<Button
+					variant={selectedEmailAllowed === "notAllowed" ? "default" : "outline"}
+					size="sm"
+					onclick={() => (selectedEmailAllowed = "notAllowed")}
+				>
+					{$LL.admin.members.table.emailNotAllowed()}
 				</Button>
 			</div>
 		</div>
