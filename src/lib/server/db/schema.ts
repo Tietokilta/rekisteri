@@ -10,11 +10,7 @@ const timestamps = {
 		.$onUpdateFn(() => new Date()),
 };
 
-export const preferredLanguageEnum = pgEnum("preferred_language", [
-	"unspecified",
-	"finnish",
-	"english",
-]);
+export const preferredLanguageEnum = pgEnum("preferred_language", ["unspecified", "finnish", "english"]);
 
 export const preferredLanguageEnumSchema = z.enum(preferredLanguageEnum.enumValues);
 
