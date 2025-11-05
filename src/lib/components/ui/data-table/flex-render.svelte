@@ -21,7 +21,7 @@
 
 {#if typeof content === "string"}
 	{content}
-{:else if content instanceof Function}
+{:else if typeof content === "function"}
 	<!-- It's unlikely that a CellContext will be passed to a Header -->
 	<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
 	{@const result = content(context as any)}

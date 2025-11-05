@@ -5,6 +5,7 @@ import * as table from "$lib/server/db/schema";
 import { eq, and } from "drizzle-orm";
 import { importSchema, type CsvRow } from "./schema";
 import { generateUserId } from "$lib/server/auth/utils";
+import { isNonEmpty } from "$lib/utils";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.session || !event.locals.user?.isAdmin) {
@@ -83,10 +84,11 @@ export const actions: Actions = {
 
 		for (let i = 0; i < rows.length; i++) {
 			const row = rows[i];
+			if (!row) continue;
 			try {
 				// Parse the membership start date
 				const membershipStartDate = new Date(row.membershipStartDate);
-				if (isNaN(membershipStartDate.getTime())) {
+				if (Number.isNaN(membershipStartDate.getTime())) {
 					errors.push({
 						row: i + 1,
 						email: row.email,
@@ -123,7 +125,7 @@ export const actions: Actions = {
 
 				let userId: string;
 
-				if (existingUser.length > 0) {
+				if (isNonEmpty(existingUser)) {
 					// Update existing user
 					userId = existingUser[0].id;
 					await db

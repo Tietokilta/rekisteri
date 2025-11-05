@@ -19,6 +19,8 @@ import { eq } from "drizzle-orm";
 import { db } from "$lib/server/db";
 import { route } from "$lib/ROUTES";
 import { localizePathname, getLocaleFromPathname } from "$lib/i18n/routing";
+import { auditLogin, auditLoginFailed } from "$lib/server/audit";
+import { timingSafeEqual } from "node:crypto";
 
 export async function load(event: RequestEvent) {
 	const email = event.cookies.get(emailCookieName);
@@ -48,6 +50,9 @@ export const actions: Actions = {
 };
 
 async function verifyCode(event: RequestEvent) {
+	// Lazy cleanup to prevent memory leaks
+	otpVerifyBucket.cleanup();
+
 	let otp = await getEmailOTPFromRequest(event);
 	if (otp === null) {
 		return fail(401);
@@ -97,7 +102,15 @@ async function verifyCode(event: RequestEvent) {
 		};
 	}
 	const capitalizedCode = code.toLocaleUpperCase("en");
-	if (otp.code !== capitalizedCode) {
+
+	// Use constant-time comparison to prevent timing attacks
+	// Pad both strings to the expected OTP length
+	const expectedBuffer = Buffer.from(otp.code, "utf8");
+	const providedBuffer = Buffer.from(capitalizedCode.padEnd(otp.code.length, "\0"), "utf8");
+	const isValid = expectedBuffer.length === providedBuffer.length && timingSafeEqual(expectedBuffer, providedBuffer);
+	if (!isValid) {
+		await auditLoginFailed(event, otp.email);
+
 		return fail(400, {
 			verify: {
 				message: "Incorrect code.",
@@ -119,6 +132,8 @@ async function verifyCode(event: RequestEvent) {
 	await createSession(token, userId);
 	setSessionTokenCookie(event, token, new Date(Date.now() + 1000 * 60 * 60 * 24 * 30));
 
+	await auditLogin(event, userId);
+
 	deleteEmailCookie(event);
 	deleteEmailOTP(otp.id);
 	deleteEmailOTPCookie(event);
@@ -128,6 +143,9 @@ async function verifyCode(event: RequestEvent) {
 }
 
 async function resendEmail(event: RequestEvent) {
+	// Lazy cleanup to prevent memory leaks
+	sendOTPBucket.cleanup();
+
 	const email = event.cookies.get(emailCookieName);
 	if (typeof email !== "string") {
 		return fail(401, {

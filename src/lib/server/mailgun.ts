@@ -1,6 +1,6 @@
 import Mailgun from "mailgun.js";
 import type { MessagesSendResult } from "mailgun.js/definitions";
-import { env } from "$env/dynamic/private";
+import { env } from "$lib/server/env";
 
 interface SendEmailOptions {
 	to: string;
@@ -9,13 +9,9 @@ interface SendEmailOptions {
 }
 
 export const sendEmail = async (options: SendEmailOptions): Promise<MessagesSendResult> => {
-	if (!env.MAILGUN_API_KEY) {
-		throw Error("MAILGUN API KEY NOT FOUND");
+	if (!env.MAILGUN_API_KEY || !env.MAILGUN_DOMAIN || !env.MAILGUN_SENDER) {
+		throw new Error("Mailgun is not properly configured.");
 	}
-	if (!env.MAILGUN_DOMAIN) {
-		throw Error("MAILGUN DOMAIN NOT FOUND");
-	}
-
 	const mailgun = new Mailgun(FormData);
 
 	const mg = mailgun.client({
@@ -30,4 +26,36 @@ export const sendEmail = async (options: SendEmailOptions): Promise<MessagesSend
 		subject: options.subject,
 		text: options.text,
 	});
+};
+
+/**
+ * Health check for Mailgun connectivity
+ * Returns status: "ok" | "not_configured" | "error"
+ * - In dev mode, CI, or when Mailgun isn't configured: returns "not_configured" (doesn't fail health check)
+ * - In production with Mailgun configured: validates connectivity and returns "ok" or "error"
+ * Errors are logged server-side only and not exposed to clients
+ */
+export const checkMailgunHealth = async (): Promise<"ok" | "not_configured" | "error"> => {
+	// If running in CI or Mailgun is not configured (dev or missing credentials), skip validation
+	if (env.CI || !env.MAILGUN_API_KEY || !env.MAILGUN_DOMAIN || !env.MAILGUN_SENDER) {
+		return "not_configured";
+	}
+
+	try {
+		const mailgun = new Mailgun(FormData);
+		const mg = mailgun.client({
+			username: "api",
+			key: env.MAILGUN_API_KEY,
+			url: env.MAILGUN_URL,
+		});
+
+		// Verify domain exists and is accessible
+		// This is a lightweight check that doesn't send emails
+		await mg.domains.get(env.MAILGUN_DOMAIN);
+
+		return "ok";
+	} catch (error) {
+		console.error("[Health] Mailgun health check failed:", error);
+		return "error";
+	}
 };

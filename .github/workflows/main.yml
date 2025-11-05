@@ -59,8 +59,6 @@ jobs:
     env:
       DATABASE_URL: postgres://root:mysecretpassword@localhost:5432/local
       DATABASE_URL_TEST: postgres://root:mysecretpassword@localhost:5432/local_test
-      STRIPE_API_KEY: sk_test_...
-      STRIPE_WEBHOOK_SECRET: whsec_...
 
     steps:
       - uses: actions/checkout@v4
@@ -90,8 +88,8 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Build (generates i18n types)
-        run: pnpm build
+      - name: Generate i18n files
+        run: pnpm i18n:generate
 
       - name: Check
         run: pnpm check
@@ -148,9 +146,15 @@ jobs:
           # Run container in background with database connection
           docker run -d --name rekisteri-test \
             --network host \
+            -e CI=true \
             -e DATABASE_URL=postgres://root:mysecretpassword@localhost:5432/local \
+            -e PUBLIC_URL=http://localhost:5173 \
             -e STRIPE_API_KEY=sk_test_... \
             -e STRIPE_WEBHOOK_SECRET=whsec_... \
+            -e MAILGUN_API_KEY=... \
+            -e MAILGUN_DOMAIN=rekisteri.tietokilta.fi \
+            -e MAILGUN_SENDER="TiK-Rekisteri <noreply@rekisteri.tietokilta.fi>" \
+            -e MAILGUN_URL="https://api.eu.mailgun.net" \
             rekisteri:latest
 
           # Wait for app to start (migrations + server startup)

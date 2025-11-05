@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
-import { boolean, integer, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import * as z from "zod/v4";
+import { boolean, integer, json, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import * as z from "zod";
 
 const timestamps = {
 	createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -81,6 +81,18 @@ export const memberRelations = relations(member, ({ one }) => ({
 	}),
 }));
 
+export const auditLog = pgTable("audit_log", {
+	id: text().primaryKey(),
+	userId: text().references(() => user.id),
+	action: text().notNull(),
+	targetType: text(),
+	targetId: text(),
+	metadata: json(),
+	ipAddress: text(),
+	userAgent: text(),
+	...timestamps,
+});
+
 export type Member = typeof member.$inferSelect;
 
 export type MemberStatus = z.infer<typeof memberStatusEnumSchema>;
@@ -92,3 +104,5 @@ export type EmailOTP = typeof emailOTP.$inferSelect;
 export type Session = typeof session.$inferSelect;
 
 export type User = typeof user.$inferSelect;
+
+export type AuditLog = typeof auditLog.$inferSelect;

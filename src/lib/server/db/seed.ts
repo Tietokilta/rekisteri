@@ -1,10 +1,13 @@
+#!/usr/bin/env node
+
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { seed, reset } from "drizzle-seed";
 import * as table from "./schema";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { generateUserId } from "../auth/utils";
 
-async function main() {
+try {
 	if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set");
 
 	const client = postgres(process.env.DATABASE_URL);
@@ -167,14 +170,14 @@ async function main() {
 
 		for (let i = 0; i < insertedMemberships.length; i++) {
 			// Skip if this is the excluded membership
-			if (exclude && insertedMemberships[i].id === exclude) continue;
+			if (exclude && insertedMemberships[i]!.id === exclude) continue;
 
-			cumulativeWeight += weights[i];
+			cumulativeWeight += weights[i]!;
 			if (random <= cumulativeWeight) {
-				return insertedMemberships[i].id;
+				return insertedMemberships[i]!.id;
 			}
 		}
-		return insertedMemberships[insertedMemberships.length - 1].id;
+		return insertedMemberships.at(-1)!.id;
 	}
 
 	// Helper to select status based on membership period
@@ -244,9 +247,7 @@ async function main() {
 	console.log(`Seeded ${membersToInsert.length} member records for ${allUsers.length - 1} users!`);
 
 	await client.end();
-}
-
-main().catch((e) => {
+} catch (e) {
 	console.error("Seeding failed:", e);
 	process.exit(1);
-});
+}

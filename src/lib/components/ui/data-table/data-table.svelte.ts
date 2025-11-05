@@ -55,8 +55,7 @@ export function createSvelteTable<TData extends RowData>(options: TableOptions<T
 
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				onStateChange: (updater: any) => {
-					if (updater instanceof Function) state = updater(state);
-					else state = mergeObjects(state, updater);
+					state = typeof updater === "function" ? updater(state) : mergeObjects(state, updater);
 
 					options.onStateChange?.(updater);
 				},
@@ -96,7 +95,7 @@ export function mergeObjects<Sources extends readonly MaybeThunk<any>[]>(
 			const obj = resolve(sources[i]);
 			if (obj && key in obj) return obj;
 		}
-		return undefined;
+		return;
 	};
 
 	return new Proxy(Object.create(null), {
@@ -126,7 +125,7 @@ export function mergeObjects<Sources extends readonly MaybeThunk<any>[]>(
 
 		getOwnPropertyDescriptor(_, key) {
 			const src = findSourceWithKey(key);
-			if (!src) return undefined;
+			if (!src) return;
 			return {
 				configurable: true,
 				enumerable: true,

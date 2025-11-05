@@ -54,13 +54,13 @@
 				const rowData = csv.data[i];
 				const validation = csvRowSchema.safeParse(rowData);
 
-				if (!validation.success) {
+				if (validation.success) {
+					validatedRows.push(validation.data);
+				} else {
 					const errorMessages = validation.error.issues
 						.map((issue) => `${issue.path.join(".")}: ${issue.message}`)
 						.join(", ");
 					parseErrors.push(`Row ${i + 1}: ${errorMessages}`);
-				} else {
-					validatedRows.push(validation.data);
 				}
 			}
 

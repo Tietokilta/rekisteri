@@ -14,7 +14,16 @@
 	<form method="post" use:enhance class="flex w-full max-w-xs flex-col gap-4">
 		<p>
 			<Label for="email">{$LL.auth.email()}</Label>
-			<Input id="email" name="email" type="email" placeholder="example@tietokilta.fi" required />
+			<Input
+				id="email"
+				name="email"
+				type="email"
+				autocomplete="email"
+				autocapitalize="none"
+				autocorrect="off"
+				placeholder="example@tietokilta.fi"
+				required
+			/>
 		</p>
 		<Button type="submit">{$LL.auth.signIn()}</Button>
 	</form>

@@ -2,16 +2,16 @@ import { stripe } from "$lib/server/payment";
 import * as table from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
 import { eq } from "drizzle-orm";
+import { env } from "$lib/server/env";
+import type { Locale } from "$lib/i18n/routing";
 
 /**
  * Start and return a Stripe payment session. Creates a customer in Stripe if one does not exist for
  * the user and initializes a member relation.
  *
- * @param {string} userId
- * @param {string} membershipId
  * @see {@link https://docs.stripe.com/checkout/quickstart}
  */
-export async function createSession(userId: string, membershipId: string) {
+export async function createSession(userId: string, membershipId: string, locale: Locale) {
 	const membership = await db.query.membership.findFirst({
 		where: eq(table.membership.id, membershipId),
 	});
@@ -36,6 +36,8 @@ export async function createSession(userId: string, membershipId: string) {
 	}
 
 	const memberId = crypto.randomUUID();
+	const publicUrl = env.PUBLIC_URL;
+
 	// https://docs.stripe.com/api/checkout/sessions/create
 	const session = await stripe.checkout.sessions.create({
 		line_items: [
@@ -46,8 +48,8 @@ export async function createSession(userId: string, membershipId: string) {
 		],
 		mode: "payment",
 		customer: stripeCustomerId,
-		success_url: "http://localhost:5173/fi",
-		cancel_url: "http://localhost:5173/fi",
+		success_url: `${publicUrl}/${locale}?stripeStatus=success`,
+		cancel_url: `${publicUrl}/${locale}?stripeStatus=cancel`,
 		metadata: { memberId },
 	});
 	await db.insert(table.member).values({
@@ -70,13 +72,18 @@ export async function fulfillSession(sessionId: string) {
 	if (session.payment_status === "unpaid") {
 		return;
 	}
-	const member = await db.query.member.findFirst({
-		where: eq(table.member.stripeSessionId, sessionId),
+
+	// Use transaction to prevent race condition if multiple webhooks arrive simultaneously
+	await db.transaction(async (tx) => {
+		const member = await tx.query.member.findFirst({
+			where: eq(table.member.stripeSessionId, sessionId),
+		});
+		if (!member || member.status !== "awaiting_payment") {
+			// Already processed or not found
+			return;
+		}
+		await tx.update(table.member).set({ status: "awaiting_approval" }).where(eq(table.member.id, member.id));
 	});
-	if (!member || member.status !== "awaiting_payment") {
-		return;
-	}
-	await db.update(table.member).set({ status: "awaiting_approval" }).where(eq(table.member.id, member.id));
 }
 
 /**
@@ -88,11 +95,16 @@ export async function cancelSession(sessionId: string) {
 	if (session.payment_status !== "unpaid") {
 		return;
 	}
-	const member = await db.query.member.findFirst({
-		where: eq(table.member.stripeSessionId, sessionId),
+
+	// Use transaction to prevent race condition if multiple webhooks arrive simultaneously
+	await db.transaction(async (tx) => {
+		const member = await tx.query.member.findFirst({
+			where: eq(table.member.stripeSessionId, sessionId),
+		});
+		if (!member || member.status !== "awaiting_payment") {
+			// Already processed or not found
+			return;
+		}
+		await tx.update(table.member).set({ status: "cancelled" }).where(eq(table.member.id, member.id));
 	});
-	if (!member || member.status !== "awaiting_payment") {
-		return;
-	}
-	await db.update(table.member).set({ status: "cancelled" }).where(eq(table.member.id, member.id));
 }

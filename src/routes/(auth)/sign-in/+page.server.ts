@@ -1,7 +1,7 @@
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad, RequestEvent } from "./$types";
 import { RefillingTokenBucket } from "$lib/server/auth/rate-limit";
-import * as z from "zod/v4";
+import * as z from "zod";
 import { setEmailCookie, emailCookieName } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
 import { localizePathname, getLocaleFromPathname } from "$lib/i18n/routing";
@@ -29,8 +29,15 @@ export const actions: Actions = {
 };
 
 async function action(event: RequestEvent) {
-	const clientIP = event.request.headers.get("X-Forwarded-For");
-	if (clientIP !== null && !ipBucket.check(clientIP, 1)) {
+	// Lazy cleanup to prevent memory leaks
+	ipBucket.cleanup();
+
+	// Use adapter-provided client IP (respects ADDRESS_HEADER environment variable)
+	// Azure App Service provides X-Client-IP header (no port, cannot be spoofed)
+	// See: https://github.com/Azure/app-service-linux-docs/blob/master/Things_You_Should_Know/headers.md
+	const clientIP = event.getClientAddress();
+
+	if (!ipBucket.check(clientIP, 1)) {
 		return fail(429, {
 			message: "Too many requests",
 			email: "",
@@ -40,7 +47,7 @@ async function action(event: RequestEvent) {
 	const formData = await event.request.formData();
 	const emailInput = formData.get("email");
 
-	const emailResult = z.string().email().safeParse(emailInput);
+	const emailResult = z.email().safeParse(emailInput);
 	if (!emailResult.success) {
 		return fail(400, {
 			message: "Invalid email",
@@ -48,7 +55,7 @@ async function action(event: RequestEvent) {
 		});
 	}
 	const email = emailResult.data;
-	if (clientIP !== null && !ipBucket.consume(clientIP, 1)) {
+	if (!ipBucket.consume(clientIP, 1)) {
 		return fail(429, {
 			message: "Too many requests",
 			email: "",

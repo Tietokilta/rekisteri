@@ -24,6 +24,7 @@
 	import { page } from "$app/state";
 	import { SvelteURLSearchParams } from "svelte/reactivity";
 	import { LL } from "$lib/i18n/i18n-svelte";
+	import { isNonEmpty } from "$lib/utils";
 
 	type MemberRow = {
 		id: string;
@@ -82,8 +83,8 @@
 		membershipStartTime: false, // Hide the filter column
 	});
 	let pagination = $state({
-		pageIndex: parseInt(urlParams.get("page") ?? "0"),
-		pageSize: parseInt(urlParams.get("pageSize") ?? "100"),
+		pageIndex: Number.parseInt(urlParams.get("page") ?? "0"),
+		pageSize: Number.parseInt(urlParams.get("pageSize") ?? "100"),
 	});
 
 	// Filter state - synced with URL
@@ -123,7 +124,7 @@
 			if (selectedStatus !== "all") urlParams.set("status", selectedStatus);
 
 			// Add sorting if present
-			if (sorting.length > 0) {
+			if (isNonEmpty(sorting)) {
 				urlParams.set("sort", sorting[0].id);
 				urlParams.set("order", sorting[0].desc ? "desc" : "asc");
 			}
@@ -193,14 +194,10 @@
 			}
 
 			// Type filter
-			if (selectedType !== "all") {
-				if (membership.membershipType !== selectedType) return false;
-			}
+			if (selectedType !== "all" && membership.membershipType !== selectedType) return false;
 
 			// Status filter
-			if (selectedStatus !== "all") {
-				if (membership.status !== selectedStatus) return false;
-			}
+			if (selectedStatus !== "all" && membership.status !== selectedStatus) return false;
 
 			return true;
 		});
@@ -226,7 +223,7 @@
 
 	// Format status for display
 	function formatStatus(status: MemberRow["status"]) {
-		return status.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+		return status.replaceAll("_", " ").replaceAll(/\b\w/g, (l) => l.toUpperCase());
 	}
 
 	// Custom filter function for year

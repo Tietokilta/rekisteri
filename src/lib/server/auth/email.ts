@@ -19,6 +19,9 @@ export function setEmailCookie(event: RequestEvent, email: string, expiresAt: Da
 	event.cookies.set(emailCookieName, email, {
 		expires: expiresAt,
 		path: "/",
+		httpOnly: true,
+		secure: !dev,
+		sameSite: "lax",
 	});
 }
 
@@ -67,9 +70,13 @@ export function sendOTPEmail(email: string, code: string, locale: "fi" | "en" = 
 	};
 
 	if (dev) {
-		console.log(emailOptions);
+		console.log("[Email] OTP email (dev mode):", emailOptions);
 	} else {
-		sendEmail(emailOptions).catch((err) => console.log(err));
+		sendEmail(emailOptions).catch((err) => {
+			// Critical: OTP emails are essential for authentication
+			// Log with high severity and consider alerting in production monitoring
+			console.error("[Email] CRITICAL: Failed to send OTP email to", email, ":", err);
+		});
 	}
 }
 
@@ -77,7 +84,7 @@ export function setEmailOTPCookie(event: RequestEvent, otp: EmailOTP): void {
 	event.cookies.set(emailOTPCookieName, otp.id, {
 		httpOnly: true,
 		path: "/",
-		secure: import.meta.env.PROD,
+		secure: !dev,
 		sameSite: "lax",
 		expires: otp.expiresAt,
 	});
@@ -87,7 +94,7 @@ export function deleteEmailOTPCookie(event: RequestEvent): void {
 	event.cookies.delete(emailOTPCookieName, {
 		httpOnly: true,
 		path: "/",
-		secure: import.meta.env.PROD,
+		secure: !dev,
 		sameSite: "lax",
 		maxAge: 0,
 	});
