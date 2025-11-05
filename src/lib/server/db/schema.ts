@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { boolean, integer, json, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import * as z from "zod";
-import { MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "$lib/shared/enums";
+import { MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
 
 const timestamps = {
 	createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
