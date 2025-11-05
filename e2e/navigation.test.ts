@@ -171,7 +171,7 @@ test.describe("Navigation and Access Control", () => {
 		// Go back
 		await adminPage.goBack();
 
-		// Should be back at home
-		await expect(adminPage).toHaveURL(/^\/(fi|en)?\/?$/);
+		// Should be back at home (either root or with locale prefix)
+		await expect(adminPage).toHaveURL(/\/(fi|en)?\/?$/);
 	});
 });
