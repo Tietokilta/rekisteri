@@ -10,6 +10,7 @@
 	import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 	import { route } from "$lib/ROUTES";
 	import { Toaster } from "$lib/components/ui/sonner";
+	import Footer from "$lib/components/footer.svelte";
 
 	let { children } = $props();
 
@@ -53,4 +54,5 @@
 		</div>
 	</header>
 	{@render children()}
+	<Footer />
 </div>
