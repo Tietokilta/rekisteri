@@ -26,6 +26,7 @@ try {
 		firstNames: "Veijo",
 		lastName: "Tietokilta",
 		homeMunicipality: "Espoo",
+		preferredLanguage: "unspecified",
 		isAllowedEmails: true,
 		isAdmin: true,
 	});
@@ -152,6 +153,7 @@ try {
 		user: {
 			columns: {
 				homeMunicipality: f.state(),
+				preferredLanguage: f.default({ defaultValue: "unspecified" }),
 				isAdmin: f.default({ defaultValue: false }),
 				stripeCustomerId: f.default({ defaultValue: null }),
 			},
