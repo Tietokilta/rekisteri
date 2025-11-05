@@ -38,9 +38,13 @@ export async function POST({ request }) {
 		// Add to processed events (with size limit to prevent memory leak)
 		processedEvents.add(event.id);
 		if (processedEvents.size > MAX_PROCESSED_EVENTS) {
-			// Remove oldest entries (first 1000)
-			const entries = Array.from(processedEvents);
-			for (const id of entries.slice(0, 1000)) processedEvents.delete(id);
+			// Remove oldest entries (first 1000) using iterator for efficiency
+			const iterator = processedEvents.values();
+			for (let i = 0; i < 1000; i++) {
+				const { value, done } = iterator.next();
+				if (done) break;
+				processedEvents.delete(value);
+			}
 		}
 
 		// Handle webhook events with proper error handling
