@@ -199,7 +199,9 @@ test.describe("Admin Members List", () => {
 		await adminPage.goto("/admin/members", { waitUntil: "networkidle" });
 
 		// Check for pagination section
-		const paginationSection = adminPage.locator("div.flex.gap-2").filter({ hasText: /edellinen|seuraava|previous|next/i });
+		const paginationSection = adminPage
+			.locator("div.flex.gap-2")
+			.filter({ hasText: /edellinen|seuraava|previous|next/i });
 
 		if ((await paginationSection.count()) > 0) {
 			await expect(paginationSection).toBeVisible();
