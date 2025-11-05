@@ -7,9 +7,10 @@
 </svelte:head>
 
 <div class="mx-auto max-w-4xl px-4 py-8">
-	<div class="prose dark:prose-invert mx-auto">
+	<div class="mx-auto prose dark:prose-invert">
 		<h1>{$LL.documents.privacyPolicy.title()}</h1>
 
+		<!-- eslint-disable svelte/no-at-html-tags -->
 		<section>
 			<h2>{$LL.documents.privacyPolicy.section1Title()}</h2>
 			<p>{@html $LL.documents.privacyPolicy.section1Content()}</p>
@@ -49,6 +50,7 @@
 			<h2>{$LL.documents.privacyPolicy.section8Title()}</h2>
 			<p>{@html $LL.documents.privacyPolicy.section8Content()}</p>
 		</section>
+		<!-- eslint-enable svelte/no-at-html-tags -->
 
 		<p class="mt-8 text-sm text-gray-600 dark:text-gray-400">
 			{$LL.documents.privacyPolicy.lastUpdated()}
