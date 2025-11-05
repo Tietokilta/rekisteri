@@ -40,7 +40,15 @@
 					<Form.Control>
 						{#snippet children({ props })}
 							<Form.Label>{$LL.user.email()}</Form.Label>
-							<Input {...props} type="email" readonly bind:value={$formData.email} />
+							<Input
+								{...props}
+								type="email"
+								autocomplete="email"
+								autocapitalize="none"
+								autocorrect="off"
+								readonly
+								bind:value={$formData.email}
+							/>
 						{/snippet}
 					</Form.Control>
 					<Form.FieldErrors />
@@ -50,7 +58,7 @@
 					<Form.Control>
 						{#snippet children({ props })}
 							<Form.Label>{$LL.user.firstNames()}</Form.Label>
-							<Input {...props} bind:value={$formData.firstNames} />
+							<Input {...props} autocomplete="given-name" bind:value={$formData.firstNames} />
 						{/snippet}
 					</Form.Control>
 					<Form.FieldErrors />
@@ -60,7 +68,7 @@
 					<Form.Control>
 						{#snippet children({ props })}
 							<Form.Label>{$LL.user.lastName()}</Form.Label>
-							<Input {...props} bind:value={$formData.lastName} />
+							<Input {...props} autocomplete="family-name" bind:value={$formData.lastName} />
 						{/snippet}
 					</Form.Control>
 					<Form.FieldErrors />
@@ -70,7 +78,7 @@
 					<Form.Control>
 						{#snippet children({ props })}
 							<Form.Label>{$LL.user.homeMunicipality()}</Form.Label>
-							<Input {...props} bind:value={$formData.homeMunicipality} />
+							<Input {...props} autocomplete="address-level2" bind:value={$formData.homeMunicipality} />
 						{/snippet}
 					</Form.Control>
 					<Form.FieldErrors />
