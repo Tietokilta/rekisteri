@@ -24,6 +24,7 @@ export const load: PageServerLoad = async (event) => {
 			firstNames: table.user.firstNames,
 			lastName: table.user.lastName,
 			homeMunicipality: table.user.homeMunicipality,
+			preferredLanguage: table.user.preferredLanguage,
 			isAllowedEmails: table.user.isAllowedEmails,
 			membershipType: table.membership.type,
 			membershipStartTime: table.membership.startTime,

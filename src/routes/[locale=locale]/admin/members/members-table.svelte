@@ -38,6 +38,7 @@
 		firstNames: string | null;
 		lastName: string | null;
 		homeMunicipality: string | null;
+		preferredLanguage: "unspecified" | "finnish" | "english" | null;
 		isAllowedEmails: boolean | null;
 		membershipType: string | null;
 		membershipStartTime: Date | null;
@@ -574,6 +575,18 @@
 											<div>
 												<dt class="text-muted-foreground">{$LL.admin.members.table.municipalityLabel()}</dt>
 												<dd>{row.original.homeMunicipality ?? "-"}</dd>
+											</div>
+											<div>
+												<dt class="text-muted-foreground">{$LL.admin.members.table.preferredLanguageLabel()}</dt>
+												<dd>
+													{#if row.original.preferredLanguage === "finnish"}
+														{$LL.user.preferredLanguageOptions.finnish()}
+													{:else if row.original.preferredLanguage === "english"}
+														{$LL.user.preferredLanguageOptions.english()}
+													{:else}
+														{$LL.user.preferredLanguageOptions.unspecified()}
+													{/if}
+												</dd>
 											</div>
 											<div>
 												<dt class="text-muted-foreground">{$LL.admin.members.table.emailAllowedLabel()}</dt>

@@ -29,6 +29,14 @@ const en = {
 		firstNames: "First names",
 		lastName: "Last name",
 		homeMunicipality: "Home municipality",
+		preferredLanguage: "Preferred language (optional)",
+		preferredLanguageDescription:
+			"Language you prefer to receive communications in (e.g. membership emails or weekly newsletters)",
+		preferredLanguageOptions: {
+			unspecified: "Unspecified",
+			finnish: "Finnish",
+			english: "English",
+		},
 		allowEmails: "Non-membership emails",
 		allowEmailsDescription: "The guild is allowed to email me things not related to my membership (e.g. weekly mails)",
 	},
@@ -111,6 +119,7 @@ const en = {
 				userIdLabel: "User ID:",
 				emailLabel: "Email:",
 				municipalityLabel: "Municipality:",
+				preferredLanguageLabel: "Preferred Language:",
 				emailAllowedLabel: "Email Allowed:",
 				yes: "Yes",
 				no: "No",

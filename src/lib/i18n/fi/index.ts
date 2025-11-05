@@ -29,6 +29,14 @@ const fi = {
 		firstNames: "Etunimet",
 		lastName: "Sukunimi",
 		homeMunicipality: "Kotikunta",
+		preferredLanguage: "Ensisijainen kieli (valinnainen)",
+		preferredLanguageDescription:
+			"Kieli, jolla haluat vastaanottaa viestintää (esim. jäsenyyssähköpostit tai viikkotiedote)",
+		preferredLanguageOptions: {
+			unspecified: "Ei määritelty",
+			finnish: "Suomi",
+			english: "Englanti",
+		},
 		allowEmails: "Jäsenyyteen liittymättömät sähköpostit",
 		allowEmailsDescription:
 			"Kilta saa lähettää sähköpostia jäsenyyteeni liittymättömistä asioista (esim. viikkotiedote)",
@@ -112,6 +120,7 @@ const fi = {
 				userIdLabel: "Käyttäjätunnus:",
 				emailLabel: "Sähköposti:",
 				municipalityLabel: "Kotikunta:",
+				preferredLanguageLabel: "Ensisijainen kieli:",
 				emailAllowedLabel: "Sähköpostit sallittu:",
 				yes: "Kyllä",
 				no: "Ei",
