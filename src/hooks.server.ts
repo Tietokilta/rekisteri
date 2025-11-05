@@ -4,6 +4,7 @@ import * as auth from "$lib/server/auth/session.js";
 import { getLocaleFromPathname } from "$lib/i18n/routing";
 import { dev } from "$app/environment";
 import cron from "node-cron";
+import { cleanupExpiredTokens, cleanupOldAuditLogs } from "$lib/server/db/cleanup";
 import { cleanupExpiredTokens } from "$lib/server/db/cleanup";
 
 const handleAuth: Handle = async ({ event, resolve }) => {
@@ -72,6 +73,7 @@ export const init: ServerInit = () => {
 		console.log("[Cron] Running daily database cleanup...");
 		try {
 			await cleanupExpiredTokens();
+			await cleanupOldAuditLogs(); // 90 day retention (default)
 		} catch (error) {
 			console.error("[Cron] Database cleanup failed:", error);
 		}

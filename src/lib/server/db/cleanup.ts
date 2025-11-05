@@ -31,3 +31,27 @@ export async function cleanupExpiredTokens(): Promise<void> {
 		throw error;
 	}
 }
+
+/**
+ * Clean up old audit logs from the database.
+ * This ensures GDPR compliance by not retaining audit logs indefinitely.
+ * Default retention period is 90 days for security and compliance balance.
+ *
+ * @param retentionDays - Number of days to retain audit logs (default: 90)
+ */
+export async function cleanupOldAuditLogs(retentionDays: number = 90): Promise<void> {
+	const cutoffDate = new Date();
+	cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+	try {
+		const deletedLogs = await db
+			.delete(table.auditLog)
+			.where(lt(table.auditLog.createdAt, cutoffDate))
+			.returning({ id: table.auditLog.id });
+
+		console.log(`[DB Cleanup] Removed ${deletedLogs.length} audit logs older than ${retentionDays} days`);
+	} catch (error) {
+		console.error("[DB Cleanup] Error during audit log cleanup:", error);
+		throw error;
+	}
+}
