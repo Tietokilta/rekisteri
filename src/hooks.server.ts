@@ -5,7 +5,7 @@ import { getLocaleFromPathname } from "$lib/i18n/routing";
 import { dev } from "$app/environment";
 import cron from "node-cron";
 import { cleanupExpiredTokens, cleanupOldAuditLogs } from "$lib/server/db/cleanup";
-import { cleanupExpiredTokens } from "$lib/server/db/cleanup";
+import { createInitialModeExpression } from "mode-watcher";
 
 const handleAuth: Handle = async ({ event, resolve }) => {
 	const sessionToken = event.cookies.get(auth.sessionCookieName);
@@ -33,7 +33,7 @@ const handleI18n: Handle = ({ event, resolve }) => {
 
 	return resolve(event, {
 		transformPageChunk: ({ html }) => {
-			return html.replace("%lang%", locale);
+			return html.replace("%lang%", locale).replace("%modewatcher.snippet%", createInitialModeExpression());
 		},
 	});
 };
