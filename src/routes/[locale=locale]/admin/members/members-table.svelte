@@ -284,6 +284,12 @@
 		return year === filterValue;
 	};
 
+	// Custom filter function for email allowed
+	const emailAllowedFilterFn = (row: TanStackRow<MemberRow>, columnId: string, filterValue: boolean) => {
+		const isAllowedEmails = row.getValue(columnId) as boolean | null;
+		return isAllowedEmails === filterValue;
+	};
+
 	// Column definitions
 	const columns = $derived<ColumnDef<MemberRow>[]>([
 		{
@@ -336,6 +342,7 @@
 			header: "",
 			enableHiding: true,
 			enableSorting: false,
+			filterFn: emailAllowedFilterFn,
 		},
 	]);
 
