@@ -200,9 +200,9 @@
 		const csvRows = ["Email,First Name,Last Name"];
 
 		for (const row of filteredRows) {
-			const email = (row.original.email ?? "").replace(/"/g, '""'); // Escape quotes
-			const firstName = (row.original.firstNames ?? "").replace(/"/g, '""');
-			const lastName = (row.original.lastName ?? "").replace(/"/g, '""');
+			const email = (row.original.email ?? "").replaceAll('"', '""'); // Escape quotes
+			const firstName = (row.original.firstNames ?? "").replaceAll('"', '""');
+			const lastName = (row.original.lastName ?? "").replaceAll('"', '""');
 
 			// Only export members with email addresses
 			if (email) {
@@ -223,9 +223,9 @@
 		link.setAttribute("download", `members-export-${timestamp}.csv`);
 		link.style.visibility = "hidden";
 
-		document.body.appendChild(link);
+		document.body.append(link);
 		link.click();
-		document.body.removeChild(link);
+		link.remove();
 
 		// Show success message
 		exportSuccess = true;
