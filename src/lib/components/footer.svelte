@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import { localizePathname } from "$lib/i18n/routing";
-	import { route } from "$lib/ROUTES";
 </script>
 
 <footer class="mt-auto border-t border-border/40 bg-muted/50">
@@ -20,9 +19,7 @@
 				<h3 class="mb-2 font-semibold">{$LL.documents.footer.contact()}</h3>
 				<div class="space-y-1 text-sm text-muted-foreground">
 					<p>
-						<a href="mailto:hallitus@tietokilta.fi" class="hover:underline"
-							>{$LL.documents.footer.email()}</a
-						>
+						<a href="mailto:hallitus@tietokilta.fi" class="hover:underline">{$LL.documents.footer.email()}</a>
 					</p>
 					<p>{$LL.documents.footer.phone()}</p>
 					<p>{$LL.documents.footer.address()}</p>
@@ -35,7 +32,7 @@
 				<div class="space-y-1 text-sm">
 					<p>
 						<a
-							href={localizePathname(route("/privacy-policy"), $locale)}
+							href={localizePathname("/privacy-policy", $locale)}
 							class="text-muted-foreground hover:text-foreground hover:underline"
 						>
 							{$LL.documents.footer.privacyPolicy()}
@@ -43,7 +40,7 @@
 					</p>
 					<p>
 						<a
-							href={localizePathname(route("/registry-disclosure"), $locale)}
+							href={localizePathname("/registry-disclosure", $locale)}
 							class="text-muted-foreground hover:text-foreground hover:underline"
 						>
 							{$LL.documents.footer.registryDisclosure()}
