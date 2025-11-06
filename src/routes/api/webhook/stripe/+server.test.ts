@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { POST } from "./+server";
 import { stripe } from "$lib/server/payment";
 import { env } from "$lib/server/env";
@@ -7,17 +7,15 @@ import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 
 /**
- * Webhook Endpoint Security Tests
+ * Webhook Endpoint Tests
  *
- * These tests verify that the Stripe webhook endpoint properly validates
- * incoming requests and handles security concerns like signature verification
- * and replay attacks.
+ * Verifies Stripe webhook security and event processing.
+ * Consolidated for focused, high-value coverage.
  *
- * CRITICAL: These tests ensure that unauthorized requests cannot trigger
- * member status changes.
+ * CRITICAL: These tests ensure unauthorized requests cannot trigger member status changes.
  */
 
-describe("Stripe Webhook Endpoint Security", () => {
+describe("Stripe Webhook Endpoint", () => {
 	// Test data
 	let testUserId: string;
 	let testMembershipId: string;

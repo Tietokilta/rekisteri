@@ -1,0 +1,186 @@
+import { test as base, expect } from "./fixtures/auth";
+import { db } from "../src/lib/server/db";
+import * as table from "../src/lib/server/db/schema";
+import { eq } from "drizzle-orm";
+import { stripe } from "../src/lib/server/payment";
+import { env } from "../src/lib/server/env";
+
+/**
+ * Complete End-to-End Workflow Tests
+ *
+ * Tests complete user journeys that span multiple components and systems.
+ * These are the MOST VALUABLE tests - they verify the entire application works together.
+ *
+ * Previously MISSING from test suite.
+ */
+
+test.describe("Complete Workflows", () => {
+	test("complete membership lifecycle: purchase → payment → approval → active", async ({ adminPage, page }) => {
+		/**
+		 * This test simulates a real user journey:
+		 * 1. User purchases membership
+		 * 2. Stripe processes payment (simulated via webhook)
+		 * 3. Admin approves membership
+		 * 4. User sees active membership
+		 */
+
+		// Setup: Create a test user for this flow
+		const testUserId = crypto.randomUUID();
+		const testEmail = `e2e-lifecycle-${Date.now()}@example.com`;
+
+		await db.insert(table.user).values({
+			id: testUserId,
+			email: testEmail,
+			firstNames: "Lifecycle",
+			lastName: "Test",
+			isAdmin: false,
+		});
+
+		try {
+			// Get an available membership
+			const membership = await db.query.membership.findFirst();
+			expect(membership).toBeDefined();
+
+			// Create a pending member (simulates purchase completed)
+			const testMemberId = crypto.randomUUID();
+			const testSessionId = `cs_test_lifecycle_${Date.now()}`;
+
+			await db.insert(table.member).values({
+				id: testMemberId,
+				userId: testUserId,
+				membershipId: membership!.id,
+				stripeSessionId: testSessionId,
+				status: "awaiting_payment",
+			});
+
+			// Verify initial state
+			let member = await db.query.member.findFirst({
+				where: eq(table.member.id, testMemberId),
+			});
+			expect(member?.status).toBe("awaiting_payment");
+
+			// Step 2: Simulate webhook payment success
+			const webhookPayload = JSON.stringify({
+				id: `evt_lifecycle_${Date.now()}`,
+				type: "checkout.session.completed",
+				data: {
+					object: {
+						id: testSessionId,
+						payment_status: "paid",
+					},
+				},
+			});
+
+			const webhookSignature = stripe.webhooks.generateTestHeaderString({
+				payload: webhookPayload,
+				secret: env.STRIPE_WEBHOOK_SECRET,
+			});
+
+			const webhookRequest = new Request(`${env.PUBLIC_URL}/api/webhook/stripe`, {
+				method: "POST",
+				body: webhookPayload,
+				headers: {
+					"content-type": "application/json",
+					"stripe-signature": webhookSignature,
+				},
+			});
+
+			// Process webhook
+			const { POST } = await import("../src/routes/api/webhook/stripe/+server.js");
+			const webhookResponse = await POST({
+				request: webhookRequest,
+				url: new URL(webhookRequest.url),
+			} as any);
+
+			expect(webhookResponse.status).toBe(200);
+
+			// Verify: Status changed to awaiting_approval
+			member = await db.query.member.findFirst({
+				where: eq(table.member.id, testMemberId),
+			});
+			expect(member?.status).toBe("awaiting_approval");
+
+			// Step 3: Admin approves the member
+			await adminPage.goto("/admin/members", { waitUntil: "networkidle" });
+
+			// Find the test member
+			const memberRow = adminPage.getByText("Lifecycle Test");
+			await expect(memberRow).toBeVisible();
+
+			// Expand row
+			const expandButton = memberRow.locator("..").locator("button:has(svg)").first();
+			await expandButton.click();
+			await adminPage.waitForTimeout(500);
+
+			// Approve
+			const approveForm = adminPage.locator('form[action*="?/approve"]').first();
+			await approveForm.locator('button[type="submit"]').click();
+			await adminPage.waitForTimeout(1500);
+
+			// Verify: Status changed to active
+			member = await db.query.member.findFirst({
+				where: eq(table.member.id, testMemberId),
+			});
+			expect(member?.status).toBe("active");
+
+			// Step 4: Verify user can see their active membership (if we had user login)
+			// This would require creating a session for the test user
+			// For now, we verify via database that the complete flow worked
+		} finally {
+			// Cleanup
+			await db
+				.delete(table.member)
+				.where(eq(table.member.userId, testUserId))
+				.catch(() => {});
+			await db
+				.delete(table.user)
+				.where(eq(table.user.id, testUserId))
+				.catch(() => {});
+		}
+	});
+
+	test("admin workflow: create membership → verify in purchase page", async ({ adminPage, authenticatedPage }) => {
+		/**
+		 * Tests that creating a membership makes it immediately available for purchase
+		 */
+
+		const uniqueType = `E2E Workflow ${Date.now()}`;
+		const uniquePriceId = `price_workflow_${Date.now()}`;
+
+		// Step 1: Admin creates membership
+		await adminPage.goto("/admin/memberships", { waitUntil: "networkidle" });
+
+		await adminPage.locator('input[name="type"]').fill(uniqueType);
+		await adminPage.locator('input[name="stripePriceId"]').fill(uniquePriceId);
+		await adminPage.locator('input[name="startTime"]').fill("2026-06-01");
+		await adminPage.locator('input[name="endTime"]').fill("2026-12-31");
+		await adminPage.locator('input[name="priceCents"]').fill("12345");
+
+		const submitButton = adminPage.locator('form[action*="createMembership"] button[type="submit"]');
+		await submitButton.click();
+		await adminPage.waitForTimeout(1500);
+
+		// Verify created
+		await expect(adminPage.getByText(uniqueType)).toBeVisible();
+
+		try {
+			// Step 2: Verify appears in purchase page
+			await authenticatedPage.goto("/new", { waitUntil: "networkidle" });
+
+			// Should see the new membership
+			await expect(authenticatedPage.getByText(uniqueType)).toBeVisible();
+
+			// Should show correct price (123.45 €)
+			const membershipLabel = authenticatedPage.getByText(uniqueType).locator("..");
+			await expect(membershipLabel).toContainText("123");
+		} finally {
+			// Cleanup
+			const createdMembership = await db.query.membership.findFirst({
+				where: eq(table.membership.type, uniqueType),
+			});
+			if (createdMembership) {
+				await db.delete(table.membership).where(eq(table.membership.id, createdMembership.id));
+			}
+		}
+	});
+});
