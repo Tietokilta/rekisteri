@@ -208,7 +208,12 @@
 
 	// Helper to export filtered members as CSV (Google Groups format)
 	function exportMembersAsCSV(groupEmail: "jasenet@tietokilta.fi" | "aktiivit@tietokilta.fi") {
-		const filteredRows = table.getFilteredRowModel().rows;
+		let filteredRows = table.getFilteredRowModel().rows;
+
+		// For aktiivit@, only include members who have opted in for emails
+		if (groupEmail === "aktiivit@tietokilta.fi") {
+			filteredRows = filteredRows.filter((row) => row.original.isAllowedEmails === true);
+		}
 
 		// Google Groups CSV format: Group Email [Required],Member Email,Member Type,Member Role
 		const csvRows = ["Group Email [Required],Member Email,Member Type,Member Role"];
