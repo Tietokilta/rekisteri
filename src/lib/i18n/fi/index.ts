@@ -286,27 +286,35 @@ const fi = {
 
 				<ul>
 					<li><strong>Perustiedot:</strong> Etunimi, sukunimi, sähköpostiosoite</li>
-					<li><strong>Jäsenyyteen liittyvät tiedot:</strong> Jäsenyyden tyyppi, voimassaoloaika, maksuhistoria, jäsenyyden tila</li>
+					<li><strong>Jäsenyyteen liittyvät tiedot:</strong> Jäsenyyden tyyppi, voimassaoloaika, maksuhistoria, jäsenyyden tila, Stripe-asiakastunnus</li>
+					<li><strong>Opiskelijastatus:</strong> Tieto siitä, onko jäsen opiskelija (itse ilmoitettu, suunniteltu vahvistettavaksi Aalto-yliopiston sähköpostiosoitteella)</li>
 					<li><strong>Kotikunta:</strong> Käytetään tilastointitarkoituksiin</li>
 					<li><strong>Suostumukset:</strong> Tieto siitä, saako yhdistys lähettää jäsenyyteen liittymättömiä sähköposteja</li>
-					<li><strong>Teknisiä tietoja:</strong> Istuntotunnisteet, maksutapahtumatunnisteet (Stripe)</li>
+					<li><strong>Teknisiä tietoja:</strong> Istuntotunnisteet, kirjautumiskoodit, audit-lokitiedot (säilytetään 90 päivää), IP-osoitteet kirjautumisyrityksistä (väärinkäytön ja hyökkäysten valvontaa varten, lyhyt säilytysaika), rate limiting -tiedot (vain muistissa)</li>
 				</ul>
 			`,
 
 			section6Title: "6. Säännönmukaiset tietolähteet",
 			section6Content: `
 				Tiedot saadaan jäseneltä itseltään jäsenhakemuksen yhteydessä tai jäsenen päivittäessä omia tietojaan järjestelmässä.
-				Maksuun liittyvät tiedot saadaan Stripe-maksujärjestelmästä.
+				Maksuun liittyvät tiedot saadaan Stripe-maksujärjestelmästä. Opiskelijastatus on tällä hetkellä itse ilmoitettu;
+				tulevaisuudessa suunniteltu vahvistettavaksi Aalto-yliopiston sähköpostiosoitteen kautta, mutta ei integraatiota
+				Aalto-yliopiston järjestelmiin.
 			`,
 
 			section7Title: "7. Tietojen säilytysaika",
 			section7Content: `
-				Jäsentietoja säilytetään niin kauan kuin henkilö on yhdistyksen jäsen tai jäsenyyden
-				käsittelyyn liittyy oikeudellisia velvoitteita (esim. kirjanpito).<br/><br/>
+				<strong>Jäsentiedot:</strong> Säilytetään yhdistyslain mukaisesti jäsenyyden ajan ja sen jälkeen
+				lakisääteisten velvoitteiden täyttämiseksi.<br/><br/>
 
-				Jäsenyyden päätyttyä tiedot poistetaan tai anonymisoidaan, ellei säilyttämiseen ole
-				lakisääteistä perustetta. Kirjanpitolain mukaiset tiedot säilytetään vähintään 6 vuotta
-				tilikauden päättymisestä.
+				<strong>Kirjanpitotiedot:</strong> Kirjanpitolain mukaiset tiedot (maksut, laskut) säilytetään
+				vähintään 6 vuotta tilikauden päättymisestä.<br/><br/>
+
+				<strong>Audit-lokitiedot:</strong> Säilytetään 90 päivää.<br/><br/>
+
+				<strong>Tekniset tiedot:</strong> Istuntotunnisteet vanhenevat 30 päivässä, kirjautumiskoodit 10 minuutissa.<br/><br/>
+
+				Jäsenyyden päätyttyä henkilötiedot poistetaan tai anonymisoidaan lakisääteisten säilytysaikojen päätyttyä.
 			`,
 
 			section8Title: "8. Tietojen luovutus ja siirrot",
@@ -314,16 +322,25 @@ const fi = {
 				<strong>Tietojen vastaanottajat:</strong><br/><br/>
 
 				<ul>
-					<li><strong>Stripe:</strong> Maksujenkäsittelypalvelu jäsenmaksujen käsittelyyn</li>
-					<li><strong>Mailgun:</strong> Sähköpostipalvelu viestinnän lähettämiseen</li>
-					<li><strong>Pilvipalveluntarjoajat:</strong> Palvelun ylläpitoon tarvittavat tekniset kumppanit</li>
+					<li><strong>Microsoft Azure (North Europe, Irlanti):</strong> Pilvipalvelu, jossa rekisterin
+					tietokanta (Azure Database for PostgreSQL) ja sovelluspalvelin (Azure App Service) sijaitsevat.
+					Kaikki data säilytetään EU-alueella.</li>
+
+					<li><strong>Stripe (EU-infrastruktuuri):</strong> Maksujenkäsittelypalvelu jäsenmaksujen käsittelyyn.
+					Kaikki maksukorttitiedot käsittelee Stripe; itse tallennamme vain Stripe-asiakastunnuksen ja
+					jäsenen sähköpostiosoitteen maksutapahtumia varten.</li>
+
+					<li><strong>Mailgun (EU-endpoint):</strong> Sähköpostipalvelu (api.eu.mailgun.net) viestinnän
+					lähettämiseen osoitteesta rekisteri.tietokilta.fi. Data käsitellään EU-alueella.</li>
+
+					<li><strong>Google Workspace:</strong> Sähköpostiosoitteita käytetään killan postituslistoilla
+					(Google Groups) viestintätarkoituksiin.</li>
 				</ul>
 				<br/>
 
-				Tietoja ei luovuteta EU:n tai ETA:n ulkopuolelle, ellei palveluntarjoaja käytä
-				EU-komission hyväksymiä vakiolausekkeita tai muuta asianmukaista suojaa.<br/><br/>
-
-				Tietoja ei myydä, vuokrata tai luovuteta kolmansille osapuolille markkinointitarkoituksiin.
+				Kaikki palveluntarjoajat noudattavat GDPR-vaatimuksia ja käyttävät EU-komission hyväksymiä
+				suojausmekanismeja. Tietoja ei myydä, vuokrata tai luovuteta kolmansille osapuolille
+				markkinointitarkoituksiin.
 			`,
 		},
 
@@ -372,6 +389,7 @@ const fi = {
 					<li>Jäsenyyden tyyppi (varsinainen jäsen, kannatusjäsen, opiskelijajäsen jne.)</li>
 					<li>Jäsenyyden alkamis- ja päättymispäivä</li>
 					<li>Jäsenyyden tila (aktiivinen, vanhentunut, odottaa hyväksyntää jne.)</li>
+					<li>Opiskelijastatus (itse ilmoitettu, suunniteltu vahvistettavaksi Aalto-yliopiston sähköpostiosoitteella)</li>
 					<li>Maksuhistoria ja maksutiedot</li>
 					<li>Stripe-asiakastunnus</li>
 				</ul><br/>
@@ -385,6 +403,9 @@ const fi = {
 				<ul>
 					<li>Istuntotunnisteet kirjautumista varten</li>
 					<li>Kirjautumiskoodit ja niiden voimassaoloajat</li>
+					<li>Audit-lokitiedot hallinnollisista toimenpiteistä (säilytetään 90 päivää)</li>
+					<li>IP-osoitteet kirjautumisyrityksistä (väärinkäytön ja hyökkäysten valvontaa varten, lyhyt säilytysaika)</li>
+					<li>Rate limiting -tiedot ylikuormituksen estämiseksi (vain muistissa)</li>
 					<li>Luomis- ja päivitysajankohdat</li>
 				</ul>
 			`,
@@ -403,26 +424,36 @@ const fi = {
 				<ul>
 					<li>Stripe-maksujärjestelmästä (maksutapahtumat, maksutiedot)</li>
 					<li>Hallituksen jäsenrekisteristä massatuonnin yhteydessä (esim. aiempien vuosien jäsenet)</li>
-				</ul>
+				</ul><br/>
+
+				<strong>Opiskelijastatus:</strong> Tällä hetkellä itse ilmoitettu. Tulevaisuudessa suunniteltu
+				vahvistettavaksi Aalto-yliopiston sähköpostiosoitteen kautta, mutta ei integraatiota
+				Aalto-yliopiston järjestelmiin.
 			`,
 
 			section6Title: "6. Tietojen säilytysaika",
 			section6Content: `
-				<strong>Aktiiviset jäsenet:</strong> Tietoja säilytetään jäsenyyden ajan.<br/><br/>
+				<strong>Aktiiviset jäsenet:</strong> Tietoja säilytetään yhdistyslain mukaisesti jäsenyyden ajan.<br/><br/>
 
 				<strong>Entiset jäsenet:</strong> Jäsenyyden päätyttyä tiedot säilytetään tai anonymisoidaan
 				seuraavien periaatteiden mukaisesti:<br/><br/>
 
 				<ul>
-					<li>Kirjanpitolain mukaiset tiedot (maksut, laskut): vähintään 6 vuotta tilikauden päättymisestä</li>
-					<li>Historiallisesti merkittävät tiedot: voidaan anonymisoida tilastointia ja historiankirjoitusta varten</li>
-					<li>Muut henkilötiedot: poistetaan kun ne eivät ole enää tarpeellisia</li>
+					<li><strong>Kirjanpitolain mukaiset tiedot</strong> (maksut, laskut): vähintään 6 vuotta
+					tilikauden päättymisestä</li>
+					<li><strong>Yhdistyslain mukaiset jäsentiedot:</strong> säilytetään lakisääteisten velvoitteiden
+					täyttämiseksi, jonka jälkeen anonymisoidaan tai poistetaan</li>
+					<li><strong>Historiallisesti merkittävät tiedot:</strong> voidaan anonymisoida tilastointia ja
+					historiankirjoitusta varten</li>
 				</ul><br/>
 
 				<strong>Tekniset tiedot:</strong><br/>
 				<ul>
-					<li>Istuntotunnisteet: poistetaan 30 päivän kuluttua</li>
-					<li>Kirjautumiskoodit: poistetaan 10 minuutin kuluttua</li>
+					<li><strong>Audit-lokitiedot:</strong> 90 päivää</li>
+					<li><strong>IP-osoitteet kirjautumisyrityksistä:</strong> lyhyt säilytysaika turvallisuuden valvontaa varten</li>
+					<li><strong>Rate limiting -tiedot:</strong> vain muistissa, ei pysyvää tallennusta</li>
+					<li><strong>Istuntotunnisteet:</strong> vanhenevat 30 päivässä</li>
+					<li><strong>Kirjautumiskoodit:</strong> vanhenevat 10 minuutissa</li>
 				</ul>
 			`,
 
@@ -431,15 +462,21 @@ const fi = {
 				<strong>Säännönmukaiset luovutukset:</strong><br/><br/>
 
 				<ul>
-					<li><strong>Stripe Inc.:</strong> Maksujenkäsittelypalvelu. Tiedot siirretään turvallisesti Stripen
-					järjestelmiin maksujen käsittelyä varten. Stripe noudattaa GDPR-vaatimuksia ja käyttää
-					EU-komission hyväksymiä vakiolausekkeita.</li>
+					<li><strong>Microsoft Azure (North Europe, Irlanti):</strong> Pilvipalvelu, jossa rekisterin
+					tietokanta (Azure Database for PostgreSQL) ja sovelluspalvelin (Azure App Service) sijaitsevat.
+					Kaikki data säilytetään EU-alueella. Microsoft noudattaa GDPR-vaatimuksia.</li>
 
-					<li><strong>Mailgun (Sinch MessageMedia Pty Ltd):</strong> Sähköpostipalvelu viestinnän lähettämiseen.
-					Palvelu käsittelee sähköpostiosoitteita ja viestin sisältöä.</li>
+					<li><strong>Stripe Inc. (EU-infrastruktuuri):</strong> Maksujenkäsittelypalvelu. Tiedot siirretään
+					turvallisesti Stripen EU-järjestelmiin maksujen käsittelyä varten. Kaikki maksukorttitiedot
+					käsittelee Stripe; itse tallennamme vain Stripe-asiakastunnuksen ja sähköpostiosoitteen.
+					Stripe noudattaa GDPR-vaatimuksia ja käyttää EU-komission hyväksymiä vakiolausekkeita.</li>
 
-					<li><strong>Pilvipalveluntarjoajat:</strong> Tietokanta ja sovelluspalvelin sijaitsevat
-					pilvipalvelussa. Palveluntarjoajat voivat käsitellä tietoja teknisen ylläpidon yhteydessä.</li>
+					<li><strong>Mailgun (Sinch MessageMedia Pty Ltd, EU-endpoint):</strong> Sähköpostipalvelu
+					viestinnän lähettämiseen (api.eu.mailgun.net). Palvelu käsittelee sähköpostiosoitteita ja
+					viestin sisältöä EU-alueella.</li>
+
+					<li><strong>Google Workspace:</strong> Jäsenten sähköpostiosoitteita käytetään killan
+					postituslistoilla (Google Groups) viestintätarkoituksiin.</li>
 				</ul><br/>
 
 				<strong>Satunnaiset luovutukset:</strong><br/>
@@ -455,25 +492,31 @@ const fi = {
 				<strong>Tekniset suojatoimet:</strong><br/><br/>
 
 				<ul>
-					<li>Tietokanta on suojattu palomuurilla ja pääsy on rajattu vain valtuutetuille järjestelmille</li>
-					<li>Kaikki tietoliikenne tapahtuu salattua HTTPS-yhteyttä käyttäen</li>
-					<li>Salasanat ja istuntotunnisteet tallennetaan hajautettuna (hashed)</li>
-					<li>Järjestelmässä käytetään turvallista session-hallintaa</li>
-					<li>Säännölliset tietoturvavarmuuskopiot</li>
+					<li>Tietokanta (Azure Database for PostgreSQL) on suojattu palomuurilla ja pääsy on rajattu
+					vain valtuutetuille järjestelmille</li>
+					<li>Kaikki tietoliikenne tapahtuu salattua HTTPS/TLS-yhteyttä käyttäen</li>
+					<li>Salasanoja ei tallenneta - käytetään sähköpostipohjaista kertakäyttökoodi-autentikointia</li>
+					<li>Istuntotunnisteet tallennetaan hajautettuna (hashed)</li>
+					<li>Järjestelmässä käytetään turvallista session-hallintaa (vanheneminen 30 päivässä)</li>
+					<li>Audit-lokitiedot kaikista hallinnollisista toimenpiteistä (säilytetään 90 päivää)</li>
+					<li>Säännölliset automaattiset varmuuskopiot Azure-infrastruktuurissa</li>
 				</ul><br/>
 
 				<strong>Organisatoriset suojatoimet:</strong><br/><br/>
 
 				<ul>
-					<li>Pääsy rekisteriin on rajattu vain hallituksen jäsenille ja valtuutetuille ylläpitäjille</li>
+					<li>Pääsy rekisteriin on rajattu hallituksen avainhenkilöille: puheenjohtaja, varapuheenjohtaja/sihteeri,
+					rahastonhoitaja, sekä aktiivisesti kehittävät ohjelmoijat</li>
+					<li>Pääsy voidaan myöntää tarvittaessa muille hallituksen jäsenille esim. kokouksissa
+					läsnäolon tarkistamiseen</li>
 					<li>Käyttöoikeudet myönnetään vain tehtävän edellyttämässä laajuudessa</li>
-					<li>Lokitiedot käyttöoikeuksien käytöstä</li>
-					<li>Henkilökunta on koulutettu tietosuojaan ja sitoutettu salassapitoon</li>
+					<li>Kaikki hallinnolliset toimenpiteet kirjataan audit-lokiin</li>
+					<li>Hallituksen jäsenet on sitoutettu salassapitoon</li>
 				</ul><br/>
 
 				<strong>Fyysinen turvallisuus:</strong><br/>
-				Palvelimet sijaitsevat ammattimaisesti hoidetuissa datakeskuksissa, jotka täyttävät
-				korkeat turvallisuusvaatimukset.
+				Palvelimet sijaitsevat Microsoft Azure North Europe (Irlanti) -datakeskuksessa, joka täyttää
+				korkeat turvallisuusvaatimukset (ISO 27001, SOC 2, jne.).
 			`,
 
 			section9Title: "9. Tarkastusoikeus ja oikeus vaatia tiedon korjaamista",
