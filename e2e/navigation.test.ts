@@ -5,7 +5,10 @@ test.describe("Navigation and Access Control", () => {
 		await adminPage.goto("/", { waitUntil: "networkidle" });
 
 		// Find and click memberships link
-		const membershipsLink = adminPage.getByRole("link").filter({ hasText: /jäsenyystyyp|membership.*type/i }).first();
+		const membershipsLink = adminPage
+			.getByRole("link")
+			.filter({ hasText: /jäsenyystyyp|membership.*type/i })
+			.first();
 		await membershipsLink.click();
 
 		// Verify navigation
@@ -16,7 +19,10 @@ test.describe("Navigation and Access Control", () => {
 		await adminPage.goto("/", { waitUntil: "networkidle" });
 
 		// Find and click members link
-		const membersLink = adminPage.getByRole("link").filter({ hasText: /jäsenet|members/i }).first();
+		const membersLink = adminPage
+			.getByRole("link")
+			.filter({ hasText: /jäsenet|members/i })
+			.first();
 		await membersLink.click();
 
 		// Verify navigation
@@ -27,7 +33,10 @@ test.describe("Navigation and Access Control", () => {
 		await adminPage.goto("/", { waitUntil: "networkidle" });
 
 		// Find and click import link
-		const importLink = adminPage.getByRole("link").filter({ hasText: /tuonti|import/i }).first();
+		const importLink = adminPage
+			.getByRole("link")
+			.filter({ hasText: /tuonti|import/i })
+			.first();
 		await importLink.click();
 
 		// Verify navigation

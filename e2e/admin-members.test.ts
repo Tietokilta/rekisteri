@@ -116,7 +116,7 @@ test.describe("Admin Members List", () => {
 		await adminPage.goto("/admin/members", { waitUntil: "networkidle" });
 
 		// Find expand button (chevron icon button)
-		const expandButton = adminPage.locator('button:has(svg)').first();
+		const expandButton = adminPage.locator("button:has(svg)").first();
 
 		if ((await expandButton.count()) > 0) {
 			await expandButton.click();
@@ -137,7 +137,10 @@ test.describe("Admin Members List", () => {
 		await adminPage.goto("/admin/members", { waitUntil: "networkidle" });
 
 		// Find sortable column header (has arrow icon)
-		const sortableHeader = adminPage.locator('button:has(svg)').filter({ hasText: /nimi|name|email/i }).first();
+		const sortableHeader = adminPage
+			.locator("button:has(svg)")
+			.filter({ hasText: /nimi|name|email/i })
+			.first();
 
 		if ((await sortableHeader.count()) > 0) {
 			const initialUrl = adminPage.url();
@@ -160,7 +163,10 @@ test.describe("Admin Members List", () => {
 		await adminPage.goto("/admin/members", { waitUntil: "networkidle" });
 
 		// Find copy button
-		const copyButton = adminPage.getByRole("button").filter({ hasText: /kopioi|copy/i }).first();
+		const copyButton = adminPage
+			.getByRole("button")
+			.filter({ hasText: /kopioi|copy/i })
+			.first();
 
 		if ((await copyButton.count()) > 0) {
 			await expect(copyButton).toBeVisible();

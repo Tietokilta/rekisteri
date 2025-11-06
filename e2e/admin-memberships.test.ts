@@ -106,7 +106,7 @@ test.describe("Admin Memberships Management", () => {
 		await adminPage.goto("/admin/memberships", { waitUntil: "networkidle" });
 
 		// Check that datalist exists with options
-		const datalist = adminPage.locator('datalist#types');
+		const datalist = adminPage.locator("datalist#types");
 		await expect(datalist).toBeAttached();
 
 		// Should have at least one option

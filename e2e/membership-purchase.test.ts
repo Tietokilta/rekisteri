@@ -86,7 +86,7 @@ test.describe("Membership Purchase Flow", () => {
 		const labelText = await label.textContent();
 		const priceMatch = labelText?.match(/(\d+)\s*€/);
 
-		if (priceMatch) {
+		if (priceMatch && priceMatch[1]) {
 			const price = priceMatch[1];
 			// Verify button shows the price
 			const buyButton = authenticatedPage.locator('button[type="submit"]');
