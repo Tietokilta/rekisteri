@@ -1,4 +1,5 @@
-import { test as base, type Page } from "@playwright/test";
+import { test as testDataTest } from "./test-data";
+import type { Page } from "@playwright/test";
 import path from "node:path";
 
 type AuthFixtures = {
@@ -7,9 +8,10 @@ type AuthFixtures = {
 };
 
 /**
- * Extended test fixture with authenticated page contexts using storage state
+ * Extended test fixture with authenticated page contexts using storage state.
+ * Also includes testData fixture for creating isolated test data.
  */
-export const test = base.extend<AuthFixtures>({
+export const test = testDataTest.extend<AuthFixtures>({
 	/**
 	 * Creates an authenticated page with a regular user session
 	 * Uses the admin storage state for now
