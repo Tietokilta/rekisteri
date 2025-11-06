@@ -8,12 +8,10 @@ import { schema } from "./schema";
 import { superValidate } from "sveltekit-superforms";
 import { zod4 } from "sveltekit-superforms/adapters";
 import { createSession } from "$lib/server/payment/session";
-import { localizePathname, getLocaleFromPathname, type Locale } from "$lib/i18n/routing";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
-		const locale = getLocaleFromPathname(event.url.pathname);
-		return redirect(302, localizePathname(route("/sign-in"), locale));
+		return redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
 	}
 
 	const form = await superValidate(zod4(schema), {
@@ -54,8 +52,7 @@ async function payMembership(event: RequestEvent) {
 	const form = await superValidate(formData, zod4(schema));
 
 	const membershipId = form.data.membershipId;
-	const locale: Locale = getLocaleFromPathname(event.url.pathname);
-	const paymentSession = await createSession(event.locals.user.id, membershipId, locale);
+	const paymentSession = await createSession(event.locals.user.id, membershipId, event.locals.locale);
 	if (!paymentSession?.url) {
 		return fail(400, {
 			form,

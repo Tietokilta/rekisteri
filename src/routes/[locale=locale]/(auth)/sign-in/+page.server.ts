@@ -4,21 +4,18 @@ import { RefillingTokenBucket } from "$lib/server/auth/rate-limit";
 import * as z from "zod";
 import { setEmailCookie, emailCookieName } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
-import { localizePathname, getLocaleFromPathname } from "$lib/i18n/routing";
 
 const ipBucket = new RefillingTokenBucket<string>(20, 1);
 
 export const load: PageServerLoad = async (event) => {
 	if (event.locals.user) {
-		const locale = getLocaleFromPathname(event.url.pathname);
-		redirect(302, localizePathname(route("/"), locale));
+		redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
 	}
 
 	// If email cookie exists, redirect to OTP verification page
 	const emailCookie = event.cookies.get(emailCookieName);
 	if (emailCookie) {
-		const locale = getLocaleFromPathname(event.url.pathname);
-		redirect(302, localizePathname(route("/sign-in/email"), locale));
+		redirect(302, route("/[locale=locale]/sign-in/email", { locale: event.locals.locale }));
 	}
 
 	return {};
@@ -63,6 +60,5 @@ async function action(event: RequestEvent) {
 	}
 
 	setEmailCookie(event, email, new Date(Date.now() + 1000 * 60 * 10));
-	const locale = getLocaleFromPathname(event.url.pathname);
-	redirect(303, localizePathname(route("/sign-in/email"), locale));
+	redirect(303, route("/[locale=locale]/sign-in/email", { locale: event.locals.locale }));
 }

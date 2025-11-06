@@ -26,7 +26,12 @@
 
 <main class="my-4 flex flex-col items-center justify-center">
 	<h1 class="font-mono text-lg">{$LL.membership.buy()}</h1>
-	<form method="post" action={route("payMembership /new")} use:enhance class="flex w-full max-w-xs flex-col gap-4">
+	<form
+		method="post"
+		action={route("payMembership /[locale=locale]/new", { locale: $locale })}
+		use:enhance
+		class="flex w-full max-w-xs flex-col gap-4"
+	>
 		<div class="space-y flex flex-col gap-1 rounded-lg border p-4">
 			<Form.Field {form} name="membershipId">
 				<Form.Control>

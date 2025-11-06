@@ -9,13 +9,27 @@
  * PAGES
  */
 const PAGES = {
-  "/": `/`,
-  "/sign-in": `/sign-in`,
-  "/sign-in/email": `/sign-in/email`,
-  "/admin/members": `/admin/members`,
-  "/admin/members/import": `/admin/members/import`,
-  "/admin/memberships": `/admin/memberships`,
-  "/new": `/new`
+  "/[locale=locale]": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}`
+  },
+  "/[locale=locale]/sign-in": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/sign-in`
+  },
+  "/[locale=locale]/sign-in/email": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/sign-in/email`
+  },
+  "/[locale=locale]/admin/members": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/admin/members`
+  },
+  "/[locale=locale]/admin/members/import": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/admin/members/import`
+  },
+  "/[locale=locale]/admin/memberships": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/admin/memberships`
+  },
+  "/[locale=locale]/new": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/new`
+  }
 }
 
 /**
@@ -30,21 +44,51 @@ const SERVERS = {
  * ACTIONS
  */
 const ACTIONS = {
-  "saveInfo /": `/?/saveInfo`,
-  "signOut /": `/?/signOut`,
-  "default /sign-in": `/sign-in`,
-  "verify /sign-in/email": `/sign-in/email?/verify`,
-  "resend /sign-in/email": `/sign-in/email?/resend`,
-  "changeEmail /sign-in/email": `/sign-in/email?/changeEmail`,
-  "approve /admin/members": `/admin/members?/approve`,
-  "reject /admin/members": `/admin/members?/reject`,
-  "markExpired /admin/members": `/admin/members?/markExpired`,
-  "cancel /admin/members": `/admin/members?/cancel`,
-  "reactivate /admin/members": `/admin/members?/reactivate`,
-  "import /admin/members/import": `/admin/members/import?/import`,
-  "createMembership /admin/memberships": `/admin/memberships?/createMembership`,
-  "deleteMembership /admin/memberships": `/admin/memberships?/deleteMembership`,
-  "payMembership /new": `/new?/payMembership`
+  "saveInfo /[locale=locale]": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}?/saveInfo`
+  },
+  "signOut /[locale=locale]": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}?/signOut`
+  },
+  "default /[locale=locale]/sign-in": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/sign-in`
+  },
+  "verify /[locale=locale]/sign-in/email": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/sign-in/email?/verify`
+  },
+  "resend /[locale=locale]/sign-in/email": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/sign-in/email?/resend`
+  },
+  "changeEmail /[locale=locale]/sign-in/email": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/sign-in/email?/changeEmail`
+  },
+  "approve /[locale=locale]/admin/members": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/admin/members?/approve`
+  },
+  "reject /[locale=locale]/admin/members": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/admin/members?/reject`
+  },
+  "markExpired /[locale=locale]/admin/members": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/admin/members?/markExpired`
+  },
+  "cancel /[locale=locale]/admin/members": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/admin/members?/cancel`
+  },
+  "reactivate /[locale=locale]/admin/members": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/admin/members?/reactivate`
+  },
+  "import /[locale=locale]/admin/members/import": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/admin/members/import?/import`
+  },
+  "createMembership /[locale=locale]/admin/memberships": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/admin/memberships?/createMembership`
+  },
+  "deleteMembership /[locale=locale]/admin/memberships": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/admin/memberships?/deleteMembership`
+  },
+  "payMembership /[locale=locale]/new": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/new?/payMembership`
+  }
 }
 
 /**
@@ -143,6 +187,10 @@ export function route<T extends keyof AllTypes>(key: T, ...params: any[]): strin
   }
 }
 
+/* type helpers param & predicate */
+type ExtractFnPredicate<T> = T extends (param: any) => param is infer U ? U : never;
+type ExtractParamType<T extends (param: any) => any> = ExtractFnPredicate<T> extends never ? Parameters<T>[0] : ExtractFnPredicate<T>
+
 /**
 * Add this type as a generic of the vite plugin `kitRoutes<KIT_ROUTES>`.
 *
@@ -159,9 +207,9 @@ export function route<T extends keyof AllTypes>(key: T, ...params: any[]): strin
 * ```
 */
 export type KIT_ROUTES = {
-  PAGES: { '/': never, '/sign-in': never, '/sign-in/email': never, '/admin/members': never, '/admin/members/import': never, '/admin/memberships': never, '/new': never }
+  PAGES: { '/[locale=locale]': 'locale', '/[locale=locale]/sign-in': 'locale', '/[locale=locale]/sign-in/email': 'locale', '/[locale=locale]/admin/members': 'locale', '/[locale=locale]/admin/members/import': 'locale', '/[locale=locale]/admin/memberships': 'locale', '/[locale=locale]/new': 'locale' }
   SERVERS: { 'GET /api/health': never, 'POST /api/webhook/stripe': never }
-  ACTIONS: { 'saveInfo /': never, 'signOut /': never, 'default /sign-in': never, 'verify /sign-in/email': never, 'resend /sign-in/email': never, 'changeEmail /sign-in/email': never, 'approve /admin/members': never, 'reject /admin/members': never, 'markExpired /admin/members': never, 'cancel /admin/members': never, 'reactivate /admin/members': never, 'import /admin/members/import': never, 'createMembership /admin/memberships': never, 'deleteMembership /admin/memberships': never, 'payMembership /new': never }
+  ACTIONS: { 'saveInfo /[locale=locale]': 'locale', 'signOut /[locale=locale]': 'locale', 'default /[locale=locale]/sign-in': 'locale', 'verify /[locale=locale]/sign-in/email': 'locale', 'resend /[locale=locale]/sign-in/email': 'locale', 'changeEmail /[locale=locale]/sign-in/email': 'locale', 'approve /[locale=locale]/admin/members': 'locale', 'reject /[locale=locale]/admin/members': 'locale', 'markExpired /[locale=locale]/admin/members': 'locale', 'cancel /[locale=locale]/admin/members': 'locale', 'reactivate /[locale=locale]/admin/members': 'locale', 'import /[locale=locale]/admin/members/import': 'locale', 'createMembership /[locale=locale]/admin/memberships': 'locale', 'deleteMembership /[locale=locale]/admin/memberships': 'locale', 'payMembership /[locale=locale]/new': 'locale' }
   LINKS: Record<string, never>
-  Params: Record<string, never>
+  Params: { 'locale': never }
 }

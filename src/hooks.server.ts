@@ -1,7 +1,7 @@
 import { sequence } from "@sveltejs/kit/hooks";
 import type { Handle, ServerInit } from "@sveltejs/kit";
 import * as auth from "$lib/server/auth/session.js";
-import { getLocaleFromPathname } from "$lib/i18n/routing";
+import { baseLocale } from "$lib/i18n/routing";
 import { dev } from "$app/environment";
 import cron from "node-cron";
 import { cleanupExpiredTokens, cleanupOldAuditLogs } from "$lib/server/db/cleanup";
@@ -29,11 +29,14 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 };
 
 const handleI18n: Handle = ({ event, resolve }) => {
-	const locale = getLocaleFromPathname(event.url.pathname);
+	const locale = (event.params.locale as string) || baseLocale;
+	event.locals.locale = locale as typeof baseLocale;
 
 	return resolve(event, {
 		transformPageChunk: ({ html }) => {
-			return html.replace("%lang%", locale).replace("%modewatcher.snippet%", createInitialModeExpression());
+			return html
+				.replace("%lang%", event.locals.locale)
+				.replace("%modewatcher.snippet%", createInitialModeExpression());
 		},
 	});
 };
