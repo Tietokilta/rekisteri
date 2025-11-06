@@ -67,6 +67,26 @@ Custom session-based authentication (no external libraries):
 - Rate limiting implemented via `ExpiringTokenBucket` in `src/lib/server/auth/rate-limit.ts`
 - Auth state injected via `hooks.server.ts` into `event.locals.user` and `event.locals.session`
 
+### OAuth 2.0 / OpenID Connect Provider (Optional)
+
+Rekisteri can function as an OAuth provider for other Tietokilta services:
+
+- **OAuth 2.0 Authorization Code Flow** - Standard flow for web applications
+- **OpenID Connect** - ID tokens with user claims (email, name, membership status)
+- **JWT Access Tokens** - RS256 signed tokens (1 hour expiration)
+- **Refresh Tokens** - Long-lived tokens for session maintenance (30 days)
+- **Discovery endpoints** - `.well-known/openid-configuration` and `.well-known/jwks.json`
+- **Environment-based configuration** - Clients configured via `OAUTH_CLIENTS` env var
+- **Auto-approval** - Trusted internal clients are automatically approved
+- **Audit logging** - All OAuth events logged to `audit_log` table
+
+**Setup**: See `docs/oauth-setup.md` for complete configuration guide.
+
+**OAuth routes**:
+- `/oauth/authorize` - Authorization endpoint
+- `/oauth/token` - Token exchange endpoint
+- `/oauth/userinfo` - User information endpoint
+
 ### Database Schema (`src/lib/server/db/schema.ts`)
 
 Core tables:
@@ -76,6 +96,9 @@ Core tables:
 - `email_otp`: One-time password codes for email authentication
 - `membership`: Membership types with Stripe price IDs, time ranges, and pricing
 - `member`: Links users to memberships with status tracking
+- `oauth_authorization_code`: OAuth authorization codes (10 minute expiration)
+- `oauth_token`: OAuth refresh tokens (30 day expiration)
+- `audit_log`: Audit trail for authentication and OAuth events
 
 Member statuses: `awaiting_payment`, `awaiting_approval`, `active`, `expired`, `cancelled`
 
@@ -133,6 +156,12 @@ Required for development:
 - `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret (get via `stripe listen`)
 - `MAILGUN_*`: Mailgun credentials (optional in dev mode, logs to console)
 - `PORT`: Server port (optional)
+
+Optional (OAuth provider functionality):
+
+- `OAUTH_PRIVATE_KEY`: RSA private key for JWT signing (PEM format)
+- `OAUTH_PUBLIC_KEY`: RSA public key for JWT verification (PEM format)
+- `OAUTH_CLIENTS`: JSON array of OAuth client configurations
 
 ## Important Notes
 

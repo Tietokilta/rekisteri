@@ -59,6 +59,20 @@ const privateEnvSchema = z
 		// Server configuration
 		PORT: z.coerce.number().int().positive().default(5173),
 		ADDRESS_HEADER: z.string().default("X-Client-IP"),
+
+		// OAuth (optional - required only if OAuth functionality is used)
+		OAUTH_CLIENTS: z
+			.string()
+			.optional()
+			.or(z.literal("").transform((): undefined => undefined)),
+		OAUTH_PRIVATE_KEY: z
+			.string()
+			.optional()
+			.or(z.literal("").transform((): undefined => undefined)),
+		OAUTH_PUBLIC_KEY: z
+			.string()
+			.optional()
+			.or(z.literal("").transform((): undefined => undefined)),
 	})
 	.superRefine((data, ctx) => {
 		// In production, Mailgun is required
@@ -107,6 +121,9 @@ const parsed = privateEnvSchema.safeParse({
 	MAILGUN_URL: privateEnv.MAILGUN_URL,
 	PORT: privateEnv.PORT,
 	ADDRESS_HEADER: privateEnv.ADDRESS_HEADER,
+	OAUTH_CLIENTS: privateEnv.OAUTH_CLIENTS,
+	OAUTH_PRIVATE_KEY: privateEnv.OAUTH_PRIVATE_KEY,
+	OAUTH_PUBLIC_KEY: privateEnv.OAUTH_PUBLIC_KEY,
 });
 
 if (!parsed.success) {

@@ -23,8 +23,21 @@ export async function cleanupExpiredTokens(): Promise<void> {
 			.where(lt(table.session.expiresAt, now))
 			.returning({ id: table.session.id });
 
+		// Delete expired OAuth authorization codes
+		const deletedAuthCodes = await db
+			.delete(table.oauthAuthorizationCode)
+			.where(lt(table.oauthAuthorizationCode.expiresAt, now))
+			.returning({ code: table.oauthAuthorizationCode.code });
+
+		// Delete expired OAuth tokens (access and refresh)
+		const deletedOAuthTokens = await db
+			.delete(table.oauthToken)
+			.where(lt(table.oauthToken.expiresAt, now))
+			.returning({ token: table.oauthToken.token });
+
 		console.log(
-			`[DB Cleanup] Removed ${deletedOTPs.length} expired OTP codes and ${deletedSessions.length} expired sessions`,
+			`[DB Cleanup] Removed ${deletedOTPs.length} expired OTP codes, ${deletedSessions.length} expired sessions, ` +
+			`${deletedAuthCodes.length} expired OAuth codes, and ${deletedOAuthTokens.length} expired OAuth tokens`,
 		);
 	} catch (error) {
 		console.error("[DB Cleanup] Error during cleanup:", error);

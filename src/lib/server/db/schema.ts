@@ -93,6 +93,30 @@ export const auditLog = pgTable("audit_log", {
 	...timestamps,
 });
 
+export const oauthAuthorizationCode = pgTable("oauth_authorization_code", {
+	code: text().primaryKey(),
+	userId: text()
+		.notNull()
+		.references(() => user.id),
+	clientId: text().notNull(),
+	redirectUri: text().notNull(),
+	expiresAt: timestamp({ withTimezone: true, mode: "date" }).notNull(),
+	createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+
+export const oauthTokenTypeEnum = pgEnum("oauth_token_type", ["access", "refresh"]);
+
+export const oauthToken = pgTable("oauth_token", {
+	token: text().primaryKey(),
+	type: oauthTokenTypeEnum().notNull(),
+	userId: text()
+		.notNull()
+		.references(() => user.id),
+	clientId: text().notNull(),
+	expiresAt: timestamp({ withTimezone: true, mode: "date" }).notNull(),
+	createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+
 export type Member = typeof member.$inferSelect;
 
 export type MemberStatus = z.infer<typeof memberStatusEnumSchema>;
@@ -106,3 +130,7 @@ export type Session = typeof session.$inferSelect;
 export type User = typeof user.$inferSelect;
 
 export type AuditLog = typeof auditLog.$inferSelect;
+
+export type OAuthAuthorizationCode = typeof oauthAuthorizationCode.$inferSelect;
+
+export type OAuthToken = typeof oauthToken.$inferSelect;
