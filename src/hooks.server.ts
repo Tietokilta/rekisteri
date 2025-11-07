@@ -56,8 +56,10 @@ function preferredLanguageToLocale(preferredLanguage: PreferredLanguage): Locale
 const handleLocaleRedirect: Handle = ({ event, resolve }) => {
 	const pathname = event.url.pathname;
 
-	// Skip redirect for API routes, static assets, and SvelteKit internals
+	// Skip redirect for API routes, static assets, SvelteKit internals, and POST requests
+	// POST requests (form submissions) should handle their own redirects
 	if (
+		event.request.method === "POST" ||
 		pathname.startsWith("/api/") ||
 		pathname.startsWith("/_app/") ||
 		/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/.test(pathname)
