@@ -91,7 +91,7 @@ const handlePreferredLanguage: Handle = async ({ event, resolve }) => {
 				// Replace the locale in the pathname
 				const pathname = event.url.pathname;
 				const segments = pathname.split("/").filter(Boolean);
-				
+
 				// If first segment is a valid locale, replace it
 				if (segments[0] && locales.includes(segments[0] as Locale)) {
 					segments[0] = preferredLocale;
@@ -99,7 +99,7 @@ const handlePreferredLanguage: Handle = async ({ event, resolve }) => {
 					// Otherwise prepend the preferred locale
 					segments.unshift(preferredLocale);
 				}
-				
+
 				const newPathname = "/" + segments.join("/");
 				// Preserve query parameters and hash
 				const newUrl = `${newPathname}${event.url.search}${event.url.hash}`;
