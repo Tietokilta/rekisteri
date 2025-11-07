@@ -56,10 +56,13 @@ function preferredLanguageToLocale(preferredLanguage: PreferredLanguage): Locale
 const handleLocaleRedirect: Handle = ({ event, resolve }) => {
 	const pathname = event.url.pathname;
 
-	// Skip redirect for API routes, static assets, SvelteKit internals, and POST requests
-	// POST requests (form submissions) should handle their own redirects
+	// Only redirect GET requests - other methods (POST, PUT, DELETE, etc.) should handle their own responses
+	if (event.request.method !== "GET") {
+		return resolve(event);
+	}
+
+	// Skip redirect for API routes, static assets, and SvelteKit internals
 	if (
-		event.request.method === "POST" ||
 		pathname.startsWith("/api/") ||
 		pathname.startsWith("/_app/") ||
 		/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/.test(pathname)
