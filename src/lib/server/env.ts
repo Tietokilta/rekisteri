@@ -98,6 +98,16 @@ const privateEnvSchema = v.pipe(
     RP_NAME: v.pipe(v.string(), v.minLength(1)),
     RP_ID: v.pipe(v.string(), v.minLength(1)),
     RP_ORIGIN: v.pipe(v.string(), v.url(), v.regex(/^https?:\/\/.+/, "RP_ORIGIN must use http or https protocol")),
+
+    // SSO configuration (optional)
+    // Cookie domain for sharing session across subdomains (e.g., ".tietokilta.fi")
+    // Leave empty for localhost development
+    COOKIE_DOMAIN: v.optional(
+      v.pipe(
+        v.string(),
+        v.transform((val) => (val === "" ? undefined : val)),
+      ),
+    ),
   }),
   // In production, Mailgun is required
   v.check((data) => {
@@ -131,6 +141,7 @@ const parsed = v.safeParse(privateEnvSchema, {
   RP_NAME: privateEnv.RP_NAME,
   RP_ID: privateEnv.RP_ID,
   RP_ORIGIN: privateEnv.RP_ORIGIN,
+  COOKIE_DOMAIN: privateEnv.COOKIE_DOMAIN,
 });
 
 if (!parsed.success) {

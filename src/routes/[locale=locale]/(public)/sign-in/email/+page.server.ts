@@ -9,6 +9,22 @@ import {
 } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
 
+/**
+ * Helper function to validate return_to URLs.
+ * Only allows same domain or subdomains of tietokilta.fi to prevent open redirect attacks.
+ */
+function isValidReturnUrl(url: string): boolean {
+	try {
+		const parsed = new URL(url);
+		const hostname = parsed.hostname;
+
+		// Allow same domain or subdomains of tietokilta.fi
+		return hostname === "tietokilta.fi" || hostname.endsWith(".tietokilta.fi");
+	} catch {
+		return false;
+	}
+}
+
 export const load: PageServerLoad = async (event) => {
   const email = event.cookies.get(emailCookieName);
   if (typeof email !== "string") {
