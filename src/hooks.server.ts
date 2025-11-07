@@ -1,11 +1,28 @@
 import { sequence } from "@sveltejs/kit/hooks";
 import type { Handle, ServerInit } from "@sveltejs/kit";
 import * as auth from "$lib/server/auth/session.js";
-import { getLocaleFromPathname } from "$lib/i18n/routing";
+import { baseLocale, locales, type Locale } from "$lib/i18n/routing";
 import { dev } from "$app/environment";
 import cron from "node-cron";
 import { cleanupExpiredTokens, cleanupOldAuditLogs } from "$lib/server/db/cleanup";
 import { createInitialModeExpression } from "mode-watcher";
+import { redirect } from "@sveltejs/kit";
+
+const handleLocaleRedirect: Handle = ({ event, resolve }) => {
+	const pathname = event.url.pathname;
+	if (pathname.startsWith("/api/") || pathname.startsWith("/_app/")) {
+		return resolve(event);
+	}
+
+	const segments = pathname.split("/");
+	const maybeLocale = segments[1];
+	// If already has locale or is root (handled by +page.server.ts), continue
+	if (!maybeLocale || locales.includes(maybeLocale as Locale)) {
+		return resolve(event);
+	}
+
+	redirect(302, `/${baseLocale}${pathname}`);
+};
 
 const handleAuth: Handle = async ({ event, resolve }) => {
 	const sessionToken = event.cookies.get(auth.sessionCookieName);
@@ -29,11 +46,14 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 };
 
 const handleI18n: Handle = ({ event, resolve }) => {
-	const locale = getLocaleFromPathname(event.url.pathname);
+	const locale = (event.params.locale as string) || baseLocale;
+	event.locals.locale = locale as typeof baseLocale;
 
 	return resolve(event, {
 		transformPageChunk: ({ html }) => {
-			return html.replace("%lang%", locale).replace("%modewatcher.snippet%", createInitialModeExpression());
+			return html
+				.replace("%lang%", event.locals.locale)
+				.replace("%modewatcher.snippet%", createInitialModeExpression());
 		},
 	});
 };
@@ -64,7 +84,13 @@ const handleAdminAuthorization: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-export const handle: Handle = sequence(handleAuth, handleAdminAuthorization, handleSecurityHeaders, handleI18n);
+export const handle: Handle = sequence(
+	handleLocaleRedirect,
+	handleAuth,
+	handleAdminAuthorization,
+	handleSecurityHeaders,
+	handleI18n,
+);
 
 export const init: ServerInit = () => {
 	// Schedule cleanup tasks

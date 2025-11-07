@@ -18,22 +18,19 @@ import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { db } from "$lib/server/db";
 import { route } from "$lib/ROUTES";
-import { localizePathname, getLocaleFromPathname } from "$lib/i18n/routing";
 import { auditLogin, auditLoginFailed } from "$lib/server/audit";
 import { timingSafeEqual } from "node:crypto";
 
 export async function load(event: RequestEvent) {
 	const email = event.cookies.get(emailCookieName);
 	if (typeof email !== "string") {
-		const locale = getLocaleFromPathname(event.url.pathname);
-		return redirect(302, localizePathname(route("/sign-in"), locale));
+		return redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
 	}
 
 	let otp = await getEmailOTPFromRequest(event);
 	if (otp === null || Date.now() >= otp.expiresAt.getTime()) {
 		otp = await createEmailOTP(email);
-		const locale = getLocaleFromPathname(event.url.pathname);
-		sendOTPEmail(otp.email, otp.code, locale);
+		sendOTPEmail(otp.email, otp.code, event.locals.locale);
 		setEmailOTPCookie(event, otp);
 	}
 	return {
@@ -93,8 +90,7 @@ async function verifyCode(event: RequestEvent) {
 
 	if (Date.now() >= otp.expiresAt.getTime()) {
 		otp = await createEmailOTP(otp.email);
-		const locale = getLocaleFromPathname(event.url.pathname);
-		sendOTPEmail(otp.email, otp.code, locale);
+		sendOTPEmail(otp.email, otp.code, event.locals.locale);
 		return {
 			verify: {
 				message: "The verification code was expired. We sent another code to your inbox.",
@@ -138,8 +134,7 @@ async function verifyCode(event: RequestEvent) {
 	deleteEmailOTP(otp.id);
 	deleteEmailOTPCookie(event);
 
-	const locale = getLocaleFromPathname(event.url.pathname);
-	redirect(302, localizePathname(route("/"), locale));
+	redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
 }
 
 async function resendEmail(event: RequestEvent) {
@@ -183,8 +178,7 @@ async function resendEmail(event: RequestEvent) {
 		}
 		otp = await createEmailOTP(email);
 	}
-	const locale = getLocaleFromPathname(event.url.pathname);
-	sendOTPEmail(otp.email, otp.code, locale);
+	sendOTPEmail(otp.email, otp.code, event.locals.locale);
 	setEmailOTPCookie(event, otp);
 	return {
 		resend: {
@@ -205,6 +199,5 @@ async function changeEmail(event: RequestEvent) {
 	deleteEmailOTPCookie(event);
 
 	// Redirect back to sign-in page
-	const locale = getLocaleFromPathname(event.url.pathname);
-	redirect(303, localizePathname(route("/sign-in"), locale));
+	redirect(303, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
 }

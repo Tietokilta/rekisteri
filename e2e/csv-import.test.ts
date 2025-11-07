@@ -5,7 +5,7 @@ import fs from "node:fs";
 test.describe("CSV Import", () => {
 	// Test file upload with actual CSV file
 	test("CSV import shows correct preview", async ({ adminPage }) => {
-		await adminPage.goto("/admin/members/import", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/admin/members/import", { waitUntil: "networkidle" });
 
 		// Upload CSV file using setInputFiles (simpler approach)
 		const csvPath = path.join(process.cwd(), "e2e/fixtures/sample-import.csv");
@@ -35,7 +35,7 @@ test.describe("CSV Import", () => {
 
 	// Test validation with invalid columns using a temporary file
 	test("CSV import validates incorrect column format", async ({ adminPage }) => {
-		await adminPage.goto("/admin/members/import", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/admin/members/import", { waitUntil: "networkidle" });
 
 		// Create a temporary CSV file with wrong columns
 		const tempPath = path.join(process.cwd(), "temp-invalid.csv");
@@ -60,7 +60,7 @@ value1,value2,value3`;
 	});
 
 	test("CSV import validates invalid email format", async ({ adminPage }) => {
-		await adminPage.goto("/admin/members/import", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/admin/members/import", { waitUntil: "networkidle" });
 
 		// Create a temporary CSV file with invalid email
 		const tempPath = path.join(process.cwd(), "temp-invalid-email.csv");
@@ -84,7 +84,7 @@ Test,User,Helsinki,not-an-email,varsinainen jäsen,2025-08-01`;
 	});
 
 	test("CSV import validates invalid membership type", async ({ adminPage }) => {
-		await adminPage.goto("/admin/members/import", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/admin/members/import", { waitUntil: "networkidle" });
 
 		// Create a temporary CSV file with non-existent membership type
 		const tempPath = path.join(process.cwd(), "temp-invalid-type.csv");
@@ -108,7 +108,7 @@ Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
 	});
 
 	test("CSV import shows existing memberships", async ({ adminPage }) => {
-		await adminPage.goto("/admin/members/import", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/admin/members/import", { waitUntil: "networkidle" });
 
 		// Verify existing memberships section is visible
 		await expect(adminPage.getByText("Olemassa olevat jäsenyydet tietokannassa:")).toBeVisible({ timeout: 10_000 });

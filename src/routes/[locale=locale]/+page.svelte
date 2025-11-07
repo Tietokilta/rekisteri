@@ -2,7 +2,6 @@
 	import { Input } from "$lib/components/ui/input/index.js";
 	import type { PageServerData } from "./$types";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
-	import { localizePathname } from "$lib/i18n/routing";
 	import { Switch } from "$lib/components/ui/switch";
 	import { zod4Client } from "sveltekit-superforms/adapters";
 	import { superForm } from "sveltekit-superforms";
@@ -35,7 +34,12 @@
 		<div class="w-full max-w-xs">
 			<h2 class="font-mono text-lg">{$LL.user.editInfo()}</h2>
 
-			<form method="post" action={route("saveInfo /")} use:enhance class="flex w-full max-w-xs flex-col gap-4">
+			<form
+				method="post"
+				action={route("saveInfo /[locale=locale]", { locale: $locale })}
+				use:enhance
+				class="flex w-full max-w-xs flex-col gap-4"
+			>
 				<Form.Field {form} name="email">
 					<Form.Control>
 						{#snippet children({ props })}
@@ -102,8 +106,11 @@
 
 				<Form.Button type="submit">{$LL.common.save()}</Form.Button>
 
-				<Form.Button formnovalidate formmethod="post" formaction={route("signOut /")} variant="outline"
-					>{$LL.auth.signOut()}</Form.Button
+				<Form.Button
+					formnovalidate
+					formmethod="post"
+					formaction={route("signOut /[locale=locale]", { locale: $locale })}
+					variant="outline">{$LL.auth.signOut()}</Form.Button
 				>
 			</form>
 		</div>
@@ -113,7 +120,7 @@
 			<div class="flex w-full max-w-xs flex-col gap-4">
 				<h2 class="font-mono text-lg">{$LL.admin.title()}</h2>
 				<a
-					href={localizePathname(route("/admin/memberships"), $locale)}
+					href={route("/[locale=locale]/admin/memberships", { locale: $locale })}
 					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
 				>
 					<UserCog class="h-6 w-6" />
@@ -123,7 +130,7 @@
 					</div>
 				</a>
 				<a
-					href={localizePathname(route("/admin/members"), $locale)}
+					href={route("/[locale=locale]/admin/members", { locale: $locale })}
 					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
 				>
 					<UserCog class="h-6 w-6" />
@@ -133,7 +140,7 @@
 					</div>
 				</a>
 				<a
-					href={localizePathname(route("/admin/members/import"), $locale)}
+					href={route("/[locale=locale]/admin/members/import", { locale: $locale })}
 					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
 				>
 					<UserCog class="h-6 w-6" />
@@ -148,7 +155,7 @@
 		<Separator class="hidden md:block" orientation="vertical" />
 		<div class="flex w-full max-w-xs flex-col gap-4">
 			<h2 class="font-mono text-lg">{$LL.membership.title()}</h2>
-			<a href={localizePathname(route("/new"), $locale)} class="flex w-full max-w-xs flex-col">
+			<a href={route("/[locale=locale]/new", { locale: $locale })} class="flex w-full max-w-xs flex-col">
 				<Form.Button variant="default">{$LL.membership.buy()}</Form.Button>
 			</a>
 			{#if data.memberships.length === 0}

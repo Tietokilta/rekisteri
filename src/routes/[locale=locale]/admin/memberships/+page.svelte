@@ -48,7 +48,7 @@
 								<form
 									class="contents"
 									method="post"
-									action={route("deleteMembership /admin/memberships")}
+									action={route("deleteMembership /[locale=locale]/admin/memberships", { locale: $locale })}
 									use:defaultEnhance
 								>
 									<input type="hidden" name="id" value={membership.id} />
@@ -65,7 +65,7 @@
 			<h2 class="font-mono text-lg">{$LL.membership.createNew()}</h2>
 			<form
 				method="post"
-				action={route("createMembership /admin/memberships")}
+				action={route("createMembership /[locale=locale]/admin/memberships", { locale: $locale })}
 				use:enhance
 				class="flex w-full max-w-xs flex-col gap-4"
 			>
