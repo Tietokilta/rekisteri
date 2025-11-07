@@ -7,30 +7,20 @@ import { eq, desc } from "drizzle-orm";
  * Membership Purchase Flow Tests
  *
  * Tests the complete membership purchase workflow from selection to Stripe redirect.
- * Consolidated from membership-purchase.test.ts (6 tests) + stripe-integration.test.ts (8 tests).
- * Focus: Critical purchase flow, not redundant UI checks.
+ *
+ * Refactored to use:
+ * - testData fixture for automatic cleanup
+ * - Robust data-testid selectors (no parent traversal!)
+ * - Proper wait conditions
  */
 
 test.describe("Membership Purchase Flow", () => {
-	test("user can select membership and initiate purchase", async ({ authenticatedPage }) => {
-		// Get user's current member count
-		const userEmail = "test@example.com"; // Use test fixture user
-		let user = await db.query.user.findFirst({
-			where: eq(table.user.email, userEmail),
+	test("user can select membership and initiate purchase", async ({ authenticatedPage, testData }) => {
+		// Get initial member count for the test user
+		const user = await testData.createUser({
+			email: "purchase-test@example.com",
+			isAdmin: false,
 		});
-
-		// Create test user if doesn't exist
-		if (!user) {
-			await db.insert(table.user).values({
-				id: crypto.randomUUID(),
-				email: userEmail,
-				isAdmin: false,
-			});
-			user = await db.query.user.findFirst({
-				where: eq(table.user.email, userEmail),
-			});
-		}
-		if (!user) throw new Error("Failed to create or find test user");
 
 		const initialMembers = await db.query.member.findMany({
 			where: eq(table.member.userId, user.id),
@@ -43,22 +33,28 @@ test.describe("Membership Purchase Flow", () => {
 		// Verify: Page shows available memberships
 		await expect(authenticatedPage.getByText(/osta jäsenyys|buy membership/i)).toBeVisible();
 
-		const membershipOptions = authenticatedPage.locator('input[type="radio"][name="membershipId"]');
-		const count = await membershipOptions.count();
-		expect(count).toBeGreaterThan(0);
+		// Get all available memberships
+		const availableMemberships = await db.query.membership.findMany();
+		expect(availableMemberships.length).toBeGreaterThan(0);
 
-		// Verify: First membership shows price and dates
-		const firstLabel = membershipOptions.first().locator("../..");
-		const labelText = await firstLabel.textContent();
+		const firstMembership = availableMemberships[0];
+		if (!firstMembership) throw new Error("No membership available for test");
+
+		// Verify: Membership shows price and dates using robust selector
+		const membershipLabel = authenticatedPage.getByTestId(`membership-option-${firstMembership.id}`);
+		await expect(membershipLabel).toBeVisible();
+
+		const labelText = await membershipLabel.textContent();
 		expect(labelText).toMatch(/\d+([.,]\d{2})?\s*€/); // Price in euros
 		expect(labelText).toMatch(/\d{1,2}\.\d{1,2}\.\d{4}/); // Date format
 
-		// Select membership
-		await membershipOptions.first().click();
-		await expect(membershipOptions.first()).toBeChecked();
+		// Select membership using robust selector
+		const membershipRadio = authenticatedPage.getByTestId(`membership-radio-${firstMembership.id}`);
+		await membershipRadio.click();
+		await expect(membershipRadio).toBeChecked();
 
-		// Submit purchase
-		const submitButton = authenticatedPage.locator('button[type="submit"]');
+		// Submit purchase using robust selector
+		const submitButton = authenticatedPage.getByTestId("purchase-submit-button");
 		await expect(submitButton).toBeEnabled();
 		await submitButton.click();
 
@@ -77,48 +73,62 @@ test.describe("Membership Purchase Flow", () => {
 		expect(newMember?.status).toBe("awaiting_payment");
 		expect(newMember?.stripeSessionId).toMatch(/^cs_/);
 
-		// Cleanup
-		if (newMember) {
-			await db.delete(table.member).where(eq(table.member.id, newMember.id));
-		}
+		// Automatic cleanup via testData fixture!
 	});
 
-	test("student verification is enforced for student memberships", async ({ authenticatedPage }) => {
-		await authenticatedPage.goto("/new", { waitUntil: "networkidle" });
-
-		// Find student membership (if available)
-		const studentMembership = authenticatedPage.locator('label:has(input[type="radio"])').filter({
-			hasText: /opiskelija|student/i,
+	test("student verification is enforced for student memberships", async ({ authenticatedPage, testData }) => {
+		await testData.createUser({
+			email: "student-test@example.com",
+			isAdmin: false,
 		});
 
-		if ((await studentMembership.count()) > 0) {
-			await studentMembership.first().click();
+		await authenticatedPage.goto("/new", { waitUntil: "networkidle" });
 
-			const studentCheckbox = authenticatedPage.locator('input[type="checkbox"][name="isStudent"]');
+		// Find student membership from database
+		const studentMembership = await db.query.membership.findFirst({
+			where: eq(table.membership.requiresStudentVerification, true),
+		});
 
-			if ((await studentCheckbox.count()) > 0) {
-				// Verify: Checkbox visible and required
-				await expect(studentCheckbox).toBeVisible();
-
-				// Uncheck if checked
-				if (await studentCheckbox.isChecked()) {
-					await studentCheckbox.click();
-				}
-
-				// Verify: Buy button disabled without verification
-				const buyButton = authenticatedPage.locator('button[type="submit"]');
-				await expect(buyButton).toBeDisabled();
-
-				// Check the box
-				await studentCheckbox.click();
-
-				// Verify: Buy button enabled with verification
-				await expect(buyButton).toBeEnabled();
-			}
+		// Only run test if student membership exists
+		if (!studentMembership) {
+			console.log("⚠️  Skipping student verification test - no student membership configured");
+			return;
 		}
+
+		// Select student membership using robust selector
+		const studentRadio = authenticatedPage.getByTestId(`membership-radio-${studentMembership.id}`);
+		await studentRadio.click();
+		await expect(studentRadio).toBeChecked();
+
+		// Find student checkbox using robust selector
+		const studentCheckbox = authenticatedPage.getByTestId("student-verification-checkbox");
+		await expect(studentCheckbox).toBeVisible();
+
+		// Uncheck if checked
+		if (await studentCheckbox.isChecked()) {
+			await studentCheckbox.click();
+		}
+
+		// Verify: Submit button disabled without verification
+		const submitButton = authenticatedPage.getByTestId("purchase-submit-button");
+		await expect(submitButton).toBeDisabled();
+
+		// Check the verification box
+		await studentCheckbox.click();
+		await expect(studentCheckbox).toBeChecked();
+
+		// Verify: Submit button enabled with verification
+		await expect(submitButton).toBeEnabled();
+
+		// Automatic cleanup via testData fixture!
 	});
 
-	test("handles payment success and cancel redirects", async ({ authenticatedPage }) => {
+	test("handles payment success and cancel redirects", async ({ authenticatedPage, testData }) => {
+		await testData.createUser({
+			email: "redirect-test@example.com",
+			isAdmin: false,
+		});
+
 		// Test success redirect
 		await authenticatedPage.goto("/?stripeStatus=success", { waitUntil: "networkidle" });
 		await expect(authenticatedPage).toHaveURL(/stripeStatus=success/);
@@ -128,6 +138,8 @@ test.describe("Membership Purchase Flow", () => {
 		await authenticatedPage.goto("/?stripeStatus=cancel", { waitUntil: "networkidle" });
 		await expect(authenticatedPage).toHaveURL(/stripeStatus=cancel/);
 		await expect(authenticatedPage.locator('input[type="email"]').first()).toBeVisible();
+
+		// Automatic cleanup via testData fixture!
 	});
 
 	test("unauthenticated users cannot access purchase page", async ({ page }) => {

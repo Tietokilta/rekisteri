@@ -135,27 +135,27 @@ export const test = base.extend<{ testData: TestData }>({
 				for (const { type, id } of createdIds.toReversed()) {
 					try {
 						switch (type) {
-						case "member": {
-							await db.delete(table.member).where(eq(table.member.id, id));
-						
-						break;
-						}
-						case "session": {
-							await db.delete(table.session).where(eq(table.session.id, id));
-						
-						break;
-						}
-						case "user": {
-							await db.delete(table.user).where(eq(table.user.id, id));
-						
-						break;
-						}
-						case "membership": {
-							await db.delete(table.membership).where(eq(table.membership.id, id));
-						
-						break;
-						}
-						// No default
+							case "member": {
+								await db.delete(table.member).where(eq(table.member.id, id));
+
+								break;
+							}
+							case "session": {
+								await db.delete(table.session).where(eq(table.session.id, id));
+
+								break;
+							}
+							case "user": {
+								await db.delete(table.user).where(eq(table.user.id, id));
+
+								break;
+							}
+							case "membership": {
+								await db.delete(table.membership).where(eq(table.membership.id, id));
+
+								break;
+							}
+							// No default
 						}
 					} catch (error) {
 						// Ignore cleanup errors (record might not exist)
