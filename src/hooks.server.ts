@@ -2,12 +2,11 @@ import { sequence } from "@sveltejs/kit/hooks";
 import type { Handle, ServerInit } from "@sveltejs/kit";
 import { redirect } from "@sveltejs/kit";
 import * as auth from "$lib/server/auth/session.js";
-import { baseLocale, locales, type Locale } from "$lib/i18n/routing";
+import { baseLocale, locales, preferredLanguageToLocale, type Locale } from "$lib/i18n/routing";
 import { dev } from "$app/environment";
 import cron from "node-cron";
 import { cleanupExpiredTokens, cleanupOldAuditLogs } from "$lib/server/db/cleanup";
 import { createInitialModeExpression } from "mode-watcher";
-import type { PreferredLanguage } from "$lib/server/db/schema";
 
 const handleAuth: Handle = async ({ event, resolve }) => {
 	const sessionToken = event.cookies.get(auth.sessionCookieName);
@@ -29,22 +28,6 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 
 	return resolve(event);
 };
-
-/**
- * Convert preferred language enum to locale code
- */
-function preferredLanguageToLocale(preferredLanguage: PreferredLanguage): Locale | null {
-	switch (preferredLanguage) {
-		case "finnish":
-			return "fi";
-		case "english":
-			return "en";
-		case "unspecified":
-			return null;
-		default:
-			return null;
-	}
-}
 
 /**
  * Locale redirect handler that adds locale to paths without one.

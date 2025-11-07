@@ -1,20 +1,6 @@
 import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { baseLocale, type Locale } from "$lib/i18n/routing";
-import type { PreferredLanguage } from "$lib/server/db/schema";
-
-function preferredLanguageToLocale(preferredLanguage: PreferredLanguage): Locale | null {
-	switch (preferredLanguage) {
-		case "finnish":
-			return "fi";
-		case "english":
-			return "en";
-		case "unspecified":
-			return null;
-		default:
-			return null;
-	}
-}
+import { baseLocale, preferredLanguageToLocale, type Locale } from "$lib/i18n/routing";
 
 export const load: PageServerLoad = (event) => {
 	// Use user's preferred language if they have one, otherwise use base locale

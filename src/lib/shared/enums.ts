@@ -7,6 +7,7 @@
  * Available preferred language options for users
  */
 export const PREFERRED_LANGUAGE_VALUES = ["unspecified", "finnish", "english"] as const;
+export type PreferredLanguage = (typeof PREFERRED_LANGUAGE_VALUES)[number];
 
 /**
  * Available member status values
@@ -18,3 +19,4 @@ export const MEMBER_STATUS_VALUES = [
 	"expired",
 	"cancelled",
 ] as const;
+export type MemberStatus = (typeof MEMBER_STATUS_VALUES)[number];
