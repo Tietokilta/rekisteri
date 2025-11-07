@@ -34,5 +34,6 @@
 		"e2e/**/*.ts",
 		"*.config.ts",
 		"*.config.js"
-	]
+	],
+	"exclude": ["node_modules"]
 }

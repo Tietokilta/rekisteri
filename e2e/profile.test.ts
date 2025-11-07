@@ -24,6 +24,7 @@ test.describe("User Profile", () => {
 			where: eq(table.user.email, "root@tietokilta.fi"),
 		});
 		expect(user).toBeDefined();
+		if (!user) throw new Error("User not found");
 
 		// Edit profile fields
 		const uniqueSuffix = Date.now();
@@ -36,17 +37,13 @@ test.describe("User Profile", () => {
 		await adminPage.locator('input[name="homeMunicipality"]').fill(newMunicipality);
 
 		// Toggle email consent
-		const emailSwitch = adminPage.locator('button[role="switch"]').first();
+		const emailSwitch = adminPage.getByTestId("email-consent-toggle");
 		const initialEmailConsent = await emailSwitch.getAttribute("data-state");
 
-		if (initialEmailConsent === "checked") {
-			await emailSwitch.click();
-		} else {
-			await emailSwitch.click();
-		}
+		await (initialEmailConsent === "checked" ? emailSwitch.click() : emailSwitch.click());
 
 		// Save changes
-		const saveButton = adminPage.locator('button[type="submit"]').filter({ hasText: /tallenna|save/i });
+		const saveButton = adminPage.getByTestId("save-profile-button");
 		await saveButton.click();
 
 		// Wait for save to complete (look for success indicator or page reload)
@@ -54,7 +51,7 @@ test.describe("User Profile", () => {
 
 		// Verify: Database was updated
 		const updatedUser = await db.query.user.findFirst({
-			where: eq(table.user.id, user!.id),
+			where: eq(table.user.id, user.id),
 		});
 
 		expect(updatedUser?.firstNames).toBe(newFirstNames);
@@ -76,8 +73,8 @@ test.describe("User Profile", () => {
 		const membershipHeading = authenticatedPage.getByRole("heading", { name: /jäsenyydet|membership/i });
 		await expect(membershipHeading.first()).toBeVisible();
 
-		// Verify: Buy membership button is accessible
-		const buyButton = authenticatedPage.locator('a[href*="/new"]').first();
+		// Verify: Buy membership button is accessible - using robust selector
+		const buyButton = authenticatedPage.getByTestId("buy-membership-link");
 		await expect(buyButton).toBeVisible();
 
 		// Click buy button and verify navigation
@@ -92,11 +89,8 @@ test.describe("User Profile", () => {
 		const adminHeading = adminPage.getByRole("heading", { name: /hallinta|admin/i });
 		await expect(adminHeading).toBeVisible();
 
-		// Verify: Admin links present and functional
-		const membersLink = adminPage
-			.getByRole("link")
-			.filter({ hasText: /jäsenet|members/i })
-			.first();
+		// Verify: Admin links present and functional - using robust selector
+		const membersLink = adminPage.getByTestId("admin-members-link");
 		await expect(membersLink).toBeVisible();
 
 		await membersLink.click();

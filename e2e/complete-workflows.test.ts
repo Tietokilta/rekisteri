@@ -1,4 +1,4 @@
-import { test as base, expect } from "./fixtures/auth";
+import { test, expect } from "./fixtures/auth";
 import { db } from "../src/lib/server/db";
 import * as table from "../src/lib/server/db/schema";
 import { eq } from "drizzle-orm";
@@ -15,7 +15,7 @@ import { env } from "../src/lib/server/env";
  */
 
 test.describe("Complete Workflows", () => {
-	test("complete membership lifecycle: purchase → payment → approval → active", async ({ adminPage, page }) => {
+	test("complete membership lifecycle: purchase → payment → approval → active", async ({ adminPage }) => {
 		/**
 		 * This test simulates a real user journey:
 		 * 1. User purchases membership
@@ -40,6 +40,7 @@ test.describe("Complete Workflows", () => {
 			// Get an available membership
 			const membership = await db.query.membership.findFirst();
 			expect(membership).toBeDefined();
+			if (!membership) throw new Error("No membership available for test");
 
 			// Create a pending member (simulates purchase completed)
 			const testMemberId = crypto.randomUUID();
@@ -48,7 +49,7 @@ test.describe("Complete Workflows", () => {
 			await db.insert(table.member).values({
 				id: testMemberId,
 				userId: testUserId,
-				membershipId: membership!.id,
+				membershipId: membership.id,
 				stripeSessionId: testSessionId,
 				status: "awaiting_payment",
 			});
@@ -90,6 +91,7 @@ test.describe("Complete Workflows", () => {
 			const webhookResponse = await POST({
 				request: webhookRequest,
 				url: new URL(webhookRequest.url),
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any);
 
 			expect(webhookResponse.status).toBe(200);

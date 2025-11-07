@@ -1,4 +1,4 @@
-import { test as base, type Page } from "@playwright/test";
+import { test as base } from "@playwright/test";
 import { db } from "../../src/lib/server/db";
 import * as table from "../../src/lib/server/db/schema";
 import { eq } from "drizzle-orm";
@@ -30,7 +30,7 @@ interface TestData {
 }
 
 export const test = base.extend<{ testData: TestData }>({
-	testData: async ({}, use) => {
+	testData: async (_, use) => {
 		const createdIds: { type: string; id: string }[] = [];
 
 		const testData: TestData = {
@@ -52,6 +52,7 @@ export const test = base.extend<{ testData: TestData }>({
 					})
 					.returning();
 
+				if (!user) throw new Error("Failed to create user");
 				createdIds.push({ type: "user", id: user.id });
 				return user;
 			},
@@ -73,6 +74,7 @@ export const test = base.extend<{ testData: TestData }>({
 					})
 					.returning();
 
+				if (!membership) throw new Error("Failed to create membership");
 				createdIds.push({ type: "membership", id: membership.id });
 				return membership;
 			},
@@ -105,6 +107,7 @@ export const test = base.extend<{ testData: TestData }>({
 					})
 					.returning();
 
+				if (!member) throw new Error("Failed to create member");
 				createdIds.push({ type: "member", id: member.id });
 				return member;
 			},
@@ -117,10 +120,11 @@ export const test = base.extend<{ testData: TestData }>({
 					.values({
 						id: sessionId,
 						userId,
-						expiresAt: data.expiresAt ?? new Date(Date.now() + 86400000), // 24 hours
+						expiresAt: data.expiresAt ?? new Date(Date.now() + 86_400_000), // 24 hours
 					})
 					.returning();
 
+				if (!session) throw new Error("Failed to create session");
 				createdIds.push({ type: "session", id: session.id });
 				return session;
 			},
@@ -128,16 +132,30 @@ export const test = base.extend<{ testData: TestData }>({
 			async cleanup() {
 				// Cleanup in reverse order to handle foreign key constraints
 				// Members must be deleted before users and memberships
-				for (const { type, id } of createdIds.reverse()) {
+				for (const { type, id } of createdIds.toReversed()) {
 					try {
-						if (type === "member") {
+						switch (type) {
+						case "member": {
 							await db.delete(table.member).where(eq(table.member.id, id));
-						} else if (type === "session") {
+						
+						break;
+						}
+						case "session": {
 							await db.delete(table.session).where(eq(table.session.id, id));
-						} else if (type === "user") {
+						
+						break;
+						}
+						case "user": {
 							await db.delete(table.user).where(eq(table.user.id, id));
-						} else if (type === "membership") {
+						
+						break;
+						}
+						case "membership": {
 							await db.delete(table.membership).where(eq(table.membership.id, id));
+						
+						break;
+						}
+						// No default
 						}
 					} catch (error) {
 						// Ignore cleanup errors (record might not exist)

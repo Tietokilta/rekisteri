@@ -255,7 +255,7 @@ describe("Stripe Webhook Integration", () => {
 			// Act: Try to fulfill with invalid session (will fail on Stripe API)
 			try {
 				await fulfillSession(testSessionId);
-			} catch (error) {
+			} catch {
 				// Expected to fail if Stripe API rejects the session
 			}
 

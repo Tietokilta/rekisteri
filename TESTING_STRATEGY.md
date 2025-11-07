@@ -13,6 +13,7 @@ This project uses a **hybrid testing approach** combining integration tests (Vit
 **Purpose:** Test server-side business logic, database operations, and API integrations
 
 **What we test:**
+
 - ✅ Webhook handling logic
 - ✅ Database state changes
 - ✅ Server-side functions
@@ -21,6 +22,7 @@ This project uses a **hybrid testing approach** combining integration tests (Vit
 - ✅ Error handling
 
 **Example:** `src/lib/server/payment/session.test.ts`
+
 ```typescript
 it("updates member status from awaiting_payment to awaiting_approval", async () => {
   await db.insert(table.member).values({ status: "awaiting_payment", ... });
@@ -37,6 +39,7 @@ it("updates member status from awaiting_payment to awaiting_approval", async () 
 **Purpose:** Test complete user flows from the browser perspective
 
 **What we test:**
+
 - ✅ User authentication flows
 - ✅ Form submission and validation
 - ✅ Navigation and routing
@@ -45,6 +48,7 @@ it("updates member status from awaiting_payment to awaiting_approval", async () 
 - ✅ UI state management
 
 **What we DON'T test:**
+
 - ❌ Stripe Checkout form (security restrictions prevent automation)
 - ❌ Third-party UIs (Stripe, Mailgun, etc.)
 - ❌ Implementation details (CSS classes, internal state)
@@ -55,6 +59,7 @@ it("updates member status from awaiting_payment to awaiting_approval", async () 
 **Purpose:** Validate flows that cannot be automated
 
 **Checklist:**
+
 - [ ] Complete purchase with test card `4242 4242 4242 4242`
 - [ ] Test declined card `4000 0000 0000 0002`
 - [ ] Verify webhook received and processed
@@ -85,17 +90,20 @@ rekisteri/
 ## Running Tests
 
 ### All Tests
+
 ```bash
 pnpm test                    # Run all tests (integration + e2e)
 ```
 
 ### Integration Tests Only
+
 ```bash
 pnpm test:unit               # Run once
 pnpm test:unit:watch         # Watch mode for development
 ```
 
 ### E2E Tests Only
+
 ```bash
 pnpm test:e2e                # Run all e2e tests
 pnpm test:e2e --ui           # Run with Playwright UI
@@ -104,6 +112,7 @@ pnpm test:e2e --debug        # Debug mode
 ```
 
 ### Specific Tests
+
 ```bash
 pnpm test:unit session.test.ts           # Run specific integration test
 pnpm test:e2e stripe-integration.test.ts # Run specific e2e test
@@ -112,11 +121,13 @@ pnpm test:e2e stripe-integration.test.ts # Run specific e2e test
 ## CI/CD
 
 Tests run automatically in GitHub Actions on:
+
 - Every pull request
 - Push to main branch
 - Manual workflow dispatch
 
 **CI Workflow:**
+
 1. Install dependencies
 2. Setup test database
 3. Run linting and type checks
@@ -129,6 +140,7 @@ Tests run automatically in GitHub Actions on:
 ### What We Can Test (Automated)
 
 **Integration Tests (Vitest):**
+
 - ✅ Webhook event handling
 - ✅ Member status transitions
 - ✅ Database state changes
@@ -136,6 +148,7 @@ Tests run automatically in GitHub Actions on:
 - ✅ Error scenarios
 
 **E2E Tests (Playwright):**
+
 - ✅ Checkout session creation
 - ✅ Redirect to Stripe
 - ✅ Success/cancel redirect handling
@@ -144,6 +157,7 @@ Tests run automatically in GitHub Actions on:
 ### What We Cannot Test (Must Be Manual)
 
 Due to Stripe's security measures:
+
 - ❌ Filling out Stripe Checkout form
 - ❌ Entering test card numbers
 - ❌ Clicking buttons on Stripe's hosted page
@@ -172,11 +186,13 @@ See `E2E_STRIPE_TESTING.md` for detailed Stripe testing documentation.
 ## Test Data Management
 
 ### Integration Tests
+
 - Each test creates and cleans up its own data
 - Uses `beforeEach` and `afterEach` hooks
 - Test database: `DATABASE_URL_TEST` from `.env`
 
 ### E2E Tests
+
 - Uses global setup to seed test database
 - Admin user: `root@tietokilta.fi`
 - Test memberships seeded automatically
@@ -185,6 +201,7 @@ See `E2E_STRIPE_TESTING.md` for detailed Stripe testing documentation.
 ## Best Practices
 
 ### DO ✅
+
 - Test user value and business requirements
 - Use stable selectors (roles, labels, test IDs)
 - Write tests that act as living documentation
@@ -193,6 +210,7 @@ See `E2E_STRIPE_TESTING.md` for detailed Stripe testing documentation.
 - Use meaningful test descriptions
 
 ### DON'T ❌
+
 - Test implementation details (CSS classes, internal state)
 - Test third-party code (Stripe's UI, external APIs)
 - Write tests that just check "element exists"
@@ -203,6 +221,7 @@ See `E2E_STRIPE_TESTING.md` for detailed Stripe testing documentation.
 ## Writing New Tests
 
 ### Integration Test Template
+
 ```typescript
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { db } from "$lib/server/db";
@@ -235,19 +254,20 @@ describe("Feature Name", () => {
 ```
 
 ### E2E Test Template
+
 ```typescript
 import { test, expect } from "./fixtures/auth";
 
 test.describe("Feature Name", () => {
-  test("user can complete the flow", async ({ authenticatedPage }) => {
-    await authenticatedPage.goto("/path");
+	test("user can complete the flow", async ({ authenticatedPage }) => {
+		await authenticatedPage.goto("/path");
 
-    // Interact with page
-    await authenticatedPage.getByRole("button", { name: "Submit" }).click();
+		// Interact with page
+		await authenticatedPage.getByRole("button", { name: "Submit" }).click();
 
-    // Verify outcome
-    await expect(authenticatedPage).toHaveURL(/success/);
-  });
+		// Verify outcome
+		await expect(authenticatedPage).toHaveURL(/success/);
+	});
 });
 ```
 
@@ -263,18 +283,21 @@ test.describe("Feature Name", () => {
 ## Troubleshooting
 
 ### Tests Fail Locally
+
 1. Ensure test database is running: `pnpm db:start`
 2. Reset test database: `pnpm db:reset && pnpm db:push:force`
 3. Check environment variables in `.env`
 4. Clear Playwright cache: `npx playwright install`
 
 ### Tests Pass Locally but Fail in CI
+
 1. Check Node version matches CI (v24.5.0)
 2. Verify test database is seeded in CI
 3. Check for timing issues (add `waitForTimeout` if needed)
 4. Review CI logs for specific errors
 
 ### Flaky Tests
+
 1. Add explicit waits instead of `waitForTimeout`
 2. Use `waitForLoadState('networkidle')` for navigation
 3. Check for race conditions in test setup/teardown
@@ -293,11 +316,13 @@ test.describe("Feature Name", () => {
 ## Metrics
 
 **Current Test Count:**
+
 - Integration tests: ~12 tests
 - E2E tests: ~60 tests
 - Total: ~72 tests
 
 **Coverage:**
+
 - ✅ Authentication flows
 - ✅ Purchase flow (up to Stripe redirect)
 - ✅ Webhook handling
@@ -308,6 +333,7 @@ test.describe("Feature Name", () => {
 - ✅ Navigation and access control
 
 **Test Execution Time:**
+
 - Integration tests: ~5-10s
 - E2E tests: ~2-3min
 - Total: ~3-4min

@@ -30,9 +30,10 @@ test.describe("Membership Purchase Flow", () => {
 				where: eq(table.user.email, userEmail),
 			});
 		}
+		if (!user) throw new Error("Failed to create or find test user");
 
 		const initialMembers = await db.query.member.findMany({
-			where: eq(table.member.userId, user!.id),
+			where: eq(table.member.userId, user.id),
 		});
 		const initialCount = initialMembers.length;
 
@@ -62,11 +63,11 @@ test.describe("Membership Purchase Flow", () => {
 		await submitButton.click();
 
 		// Verify: Redirects to Stripe Checkout
-		await expect(authenticatedPage).toHaveURL(/checkout\.stripe\.com/, { timeout: 10000 });
+		await expect(authenticatedPage).toHaveURL(/checkout\.stripe\.com/, { timeout: 10_000 });
 
 		// Verify: Member record created with awaiting_payment status
 		const newMembers = await db.query.member.findMany({
-			where: eq(table.member.userId, user!.id),
+			where: eq(table.member.userId, user.id),
 			orderBy: desc(table.member.createdAt),
 		});
 

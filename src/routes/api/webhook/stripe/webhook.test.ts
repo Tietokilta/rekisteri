@@ -6,6 +6,10 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// Test mocks use 'as any' for RequestEvent types - this is acceptable in tests
+
 /**
  * Webhook Endpoint Tests
  *
@@ -223,7 +227,7 @@ describe("Stripe Webhook Endpoint", () => {
 
 			// Manually construct signature with old timestamp
 			const signedPayload = `${oldTimestamp}.${payload}`;
-			const crypto = await import("crypto");
+			const crypto = await import("node:crypto");
 			const signature = crypto.createHmac("sha256", env.STRIPE_WEBHOOK_SECRET).update(signedPayload).digest("hex");
 			const stripeSignature = `t=${oldTimestamp},v1=${signature}`;
 

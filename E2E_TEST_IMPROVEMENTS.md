@@ -6,6 +6,7 @@
 **After: ~25 tests** (each testing meaningful behavior)
 
 **Key Principles Applied:**
+
 1. ✅ Tests verify user value, not implementation details
 2. ✅ Each test documents a business requirement
 3. ✅ Focus on state changes and actual behavior
@@ -17,10 +18,12 @@
 ## 1. Membership Purchase Tests
 
 ### REMOVE these tests:
+
 - ❌ "user can select a membership option" - trivial UI interaction
 - ❌ "buy button shows selected membership price" - implementation detail
 
 ### CONSOLIDATE:
+
 - Merge "student verification checkbox appears" + "buy button is disabled" → One comprehensive test
 
 ### IMPROVED VERSION (3 tests):
@@ -50,7 +53,7 @@ test("displays available memberships with price and validity period", async ({ a
 test("enforces student verification requirement", async ({ authenticatedPage }) => {
 	await authenticatedPage.goto("/new");
 
-	const studentOption = authenticatedPage.locator('label').filter({ hasText: /student/i });
+	const studentOption = authenticatedPage.locator("label").filter({ hasText: /student/i });
 	if ((await studentOption.count()) > 0) {
 		await studentOption.click();
 
@@ -79,6 +82,7 @@ test("requires authentication", async ({ page }) => {
 ### CRITICAL MISSING: Tests for actual CRUD operations!
 
 ### REMOVE these tests:
+
 - ❌ "admin can view memberships list" - just checks list exists
 - ❌ "admin can see membership details" - checks UI elements
 - ❌ "admin can access creation form" - checks form exists
@@ -87,6 +91,7 @@ test("requires authentication", async ({ page }) => {
 - ❌ "membership type datalist..." - implementation detail
 
 ### ADD these critical tests:
+
 - ✅ Test creating a membership (full flow)
 - ✅ Test deleting an empty membership
 - ✅ Test server-side validation
@@ -125,7 +130,10 @@ test("admin can delete membership with no members", async ({ adminPage }) => {
 	await adminPage.goto("/admin/memberships");
 
 	// Find a membership with 0 members
-	const zeroMemberItem = adminPage.locator("li").filter({ hasText: /0.*member/i }).first();
+	const zeroMemberItem = adminPage
+		.locator("li")
+		.filter({ hasText: /0.*member/i })
+		.first();
 
 	if ((await zeroMemberItem.count()) > 0) {
 		const membershipName = await zeroMemberItem.locator("p.font-medium").textContent();
@@ -172,11 +180,13 @@ test("displays existing membership types", async ({ adminPage }) => {
 ### CRITICAL MISSING: Tests for member actions and actual filtering!
 
 ### REMOVE these tests (10 out of 12!):
+
 - ❌ All tests that just check "filter button exists"
 - ❌ All tests that just check "table is visible"
 - ❌ All tests that check UI elements without verifying behavior
 
 ### ADD these critical tests:
+
 - ✅ Test search actually returns correct members
 - ✅ Test filtering actually filters
 - ✅ Test approving a member
@@ -315,11 +325,13 @@ test("only admin users can access member management", async ({ page }) => {
 ### CRITICAL MISSING: Test for actually SAVING changes!
 
 ### REMOVE these tests (13 out of 15!):
+
 - ❌ All tests checking individual fields exist
 - ❌ All tests checking you can type in fields
 - ❌ Tests for input autocomplete attributes
 
 ### ADD these critical tests:
+
 - ✅ Test saving profile changes
 - ✅ Test sign out
 - ✅ Test validation
@@ -422,11 +434,13 @@ test("unauthenticated user cannot access profile", async ({ page }) => {
 ## 5. Navigation Tests
 
 ### REMOVE these tests (10 out of 15!):
+
 - ❌ Multiple redundant "redirect to sign-in" tests
 - ❌ Tests checking headings exist
 - ❌ Loop-based tests
 
 ### CONSOLIDATE:
+
 - All "unauthenticated redirect" tests → ONE test
 
 ### IMPROVED VERSION (5 tests):
@@ -503,17 +517,20 @@ test("back button works correctly", async ({ adminPage }) => {
 ## Implementation Priority
 
 ### High Priority (Must Have):
+
 1. ✅ Add CRUD tests for memberships (create, delete)
 2. ✅ Add profile save test
 3. ✅ Add member action tests (approve, reject)
 4. ✅ Consolidate redundant access control tests
 
 ### Medium Priority (Should Have):
+
 5. Remove low-value "element exists" tests
 6. Improve selector stability (use roles, labels)
 7. Add more edge case testing
 
 ### Low Priority (Nice to Have):
+
 8. Add data-testid attributes for critical elements
 9. Test error messages and validation
 10. Test webhooks and background jobs
@@ -523,6 +540,7 @@ test("back button works correctly", async ({ adminPage }) => {
 ## Measurement
 
 **Success Criteria:**
+
 - ✅ Test count reduced to ~25-30 meaningful tests
 - ✅ Each test verifies actual behavior, not just UI
 - ✅ Tests can act as living documentation
@@ -530,6 +548,7 @@ test("back button works correctly", async ({ adminPage }) => {
 - ✅ Edge cases tested
 
 **Before/After Comparison:**
+
 - membership-purchase: 6 → 3 tests (-50%, +value)
 - admin-memberships: 8 → 5 tests (-38%, +critical CRUD)
 - admin-members: 12 → 6 tests (-50%, +actual filtering)

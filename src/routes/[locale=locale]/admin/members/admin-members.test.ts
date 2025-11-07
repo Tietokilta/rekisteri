@@ -4,6 +4,10 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+// Test mocks use 'as any' for RequestEvent types - this is acceptable in tests
+
 /**
  * Admin Workflow Tests
  *
@@ -50,13 +54,13 @@ describe("Admin Member Actions", () => {
 		await db.insert(table.session).values({
 			id: testSessionId,
 			userId: testUserId,
-			expiresAt: new Date(Date.now() + 86400000), // 24 hours
+			expiresAt: new Date(Date.now() + 86_400_000), // 24 hours
 		});
 
 		await db.insert(table.session).values({
 			id: testAdminSessionId,
 			userId: testAdminUserId,
-			expiresAt: new Date(Date.now() + 86400000),
+			expiresAt: new Date(Date.now() + 86_400_000),
 		});
 
 		// Create test membership
@@ -110,7 +114,7 @@ describe("Admin Member Actions", () => {
 			} as any;
 
 			// Should throw error (404 for security)
-			await expect(actions.approve(event)).rejects.toThrow();
+			await expect(actions.approve!(event)).rejects.toThrow();
 		});
 
 		it("rejects approve action from unauthenticated user", async () => {
@@ -130,7 +134,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			await expect(actions.approve(event)).rejects.toThrow();
+			await expect(actions.approve!(event)).rejects.toThrow();
 		});
 
 		it("allows approve action from admin user", async () => {
@@ -150,7 +154,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			const result = await actions.approve(event);
+			const result = await actions.approve!(event);
 			expect(result).toHaveProperty("success", true);
 		});
 	});
@@ -173,7 +177,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			const result = await actions.approve(event);
+			const result = await actions.approve!(event);
 
 			expect(result).toHaveProperty("success", true);
 			expect(result).toHaveProperty("message", "Member approved successfully");
@@ -206,7 +210,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			const result = await actions.approve(event);
+			const result = await actions.approve!(event);
 
 			expect(result).toHaveProperty("success", false);
 			expect(result?.message).toContain("not awaiting approval");
@@ -229,7 +233,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			const result = await actions.approve(event);
+			const result = await actions.approve!(event);
 
 			expect(result).toHaveProperty("success", false);
 			expect(result?.message).toContain("not found");
@@ -252,7 +256,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			const result = await actions.approve(event);
+			const result = await actions.approve!(event);
 
 			expect(result).toHaveProperty("success", false);
 			expect(result?.message).toContain("required");
@@ -277,7 +281,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			const result = await actions.reject(event);
+			const result = await actions.reject!(event);
 
 			expect(result).toHaveProperty("success", true);
 			expect(result).toHaveProperty("message", "Member rejected successfully");
@@ -309,7 +313,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			const result = await actions.reject(event);
+			const result = await actions.reject!(event);
 
 			expect(result).toHaveProperty("success", true);
 
@@ -342,7 +346,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			const result = await actions.markExpired(event);
+			const result = await actions.markExpired!(event);
 
 			expect(result).toHaveProperty("success", true);
 			expect(result).toHaveProperty("message", "Member marked as expired");
@@ -376,7 +380,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			const result = await actions.cancel(event);
+			const result = await actions.cancel!(event);
 
 			expect(result).toHaveProperty("success", true);
 			expect(result).toHaveProperty("message", "Membership cancelled successfully");
@@ -410,7 +414,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			const result = await actions.reactivate(event);
+			const result = await actions.reactivate!(event);
 
 			expect(result).toHaveProperty("success", true);
 			expect(result).toHaveProperty("message", "Membership reactivated successfully");
@@ -442,7 +446,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			const result = await actions.reactivate(event);
+			const result = await actions.reactivate!(event);
 
 			expect(result).toHaveProperty("success", true);
 
@@ -473,7 +477,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			const result = await actions.reactivate(event);
+			const result = await actions.reactivate!(event);
 
 			expect(result).toHaveProperty("success", false);
 			expect(result?.message).toContain("expired or cancelled");
@@ -515,7 +519,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			await actions.approve(approveEvent);
+			await actions.approve!(approveEvent);
 
 			member = await db.query.member.findFirst({
 				where: eq(table.member.id, testMemberId),
@@ -537,7 +541,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			await actions.markExpired(expireEvent);
+			await actions.markExpired!(expireEvent);
 
 			member = await db.query.member.findFirst({
 				where: eq(table.member.id, testMemberId),
@@ -559,7 +563,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			await actions.reactivate(reactivateEvent);
+			await actions.reactivate!(reactivateEvent);
 
 			member = await db.query.member.findFirst({
 				where: eq(table.member.id, testMemberId),
@@ -581,7 +585,7 @@ describe("Admin Member Actions", () => {
 				},
 			} as any;
 
-			await actions.cancel(cancelEvent);
+			await actions.cancel!(cancelEvent);
 
 			member = await db.query.member.findFirst({
 				where: eq(table.member.id, testMemberId),
@@ -589,7 +593,7 @@ describe("Admin Member Actions", () => {
 			expect(member?.status).toBe("cancelled");
 
 			// Transition 6: cancelled → active (via admin reactivate)
-			await actions.reactivate(reactivateEvent);
+			await actions.reactivate!(reactivateEvent);
 
 			member = await db.query.member.findFirst({
 				where: eq(table.member.id, testMemberId),

@@ -1,14 +1,14 @@
 import { test, expect } from "./fixtures/auth";
 import { db } from "../src/lib/server/db";
 import * as table from "../src/lib/server/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 /**
  * Admin Workflow Tests
  *
  * Tests complete admin workflows through the UI.
- * Consolidated from admin-members.test.ts (12 tests) + admin-memberships.test.ts (8 tests).
- * Focus: Actual functionality, not just "does button exist"
+ * Consolidated and refactored to use testData fixtures and robust selectors.
+ * Focus: Real-world admin workflows with database verification.
  */
 
 test.describe("Admin Members Management", () => {
@@ -35,98 +35,52 @@ test.describe("Admin Members Management", () => {
 		await expect(searchInput).toHaveValue("root");
 	});
 
-	test("admin can approve member and verify status change", async ({ adminPage }) => {
-		// Setup: Create a test member in awaiting_approval status
-		const testUserId = crypto.randomUUID();
-		const testMembershipId = crypto.randomUUID();
-		const testMemberId = crypto.randomUUID();
+	test("admin can approve member and verify status change", async ({ adminPage, testData }) => {
+		// Create fresh test data using testData fixture
+		const user = await testData.createUser({
+			firstNames: "E2E",
+			lastName: "ApprovalTest",
+			isAdmin: false,
+		});
 
-		try {
-			// Create test user
-			await db.insert(table.user).values({
-				id: testUserId,
-				email: `e2e-approve-test-${Date.now()}@example.com`,
-				firstNames: "E2E",
-				lastName: "ApprovalTest",
-				isAdmin: false,
-			});
+		const member = await testData.createMember({
+			userId: user.id,
+			status: "awaiting_approval",
+		});
 
-			// Get an existing membership to use
-			const membership = await db.query.membership.findFirst();
-			expect(membership).toBeDefined();
-
-			// Create member awaiting approval
-			await db.insert(table.member).values({
-				id: testMemberId,
-				userId: testUserId,
-				membershipId: membership!.id,
-				stripeSessionId: `cs_test_e2e_${Date.now()}`,
-				status: "awaiting_approval",
-			});
-
-			// Navigate to members list
-			await adminPage.goto("/admin/members", { waitUntil: "networkidle" });
-
-			// Find the test member row
-			const testMemberRow = adminPage.getByText("E2E ApprovalTest").first();
-			await expect(testMemberRow).toBeVisible();
-
-			// Expand the row to see actions
-			const expandButton = testMemberRow.locator("..").locator("button:has(svg)").first();
-			await expandButton.click();
-			await adminPage.waitForTimeout(500);
-
-			// Find and click approve button
-			const approveButton = adminPage.locator('form[action*="?/approve"]').locator('button[type="submit"]').first();
-
-			await expect(approveButton).toBeVisible();
-			await approveButton.click();
-
-			// Wait for action to complete
-			await adminPage.waitForTimeout(1500);
-
-			// Verify: Database status updated
-			const updatedMember = await db.query.member.findFirst({
-				where: eq(table.member.id, testMemberId),
-			});
-
-			expect(updatedMember?.status).toBe("active");
-
-			// Verify: UI reflects change (reload to see updated status)
-			await adminPage.reload({ waitUntil: "networkidle" });
-			const memberRow = adminPage.getByText("E2E ApprovalTest").first();
-			await expect(memberRow).toBeVisible();
-
-			// Status should show as active (look for active badge/indicator)
-			// The exact implementation depends on your UI
-		} finally {
-			// Cleanup
-			await db
-				.delete(table.member)
-				.where(eq(table.member.id, testMemberId))
-				.catch(() => {});
-			await db
-				.delete(table.user)
-				.where(eq(table.user.id, testUserId))
-				.catch(() => {});
-		}
-	});
-
-	test("admin can copy members list", async ({ adminPage }) => {
+		// Navigate to members list
 		await adminPage.goto("/admin/members", { waitUntil: "networkidle" });
 
-		// Find copy button
-		const copyButton = adminPage
-			.getByRole("button")
-			.filter({ hasText: /kopioi|copy/i })
-			.first();
+		// Find the test member row using userId (more reliable than text search)
+		const testMemberRow = adminPage.getByTestId(`member-row-${user.id}`);
+		await expect(testMemberRow).toBeVisible();
 
-		if ((await copyButton.count()) > 0) {
-			await copyButton.click();
+		// Expand the row using robust selector
+		const expandButton = adminPage.getByTestId(`expand-member-${user.id}`);
+		await expandButton.click();
+		await adminPage.waitForTimeout(500);
 
-			// Verify: Success message appears
-			await expect(adminPage.getByText(/kopioitu|copied/i)).toBeVisible({ timeout: 3000 });
-		}
+		// Find and click approve button using robust selector
+		const approveButton = adminPage.getByTestId(`approve-member-${member.id}`);
+		await expect(approveButton).toBeVisible();
+		await approveButton.click();
+
+		// Wait for action to complete
+		await adminPage.waitForTimeout(1500);
+
+		// Verify: Database status updated
+		const updatedMember = await db.query.member.findFirst({
+			where: eq(table.member.id, member.id),
+		});
+
+		expect(updatedMember?.status).toBe("active");
+
+		// Verify: UI reflects change after reload
+		await adminPage.reload({ waitUntil: "networkidle" });
+		const memberRow = adminPage.getByTestId(`member-row-${user.id}`);
+		await expect(memberRow).toBeVisible();
+
+		// Automatic cleanup via testData fixture!
 	});
 });
 
@@ -143,7 +97,7 @@ test.describe("Admin Memberships Management", () => {
 		await expect(adminPage.locator('input[name="type"]')).toBeVisible();
 		await expect(adminPage.locator('input[name="stripePriceId"]')).toBeVisible();
 
-		// Fill creation form
+		// Create a membership using form
 		const uniqueType = `E2E Test ${Date.now()}`;
 		await adminPage.locator('input[name="type"]').fill(uniqueType);
 		await adminPage.locator('input[name="stripePriceId"]').fill(`price_e2e_${Date.now()}`);
