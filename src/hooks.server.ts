@@ -47,11 +47,9 @@ function preferredLanguageToLocale(preferredLanguage: PreferredLanguage): Locale
 }
 
 /**
- * Unified locale redirect handler that:
- * 1. Adds locale to paths that don't have one (using user preference or base locale)
- * 2. Redirects authenticated users to their preferred language
- *
- * This avoids double redirects by handling both cases in one pass.
+ * Locale redirect handler that adds locale to paths without one.
+ * Uses user's preferred language if set, otherwise uses base locale.
+ * Respects explicit locale in URL - only redirects when NO locale is present.
  */
 const handleLocaleRedirect: Handle = ({ event, resolve }) => {
 	const pathname = event.url.pathname;
@@ -72,42 +70,24 @@ const handleLocaleRedirect: Handle = ({ event, resolve }) => {
 
 	const segments = pathname.split("/");
 	const maybeLocale = segments[1];
-	const currentLocale = maybeLocale && locales.includes(maybeLocale as Locale) ? (maybeLocale as Locale) : null;
 
-	// Determine the target locale
-	let targetLocale: Locale;
+	// If already has a valid locale or is root path (handled by +page.server.ts), don't redirect
+	// This allows users to explicitly choose a locale in the URL
+	if (!maybeLocale || locales.includes(maybeLocale as Locale)) {
+		return resolve(event);
+	}
+
+	// Path has no locale - determine which locale to use
+	let targetLocale: Locale = baseLocale;
 
 	if (event.locals.user?.preferredLanguage) {
 		// Use user's preferred language if they have one
 		const preferredLocale = preferredLanguageToLocale(event.locals.user.preferredLanguage);
 		targetLocale = preferredLocale || baseLocale;
-	} else {
-		// Use base locale for anonymous users
-		targetLocale = baseLocale;
 	}
 
-	// Check if we need to redirect
-	if (currentLocale !== targetLocale) {
-		const pathSegments = pathname.split("/").filter(Boolean);
-
-		// If first segment is a locale, replace it; otherwise prepend target locale
-		if (pathSegments[0] && locales.includes(pathSegments[0] as Locale)) {
-			pathSegments[0] = targetLocale;
-		} else {
-			pathSegments.unshift(targetLocale);
-		}
-
-		const newPathname = "/" + pathSegments.join("/");
-		const newUrl = `${newPathname}${event.url.search}`;
-		redirect(302, newUrl);
-	}
-
-	// Root path without locale - let +page.server.ts handle it
-	if (!maybeLocale) {
-		return resolve(event);
-	}
-
-	return resolve(event);
+	// Redirect to the same path with locale prepended
+	redirect(302, `/${targetLocale}${pathname}${event.url.search}`);
 };
 
 const handleI18n: Handle = ({ event, resolve }) => {
