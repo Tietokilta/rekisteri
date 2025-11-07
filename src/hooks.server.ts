@@ -93,7 +93,7 @@ const handleLocaleRedirect: Handle = ({ event, resolve }) => {
 		}
 
 		const newPathname = "/" + pathSegments.join("/");
-		const newUrl = `${newPathname}${event.url.search}${event.url.hash}`;
+		const newUrl = `${newPathname}${event.url.search}`;
 		redirect(302, newUrl);
 	}
 

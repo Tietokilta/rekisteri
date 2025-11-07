@@ -78,7 +78,9 @@ async function saveInfo(event: RequestEvent) {
 
 async function signOut(event: RequestEvent) {
 	if (!event.locals.session) {
-		return fail(401);
+		return fail(401, {
+			message: "Not authenticated",
+		});
 	}
 	await auth.invalidateSession(event.locals.session.id);
 	auth.deleteSessionTokenCookie(event);
