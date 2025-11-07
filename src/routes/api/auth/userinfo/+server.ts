@@ -1,9 +1,12 @@
 import { json, type RequestEvent } from "@sveltejs/kit";
+import { db } from "$lib/server/db";
+import * as table from "$lib/server/db/schema";
+import { eq, desc } from "drizzle-orm";
 
 /**
  * Returns current user information in OpenID Connect UserInfo format.
  *
- * This endpoint provides user details for authenticated sessions.
+ * This endpoint provides user details for authenticated sessions, including membership status.
  * The session cookie is shared across *.tietokilta.fi subdomains (configured via COOKIE_DOMAIN).
  *
  * Usage:
@@ -11,10 +14,10 @@ import { json, type RequestEvent } from "@sveltejs/kit";
  *   Cookie: auth-session=<token>
  *
  * Returns:
- *   200: OpenID-style user info
+ *   200: OpenID-style user info with membership data
  *   401: { "error": "unauthorized" }
  *
- * Example response (success):
+ * Example response (success with active membership):
  *   {
  *     "sub": "user123",
  *     "email": "user@example.com",
@@ -23,7 +26,29 @@ import { json, type RequestEvent } from "@sveltejs/kit";
  *     "family_name": "Doe",
  *     "home_municipality": "Helsinki",
  *     "is_admin": false,
- *     "is_allowed_emails": true
+ *     "is_allowed_emails": true,
+ *     "membership": {
+ *       "status": "active",
+ *       "type": "Vuosijäsen 2025",
+ *       "start_time": "2025-01-01T00:00:00.000Z",
+ *       "end_time": "2025-12-31T23:59:59.999Z",
+ *       "is_valid": true
+ *     },
+ *     "memberships": [...]
+ *   }
+ *
+ * Example response (no active membership):
+ *   {
+ *     "sub": "user123",
+ *     "email": "user@example.com",
+ *     "email_verified": true,
+ *     "given_name": "John",
+ *     "family_name": "Doe",
+ *     "home_municipality": "Helsinki",
+ *     "is_admin": false,
+ *     "is_allowed_emails": true,
+ *     "membership": null,
+ *     "memberships": []
  *   }
  *
  * Standard Claims Reference:
@@ -36,9 +61,40 @@ export async function GET(event: RequestEvent) {
 
 	const user = event.locals.user;
 
+	// Query all memberships for the user
+	const memberRecords = await db
+		.select()
+		.from(table.member)
+		.innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
+		.where(eq(table.member.userId, user.id))
+		.orderBy(desc(table.membership.startTime));
+
+	const now = new Date();
+
+	// Map memberships with validity check
+	const memberships = memberRecords.map((record) => {
+		const isValid =
+			record.member.status === "active" &&
+			now >= record.membership.startTime &&
+			now <= record.membership.endTime;
+
+		return {
+			status: record.member.status,
+			type: record.membership.type,
+			start_time: record.membership.startTime.toISOString(),
+			end_time: record.membership.endTime.toISOString(),
+			price_cents: record.membership.priceCents,
+			requires_student_verification: record.membership.requiresStudentVerification,
+			is_valid: isValid,
+		};
+	});
+
+	// Find the current active and valid membership
+	const activeMembership = memberships.find((m) => m.status === "active" && m.is_valid) || null;
+
 	// Return OpenID Connect compatible user info
 	// Standard claims: sub, email, email_verified, given_name, family_name
-	// Custom claims: home_municipality, is_admin, is_allowed_emails
+	// Custom claims: home_municipality, is_admin, is_allowed_emails, membership, memberships
 	return json({
 		sub: user.id, // Subject (user ID)
 		email: user.email,
@@ -50,5 +106,9 @@ export async function GET(event: RequestEvent) {
 		home_municipality: user.homeMunicipality || undefined,
 		is_admin: user.isAdmin,
 		is_allowed_emails: user.isAllowedEmails,
+
+		// Membership claims
+		membership: activeMembership, // Current active membership or null
+		memberships: memberships, // All memberships (historical + current)
 	});
 }
