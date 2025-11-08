@@ -24,7 +24,7 @@ This is "rekisteri", a membership registry application for Tietokilta. It manage
 pnpm install
 cp .env.example .env
 pnpm db:start       # Start PostgreSQL in Docker
-pnpm db:push        # Push schema to database
+pnpm db:migrate     # Migrate schema to database
 pnpm db:seed        # Seed with test data
 
 # Development
@@ -139,7 +139,7 @@ Required for development:
 - Node.js version: `^24.5.0` (specified in package.json engines)
 - Package manager: pnpm (`10.16.1`)
 - Using `rolldown-vite` instead of standard Vite (via overrides)
-- Schema changes require `pnpm db:push` or `pnpm db:push:force`
+- Schema changes require `pnpm db:generate` and `pnpm db:migrate`
 - For Stripe webhook testing, run `stripe listen --forward-to localhost:$PORT/api/webhook/stripe` in parallel with dev server
 - All server-side code lives in `src/lib/server/` or route `+page.server.ts`/`+server.ts` files
 - Type safety enforced with Zod schemas (often co-located with routes in `schema.ts` files)

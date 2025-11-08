@@ -82,8 +82,8 @@ jobs:
       - name: Copy .env example
         run: cp .env.example .env
 
-      - name: Push db schema
-        run: pnpm db:push:force
+      - name: Migrate db schema
+        run: pnpm db:migrate
 
       - name: Lint
         run: pnpm lint
