@@ -140,6 +140,7 @@ Required for development:
 This project uses a hybrid testing approach with both integration tests (Vitest) and end-to-end tests (Playwright).
 
 **See [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) for comprehensive testing documentation** including:
+
 - Test organization and structure
 - Best practices and patterns
 - Writing new tests

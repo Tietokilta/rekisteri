@@ -17,9 +17,10 @@ import { eq } from "drizzle-orm";
 test.describe("Admin Members Management", () => {
 	test("admin can view members list with filtering", async ({ adminPage, testData }) => {
 		// Create a specific test user to search for
+		const lastName = `User${Date.now()}`;
 		const user = await testData.createUser({
 			firstNames: "SearchTest",
-			lastName: `User${Date.now()}`,
+			lastName,
 			email: `search-test-${Date.now()}@example.com`,
 			isAdmin: false,
 		});
@@ -35,12 +36,12 @@ test.describe("Admin Members Management", () => {
 		await expect(adminPage).toHaveURL(/admin\/members/);
 		await expect(adminPage.locator("table")).toBeVisible();
 
-			// Verify: Can search for our test user
+		// Verify: Can search for our test user
 		const searchInput = adminPage.locator('input[type="search"]').first();
-		await searchInput.fill(user.lastName!);
+		await searchInput.fill(lastName);
 
 		// Wait for URL to update
-		await expect(adminPage).toHaveURL(new RegExp(`search=${user.lastName!}`));
+		await expect(adminPage).toHaveURL(new RegExp(`search=${lastName}`));
 
 		// Verify: Our test user appears in results using robust selector
 		const testUserRow = adminPage.getByTestId(`member-row-${user.id}`);
@@ -48,7 +49,7 @@ test.describe("Admin Members Management", () => {
 
 		// Test filter persistence: reload page
 		await adminPage.reload({ waitUntil: "networkidle" });
-		await expect(searchInput).toHaveValue(user.lastName!);
+		await expect(searchInput).toHaveValue(lastName);
 		await expect(testUserRow).toBeVisible();
 
 		// Automatic cleanup via testData fixture!

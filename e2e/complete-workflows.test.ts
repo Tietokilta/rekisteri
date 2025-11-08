@@ -118,10 +118,7 @@ test.describe("Complete Workflows", () => {
 		// Automatic cleanup via testData fixture!
 	});
 
-	test("admin workflow: create membership → verify in purchase page", async ({
-		adminPage,
-		authenticatedPage,
-	}) => {
+	test("admin workflow: create membership → verify in purchase page", async ({ adminPage, authenticatedPage }) => {
 		/**
 		 * Tests that creating a membership makes it immediately available for purchase
 		 */
