@@ -9,17 +9,10 @@ import type { KIT_ROUTES } from "$lib/ROUTES";
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit(), kitRoutes<KIT_ROUTES>(), devtoolsJson()],
 	test: {
+		name: "server",
+		environment: "node",
+		include: ["src/**/*.{test,spec}.{js,ts}"],
+		exclude: ["src/**/*.svelte.{test,spec}.{js,ts}"],
 		expect: { requireAssertions: true },
-		projects: [
-			{
-				extends: "./vite.config.ts",
-				test: {
-					name: "server",
-					environment: "node",
-					include: ["src/**/*.{test,spec}.{js,ts}"],
-					exclude: ["src/**/*.svelte.{test,spec}.{js,ts}"],
-				},
-			},
-		],
 	},
 });
