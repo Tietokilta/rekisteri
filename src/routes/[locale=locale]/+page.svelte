@@ -160,9 +160,9 @@
 					data-testid="sign-out-button"
 					formnovalidate
 					formmethod="post"
-				formaction={route("signOut /[locale=locale]", { locale: $locale })}
-				variant="outline"
-				data-testid="sign-out-button">{$LL.auth.signOut()}</Form.Button
+					formaction={route("signOut /[locale=locale]", { locale: $locale })}
+					variant="outline"
+					data-testid="sign-out-button">{$LL.auth.signOut()}</Form.Button
 				>
 			</form>
 		</div>
@@ -210,9 +210,11 @@
 		<Separator class="hidden md:block" orientation="vertical" />
 		<div class="flex w-full max-w-xs flex-col gap-4">
 			<h2 class="font-mono text-lg">{$LL.membership.title()}</h2>
-				formaction={route("signOut /[locale=locale]", { locale: $locale })}
-				variant="outline"
-				data-testid="sign-out-button">{$LL.auth.signOut()}</Form.Button
+			<a
+				href={route("/[locale=locale]/new", { locale: $locale })}
+				class="flex w-full max-w-xs flex-col"
+				data-testid="buy-membership-link"
+			>
 				<Form.Button variant="default">{$LL.membership.buy()}</Form.Button>
 			</a>
 			{#if data.memberships.length === 0}
