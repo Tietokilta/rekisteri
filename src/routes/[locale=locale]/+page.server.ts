@@ -8,6 +8,8 @@ import { schema } from "./schema";
 import { superValidate } from "sveltekit-superforms";
 import { zod4 } from "sveltekit-superforms/adapters";
 import * as auth from "$lib/server/auth/session";
+import * as z from "zod";
+import { fi, en } from "zod/locales";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
@@ -52,6 +54,9 @@ async function saveInfo(event: RequestEvent) {
 			message: "Unauthorized",
 		});
 	}
+
+	// Configure Zod locale based on user's language preference
+	z.config(event.locals.locale === "fi" ? fi() : en());
 
 	const formData = await event.request.formData();
 	const form = await superValidate(formData, zod4(schema));
