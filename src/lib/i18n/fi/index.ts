@@ -40,6 +40,8 @@ const fi = {
 		allowEmails: "Jäsenyyteen liittymättömät sähköpostit",
 		allowEmailsDescription:
 			"Kilta saa lähettää sähköpostia jäsenyyteeni liittymättömistä asioista (esim. viikkotiedote)",
+		saveSuccess: "Tiedot tallennettu onnistuneesti",
+		saveError: "Tietojen tallentaminen epäonnistui",
 	},
 
 	// Membership

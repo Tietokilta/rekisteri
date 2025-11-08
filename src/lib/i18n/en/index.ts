@@ -39,6 +39,8 @@ const en = {
 		},
 		allowEmails: "Non-membership emails",
 		allowEmailsDescription: "The guild is allowed to email me things not related to my membership (e.g. weekly mails)",
+		saveSuccess: "Information saved successfully",
+		saveError: "Failed to save information",
 	},
 
 	// Membership

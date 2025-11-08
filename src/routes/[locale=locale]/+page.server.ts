@@ -8,6 +8,8 @@ import { schema } from "./schema";
 import { superValidate } from "sveltekit-superforms";
 import { zod4 } from "sveltekit-superforms/adapters";
 import * as auth from "$lib/server/auth/session";
+import * as z from "zod";
+import { fi, en } from "zod/locales";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
@@ -53,27 +55,38 @@ async function saveInfo(event: RequestEvent) {
 		});
 	}
 
+	// Configure Zod locale based on user's language preference
+	z.config(event.locals.locale === "fi" ? fi() : en());
+
 	const formData = await event.request.formData();
 	const form = await superValidate(formData, zod4(schema));
+
+	if (!form.valid) {
+		return fail(400, { form });
+	}
 
 	const user = {
 		...event.locals.user,
 		...form.data,
 	};
 
-	await db
-		.update(table.user)
-		.set({
-			// don't allow changing email here
-			firstNames: user.firstNames,
-			lastName: user.lastName,
-			homeMunicipality: user.homeMunicipality,
-			preferredLanguage: user.preferredLanguage,
-			isAllowedEmails: user.isAllowedEmails,
-		})
-		.where(eq(table.user.id, user.id));
+	try {
+		await db
+			.update(table.user)
+			.set({
+				// don't allow changing email here
+				firstNames: user.firstNames,
+				lastName: user.lastName,
+				homeMunicipality: user.homeMunicipality,
+				preferredLanguage: user.preferredLanguage,
+				isAllowedEmails: user.isAllowedEmails,
+			})
+			.where(eq(table.user.id, user.id));
 
-	return redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
+		return { form, success: true };
+	} catch {
+		return fail(500, { form, success: false, message: "Failed to save information" });
+	}
 }
 
 async function signOut(event: RequestEvent) {

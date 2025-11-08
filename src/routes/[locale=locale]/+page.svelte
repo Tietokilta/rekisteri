@@ -15,12 +15,27 @@
 	import Trash from "@lucide/svelte/icons/trash";
 	import Hourglass from "@lucide/svelte/icons/hourglass";
 	import Banknote from "@lucide/svelte/icons/banknote";
+	import { toast } from "svelte-sonner";
+	import * as z from "zod";
+	import { fi, en } from "zod/locales";
 
 	let { data }: { data: PageServerData } = $props();
+
+	// Configure Zod locale based on current language
+	$effect(() => {
+		z.config($locale === "fi" ? fi() : en());
+	});
 
 	const form = superForm(data.form, {
 		validators: zod4Client(schema),
 		validationMethod: "oninput",
+		onResult({ result }) {
+			if (result.type === "success" && result.data?.success) {
+				toast.success($LL.user.saveSuccess());
+			} else if (result.type === "failure") {
+				toast.error($LL.user.saveError());
+			}
+		},
 	});
 	const { form: formData, enhance } = form;
 </script>
