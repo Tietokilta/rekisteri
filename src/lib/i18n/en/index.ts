@@ -290,7 +290,7 @@ const en = {
 					<li><strong>Student status:</strong> Information about whether the member is a student (self-reported, planned to be verified via Aalto University email address)</li>
 					<li><strong>Home municipality:</strong> Used for statistical purposes</li>
 					<li><strong>Consents:</strong> Information about whether the association may send non-membership emails</li>
-					<li><strong>Technical data:</strong> Session tokens, login codes, audit logs (retained for 90 days), IP addresses from login attempts (for abuse and attack monitoring, short retention period), rate limiting data (in memory only)</li>
+					<li><strong>Technical data:</strong> Session tokens, login codes, audit logs (retained for 90 days), IP addresses from login attempts (for abuse and attack monitoring, retained for 30 days), rate limiting data (in memory only)</li>
 				</ul>
 			`,
 
@@ -304,17 +304,29 @@ const en = {
 
 			section7Title: "7. Data Retention Period",
 			section7Content: `
-				<strong>Member data:</strong> Retained in accordance with the Associations Act for the duration
-				of membership and thereafter to fulfill statutory obligations.<br/><br/>
+				We delete data as soon as it is no longer needed. Retention periods are determined as follows:<br/><br/>
 
-				<strong>Accounting records:</strong> Accounting records (payments, invoices) are retained for at
-				least 6 years from the end of the fiscal year as required by law.<br/><br/>
+				<strong>Service-related technical data (can be deleted quickly):</strong><br/>
+				<ul>
+					<li>Login codes: automatically expire after 10 minutes</li>
+					<li>Session tokens: automatically expire after 30 days</li>
+					<li>IP addresses: deleted after 30 days (security monitoring)</li>
+					<li>Audit logs: deleted after 90 days (administrative action tracking)</li>
+					<li>Rate limiting data: in memory only, no persistent storage</li>
+				</ul><br/>
 
-				<strong>Audit logs:</strong> Retained for 90 days.<br/><br/>
+				<strong>Member registry data (statutory retention obligations):</strong><br/>
+				<ul>
+					<li><strong>Accounting Act records</strong> (payments, invoices, receipts): at least 6 years
+					from the end of the fiscal year. <em>The law does not permit deletion of this data earlier.</em></li>
+					<li><strong>Associations Act member registry data:</strong> retained to fulfill statutory obligations,
+					then anonymized or deleted</li>
+					<li><strong>Statistical data:</strong> may be anonymized and retained for historical purposes</li>
+				</ul><br/>
 
-				<strong>Technical data:</strong> Session tokens expire after 30 days, login codes after 10 minutes.<br/><br/>
-
-				After membership ends, personal data is deleted or anonymized after statutory retention periods expire.
+				<strong>In practice after membership ends:</strong> Service-related technical data (sessions, logs)
+				are automatically deleted when they expire. Member registry data and accounting records are retained
+				in accordance with statutory obligations, after which they are deleted or anonymized.
 			`,
 
 			section8Title: "8. Data Disclosure and Transfers",
@@ -403,7 +415,7 @@ const en = {
 					<li>Session tokens for authentication</li>
 					<li>Login codes and their expiration times</li>
 					<li>Audit logs of administrative actions (retained for 90 days)</li>
-					<li>IP addresses from login attempts (for abuse and attack monitoring, short retention period)</li>
+					<li>IP addresses from login attempts (for abuse and attack monitoring, retained for 30 days)</li>
 					<li>Rate limiting data to prevent overload (in memory only)</li>
 					<li>Creation and update timestamps</li>
 				</ul>
@@ -431,25 +443,29 @@ const en = {
 
 			section6Title: "6. Data Retention Period",
 			section6Content: `
-				<strong>Active members:</strong> Data is retained in accordance with the Associations Act for the duration of membership.<br/><br/>
+				We delete data as soon as it is no longer needed. Retention periods are determined as follows:<br/><br/>
 
-				<strong>Former members:</strong> After membership ends, data is retained or anonymized
-				according to the following principles:<br/><br/>
-
+				<strong>Service-related technical data (can be deleted quickly):</strong><br/>
 				<ul>
-					<li><strong>Accounting records</strong> (payments, invoices): at least 6 years from the end of the fiscal year</li>
-					<li><strong>Associations Act member data:</strong> retained to fulfill statutory obligations, then anonymized or deleted</li>
-					<li><strong>Historically significant data:</strong> may be anonymized for statistics and historical records</li>
+					<li>Login codes: automatically expire after 10 minutes</li>
+					<li>Session tokens: automatically expire after 30 days</li>
+					<li>IP addresses: deleted after 30 days (security monitoring)</li>
+					<li>Audit logs: deleted after 90 days (administrative action tracking)</li>
+					<li>Rate limiting data: in memory only, no persistent storage</li>
 				</ul><br/>
 
-				<strong>Technical data:</strong><br/>
+				<strong>Member registry data (statutory retention obligations):</strong><br/>
 				<ul>
-					<li><strong>Audit logs:</strong> 90 days</li>
-					<li><strong>IP addresses from login attempts:</strong> short retention period for security monitoring</li>
-					<li><strong>Rate limiting data:</strong> in memory only, no persistent storage</li>
-					<li><strong>Session tokens:</strong> expire after 30 days</li>
-					<li><strong>Login codes:</strong> expire after 10 minutes</li>
-				</ul>
+					<li><strong>Accounting Act records</strong> (payments, invoices, receipts): at least 6 years
+					from the end of the fiscal year. <em>The law does not permit deletion of this data earlier.</em></li>
+					<li><strong>Associations Act member registry data:</strong> retained to fulfill statutory obligations,
+					then anonymized or deleted</li>
+					<li><strong>Statistical data:</strong> may be anonymized and retained for historical purposes</li>
+				</ul><br/>
+
+				<strong>In practice after membership ends:</strong> Service-related technical data (sessions, logs)
+				are automatically deleted when they expire. Member registry data and accounting records are retained
+				in accordance with statutory obligations, after which they are deleted or anonymized.
 			`,
 
 			section7Title: "7. Data Disclosure and Transfers",
@@ -470,12 +486,20 @@ const en = {
 					communications (api.eu.mailgun.net). The service processes email addresses and message content
 					within the EU.</li>
 
-					<li><strong>Google Workspace:</strong> Member email addresses are used in guild mailing lists
-					(Google Groups) for communication purposes.</li>
+					<li><strong>Google Workspace (Google Groups):</strong> Member email addresses are used in guild
+					mailing lists (Google Groups) for member communication (events, announcements, member benefits).
+					This is necessary for effective member communication. Google may process data outside the EU and EEA;
+					in these situations, Google uses EU Commission-approved standard contractual clauses and other
+					appropriate safeguards to comply with GDPR requirements.</li>
 				</ul><br/>
 
 				<strong>Occasional disclosures:</strong><br/>
 				Data may be disclosed to authorities based on legal obligations.<br/><br/>
+
+				<strong>Data transfers outside the EU:</strong><br/>
+				Generally, all data is stored within the EU (Azure North Europe, Stripe EU, Mailgun EU).
+				However, Google Workspace may process mailing list-related email addresses outside the EU
+				using appropriate safeguards (standard contractual clauses).<br/><br/>
 
 				<strong>Data security in transfers:</strong><br/>
 				All data transfers occur using encrypted connections (HTTPS/TLS).
