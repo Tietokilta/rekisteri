@@ -1,10 +1,10 @@
 # rekisteri
 
-New project for a membership registry.
+New project for a membership registry. [Live production deployment at rekisteri.tietokilta.fi](https://rekisteri.tietokilta.fi).
 
 ## Developing
 
-Pre-requisites [Node.js v22](https://nodejs.org/en/download).
+Pre-requisites [Node.js v24](https://nodejs.org/en/download).
 
 ```bash
 # enable corepack (pnpm)
@@ -18,15 +18,20 @@ cp .env.example .env
 
 # start db
 pnpm db:start
+# or in the background
+pnpm db:start -d
 
-# push schema
-pnpm db:push
+# migrate db schema
+pnpm db:migrate
 
 # seed data
 pnpm db:seed
 
 # run dev server (includes i18n type generation in watch mode)
 pnpm dev
+
+# quickly clear, migrate, and re-seed
+pnpm db:reset
 ```
 
 Login with `root@tietokilta.fi` to check the admin view, and any other account to check the regular user view.

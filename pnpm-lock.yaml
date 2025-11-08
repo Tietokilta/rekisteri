@@ -169,6 +169,9 @@ importers:
       vite:
         specifier: npm:rolldown-vite@7.1.20
         version: rolldown-vite@7.1.20(@types/node@24.9.2)(esbuild@0.25.4)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.7.0)
+      vite-plugin-devtools-json:
+        specifier: ^1.0.0
+        version: 1.0.0(rolldown-vite@7.1.20(@types/node@24.9.2)(esbuild@0.25.4)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.7.0))
       vite-plugin-kit-routes:
         specifier: ^1.0.2
         version: 1.0.2(@sveltejs/kit@2.48.4(@sveltejs/vite-plugin-svelte@6.2.1(rolldown-vite@7.1.20(@types/node@24.9.2)(esbuild@0.25.4)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.7.0))(svelte@5.43.2))(rolldown-vite@7.1.20(@types/node@24.9.2)(esbuild@0.25.4)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.7.0))(svelte@5.43.2))
@@ -2885,6 +2888,10 @@ packages:
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
+  uuid@11.1.0:
+    resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
+    hasBin: true
+
   valibot@0.42.1:
     resolution: {integrity: sha512-3keXV29Ar5b//Hqi4MbSdV7lfVp6zuYLZuA9V1PvQUsXqogr+u5lvLPLk3A4f74VUXDnf/JfWMN6sB+koJ/FFw==}
     peerDependencies:
@@ -2904,6 +2911,11 @@ packages:
   validator@13.15.15:
     resolution: {integrity: sha512-BgWVbCI72aIQy937xbawcs+hrVaN/CZ2UwutgaJ36hGqRrLNM+f5LUT/YPRbo8IV/ASeFzXszezV+y2+rq3l8A==}
     engines: {node: '>= 0.10'}
+
+  vite-plugin-devtools-json@1.0.0:
+    resolution: {integrity: sha512-MobvwqX76Vqt/O4AbnNMNWoXWGrKUqZbphCUle/J2KXH82yKQiunOeKnz/nqEPosPsoWWPP9FtNuPBSYpiiwkw==}
+    peerDependencies:
+      vite: ^5.0.0 || ^6.0.0 || ^7.0.0
 
   vite-plugin-kit-routes@1.0.2:
     resolution: {integrity: sha512-opKUkP0Ou8cjF/+SDJ4ePQY6HouqnJacxqEldiYdl/5tCpGspG5Khycq9wA+752F5tcfX4y4WJ34CMIYEYyaYg==}
@@ -5280,6 +5292,8 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
+  uuid@11.1.0: {}
+
   valibot@0.42.1(typescript@5.9.3):
     optionalDependencies:
       typescript: 5.9.3
@@ -5292,6 +5306,11 @@ snapshots:
 
   validator@13.15.15:
     optional: true
+
+  vite-plugin-devtools-json@1.0.0(rolldown-vite@7.1.20(@types/node@24.9.2)(esbuild@0.25.4)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.7.0)):
+    dependencies:
+      uuid: 11.1.0
+      vite: rolldown-vite@7.1.20(@types/node@24.9.2)(esbuild@0.25.4)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.7.0)
 
   vite-plugin-kit-routes@1.0.2(@sveltejs/kit@2.48.4(@sveltejs/vite-plugin-svelte@6.2.1(rolldown-vite@7.1.20(@types/node@24.9.2)(esbuild@0.25.4)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.7.0))(svelte@5.43.2))(rolldown-vite@7.1.20(@types/node@24.9.2)(esbuild@0.25.4)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.7.0))(svelte@5.43.2)):
     dependencies:
