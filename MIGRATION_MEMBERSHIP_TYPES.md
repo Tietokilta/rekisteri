@@ -81,7 +81,7 @@ pnpm db:seed
 
 2. **Run the Drizzle migration**:
    ```bash
-   # This will run the SQL migration in drizzle/0002_localize_membership_types.sql
+   # This will run the SQL migration in drizzle/0003_localize_membership_types.sql
    # which:
    # - Creates the membership_type table
    # - Populates it with default membership types
@@ -103,7 +103,7 @@ pnpm db:seed
 
 ### Migration File
 
-The migration is located at `drizzle/0002_localize_membership_types.sql` and handles:
+The migration is located at `drizzle/0003_localize_membership_types.sql` and handles:
 - Creating the new `membership_type` table
 - Inserting the 3 default membership types
 - Mapping existing Finnish membership names to type IDs:
