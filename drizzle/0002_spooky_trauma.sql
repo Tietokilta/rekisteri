@@ -1,0 +1,2 @@
+CREATE TYPE "public"."preferred_language" AS ENUM('unspecified', 'finnish', 'english');--> statement-breakpoint
+ALTER TABLE "user" ADD COLUMN "preferred_language" "preferred_language" DEFAULT 'unspecified' NOT NULL;

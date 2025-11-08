@@ -1,4 +1,5 @@
 import type { Locales } from "./i18n-types";
+import type { PreferredLanguage } from "$lib/shared/enums";
 
 export const locales = ["fi", "en"] as const satisfies readonly Locales[];
 export const baseLocale = "fi" as const satisfies Locales;
@@ -14,4 +15,21 @@ export function stripLocaleFromPathname(pathname: string): string {
 	}
 
 	return pathname;
+}
+
+/**
+ * Convert user's preferred language setting to a locale code.
+ * Returns null if language is unspecified or unknown.
+ */
+export function preferredLanguageToLocale(preferredLanguage: PreferredLanguage): Locale | null {
+	switch (preferredLanguage) {
+		case "finnish":
+			return "fi";
+		case "english":
+			return "en";
+		case "unspecified":
+			return null;
+		default:
+			return null;
+	}
 }

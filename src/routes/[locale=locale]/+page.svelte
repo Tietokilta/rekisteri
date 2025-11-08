@@ -88,6 +88,26 @@
 					<Form.FieldErrors />
 				</Form.Field>
 
+				<Form.Field {form} name="preferredLanguage">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>{$LL.user.preferredLanguage()}</Form.Label>
+							<Form.Description>{$LL.user.preferredLanguageDescription()}</Form.Description>
+							<select
+								{...props}
+								bind:value={$formData.preferredLanguage}
+								autocomplete="language"
+								class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+							>
+								<option value="unspecified">{$LL.user.preferredLanguageOptions.unspecified()}</option>
+								<option value="finnish">{$LL.user.preferredLanguageOptions.finnish()}</option>
+								<option value="english">{$LL.user.preferredLanguageOptions.english()}</option>
+							</select>
+						{/snippet}
+					</Form.Control>
+					<Form.FieldErrors />
+				</Form.Field>
+
 				<Form.Field
 					{form}
 					name="isAllowedEmails"

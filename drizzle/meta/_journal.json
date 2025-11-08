@@ -15,6 +15,13 @@
       "when": 1762189823888,
       "tag": "0001_dry_joseph",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1762369260276,
+      "tag": "0002_spooky_trauma",
+      "breakpoints": true
     }
   ]
 }

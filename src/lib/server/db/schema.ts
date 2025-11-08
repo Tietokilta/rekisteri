@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { boolean, integer, json, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import * as z from "zod";
+import { MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
 
 const timestamps = {
 	createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -10,6 +11,14 @@ const timestamps = {
 		.$onUpdateFn(() => new Date()),
 };
 
+export const preferredLanguageEnum = pgEnum("preferred_language", PREFERRED_LANGUAGE_VALUES);
+
+export const preferredLanguageEnumSchema = z.enum(PREFERRED_LANGUAGE_VALUES);
+
+export const memberStatusEnum = pgEnum("member_status", MEMBER_STATUS_VALUES);
+
+export const memberStatusEnumSchema = z.enum(MEMBER_STATUS_VALUES);
+
 export const user = pgTable("user", {
 	id: text().primaryKey(),
 	email: text().notNull().unique(),
@@ -17,6 +26,7 @@ export const user = pgTable("user", {
 	firstNames: text(),
 	lastName: text(),
 	homeMunicipality: text(),
+	preferredLanguage: preferredLanguageEnum().notNull().default("unspecified"),
 	isAllowedEmails: boolean().notNull().default(false),
 	stripeCustomerId: text(),
 	...timestamps,
@@ -46,16 +56,6 @@ export const membership = pgTable("membership", {
 	priceCents: integer().notNull().default(0),
 	requiresStudentVerification: boolean().notNull().default(false),
 });
-
-export const memberStatusEnum = pgEnum("member_status", [
-	"awaiting_payment",
-	"awaiting_approval",
-	"active",
-	"expired",
-	"cancelled",
-]);
-
-export const memberStatusEnumSchema = z.enum(memberStatusEnum.enumValues);
 
 export const member = pgTable("member", {
 	id: text().primaryKey(),
@@ -96,6 +96,8 @@ export const auditLog = pgTable("audit_log", {
 export type Member = typeof member.$inferSelect;
 
 export type MemberStatus = z.infer<typeof memberStatusEnumSchema>;
+
+export type PreferredLanguage = z.infer<typeof preferredLanguageEnumSchema>;
 
 export type Membership = typeof membership.$inferSelect;
 

@@ -20,6 +20,7 @@ export const load: PageServerLoad = async (event) => {
 			firstNames: event.locals.user.firstNames ?? "",
 			lastName: event.locals.user.lastName ?? "",
 			homeMunicipality: event.locals.user.homeMunicipality ?? "",
+			preferredLanguage: event.locals.user.preferredLanguage,
 			isAllowedEmails: event.locals.user.isAllowedEmails,
 		},
 	});
@@ -67,6 +68,7 @@ async function saveInfo(event: RequestEvent) {
 			firstNames: user.firstNames,
 			lastName: user.lastName,
 			homeMunicipality: user.homeMunicipality,
+			preferredLanguage: user.preferredLanguage,
 			isAllowedEmails: user.isAllowedEmails,
 		})
 		.where(eq(table.user.id, user.id));
@@ -76,7 +78,9 @@ async function saveInfo(event: RequestEvent) {
 
 async function signOut(event: RequestEvent) {
 	if (!event.locals.session) {
-		return fail(401);
+		return fail(401, {
+			message: "Not authenticated",
+		});
 	}
 	await auth.invalidateSession(event.locals.session.id);
 	auth.deleteSessionTokenCookie(event);

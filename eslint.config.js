@@ -35,6 +35,14 @@ export default ts.config(
 		rules: {
 			// TypeScript rules
 			"@typescript-eslint/no-deprecated": "error",
+			"@typescript-eslint/consistent-type-imports": [
+				"error",
+				{
+					prefer: "type-imports",
+					disallowTypeAnnotations: false,
+					fixStyle: "separate-type-imports",
+				},
+			],
 		},
 	},
 	{
@@ -85,6 +93,16 @@ export default ts.config(
 			parserOptions: {
 				parser: ts.parser,
 			},
+		},
+		rules: {
+			"@typescript-eslint/consistent-type-imports": [
+				"error",
+				{
+					prefer: "type-imports",
+					disallowTypeAnnotations: false,
+					fixStyle: "separate-type-imports",
+				},
+			],
 		},
 	},
 	{

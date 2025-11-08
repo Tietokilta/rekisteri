@@ -52,7 +52,11 @@ async function verifyCode(event: RequestEvent) {
 
 	let otp = await getEmailOTPFromRequest(event);
 	if (otp === null) {
-		return fail(401);
+		return fail(401, {
+			verify: {
+				message: "Not authenticated",
+			},
+		});
 	}
 
 	if (!otpVerifyBucket.check(otp.email, 1)) {

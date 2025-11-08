@@ -1,28 +1,12 @@
 import { sequence } from "@sveltejs/kit/hooks";
 import type { Handle, ServerInit } from "@sveltejs/kit";
+import { redirect } from "@sveltejs/kit";
 import * as auth from "$lib/server/auth/session.js";
-import { baseLocale, locales, type Locale } from "$lib/i18n/routing";
+import { baseLocale, locales, preferredLanguageToLocale, type Locale } from "$lib/i18n/routing";
 import { dev } from "$app/environment";
 import cron from "node-cron";
 import { cleanupExpiredTokens, cleanupOldAuditLogs } from "$lib/server/db/cleanup";
 import { createInitialModeExpression } from "mode-watcher";
-import { redirect } from "@sveltejs/kit";
-
-const handleLocaleRedirect: Handle = ({ event, resolve }) => {
-	const pathname = event.url.pathname;
-	if (pathname.startsWith("/api/") || pathname.startsWith("/_app/")) {
-		return resolve(event);
-	}
-
-	const segments = pathname.split("/");
-	const maybeLocale = segments[1];
-	// If already has locale or is root (handled by +page.server.ts), continue
-	if (!maybeLocale || locales.includes(maybeLocale as Locale)) {
-		return resolve(event);
-	}
-
-	redirect(302, `/${baseLocale}${pathname}`);
-};
 
 const handleAuth: Handle = async ({ event, resolve }) => {
 	const sessionToken = event.cookies.get(auth.sessionCookieName);
@@ -43,6 +27,50 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 	event.locals.session = session;
 
 	return resolve(event);
+};
+
+/**
+ * Locale redirect handler that adds locale to paths without one.
+ * Uses user's preferred language if set, otherwise uses base locale.
+ * Respects explicit locale in URL - only redirects when NO locale is present.
+ */
+const handleLocaleRedirect: Handle = ({ event, resolve }) => {
+	const pathname = event.url.pathname;
+
+	// Only redirect GET requests - other methods (POST, PUT, DELETE, etc.) should handle their own responses
+	if (event.request.method !== "GET") {
+		return resolve(event);
+	}
+
+	// Skip redirect for API routes, static assets, and SvelteKit internals
+	if (
+		pathname.startsWith("/api/") ||
+		pathname.startsWith("/_app/") ||
+		/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/.test(pathname)
+	) {
+		return resolve(event);
+	}
+
+	const segments = pathname.split("/");
+	const maybeLocale = segments[1];
+
+	// If already has a valid locale or is root path (handled by +page.server.ts), don't redirect
+	// This allows users to explicitly choose a locale in the URL
+	if (!maybeLocale || locales.includes(maybeLocale as Locale)) {
+		return resolve(event);
+	}
+
+	// Path has no locale - determine which locale to use
+	let targetLocale: Locale = baseLocale;
+
+	if (event.locals.user?.preferredLanguage) {
+		// Use user's preferred language if they have one
+		const preferredLocale = preferredLanguageToLocale(event.locals.user.preferredLanguage);
+		targetLocale = preferredLocale || baseLocale;
+	}
+
+	// Redirect to the same path with locale prepended
+	redirect(302, `/${targetLocale}${pathname}${event.url.search}`);
 };
 
 const handleI18n: Handle = ({ event, resolve }) => {
@@ -85,8 +113,8 @@ const handleAdminAuthorization: Handle = async ({ event, resolve }) => {
 };
 
 export const handle: Handle = sequence(
-	handleLocaleRedirect,
 	handleAuth,
+	handleLocaleRedirect,
 	handleAdminAuthorization,
 	handleSecurityHeaders,
 	handleI18n,
