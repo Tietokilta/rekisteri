@@ -19,6 +19,7 @@
 	import ArrowUpDown from "@lucide/svelte/icons/arrow-up-down";
 	import Copy from "@lucide/svelte/icons/copy";
 	import Check from "@lucide/svelte/icons/check";
+	import Download from "@lucide/svelte/icons/download";
 	import { enhance } from "$app/forms";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/state";
@@ -142,6 +143,22 @@
 
 	// Copy to clipboard state
 	let copySuccess = $state(false);
+	let exportJasenetSuccess = $state(false);
+	let exportAktiivitSuccess = $state(false);
+
+	// Helper to strip email aliases (e.g., example+alias@domain.com -> example@domain.com)
+	function stripEmailAlias(email: string): string {
+		const atIndex = email.indexOf("@");
+		if (atIndex === -1) return email;
+
+		const localPart = email.slice(0, atIndex);
+		const domain = email.slice(atIndex);
+
+		const plusIndex = localPart.indexOf("+");
+		if (plusIndex === -1) return email;
+
+		return localPart.slice(0, plusIndex) + domain;
+	}
 
 	// Helper to copy filtered members as text
 	async function copyMembersAsText() {
@@ -182,6 +199,61 @@
 			}, 2000);
 		} catch (err) {
 			console.error("Failed to copy:", err);
+		}
+	}
+
+	// Helper to export filtered members as CSV (Google Groups format)
+	function exportMembersAsCSV(groupEmail: "jasenet@tietokilta.fi" | "aktiivit@tietokilta.fi") {
+		let filteredRows = table.getFilteredRowModel().rows;
+
+		// For aktiivit@, only include members who have opted in for emails
+		if (groupEmail === "aktiivit@tietokilta.fi") {
+			filteredRows = filteredRows.filter((row) => row.original.isAllowedEmails === true);
+		}
+
+		// Google Groups CSV format: Group Email [Required],Member Email,Member Type,Member Role
+		const csvRows = ["Group Email [Required],Member Email,Member Type,Member Role"];
+
+		for (const row of filteredRows) {
+			const rawEmail = row.original.email ?? "";
+			if (!rawEmail) continue; // Skip members without email
+
+			// Strip email aliases (example+alias@domain.com -> example@domain.com)
+			const email = stripEmailAlias(rawEmail).replaceAll('"', '""'); // Also escape quotes
+
+			// Every row has the same format, only email changes
+			csvRows.push(`"${groupEmail}","${email}","User","Member"`);
+		}
+
+		const csvContent = csvRows.join("\n");
+
+		// Create a blob and trigger download
+		const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+		const link = document.createElement("a");
+		const url = URL.createObjectURL(blob);
+
+		// Generate filename with timestamp and group name
+		const timestamp = new Date().toISOString().split("T")[0];
+		const groupName = groupEmail.split("@")[0]; // Extract 'jasenet' or 'aktiivit'
+		link.setAttribute("href", url);
+		link.setAttribute("download", `${groupName}-export-${timestamp}.csv`);
+		link.style.visibility = "hidden";
+
+		document.body.append(link);
+		link.click();
+		link.remove();
+
+		// Show success message
+		if (groupEmail === "jasenet@tietokilta.fi") {
+			exportJasenetSuccess = true;
+			setTimeout(() => {
+				exportJasenetSuccess = false;
+			}, 2000);
+		} else {
+			exportAktiivitSuccess = true;
+			setTimeout(() => {
+				exportAktiivitSuccess = false;
+			}, 2000);
 		}
 	}
 
@@ -376,7 +448,7 @@
 <div class="space-y-4">
 	<!-- Filters and Search -->
 	<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-		<div class="flex gap-2">
+		<div class="flex flex-wrap gap-2">
 			<Input placeholder={$LL.admin.members.table.search()} type="search" class="max-w-sm" bind:value={globalFilter} />
 			<Button variant="outline" size="default" onclick={copyMembersAsText}>
 				{#if copySuccess}
@@ -385,6 +457,24 @@
 				{:else}
 					<Copy class="mr-2 size-4" />
 					{$LL.admin.members.table.copyAsText()}
+				{/if}
+			</Button>
+			<Button variant="outline" size="default" onclick={() => exportMembersAsCSV("jasenet@tietokilta.fi")}>
+				{#if exportJasenetSuccess}
+					<Check class="mr-2 size-4" />
+					{$LL.admin.members.table.exported()}
+				{:else}
+					<Download class="mr-2 size-4" />
+					{$LL.admin.members.table.exportJasenet()}
+				{/if}
+			</Button>
+			<Button variant="outline" size="default" onclick={() => exportMembersAsCSV("aktiivit@tietokilta.fi")}>
+				{#if exportAktiivitSuccess}
+					<Check class="mr-2 size-4" />
+					{$LL.admin.members.table.exported()}
+				{:else}
+					<Download class="mr-2 size-4" />
+					{$LL.admin.members.table.exportAktiivit()}
 				{/if}
 			</Button>
 		</div>
