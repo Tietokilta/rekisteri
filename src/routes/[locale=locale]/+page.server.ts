@@ -56,24 +56,32 @@ async function saveInfo(event: RequestEvent) {
 	const formData = await event.request.formData();
 	const form = await superValidate(formData, zod4(schema));
 
+	if (!form.valid) {
+		return fail(400, { form });
+	}
+
 	const user = {
 		...event.locals.user,
 		...form.data,
 	};
 
-	await db
-		.update(table.user)
-		.set({
-			// don't allow changing email here
-			firstNames: user.firstNames,
-			lastName: user.lastName,
-			homeMunicipality: user.homeMunicipality,
-			preferredLanguage: user.preferredLanguage,
-			isAllowedEmails: user.isAllowedEmails,
-		})
-		.where(eq(table.user.id, user.id));
+	try {
+		await db
+			.update(table.user)
+			.set({
+				// don't allow changing email here
+				firstNames: user.firstNames,
+				lastName: user.lastName,
+				homeMunicipality: user.homeMunicipality,
+				preferredLanguage: user.preferredLanguage,
+				isAllowedEmails: user.isAllowedEmails,
+			})
+			.where(eq(table.user.id, user.id));
 
-	return redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
+		return { form, success: true };
+	} catch {
+		return fail(500, { form, success: false, message: "Failed to save information" });
+	}
 }
 
 async function signOut(event: RequestEvent) {

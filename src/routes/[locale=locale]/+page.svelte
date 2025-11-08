@@ -15,12 +15,20 @@
 	import Trash from "@lucide/svelte/icons/trash";
 	import Hourglass from "@lucide/svelte/icons/hourglass";
 	import Banknote from "@lucide/svelte/icons/banknote";
+	import { toast } from "svelte-sonner";
 
 	let { data }: { data: PageServerData } = $props();
 
 	const form = superForm(data.form, {
 		validators: zod4Client(schema),
 		validationMethod: "oninput",
+		onResult({ result }) {
+			if (result.type === "success" && result.data?.success) {
+				toast.success($LL.user.saveSuccess());
+			} else if (result.type === "failure") {
+				toast.error($LL.user.saveError());
+			}
+		},
 	});
 	const { form: formData, enhance } = form;
 </script>

@@ -9,6 +9,7 @@
 	import RatasLogo from "$lib/icons/ratas-logo.svelte";
 	import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 	import { route } from "$lib/ROUTES";
+	import { Toaster } from "$lib/components/ui/sonner";
 
 	let { children } = $props();
 
@@ -25,6 +26,7 @@
 </svelte:head>
 
 <ModeWatcher disableHeadScriptInjection />
+<Toaster />
 <div class="relative flex min-h-screen flex-col bg-background">
 	<header
 		class="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60"
