@@ -14,7 +14,12 @@ try {
 	const db = drizzle(client, { schema: table, casing: "snake_case" });
 
 	console.log("Resetting database...");
-	await reset(db, { user: table.user, membership: table.membership, member: table.member });
+	await reset(db, {
+		user: table.user,
+		membershipType: table.membershipType,
+		membership: table.membership,
+		member: table.member,
+	});
 	console.log("Database reset!");
 
 	console.log("Seeding database...");
@@ -31,11 +36,40 @@ try {
 		isAdmin: true,
 	});
 
+	// Create membership types
+	console.log("Creating membership types...");
+	const membershipTypes = [
+		{
+			id: "varsinainen-jasen",
+			nameFi: "Varsinainen jäsen",
+			nameEn: "Regular member",
+			descriptionFi: "Aalto-yliopiston tietotekniikan opiskelijoille",
+			descriptionEn: "For computer science students at Aalto University",
+		},
+		{
+			id: "ulkojasen",
+			nameFi: "Ulkojäsen",
+			nameEn: "External member",
+			descriptionFi: "Muille kuin Aalto-yliopiston tietotekniikan opiskelijoille",
+			descriptionEn: "For non-computer science students",
+		},
+		{
+			id: "kannatusjasen",
+			nameFi: "Kannatusjäsen",
+			nameEn: "Supporting member",
+			descriptionFi: "Tukea Tietokillan toimintaa",
+			descriptionEn: "Support the activities of Tietokilta",
+		},
+	];
+
+	await db.insert(table.membershipType).values(membershipTypes);
+	console.log(`Created ${membershipTypes.length} membership types`);
+
 	const membershipsToSeed = [
 		// 2022-2023 period (expired)
 		{
 			id: generateUserId(),
-			type: "varsinainen jäsen",
+			membershipTypeId: "varsinainen-jasen",
 			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
 			startTime: new Date("2022-08-01"),
 			endTime: new Date("2023-07-31"),
@@ -44,7 +78,7 @@ try {
 		},
 		{
 			id: generateUserId(),
-			type: "ulkojäsen",
+			membershipTypeId: "ulkojasen",
 			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
 			startTime: new Date("2022-08-01"),
 			endTime: new Date("2023-07-31"),
@@ -54,7 +88,7 @@ try {
 		// 2023-2024 period (expired)
 		{
 			id: generateUserId(),
-			type: "varsinainen jäsen",
+			membershipTypeId: "varsinainen-jasen",
 			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
 			startTime: new Date("2023-08-01"),
 			endTime: new Date("2024-07-31"),
@@ -63,7 +97,7 @@ try {
 		},
 		{
 			id: generateUserId(),
-			type: "ulkojäsen",
+			membershipTypeId: "ulkojasen",
 			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
 			startTime: new Date("2023-08-01"),
 			endTime: new Date("2024-07-31"),
@@ -73,7 +107,7 @@ try {
 		// 2024-2025 period (expired)
 		{
 			id: generateUserId(),
-			type: "varsinainen jäsen",
+			membershipTypeId: "varsinainen-jasen",
 			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
 			startTime: new Date("2024-08-01"),
 			endTime: new Date("2025-07-31"),
@@ -82,7 +116,7 @@ try {
 		},
 		{
 			id: generateUserId(),
-			type: "ulkojäsen",
+			membershipTypeId: "ulkojasen",
 			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
 			startTime: new Date("2024-08-01"),
 			endTime: new Date("2025-07-31"),
@@ -91,7 +125,7 @@ try {
 		},
 		{
 			id: generateUserId(),
-			type: "kannatusjäsen",
+			membershipTypeId: "kannatusjasen",
 			stripePriceId: "price_1R8ORc2a3B4f6jfh4mtYKiXl",
 			startTime: new Date("2024-08-01"),
 			endTime: new Date("2025-07-31"),
@@ -101,7 +135,7 @@ try {
 		// 2025-2026 period (current)
 		{
 			id: generateUserId(),
-			type: "varsinainen jäsen",
+			membershipTypeId: "varsinainen-jasen",
 			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
 			startTime: new Date("2025-08-01"),
 			endTime: new Date("2026-07-31"),
@@ -110,7 +144,7 @@ try {
 		},
 		{
 			id: generateUserId(),
-			type: "ulkojäsen",
+			membershipTypeId: "ulkojasen",
 			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
 			startTime: new Date("2025-08-01"),
 			endTime: new Date("2026-07-31"),
@@ -119,7 +153,7 @@ try {
 		},
 		{
 			id: generateUserId(),
-			type: "kannatusjäsen",
+			membershipTypeId: "kannatusjasen",
 			stripePriceId: "price_1R8ORc2a3B4f6jfh4mtYKiXl",
 			startTime: new Date("2025-08-01"),
 			endTime: new Date("2026-07-31"),

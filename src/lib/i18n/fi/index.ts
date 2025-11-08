@@ -127,6 +127,7 @@ const fi = {
 			stripePriceId: "Stripe hintakoodi",
 			stripePriceIdDescription: "Stripe-hallintapaneelin tuotekoodi (Price ID)",
 			stripePriceIdLabel: "Hintakoodi {stripePriceId}",
+			cannotEdit: "Ei voi muokata (on jäseniä)",
 		},
 
 		members: {
@@ -242,6 +243,8 @@ const fi = {
 	// Common
 	common: {
 		save: "Tallenna",
+		edit: "Muokkaa",
+		cancel: "Peruuta",
 		delete: "Poista",
 	},
 } satisfies BaseTranslation;

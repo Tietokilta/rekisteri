@@ -127,6 +127,7 @@ const en = {
 			stripePriceId: "Stripe price ID",
 			stripePriceIdDescription: "Price ID found on Stripe dashboard",
 			stripePriceIdLabel: "Price ID {stripePriceId}",
+			cannotEdit: "Cannot edit (has members)",
 		},
 
 		members: {
@@ -242,6 +243,8 @@ const en = {
 	// Common
 	common: {
 		save: "Save",
+		edit: "Edit",
+		cancel: "Cancel",
 		delete: "Delete",
 	},
 } satisfies Translation;
