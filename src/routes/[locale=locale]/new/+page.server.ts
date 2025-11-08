@@ -24,15 +24,26 @@ export const load: PageServerLoad = async (event) => {
 		.select()
 		.from(table.member)
 		.innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
+		.innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
 		.where(eq(table.member.userId, event.locals.user.id))
 		.orderBy(desc(table.membership.startTime));
 
 	const memberships = result.map((m) => ({
 		...m.membership,
+		membershipType: m.membership_type,
 		status: m.member.status,
 	}));
 
-	const availableMemberships = await db.select().from(table.membership).where(gt(table.membership.endTime, new Date()));
+	const availableMembershipsResult = await db
+		.select()
+		.from(table.membership)
+		.innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
+		.where(gt(table.membership.endTime, new Date()));
+
+	const availableMemberships = availableMembershipsResult.map((m) => ({
+		...m.membership,
+		membershipType: m.membership_type,
+	}));
 
 	return { user: event.locals.user, form, memberships, availableMemberships };
 };

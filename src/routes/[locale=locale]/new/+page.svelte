@@ -49,8 +49,14 @@
 							/>
 							<div class="flex flex-col">
 								<span class="font-medium">
-									{membership.type} ({membership.priceCents / 100} €)
+									{$locale === "fi" ? membership.membershipType.nameFi : membership.membershipType.nameEn}
+									({membership.priceCents / 100} €)
 								</span>
+								{#if membership.membershipType.descriptionFi || membership.membershipType.descriptionEn}
+									<span class="text-xs text-muted-foreground">
+										{$locale === "fi" ? membership.membershipType.descriptionFi : membership.membershipType.descriptionEn}
+									</span>
+								{/if}
 								<span class="text-sm text-muted-foreground">
 									{new Date(membership.startTime).toLocaleDateString(`${$locale}-FI`)}
 									– {new Date(membership.endTime).toLocaleDateString(`${$locale}-FI`)}
