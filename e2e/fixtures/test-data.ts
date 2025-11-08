@@ -7,13 +7,6 @@ import { eq } from "drizzle-orm";
  * Test Data Fixture
  *
  * Provides helpers for creating test data with automatic cleanup.
- * Solves the test data dependence problem - tests no longer rely on seeded data.
- *
- * Benefits:
- * - Tests are isolated and can run in parallel
- * - No test interdependence
- * - Automatic cleanup even if test fails
- * - Reproducible test failures
  */
 
 type User = typeof table.user.$inferSelect;
@@ -131,7 +124,6 @@ export const test = base.extend<{ testData: TestData }>({
 
 			async cleanup() {
 				// Cleanup in reverse order to handle foreign key constraints
-				// Members must be deleted before users and memberships
 				for (const { type, id } of createdIds.toReversed()) {
 					try {
 						switch (type) {
@@ -165,10 +157,7 @@ export const test = base.extend<{ testData: TestData }>({
 			},
 		};
 
-		// Provide fixture to test
 		await use(testData);
-
-		// Automatic cleanup after test, even if test fails
 		await testData.cleanup();
 	},
 });
