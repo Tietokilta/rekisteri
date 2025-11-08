@@ -290,7 +290,7 @@ const fi = {
 					<li><strong>Opiskelijastatus:</strong> Tieto siitä, onko jäsen opiskelija (itse ilmoitettu, suunniteltu vahvistettavaksi Aalto-yliopiston sähköpostiosoitteella)</li>
 					<li><strong>Kotikunta:</strong> Käytetään tilastointitarkoituksiin</li>
 					<li><strong>Suostumukset:</strong> Tieto siitä, saako yhdistys lähettää jäsenyyteen liittymättömiä sähköposteja</li>
-					<li><strong>Teknisiä tietoja:</strong> Istuntotunnisteet, kirjautumiskoodit, audit-lokitiedot (säilytetään 90 päivää), IP-osoitteet kirjautumisyrityksistä (väärinkäytön ja hyökkäysten valvontaa varten, lyhyt säilytysaika), rate limiting -tiedot (vain muistissa)</li>
+					<li><strong>Teknisiä tietoja:</strong> Istuntotunnisteet, kirjautumiskoodit, audit-lokitiedot (säilytetään 90 päivää), IP-osoitteet kirjautumisyrityksistä (väärinkäytön ja hyökkäysten valvontaa varten, säilytetään 30 päivää), rate limiting -tiedot (vain muistissa)</li>
 				</ul>
 			`,
 
@@ -304,17 +304,29 @@ const fi = {
 
 			section7Title: "7. Tietojen säilytysaika",
 			section7Content: `
-				<strong>Jäsentiedot:</strong> Säilytetään yhdistyslain mukaisesti jäsenyyden ajan ja sen jälkeen
-				lakisääteisten velvoitteiden täyttämiseksi.<br/><br/>
+				Poistamme tietoja mahdollisimman pian, kun niitä ei enää tarvita. Säilytysajat määräytyvät seuraavasti:<br/><br/>
 
-				<strong>Kirjanpitotiedot:</strong> Kirjanpitolain mukaiset tiedot (maksut, laskut) säilytetään
-				vähintään 6 vuotta tilikauden päättymisestä.<br/><br/>
+				<strong>Palveluun liittyvät tekniset tiedot (voidaan poistaa nopeasti):</strong><br/>
+				<ul>
+					<li>Kirjautumiskoodit: vanhenevat automaattisesti 10 minuutissa</li>
+					<li>Istuntotunnisteet: vanhenevat automaattisesti 30 päivässä</li>
+					<li>IP-osoitteet: poistetaan 30 päivän kuluttua (turvallisuuden valvonta)</li>
+					<li>Audit-lokitiedot: poistetaan 90 päivän kuluttua (hallinnollisten toimenpiteiden seuranta)</li>
+					<li>Rate limiting -tiedot: vain muistissa, ei pysyvää tallennusta</li>
+				</ul><br/>
 
-				<strong>Audit-lokitiedot:</strong> Säilytetään 90 päivää.<br/><br/>
+				<strong>Jäsenrekisteritiedot (lakisääteiset säilytysvelvoitteet):</strong><br/>
+				<ul>
+					<li><strong>Kirjanpitolain mukaiset tiedot</strong> (maksut, laskut, tositteet): vähintään 6 vuotta
+					tilikauden päättymisestä. <em>Laki ei salli näiden tietojen poistamista aikaisemmin.</em></li>
+					<li><strong>Yhdistyslain mukaiset jäsenrekisteritiedot:</strong> säilytetään lakisääteisten velvoitteiden
+					täyttämiseksi, jonka jälkeen anonymisoidaan tai poistetaan</li>
+					<li><strong>Tilastotiedot:</strong> voidaan anonymisoida ja säilyttää historiallisiin tarkoituksiin</li>
+				</ul><br/>
 
-				<strong>Tekniset tiedot:</strong> Istuntotunnisteet vanhenevat 30 päivässä, kirjautumiskoodit 10 minuutissa.<br/><br/>
-
-				Jäsenyyden päätyttyä henkilötiedot poistetaan tai anonymisoidaan lakisääteisten säilytysaikojen päätyttyä.
+				<strong>Käytännössä jäsenyyden päätyttyä:</strong> Palveluun liittyvät tekniset tiedot (istunnot, lokit)
+				poistetaan automaattisesti niiden vanhennuttua. Jäsenrekisteritiedot ja kirjanpitotiedot säilytetään
+				lakisääteisten velvoitteiden mukaisesti, jonka jälkeen ne poistetaan tai anonymisoidaan.
 			`,
 
 			section8Title: "8. Tietojen luovutus ja siirrot",
@@ -333,14 +345,20 @@ const fi = {
 					<li><strong>Mailgun (EU-endpoint):</strong> Sähköpostipalvelu (api.eu.mailgun.net) viestinnän
 					lähettämiseen osoitteesta rekisteri.tietokilta.fi. Data käsitellään EU-alueella.</li>
 
-					<li><strong>Google Workspace:</strong> Sähköpostiosoitteita käytetään killan postituslistoilla
-					(Google Groups) viestintätarkoituksiin.</li>
+					<li><strong>Google Workspace (Google Groups):</strong> Jäsenten sähköpostiosoitteita käytetään
+					killan postituslistoilla (Google Groups) jäsenviestintää varten (tapahtumat, tiedotteet,
+					jäsenedut). Tämä on välttämätöntä tehokkaalle jäsenviestinnälle. Google voi käsitellä tietoja
+					EU:n ja ETA:n ulkopuolella; näissä tilanteissa Google käyttää EU-komission hyväksymiä
+					vakiolausekkeita ja muita asianmukaisia suojausmekanismeja GDPR-vaatimusten noudattamiseksi.</li>
 				</ul>
 				<br/>
 
-				Kaikki palveluntarjoajat noudattavat GDPR-vaatimuksia ja käyttävät EU-komission hyväksymiä
-				suojausmekanismeja. Tietoja ei myydä, vuokrata tai luovuteta kolmansille osapuolille
-				markkinointitarkoituksiin.
+				<strong>Tietojen siirrot EU:n ulkopuolelle:</strong><br/>
+				Pääsääntöisesti kaikki data säilytetään EU-alueella (Azure North Europe, Stripe EU, Mailgun EU).
+				Google Workspace voi kuitenkin käsitellä postituslistoihin liittyviä sähköpostiosoitteita EU:n
+				ulkopuolella käyttäen asianmukaisia suojausmekanismeja (vakiolausekkeet).<br/><br/>
+
+				Tietoja ei myydä, vuokrata tai luovuteta kolmansille osapuolille markkinointitarkoituksiin.
 			`,
 		},
 
@@ -404,7 +422,7 @@ const fi = {
 					<li>Istuntotunnisteet kirjautumista varten</li>
 					<li>Kirjautumiskoodit ja niiden voimassaoloajat</li>
 					<li>Audit-lokitiedot hallinnollisista toimenpiteistä (säilytetään 90 päivää)</li>
-					<li>IP-osoitteet kirjautumisyrityksistä (väärinkäytön ja hyökkäysten valvontaa varten, lyhyt säilytysaika)</li>
+					<li>IP-osoitteet kirjautumisyrityksistä (väärinkäytön ja hyökkäysten valvontaa varten, säilytetään 30 päivää)</li>
 					<li>Rate limiting -tiedot ylikuormituksen estämiseksi (vain muistissa)</li>
 					<li>Luomis- ja päivitysajankohdat</li>
 				</ul>
@@ -433,28 +451,29 @@ const fi = {
 
 			section6Title: "6. Tietojen säilytysaika",
 			section6Content: `
-				<strong>Aktiiviset jäsenet:</strong> Tietoja säilytetään yhdistyslain mukaisesti jäsenyyden ajan.<br/><br/>
+				Poistamme tietoja mahdollisimman pian, kun niitä ei enää tarvita. Säilytysajat määräytyvät seuraavasti:<br/><br/>
 
-				<strong>Entiset jäsenet:</strong> Jäsenyyden päätyttyä tiedot säilytetään tai anonymisoidaan
-				seuraavien periaatteiden mukaisesti:<br/><br/>
-
+				<strong>Palveluun liittyvät tekniset tiedot (voidaan poistaa nopeasti):</strong><br/>
 				<ul>
-					<li><strong>Kirjanpitolain mukaiset tiedot</strong> (maksut, laskut): vähintään 6 vuotta
-					tilikauden päättymisestä</li>
-					<li><strong>Yhdistyslain mukaiset jäsentiedot:</strong> säilytetään lakisääteisten velvoitteiden
-					täyttämiseksi, jonka jälkeen anonymisoidaan tai poistetaan</li>
-					<li><strong>Historiallisesti merkittävät tiedot:</strong> voidaan anonymisoida tilastointia ja
-					historiankirjoitusta varten</li>
+					<li>Kirjautumiskoodit: vanhenevat automaattisesti 10 minuutissa</li>
+					<li>Istuntotunnisteet: vanhenevat automaattisesti 30 päivässä</li>
+					<li>IP-osoitteet: poistetaan 30 päivän kuluttua</li>
+					<li>Audit-lokitiedot: poistetaan 90 päivän kuluttua</li>
+					<li>Rate limiting -tiedot: vain muistissa, ei pysyvää tallennusta</li>
 				</ul><br/>
 
-				<strong>Tekniset tiedot:</strong><br/>
+				<strong>Jäsenrekisteritiedot (lakisääteiset säilytysvelvoitteet):</strong><br/>
 				<ul>
-					<li><strong>Audit-lokitiedot:</strong> 90 päivää</li>
-					<li><strong>IP-osoitteet kirjautumisyrityksistä:</strong> lyhyt säilytysaika turvallisuuden valvontaa varten</li>
-					<li><strong>Rate limiting -tiedot:</strong> vain muistissa, ei pysyvää tallennusta</li>
-					<li><strong>Istuntotunnisteet:</strong> vanhenevat 30 päivässä</li>
-					<li><strong>Kirjautumiskoodit:</strong> vanhenevat 10 minuutissa</li>
-				</ul>
+					<li><strong>Kirjanpitolain mukaiset tiedot</strong> (maksut, laskut, tositteet): vähintään 6 vuotta
+					tilikauden päättymisestä. <em>Laki ei salli näiden tietojen poistamista aikaisemmin.</em></li>
+					<li><strong>Yhdistyslain mukaiset jäsentiedot:</strong> säilytetään lakisääteisten velvoitteiden
+					täyttämiseksi, jonka jälkeen anonymisoidaan tai poistetaan</li>
+					<li><strong>Tilastotiedot:</strong> voidaan anonymisoida ja säilyttää historiallisiin tarkoituksiin</li>
+				</ul><br/>
+
+				<strong>Käytännössä jäsenyyden päätyttyä:</strong> Palveluun liittyvät tekniset tiedot (istunnot, lokit)
+				poistetaan automaattisesti niiden vanhennuttua. Jäsenrekisteritiedot ja kirjanpitotiedot säilytetään
+				lakisääteisten velvoitteiden mukaisesti, jonka jälkeen ne poistetaan tai anonymisoidaan.
 			`,
 
 			section7Title: "7. Tietojen luovutus ja siirrot",
@@ -475,12 +494,20 @@ const fi = {
 					viestinnän lähettämiseen (api.eu.mailgun.net). Palvelu käsittelee sähköpostiosoitteita ja
 					viestin sisältöä EU-alueella.</li>
 
-					<li><strong>Google Workspace:</strong> Jäsenten sähköpostiosoitteita käytetään killan
-					postituslistoilla (Google Groups) viestintätarkoituksiin.</li>
+					<li><strong>Google Workspace (Google Groups):</strong> Jäsenten sähköpostiosoitteita käytetään
+					killan postituslistoilla (Google Groups) jäsenviestintää varten (tapahtumat, tiedotteet,
+					jäsenedut). Tämä on välttämätöntä tehokkaalle jäsenviestinnälle. Google voi käsitellä tietoja
+					EU:n ja ETA:n ulkopuolella; näissä tilanteissa Google käyttää EU-komission hyväksymiä
+					vakiolausekkeita ja muita asianmukaisia suojausmekanismeja GDPR-vaatimusten noudattamiseksi.</li>
 				</ul><br/>
 
 				<strong>Satunnaiset luovutukset:</strong><br/>
 				Tietoja voidaan luovuttaa viranomaisille lakisääteisen velvoitteen perusteella.<br/><br/>
+
+				<strong>Tietojen siirrot EU:n ulkopuolelle:</strong><br/>
+				Pääsääntöisesti kaikki data säilytetään EU-alueella (Azure North Europe, Stripe EU, Mailgun EU).
+				Google Workspace voi kuitenkin käsitellä postituslistoihin liittyviä sähköpostiosoitteita EU:n
+				ulkopuolella käyttäen asianmukaisia suojausmekanismeja (vakiolausekkeet).<br/><br/>
 
 				<strong>Tietoturva siirroissa:</strong><br/>
 				Kaikki tiedonsiirrot tapahtuvat salattuja yhteyksiä (HTTPS/TLS) käyttäen.
