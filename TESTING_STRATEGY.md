@@ -181,8 +181,6 @@ stripe listen --forward-to localhost:5173/api/webhook/stripe
 stripe trigger checkout.session.completed
 ```
 
-See `E2E_STRIPE_TESTING.md` for detailed Stripe testing documentation.
-
 ## Test Data Management
 
 ### Integration Tests
@@ -308,10 +306,6 @@ test.describe("Feature Name", () => {
 - [Vitest Documentation](https://vitest.dev/)
 - [Playwright Documentation](https://playwright.dev/)
 - [Stripe Testing Guide](https://docs.stripe.com/testing)
-- [Project-Specific Guides](./docs/)
-  - `E2E_TEST_REVIEW.md` - Critical analysis of test quality
-  - `E2E_TEST_IMPROVEMENTS.md` - Improvement recommendations
-  - `E2E_STRIPE_TESTING.md` - Stripe-specific testing strategy
 
 ## Metrics
 
