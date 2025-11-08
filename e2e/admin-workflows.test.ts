@@ -35,12 +35,12 @@ test.describe("Admin Members Management", () => {
 		await expect(adminPage).toHaveURL(/admin\/members/);
 		await expect(adminPage.locator("table")).toBeVisible();
 
-		// Verify: Can search for our test user
+			// Verify: Can search for our test user
 		const searchInput = adminPage.locator('input[type="search"]').first();
-		await searchInput.fill(user.lastName);
+		await searchInput.fill(user.lastName!);
 
 		// Wait for URL to update
-		await expect(adminPage).toHaveURL(new RegExp(`search=${user.lastName}`));
+		await expect(adminPage).toHaveURL(new RegExp(`search=${user.lastName!}`));
 
 		// Verify: Our test user appears in results using robust selector
 		const testUserRow = adminPage.getByTestId(`member-row-${user.id}`);
@@ -48,7 +48,7 @@ test.describe("Admin Members Management", () => {
 
 		// Test filter persistence: reload page
 		await adminPage.reload({ waitUntil: "networkidle" });
-		await expect(searchInput).toHaveValue(user.lastName);
+		await expect(searchInput).toHaveValue(user.lastName!);
 		await expect(testUserRow).toBeVisible();
 
 		// Automatic cleanup via testData fixture!
