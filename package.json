@@ -14,7 +14,7 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
 		"test:e2e": "playwright test",
-		"test": "pnpm run test:e2e && npm run test:unit -- --run",
+		"test": "pnpm run test:e2e && pnpm run test:unit -- --run",
 		"db:start": "docker compose up",
 		"db:clear": "docker compose down -v",
 		"db:reset": "pnpm db:clear && pnpm db:start -d --wait && pnpm db:migrate && pnpm db:seed",
@@ -25,7 +25,7 @@
 		"i18n:generate": "typesafe-i18n --no-watch",
 		"i18n:watch": "typesafe-i18n",
 		"typesafe-i18n": "typesafe-i18n",
-		"test:unit": "vitest"
+		"test:unit": "svelte-kit sync && vitest"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.4.1",
