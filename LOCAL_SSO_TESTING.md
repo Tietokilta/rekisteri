@@ -5,6 +5,7 @@ This guide explains how to test the shared cookie SSO locally when running multi
 ## The Problem
 
 Cookies can't be shared between different ports on localhost:
+
 - `localhost:5173` (rekisteri)
 - `localhost:3000` (ilmo)
 - `localhost:4000` (tietokilta.fi)
@@ -236,9 +237,9 @@ In your other service (running on different port), manually pass the token:
 const sessionToken = "paste-token-here";
 
 const response = await fetch("http://localhost:5173/api/auth/userinfo", {
-  headers: {
-    Cookie: `auth-session=${sessionToken}`,
-  },
+	headers: {
+		Cookie: `auth-session=${sessionToken}`,
+	},
 });
 
 const userInfo = await response.json();
@@ -252,16 +253,19 @@ This lets you test the API responses without cookie sharing.
 ## Recommended Workflow
 
 **For quick API testing:**
+
 - Use Solution 3 (curl + manual tokens)
 - Fast, no configuration needed
 - Good for testing API response formats
 
 **For full SSO testing:**
+
 - Use Solution 1 (/etc/hosts)
 - Most similar to production
 - Easy to set up and maintain
 
 **For production-like setup:**
+
 - Use Solution 2 (reverse proxy)
 - Clean URLs without ports
 - More complex but most realistic
@@ -273,13 +277,15 @@ This lets you test the API responses without cookie sharing.
 ### Cookie not appearing in other service
 
 1. **Check cookie domain:**
+
    ```javascript
    // In browser console on rekisteri
-   document.cookie
+   document.cookie;
    // Should see: auth-session=...; domain=.local.tietokilta.fi
    ```
 
 2. **Verify COOKIE_DOMAIN is set:**
+
    ```bash
    # In rekisteri
    echo $COOKIE_DOMAIN
@@ -287,6 +293,7 @@ This lets you test the API responses without cookie sharing.
    ```
 
 3. **Check /etc/hosts:**
+
    ```bash
    cat /etc/hosts | grep local.tietokilta.fi
    # Should show all your mappings
@@ -313,6 +320,7 @@ This lets you test the API responses without cookie sharing.
 ### Services can't access custom domains
 
 1. **Flush DNS cache:**
+
    ```bash
    # macOS
    sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
@@ -357,13 +365,13 @@ This lets you test the API responses without cookie sharing.
 
 ## Production vs Local Differences
 
-| Feature | Local | Production |
-|---------|-------|------------|
-| Domain | `.local.tietokilta.fi` | `.tietokilta.fi` |
-| Protocol | `http://` | `https://` |
-| Ports | `:5173`, `:3000`, etc. | `:443` (standard) |
-| COOKIE_DOMAIN | `.local.tietokilta.fi` | `.tietokilta.fi` |
-| Secure flag | `false` | `true` |
+| Feature       | Local                  | Production        |
+| ------------- | ---------------------- | ----------------- |
+| Domain        | `.local.tietokilta.fi` | `.tietokilta.fi`  |
+| Protocol      | `http://`              | `https://`        |
+| Ports         | `:5173`, `:3000`, etc. | `:443` (standard) |
+| COOKIE_DOMAIN | `.local.tietokilta.fi` | `.tietokilta.fi`  |
+| Secure flag   | `false`                | `true`            |
 
 The code is the same, only environment variables change!
 
