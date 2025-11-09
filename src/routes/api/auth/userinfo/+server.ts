@@ -74,9 +74,7 @@ export async function GET(event: RequestEvent) {
 	// Map memberships with validity check
 	const memberships = memberRecords.map((record) => {
 		const isValid =
-			record.member.status === "active" &&
-			now >= record.membership.startTime &&
-			now <= record.membership.endTime;
+			record.member.status === "active" && now >= record.membership.startTime && now <= record.membership.endTime;
 
 		return {
 			status: record.member.status,
