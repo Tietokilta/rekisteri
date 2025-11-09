@@ -34,6 +34,7 @@ This allows the `auth-session` cookie to be shared across all subdomains.
 ## Integration: ilmo.tietokilta.fi
 
 Ilmo needs to:
+
 - Auto-fill email and names for sign-ups
 - Validate membership status
 - Show different UI/email if membership is missing
@@ -165,7 +166,7 @@ export const load: PageServerLoad = async ({ cookies, url, params }) => {
 					email: userInfo.email,
 					firstName: userInfo.given_name || "",
 					lastName: userInfo.family_name || "",
-			  }
+				}
 			: null,
 	};
 };
@@ -191,9 +192,7 @@ In your sign-up page component (`src/routes/events/[id]/signup/+page.svelte`):
 		{#if !hasMembership}
 			<div class="warning-banner">
 				⚠️ You don't have an active Tietokilta membership.
-				<a href="https://rekisteri.tietokilta.fi/fi/new">
-					Purchase membership
-				</a>
+				<a href="https://rekisteri.tietokilta.fi/fi/new"> Purchase membership </a>
 			</div>
 		{/if}
 	</div>
@@ -202,38 +201,21 @@ In your sign-up page component (`src/routes/events/[id]/signup/+page.svelte`):
 <form method="POST">
 	<label>
 		Email
-		<input
-			type="email"
-			name="email"
-			value={formDefaults?.email || ""}
-			required
-		/>
+		<input type="email" name="email" value={formDefaults?.email || ""} required />
 	</label>
 
 	<label>
 		First Name
-		<input
-			type="text"
-			name="firstName"
-			value={formDefaults?.firstName || ""}
-			required
-		/>
+		<input type="text" name="firstName" value={formDefaults?.firstName || ""} required />
 	</label>
 
 	<label>
 		Last Name
-		<input
-			type="text"
-			name="lastName"
-			value={formDefaults?.lastName || ""}
-			required
-		/>
+		<input type="text" name="lastName" value={formDefaults?.lastName || ""} required />
 	</label>
 
 	{#if !hasMembership}
-		<p class="non-member-notice">
-			As a non-member, you may have different pricing or restricted access.
-		</p>
+		<p class="non-member-notice">As a non-member, you may have different pricing or restricted access.</p>
 	{/if}
 
 	<button type="submit">
@@ -417,38 +399,23 @@ In your newsletter form (`src/routes/newsletter/+page.svelte`):
 <h2>Subscribe to our Newsletter</h2>
 
 {#if isAuthenticated}
-	<p class="info-message">
-		✓ We've pre-filled your information from your Tietokilta account.
-	</p>
+	<p class="info-message">✓ We've pre-filled your information from your Tietokilta account.</p>
 {/if}
 
 <form method="POST">
 	<label>
 		Email
-		<input
-			type="email"
-			name="email"
-			value={email}
-			required
-		/>
+		<input type="email" name="email" value={email} required />
 	</label>
 
 	<label>
 		First Name
-		<input
-			type="text"
-			name="firstName"
-			value={firstName}
-		/>
+		<input type="text" name="firstName" value={firstName} />
 	</label>
 
 	<label>
 		Last Name
-		<input
-			type="text"
-			name="lastName"
-			value={lastName}
-		/>
+		<input type="text" name="lastName" value={lastName} />
 	</label>
 
 	<button type="submit">Subscribe</button>
@@ -470,10 +437,8 @@ export const load: LayoutServerLoad = async ({ cookies }) => {
 		user: userInfo
 			? {
 					email: userInfo.email,
-					name: [userInfo.given_name, userInfo.family_name]
-						.filter(Boolean)
-						.join(" "),
-			  }
+					name: [userInfo.given_name, userInfo.family_name].filter(Boolean).join(" "),
+				}
 			: null,
 	};
 };
@@ -520,6 +485,7 @@ In your header component:
 4. Cookie should be present and session should be valid
 
 Check in browser DevTools:
+
 ```
 Application → Cookies → .tietokilta.fi
 Should see: auth-session cookie
@@ -569,11 +535,13 @@ Users can have the following membership statuses:
 - `cancelled` - Membership was cancelled
 
 For most purposes, only check:
+
 ```typescript
-userInfo.membership?.is_valid === true
+userInfo.membership?.is_valid === true;
 ```
 
 This ensures the membership is:
+
 - Status is `active`
 - Current date is within `start_time` and `end_time`
 
@@ -600,10 +568,12 @@ You can store the `sub` (user ID) to link records, but fetch fresh data from rek
 ### Q: How do I handle logout?
 
 You can either:
+
 1. Call rekisteri's `/api/auth/logout` endpoint to logout everywhere
 2. Just clear the cookie locally (user stays logged in elsewhere)
 
 Example global logout:
+
 ```typescript
 export const actions: Actions = {
 	logout: async ({ cookies, fetch }) => {
@@ -628,6 +598,7 @@ export const actions: Actions = {
 ## Support
 
 For issues or questions:
+
 - Check rekisteri logs for API errors
 - Verify `COOKIE_DOMAIN` is set correctly
 - Test API endpoints manually with curl
