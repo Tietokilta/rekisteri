@@ -34,6 +34,9 @@ export const load: PageServerLoad = async (event) => {
 		status: m.member.status,
 	}));
 
+	// Get latest membership for display
+	const latestMembership = memberships[0] || null;
+
 	const availableMembershipsResult = await db
 		.select()
 		.from(table.membership)
@@ -45,7 +48,18 @@ export const load: PageServerLoad = async (event) => {
 		membershipType: m.membership_type,
 	}));
 
-	return { user: event.locals.user, form, memberships, availableMemberships };
+	// Filter out memberships where user already has active or awaiting approval status for the same period
+	const filteredMemberships = availableMemberships.filter((available) => {
+		// Check if user has an active or pending membership for this exact membership period
+		const hasExisting = memberships.some(
+			(existing) =>
+				existing.id === available.id &&
+				(existing.status === "active" || existing.status === "awaiting_approval"),
+		);
+		return !hasExisting;
+	});
+
+	return { user: event.locals.user, form, memberships, availableMemberships: filteredMemberships, latestMembership };
 };
 
 export const actions: Actions = {

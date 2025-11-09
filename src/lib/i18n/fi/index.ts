@@ -102,17 +102,25 @@ const fi = {
 		endTime: "Päättymisaika",
 		priceCents: "Hinta sentteinä",
 		price: "Hinta {price}€",
+		period: "Kausi",
+		requirements: "Vaatimukset",
 		add: "Lisää jäsenyys",
 		noMembership: "Ei jäsenyyttä",
-		requiresStudentVerification: "Edellyttää opiskelijastatusta",
+		noAvailable: "Ei saatavilla olevia jäsenyyksiä",
+		noAvailableDescription:
+			"Tällä hetkellä ei ole ostettavissa olevia jäsenyyksiä. Ole hyvä ja tarkista myöhemmin uudelleen.",
+		previousMembership: "Edellinen jäsenyytesi",
+		requiresStudentVerification: "Vaatii opiskelijastatuksen vahvistuksen",
 		isStudent: "Olen opiskelija Aalto-yliopistossa",
 
 		// Status
 		status: {
+			label: "Tila",
 			active: "Voimassa oleva jäsenyys",
 			expired: "Vanhentunut",
 			awaitingPayment: "Odottaa maksua",
 			awaitingApproval: "Odottaa hyväksyntää",
+			cancelled: "Peruutettu",
 			unknown: "Tuntematon tila",
 		},
 	},
@@ -246,6 +254,7 @@ const fi = {
 		edit: "Muokkaa",
 		cancel: "Peruuta",
 		delete: "Poista",
+		backToHome: "Takaisin etusivulle",
 	},
 } satisfies BaseTranslation;
 
