@@ -7,6 +7,10 @@ const config = {
 	// for more information about preprocessors
 	preprocess: vitePreprocess(),
 
+	experimental: {
+		await: true,
+	},
+
 	kit: {
 		// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
 		// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
@@ -34,6 +38,10 @@ const config = {
 		// Add domains to trustedOrigins if you need to allow specific external origins
 		csrf: {
 			trustedOrigins: [],
+		},
+
+		experimental: {
+			remoteFunctions: true,
 		},
 	},
 };
