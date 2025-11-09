@@ -105,23 +105,35 @@ pnpm db:seed
 
 The migration is located at `drizzle/0003_localize_membership_types.sql` and handles:
 - Creating the new `membership_type` table
-- Inserting the 3 default membership types
-- Mapping existing Finnish membership names to type IDs:
-  - "varsinainen jäsen" → `varsinainen-jasen`
-  - "ulkojäsen" → `ulkojasen`
-  - "kannatusjäsen" → `kannatusjasen`
+- **Dynamically extracting** unique membership types from existing memberships
+- **Automatically generating** URL-friendly IDs from type names (e.g., "varsinainen jäsen" → `varsinainen-jasen`)
+- Creating membership type records with:
+  - Existing Finnish name for **both** `name_fi` and `name_en` (English translations need to be added manually)
+  - Empty `description_fi` and `description_en` fields (descriptions need to be added manually)
+- Reconnecting all memberships to their corresponding type IDs
 - Adding proper constraints and foreign keys
 - Cleaning up the old `type` column
 
-## Predefined Membership Types
+**Post-Migration Tasks:**
+After running the migration, admins should:
+1. Navigate to `/admin/memberships` and edit each membership type
+2. Add proper English translations for `name_en`
+3. Add descriptions in both Finnish (`description_fi`) and English (`description_en`)
 
-The migration creates three default membership types:
+## How the Migration Works
 
-| ID | Finnish Name | English Name | Description (FI) | Description (EN) |
-|----|--------------|--------------|------------------|------------------|
-| `varsinainen-jasen` | Varsinainen jäsen | Regular member | Aalto-yliopiston tietotekniikan opiskelijoille | For computer science students at Aalto University |
-| `ulkojasen` | Ulkojäsen | External member | Muille kuin Aalto-yliopiston tietotekniikan opiskelijoille | For non-computer science students |
-| `kannatusjasen` | Kannatusjäsen | Supporting member | Tukea Tietokillan toimintaa | Support the activities of Tietokilta |
+The migration uses PL/pgSQL to:
+1. **Extract** all unique values from the existing `membership.type` column
+2. **Generate** URL-friendly IDs by:
+   - Converting to lowercase
+   - Removing special characters
+   - Replacing spaces with hyphens
+   - Trimming leading/trailing hyphens
+3. **Create** membership_type records with the existing name duplicated for both languages
+4. **Update** all memberships to reference their corresponding type ID
+5. **Add** foreign key constraints to maintain referential integrity
+
+This dynamic approach works with any existing membership type names, not just predefined values.
 
 ## UI Changes
 

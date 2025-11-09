@@ -10,24 +10,74 @@ CREATE TABLE "membership_type" (
 );
 --> statement-breakpoint
 
--- Insert default membership types
-INSERT INTO "membership_type" ("id", "name_fi", "name_en", "description_fi", "description_en") VALUES
-	('varsinainen-jasen', 'Varsinainen jäsen', 'Regular member', 'Aalto-yliopiston tietotekniikan opiskelijoille', 'For computer science students at Aalto University'),
-	('ulkojasen', 'Ulkojäsen', 'External member', 'Muille kuin Aalto-yliopiston tietotekniikan opiskelijoille', 'For non-computer science students'),
-	('kannatusjasen', 'Kannatusjäsen', 'Supporting member', 'Tukea Tietokillan toimintaa', 'Support the activities of Tietokilta');
+-- Dynamically create membership types from existing memberships
+DO $$
+DECLARE
+    membership_type_record RECORD;
+    generated_id text;
+BEGIN
+    -- Loop through unique membership types
+    FOR membership_type_record IN
+        SELECT DISTINCT type FROM membership WHERE type IS NOT NULL ORDER BY type
+    LOOP
+        -- Generate a URL-friendly ID from the type name
+        -- Convert to lowercase, remove special chars, replace spaces with hyphens
+        generated_id := lower(regexp_replace(
+            regexp_replace(membership_type_record.type, '[^a-zA-Z0-9\s-]', '', 'g'),
+            '\s+', '-', 'g'
+        ));
+
+        -- Remove leading/trailing hyphens
+        generated_id := trim(both '-' from generated_id);
+
+        -- Insert membership type (using Finnish name for both languages initially)
+        -- Descriptions left empty for manual addition later
+        INSERT INTO membership_type (id, name_fi, name_en, description_fi, description_en)
+        VALUES (
+            generated_id,
+            membership_type_record.type,  -- Finnish name
+            membership_type_record.type,  -- English name (same as Finnish for now)
+            NULL,                          -- Empty description
+            NULL                           -- Empty description
+        )
+        ON CONFLICT (id) DO NOTHING;  -- Skip if ID already exists
+
+        RAISE NOTICE 'Created membership type: % (id: %)', membership_type_record.type, generated_id;
+    END LOOP;
+END $$;
 --> statement-breakpoint
 
 -- Add membership_type_id column to membership table
 ALTER TABLE "membership" ADD COLUMN "membership_type_id" text;
 --> statement-breakpoint
 
--- Migrate existing data (map Finnish names to type IDs)
-UPDATE "membership" SET "membership_type_id" = 'varsinainen-jasen' WHERE LOWER("type") = 'varsinainen jäsen';
-UPDATE "membership" SET "membership_type_id" = 'ulkojasen' WHERE LOWER("type") = 'ulkojäsen';
-UPDATE "membership" SET "membership_type_id" = 'kannatusjasen' WHERE LOWER("type") = 'kannatusjäsen';
+-- Populate membership_type_id based on existing type names
+DO $$
+DECLARE
+    membership_record RECORD;
+    generated_id text;
+BEGIN
+    FOR membership_record IN
+        SELECT id, type FROM membership WHERE type IS NOT NULL
+    LOOP
+        -- Generate the same ID format as above
+        generated_id := lower(regexp_replace(
+            regexp_replace(membership_record.type, '[^a-zA-Z0-9\s-]', '', 'g'),
+            '\s+', '-', 'g'
+        ));
+        generated_id := trim(both '-' from generated_id);
+
+        -- Update membership to reference the type
+        UPDATE membership
+        SET membership_type_id = generated_id
+        WHERE id = membership_record.id;
+    END LOOP;
+
+    RAISE NOTICE 'Migrated all memberships to use membership_type_id';
+END $$;
 --> statement-breakpoint
 
--- Make membership_type_id NOT NULL
+-- Make membership_type_id NOT NULL (all should be populated now)
 ALTER TABLE "membership" ALTER COLUMN "membership_type_id" SET NOT NULL;
 --> statement-breakpoint
 
