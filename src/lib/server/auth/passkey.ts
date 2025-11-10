@@ -42,7 +42,11 @@ export async function createRegistrationOptions(user: {
 			authenticatorAttachment: undefined,
 			// Require discoverable credentials (resident keys) for usernameless login
 			residentKey: "required",
-			// Prefer user verification (biometric/PIN) but don't require for security keys
+			// User verification controls whether PIN/biometric is required:
+			// - "required": Always ask for PIN/biometric (most secure, may block some keys)
+			// - "preferred": Ask if available (balanced, e.g. Google Password Manager shows PIN)
+			// - "discouraged": Don't ask (least friction, still secure with phishing protection)
+			// Current: "preferred" provides good security while allowing hardware keys without PIN
 			userVerification: "preferred",
 		},
 	});
