@@ -12,20 +12,25 @@ export const load: PageServerLoad = async (event) => {
 		return error(404, "Not found");
 	}
 
-	// Fetch available membership types
+	// Fetch available membership types and memberships
+	const membershipTypes = await db.select().from(table.membershipType);
+
 	const memberships = await db
 		.select({
 			id: table.membership.id,
-			type: table.membership.type,
+			membershipTypeId: table.membership.membershipTypeId,
 			startTime: table.membership.startTime,
 			endTime: table.membership.endTime,
+			typeName: {
+				fi: table.membershipType.nameFi,
+				en: table.membershipType.nameEn,
+			},
 		})
-		.from(table.membership);
-
-	const types = Array.from(new Set(memberships.map((m) => m.type)));
+		.from(table.membership)
+		.leftJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id));
 
 	return {
-		types,
+		membershipTypes,
 		memberships,
 	};
 };
@@ -59,23 +64,40 @@ export const actions: Actions = {
 			});
 		}
 
-		// Fetch all memberships
+		// Fetch all memberships with their types
 		const memberships = await db
 			.select({
 				id: table.membership.id,
-				type: table.membership.type,
+				membershipTypeId: table.membership.membershipTypeId,
 				startTime: table.membership.startTime,
 				endTime: table.membership.endTime,
+				typeName: {
+					fi: table.membershipType.nameFi,
+					en: table.membershipType.nameEn,
+				},
 			})
-			.from(table.membership);
+			.from(table.membership)
+			.leftJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id));
 
+		// Map both Finnish and English names to memberships
 		const membershipsByType = new Map<string, typeof memberships>();
 		for (const membership of memberships) {
-			const existing = membershipsByType.get(membership.type);
-			if (existing) {
-				existing.push(membership);
+			if (!membership.typeName) continue;
+
+			// Add Finnish name mapping
+			const existingFi = membershipsByType.get(membership.typeName.fi);
+			if (existingFi) {
+				existingFi.push(membership);
 			} else {
-				membershipsByType.set(membership.type, [membership]);
+				membershipsByType.set(membership.typeName.fi, [membership]);
+			}
+
+			// Add English name mapping
+			const existingEn = membershipsByType.get(membership.typeName.en);
+			if (existingEn) {
+				existingEn.push(membership);
+			} else {
+				membershipsByType.set(membership.typeName.en, [membership]);
 			}
 		}
 

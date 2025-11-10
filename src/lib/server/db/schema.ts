@@ -66,14 +66,26 @@ export const passkey = pgTable(
 	(table) => [index("idx_passkey_user_id").on(table.userId)],
 );
 
+export const membershipType = pgTable("membership_type", {
+	id: text().primaryKey(),
+	nameFi: text().notNull(),
+	nameEn: text().notNull(),
+	descriptionFi: text(),
+	descriptionEn: text(),
+	...timestamps,
+});
+
 export const membership = pgTable("membership", {
 	id: text().primaryKey(),
-	type: text().notNull(), // todo l10n
+	membershipTypeId: text()
+		.notNull()
+		.references(() => membershipType.id),
 	stripePriceId: text().notNull(),
 	startTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 	endTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 	priceCents: integer().notNull().default(0),
 	requiresStudentVerification: boolean().notNull().default(false),
+	...timestamps,
 });
 
 export const member = pgTable("member", {
@@ -88,6 +100,18 @@ export const member = pgTable("member", {
 	stripeSessionId: text(),
 	...timestamps,
 });
+
+export const membershipTypeRelations = relations(membershipType, ({ many }) => ({
+	memberships: many(membership),
+}));
+
+export const membershipRelations = relations(membership, ({ one, many }) => ({
+	membershipType: one(membershipType, {
+		fields: [membership.membershipTypeId],
+		references: [membershipType.id],
+	}),
+	members: many(member),
+}));
 
 export const memberRelations = relations(member, ({ one }) => ({
 	user: one(user, {
@@ -117,6 +141,8 @@ export type Member = typeof member.$inferSelect;
 export type MemberStatus = z.infer<typeof memberStatusEnumSchema>;
 
 export type PreferredLanguage = z.infer<typeof preferredLanguageEnumSchema>;
+
+export type MembershipType = typeof membershipType.$inferSelect;
 
 export type Membership = typeof membership.$inferSelect;
 

@@ -99,18 +99,25 @@ const en = {
 		startTime: "Start time",
 		endTime: "End time",
 		priceCents: "Price cents",
-		price: "price {price}€",
+		price: "Price",
+		period: "Period",
+		requirements: "Requirements",
 		add: "Add membership",
 		noMembership: "No membership",
+		noAvailable: "No memberships available",
+		noAvailableDescription: "There are currently no memberships available for purchase. Please check back later.",
+		previousMembership: "Your previous membership",
 		requiresStudentVerification: "Requires student verification",
 		isStudent: "I am a student in Aalto University",
 
 		// Status
 		status: {
+			label: "Status",
 			active: "Valid membership",
 			expired: "Expired",
 			awaitingPayment: "Awaiting payment",
 			awaitingApproval: "Awaiting approval",
+			cancelled: "Cancelled",
 			unknown: "Unknown status",
 		},
 	},
@@ -125,6 +132,7 @@ const en = {
 			stripePriceId: "Stripe price ID",
 			stripePriceIdDescription: "Price ID found on Stripe dashboard",
 			stripePriceIdLabel: "Price ID {stripePriceId}",
+			cannotEdit: "Cannot edit (has members)",
 		},
 
 		members: {
@@ -240,7 +248,10 @@ const en = {
 	// Common
 	common: {
 		save: "Save",
+		edit: "Edit",
+		cancel: "Cancel",
 		delete: "Delete",
+		backToHome: "Back to home",
 	},
 } satisfies Translation;
 

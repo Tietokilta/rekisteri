@@ -100,18 +100,25 @@ const fi = {
 		startTime: "Alkamisaika",
 		endTime: "Päättymisaika",
 		priceCents: "Hinta sentteinä",
-		price: "hinta {price}€",
+		price: "Hinta",
+		period: "Kausi",
+		requirements: "Vaatimukset",
 		add: "Lisää jäsenyys",
 		noMembership: "Ei jäsenyyttä",
+		noAvailable: "Ei saatavilla olevia jäsenyyksiä",
+		noAvailableDescription: "Tällä hetkellä ei ole ostettavissa olevia jäsenyyksiä. Ole hyvä ja tarkista myöhemmin uudelleen.",
+		previousMembership: "Edellinen jäsenyytesi",
 		requiresStudentVerification: "Vaatii opiskelijastatuksen vahvistuksen",
 		isStudent: "Olen opiskelija Aalto-yliopistossa",
 
 		// Status
 		status: {
+			label: "Tila",
 			active: "Voimassa oleva jäsenyys",
 			expired: "Vanhentunut",
 			awaitingPayment: "Odottaa maksua",
 			awaitingApproval: "Odottaa hyväksyntää",
+			cancelled: "Peruutettu",
 			unknown: "Tuntematon tila",
 		},
 	},
@@ -126,6 +133,7 @@ const fi = {
 			stripePriceId: "Stripe hintakoodi",
 			stripePriceIdDescription: "Stripen dashboardilta löytyvä tuotekoodi (Price ID)",
 			stripePriceIdLabel: "Hintakoodi {stripePriceId}",
+			cannotEdit: "Ei voi muokata (on jäseniä)",
 		},
 
 		members: {
@@ -241,7 +249,10 @@ const fi = {
 	// Common
 	common: {
 		save: "Tallenna",
+		edit: "Muokkaa",
+		cancel: "Peruuta",
 		delete: "Poista",
+		backToHome: "Takaisin etusivulle",
 	},
 } satisfies BaseTranslation;
 
