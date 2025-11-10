@@ -56,7 +56,8 @@ async function action(event: RequestEvent) {
 			email: emailInput,
 		});
 	}
-	const email = emailResult.data;
+	// Normalize email to lowercase to ensure case-insensitive matching
+	const email = emailResult.data.toLowerCase();
 
 	// Check email rate limit
 	if (!emailBucket.check(email, 1)) {

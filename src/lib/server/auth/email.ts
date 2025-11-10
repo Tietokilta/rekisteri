@@ -44,10 +44,13 @@ export async function createEmailOTP(email: string): Promise<EmailOTP> {
 	const code = generateRandomOTP();
 	const expiresAt = new Date(Date.now() + 1000 * 60 * 10);
 
+	// Normalize email to lowercase for consistent storage and lookup
+	const normalizedEmail = email.toLowerCase();
+
 	const otp: EmailOTP = {
 		id,
 		code,
-		email,
+		email: normalizedEmail,
 		expiresAt,
 	};
 
