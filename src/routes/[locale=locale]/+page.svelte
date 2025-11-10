@@ -162,8 +162,9 @@
 					formmethod="post"
 					formaction={route("signOut /[locale=locale]", { locale: $locale })}
 					variant="outline"
-					data-testid="sign-out-button">{$LL.auth.signOut()}</Form.Button
 				>
+					{$LL.auth.signOut()}
+				</Form.Button>
 			</form>
 		</div>
 
