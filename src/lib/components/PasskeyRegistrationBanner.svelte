@@ -85,14 +85,12 @@
 	}
 
 	function getDeviceName(): string {
-		const ua = navigator.userAgent;
-		if (ua.includes("iPhone")) return "iPhone";
-		if (ua.includes("iPad")) return "iPad";
-		if (ua.includes("Android")) return "Android";
-		if (ua.includes("Mac")) return "Mac";
-		if (ua.includes("Windows")) return "Windows";
-		if (ua.includes("Linux")) return "Linux";
-		return "Device";
+		// Use current date as default name (more reliable than platform detection)
+		const now = new Date();
+		const year = now.getFullYear();
+		const month = String(now.getMonth() + 1).padStart(2, "0");
+		const day = String(now.getDate()).padStart(2, "0");
+		return `Passkey ${year}-${month}-${day}`;
 	}
 </script>
 
