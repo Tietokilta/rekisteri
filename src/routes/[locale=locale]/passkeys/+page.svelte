@@ -123,13 +123,13 @@
 	</div>
 
 	{#if showNameInput}
-		<div class="mb-4 rounded-lg border border-primary bg-primary/5 p-4">
-			<div class="space-y-4">
-				<div>
-					<h3 class="text-lg font-semibold">{$LL.auth.passkey.nameThisPasskey()}</h3>
-					<p class="mt-1 text-sm text-muted-foreground">{$LL.auth.passkey.nameOptional()}</p>
-				</div>
-				<div>
+		<Item.Root variant="outline" class="mb-4">
+			<Item.Media variant="icon">
+				<Key />
+			</Item.Media>
+			<Item.Content>
+				<Item.Title>{$LL.auth.passkey.nameThisPasskey()}</Item.Title>
+				<div class="mt-2 space-y-2">
 					<Input
 						id="new-passkey-name"
 						type="text"
@@ -140,14 +140,15 @@
 							if (e.key === "Enter") savePasskeyName();
 						}}
 					/>
+					<p class="text-sm text-muted-foreground">{$LL.auth.passkey.nameOptional()}</p>
 				</div>
-				<div class="flex gap-2">
-					<Button onclick={savePasskeyName} disabled={isRegistering}>
-						{isRegistering ? $LL.auth.passkey.saving() : $LL.auth.passkey.save()}
-					</Button>
-				</div>
-			</div>
-		</div>
+			</Item.Content>
+			<Item.Actions>
+				<Button onclick={savePasskeyName} disabled={isRegistering} size="sm">
+					{isRegistering ? $LL.auth.passkey.saving() : $LL.auth.passkey.save()}
+				</Button>
+			</Item.Actions>
+		</Item.Root>
 	{/if}
 
 	{#if errorMessage}
