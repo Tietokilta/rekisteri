@@ -1,7 +1,8 @@
 import { relations } from "drizzle-orm";
-import { boolean, integer, json, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, index, integer, json, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import * as z from "zod";
 import { MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
+import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 
 const timestamps = {
 	createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -46,6 +47,24 @@ export const emailOTP = pgTable("email_otp", {
 	email: text().notNull(),
 	expiresAt: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 });
+
+export const passkey = pgTable(
+	"passkey",
+	{
+		id: text().primaryKey(), // credentialId from WebAuthn (base64url encoded)
+		userId: text()
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		publicKey: text().notNull(), // Public key for verification (base64url encoded)
+		counter: integer().notNull().default(0), // Signature counter for replay protection
+		deviceName: text(), // User-friendly device name (e.g., "iPhone 15", "YubiKey 5")
+		transports: json().$type<AuthenticatorTransportFuture[]>(), // Authenticator transports
+		backedUp: boolean().notNull().default(false), // Whether passkey is synced (e.g., iCloud Keychain)
+		lastUsedAt: timestamp({ withTimezone: true }),
+		...timestamps,
+	},
+	(table) => [index("idx_passkey_user_id").on(table.userId)],
+);
 
 export const membership = pgTable("membership", {
 	id: text().primaryKey(),
@@ -108,3 +127,5 @@ export type Session = typeof session.$inferSelect;
 export type User = typeof user.$inferSelect;
 
 export type AuditLog = typeof auditLog.$inferSelect;
+
+export type Passkey = typeof passkey.$inferSelect;

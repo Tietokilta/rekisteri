@@ -155,6 +155,9 @@ jobs:
             -e MAILGUN_DOMAIN=rekisteri.tietokilta.fi \
             -e MAILGUN_SENDER="TiK-Rekisteri <noreply@rekisteri.tietokilta.fi>" \
             -e MAILGUN_URL="https://api.eu.mailgun.net" \
+            -e RP_NAME="Tietokilta Rekisteri" \
+            -e RP_ID="localhost" \
+            -e RP_ORIGIN="http://localhost:5173" \
             rekisteri:latest
 
           # Wait for app to start (migrations + server startup)

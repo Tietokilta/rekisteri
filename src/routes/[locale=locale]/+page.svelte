@@ -18,6 +18,8 @@
 	import { toast } from "svelte-sonner";
 	import * as z from "zod";
 	import { fi, en } from "zod/locales";
+	import KeyRound from "@lucide/svelte/icons/key-round";
+	import PasskeyRegistrationBanner from "$lib/components/PasskeyRegistrationBanner.svelte";
 
 	let { data }: { data: PageServerData } = $props();
 
@@ -44,6 +46,8 @@
 	<h1 class="font-mono text-lg">
 		{$LL.user.welcome({ firstNames: data.user.firstNames ?? "", lastName: data.user.lastName ?? "" })}
 	</h1>
+
+	<PasskeyRegistrationBanner user={data.user} />
 
 	<div class="flex w-full max-w-2xl flex-col items-center gap-4 md:flex-row md:items-stretch">
 		<div class="w-full max-w-xs">
@@ -141,7 +145,19 @@
 
 				<Form.Button type="submit">{$LL.common.save()}</Form.Button>
 
+				<a
+					href={`/${$locale}/passkeys`}
+					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
+				>
+					<KeyRound class="h-6 w-6" />
+					<div class="flex-1 space-y-1">
+						<p class="text-sm leading-none font-medium">Passkeys</p>
+						<p class="text-sm text-muted-foreground">Manage your passkeys for faster sign-in</p>
+					</div>
+				</a>
+
 				<Form.Button
+					data-testid="sign-out-button"
 					formnovalidate
 					formmethod="post"
 					formaction={route("signOut /[locale=locale]", { locale: $locale })}

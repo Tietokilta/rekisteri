@@ -39,6 +39,9 @@
             STRIPE_WEBHOOK_SECRET = "whsec_...";
             DATABASE_URL = "postgres://root:mysecretpassword@localhost:5432/local";
             PUBLIC_URL = "http://localhost:3000";
+            RP_NAME = "Tietokilta Rekisteri";
+            RP_ID = "localhost";
+            RP_ORIGIN = "http://localhost:3000";
             MAILGUN_API_KEY = "key-...";
             MAILGUN_DOMAIN = "sandbox...";
             MAILGUN_SENDER = "Rekisteri <noreply@...>";
@@ -50,7 +53,7 @@
                 inherit (finalAttrs) pname version src;
                 inherit nodejs;
                 fetcherVersion = 2;
-                hash = "sha256-UpV9tWCBmGY6QMjRETVf0619fNSygZJznDIOPzdhGu4=";
+                hash = "sha256-v8gz+qBrsAK+ATPSHfDlsVNbXKVRR9DsmNeB4zvhVVc=";
               }).overrideAttrs
                 (old: {
                   nativeBuildInputs = [

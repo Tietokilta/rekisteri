@@ -18,6 +18,50 @@ const fi = {
 		changeEmail: "Vaihda sähköpostiosoite",
 		emailSubject: "Tietokillan jäsenrekisterin sisäänkirjautumiskoodi",
 		emailBody: "Koodisi on {code}",
+
+		// Passkey
+		passkey: {
+			signInWithPasskey: "Kirjaudu passkey-avaimella",
+			sendEmailCode: "Lähetä sähköpostikoodi",
+			signingInAs: "Kirjaudutaan sisään:",
+			useDifferentEmail: "Käytä toista sähköpostiosoitetta",
+			or: "tai",
+			authenticating: "Autentikoidaan...",
+			authFailed: "Autentikointi epäonnistui. Yritä uudelleen tai käytä sähköpostikoodia.",
+			authCancelled: "Autentikointi peruttiin",
+			rateLimited: "Liian monta autentikointiyritystä. Yritä myöhemmin uudelleen tai käytä sähköpostikoodia.",
+			regFailed: "Passkey-avaimen rekisteröinti epäonnistui. Yritä myöhemmin uudelleen.",
+			regCancelled: "Rekisteröinti peruttiin",
+			regAlreadyRegistered:
+				"Tämä laite on jo rekisteröity. Jos haluat rekisteröidä uudelleen, poista vanha passkey-avain ensin.",
+
+			// Banner
+			bannerTitle: "Lisää passkey-avain",
+			bannerSetup: "Aseta nyt",
+			settingUp: "Asetetaan...",
+
+			// Management page
+			title: "Passkey-avaimet",
+			addPasskey: "Lisää passkey-avain",
+			adding: "Lisätään...",
+			noPasskeys: "Ei passkey-avaimia",
+			createdAt: "Luotu",
+			lastUsedAt: "Viimeksi käytetty",
+			never: "Ei koskaan",
+			synced: "Synkronoitu",
+			transports: "Kuljetustavat",
+			deleteConfirm: "Haluatko varmasti poistaa tämän passkey-avaimen?",
+			deletePasskey: "Poista passkey-avain",
+			rename: "Nimeä uudelleen",
+			deviceName: "Laitteen nimi",
+			save: "Tallenna",
+			saving: "Tallennetaan...",
+			cancel: "Peruuta",
+			continue: "Jatka",
+			nameOptional: "Valinnainen - jätä tyhjäksi käyttääksesi päivämäärää",
+			nameThisPasskey: "Nimeä tämä passkey-avain?",
+			renameHint: "Voit nimetä passkey-avaimet uudelleen lisäämisen jälkeen",
+		},
 	},
 
 	// User
