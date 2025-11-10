@@ -28,15 +28,24 @@
 	let { data }: { data: PageData } = $props();
 
 	let isRegistering = $state(false);
+	let showNameInput = $state(false);
+	let deviceNameInput = $state("");
 	let errorMessage = $state("");
 	let editingPasskeyId = $state<string | null>(null);
+
+	function showNameDialog() {
+		showNameInput = true;
+		deviceNameInput = "";
+		errorMessage = "";
+	}
 
 	async function registerNewPasskey() {
 		isRegistering = true;
 		errorMessage = "";
 
 		try {
-			const deviceName = getDeviceName();
+			// Use input or fall back to date-based name
+			const deviceName = deviceNameInput.trim() || getDeviceName();
 
 			// Step 1: Get registration options
 			const { options } = await getRegistrationOptions(deviceName);
@@ -47,7 +56,8 @@
 			// Step 3: Verify registration
 			await verifyRegistration({ response: credential, deviceName });
 
-			// Success! Reload page data
+			// Success! Hide name input and reload page data
+			showNameInput = false;
 			await invalidateAll();
 		} catch (error) {
 			console.error("Passkey registration error:", error);
@@ -88,7 +98,11 @@
 			<h1 class="text-3xl font-bold">{$LL.auth.passkey.title()}</h1>
 			<p class="mt-1 text-muted-foreground">{$LL.auth.passkey.renameHint()}</p>
 		</div>
-		<Button data-testid="add-passkey-button-header" onclick={registerNewPasskey} disabled={isRegistering}>
+		<Button
+			data-testid="add-passkey-button-header"
+			onclick={showNameInput ? registerNewPasskey : showNameDialog}
+			disabled={isRegistering}
+		>
 			{#if isRegistering}
 				{$LL.auth.passkey.adding()}
 			{:else}
@@ -96,6 +110,33 @@
 			{/if}
 		</Button>
 	</div>
+
+	{#if showNameInput}
+		<div class="mb-4 rounded-lg border p-4">
+			<div class="space-y-4">
+				<div>
+					<Label for="new-passkey-name">{$LL.auth.passkey.deviceName()}</Label>
+					<Input
+						id="new-passkey-name"
+						type="text"
+						bind:value={deviceNameInput}
+						placeholder={getDeviceName()}
+						disabled={isRegistering}
+						class="mt-2"
+					/>
+					<p class="mt-1 text-sm text-muted-foreground">{$LL.auth.passkey.nameOptional()}</p>
+				</div>
+				<div class="flex gap-2">
+					<Button onclick={registerNewPasskey} disabled={isRegistering}>
+						{isRegistering ? $LL.auth.passkey.settingUp() : $LL.auth.passkey.continue()}
+					</Button>
+					<Button variant="outline" onclick={() => (showNameInput = false)} disabled={isRegistering}>
+						{$LL.auth.passkey.cancel()}
+					</Button>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 	{#if errorMessage}
 		<Alert.Root variant="destructive" class="mb-4">
@@ -114,7 +155,7 @@
 			<Empty.Content>
 				<Button
 					data-testid="add-passkey-button-empty"
-					onclick={registerNewPasskey}
+					onclick={showNameInput ? registerNewPasskey : showNameDialog}
 					disabled={isRegistering}
 					class="mt-4"
 				>

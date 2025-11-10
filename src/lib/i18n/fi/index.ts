@@ -55,6 +55,8 @@ const fi = {
 			deviceName: "Laitteen nimi",
 			save: "Tallenna",
 			cancel: "Peruuta",
+			continue: "Jatka",
+			nameOptional: "Valinnainen - jätä tyhjäksi käyttääksesi päivämäärää",
 			renameHint: "Voit nimetä passkey-avaimet uudelleen lisäämisen jälkeen",
 		},
 	},

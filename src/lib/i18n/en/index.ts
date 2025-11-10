@@ -55,6 +55,8 @@ const en = {
 			deviceName: "Device name",
 			save: "Save",
 			cancel: "Cancel",
+			continue: "Continue",
+			nameOptional: "Optional - leave empty to use date",
 			renameHint: "You can rename passkeys after adding them",
 		},
 	},
