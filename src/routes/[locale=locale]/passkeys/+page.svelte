@@ -1,0 +1,238 @@
+<script lang="ts">
+	import type { PageData } from "./$types";
+	import { Button } from "$lib/components/ui/button/index.js";
+	import * as Item from "$lib/components/ui/item/index.js";
+	import { Badge } from "$lib/components/ui/badge/index.js";
+	import * as Alert from "$lib/components/ui/alert/index.js";
+	import { startRegistration } from "@simplewebauthn/browser";
+	import Trash2 from "@lucide/svelte/icons/trash-2";
+	import Key from "@lucide/svelte/icons/key";
+	import Shield from "@lucide/svelte/icons/shield";
+	import Clock from "@lucide/svelte/icons/clock";
+	import Pencil from "@lucide/svelte/icons/pencil";
+	import Check from "@lucide/svelte/icons/check";
+	import X from "@lucide/svelte/icons/x";
+
+	import { invalidateAll } from "$app/navigation";
+	import { LL } from "$lib/i18n/i18n-svelte";
+	import * as Empty from "$lib/components/ui/empty/index.js";
+	import { Input } from "$lib/components/ui/input/index.js";
+	import { Label } from "$lib/components/ui/label/index.js";
+	import {
+		getRegistrationOptions,
+		verifyRegistration,
+		deletePasskeyForm,
+		renamePasskeyForm,
+	} from "$lib/api/passkeys.remote";
+
+	let { data }: { data: PageData } = $props();
+
+	let isRegistering = $state(false);
+	let errorMessage = $state("");
+	let editingPasskeyId = $state<string | null>(null);
+
+	async function registerNewPasskey() {
+		isRegistering = true;
+		errorMessage = "";
+
+		try {
+			const deviceName = getDeviceName();
+
+			// Step 1: Get registration options
+			const { options } = await getRegistrationOptions(deviceName);
+
+			// Step 2: Create passkey
+			const credential = await startRegistration({ optionsJSON: options });
+
+			// Step 3: Verify registration
+			await verifyRegistration({ response: credential, deviceName });
+
+			// Success! Reload page data
+			await invalidateAll();
+		} catch (error) {
+			console.error("Passkey registration error:", error);
+			if (error instanceof Error) {
+				// Map WebAuthn error types to user-friendly messages
+				if (error.name === "NotAllowedError") {
+					errorMessage = $LL.auth.passkey.regCancelled();
+				} else if (error.name === "InvalidStateError") {
+					errorMessage = $LL.auth.passkey.regAlreadyRegistered();
+				} else {
+					errorMessage = $LL.auth.passkey.regFailed();
+				}
+			}
+		} finally {
+			isRegistering = false;
+		}
+	}
+
+	function getDeviceName(): string {
+		const ua = navigator.userAgent;
+		if (ua.includes("iPhone")) return "iPhone";
+		if (ua.includes("iPad")) return "iPad";
+		if (ua.includes("Android")) return "Android";
+		if (ua.includes("Mac")) return "Mac";
+		if (ua.includes("Windows")) return "Windows";
+		if (ua.includes("Linux")) return "Linux";
+		return "Device";
+	}
+
+	function formatDate(date: Date | string | null): string {
+		if (!date) return $LL.auth.passkey.never();
+		const dateObj = typeof date === "string" ? new Date(date) : date;
+		return dateObj.toLocaleDateString();
+	}
+</script>
+
+<main class="container mx-auto my-8 max-w-4xl p-4">
+	<div class="mb-8 flex items-center justify-between">
+		<div>
+			<h1 class="text-3xl font-bold">{$LL.auth.passkey.title()}</h1>
+			<p class="mt-1 text-muted-foreground">{$LL.auth.passkey.renameHint()}</p>
+		</div>
+		<Button data-testid="add-passkey-button-header" onclick={registerNewPasskey} disabled={isRegistering}>
+			{#if isRegistering}
+				{$LL.auth.passkey.adding()}
+			{:else}
+				+ {$LL.auth.passkey.addPasskey()}
+			{/if}
+		</Button>
+	</div>
+
+	{#if errorMessage}
+		<Alert.Root variant="destructive" class="mb-4">
+			<Alert.Description>{errorMessage}</Alert.Description>
+		</Alert.Root>
+	{/if}
+
+	{#if data.passkeys.length === 0}
+		<Empty.Root class="border">
+			<Empty.Header>
+				<Empty.Media variant="icon">
+					<Key />
+				</Empty.Media>
+			</Empty.Header>
+			<Empty.Title>{$LL.auth.passkey.noPasskeys()}</Empty.Title>
+			<Empty.Content>
+				<Button
+					data-testid="add-passkey-button-empty"
+					onclick={registerNewPasskey}
+					disabled={isRegistering}
+					class="mt-4"
+				>
+					{isRegistering ? $LL.auth.passkey.adding() : $LL.auth.passkey.addPasskey()}
+				</Button>
+			</Empty.Content>
+		</Empty.Root>
+	{:else}
+		<div class="space-y-4">
+			{#each data.passkeys as passkey (passkey.id)}
+				{@const deleteForm = deletePasskeyForm.for(passkey.id)}
+				{@const renameForm = renamePasskeyForm.for(passkey.id)}
+				{@const isEditing = editingPasskeyId === passkey.id}
+				<Item.Root variant="outline">
+					<Item.Media variant="icon">
+						<Key />
+					</Item.Media>
+					<Item.Content>
+						{#if isEditing}
+							<form
+								class="space-y-2"
+								{...renameForm.enhance(async ({ submit }) => {
+									await submit();
+									await invalidateAll();
+									editingPasskeyId = null;
+								})}
+							>
+								<input type="hidden" name="passkeyId" value={passkey.id} />
+								<div>
+									<Label for="rename-{passkey.id}">{$LL.auth.passkey.deviceName()}</Label>
+									<Input
+										id="rename-{passkey.id}"
+										type="text"
+										name="deviceName"
+										value={passkey.deviceName}
+										class="mt-1"
+										onkeydown={(e) => {
+											if (e.key === "Escape") {
+												editingPasskeyId = null;
+											}
+										}}
+									/>
+								</div>
+								<div class="flex gap-2">
+									<Button type="submit" size="sm" disabled={!!renameForm.pending}>
+										<Check class="mr-1 h-3 w-3" />
+										{$LL.auth.passkey.save()}
+									</Button>
+									<Button type="button" variant="outline" size="sm" onclick={() => (editingPasskeyId = null)}>
+										<X class="mr-1 h-3 w-3" />
+										{$LL.auth.passkey.cancel()}
+									</Button>
+								</div>
+							</form>
+						{:else}
+							<Item.Title>
+								<span>{passkey.deviceName}</span>
+								{#if passkey.backedUp}
+									<Badge variant="secondary" class="gap-1">
+										<Shield class="h-3 w-3" />
+										{$LL.auth.passkey.synced()}
+									</Badge>
+								{/if}
+							</Item.Title>
+							<Item.Description>
+								<span class="flex gap-4">
+									<span class="flex items-center gap-1">
+										<Clock class="size-4" />
+										{$LL.auth.passkey.createdAt()}: {formatDate(passkey.createdAt)}
+									</span>
+									<span class="flex items-center gap-1">
+										<Clock class="size-4" />
+										{$LL.auth.passkey.lastUsedAt()}: {formatDate(passkey.lastUsedAt)}
+									</span>
+								</span>
+								{#if passkey.transports && passkey.transports.length > 0}
+									<span>
+										{$LL.auth.passkey.transports()}: {passkey.transports.join(", ")}
+									</span>
+								{/if}
+							</Item.Description>
+						{/if}
+					</Item.Content>
+					{#if !isEditing}
+						<Item.Actions>
+							<Button variant="ghost" size="sm" onclick={() => (editingPasskeyId = passkey.id)} class="mr-2">
+								<Pencil />
+								<span>{$LL.auth.passkey.rename()}</span>
+							</Button>
+							<form
+								class="contents"
+								{...deleteForm.enhance(async ({ submit }) => {
+									await submit();
+									await invalidateAll();
+								})}
+							>
+								<input type="hidden" name="passkeyId" value={passkey.id} />
+								<Button
+									type="submit"
+									variant="destructive"
+									size="sm"
+									disabled={!!deleteForm.pending}
+									onclick={(e) => {
+										if (!confirm($LL.auth.passkey.deleteConfirm())) {
+											e.preventDefault();
+										}
+									}}
+								>
+									<Trash2 />
+									<span>{$LL.auth.passkey.deletePasskey()}</span>
+								</Button>
+							</form>
+						</Item.Actions>
+					{/if}
+				</Item.Root>
+			{/each}
+		</div>
+	{/if}
+</main>

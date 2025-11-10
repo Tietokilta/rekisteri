@@ -3,9 +3,11 @@ import type { Actions, PageServerLoad, RequestEvent } from "./$types";
 import { RefillingTokenBucket } from "$lib/server/auth/rate-limit";
 import * as z from "zod";
 import { setEmailCookie, emailCookieName } from "$lib/server/auth/email";
+import { userHasPasskeys } from "$lib/server/auth/passkey";
 import { route } from "$lib/ROUTES";
 
-const ipBucket = new RefillingTokenBucket<string>(20, 1);
+// Rate limit: 10 sign-in attempts per minute per IP
+const ipBucket = new RefillingTokenBucket<string>(10, 60);
 
 export const load: PageServerLoad = async (event) => {
 	if (event.locals.user) {
@@ -60,5 +62,15 @@ async function action(event: RequestEvent) {
 	}
 
 	setEmailCookie(event, email, new Date(Date.now() + 1000 * 60 * 10));
-	redirect(303, route("/[locale=locale]/sign-in/email", { locale: event.locals.locale }));
+
+	// Check if user has passkeys registered
+	const hasPasskeys = await userHasPasskeys(email);
+
+	if (hasPasskeys) {
+		// User has passkeys - redirect to method selection page
+		redirect(303, `/${event.locals.locale}/sign-in/method`);
+	} else {
+		// No passkeys - proceed with email OTP flow
+		redirect(303, route("/[locale=locale]/sign-in/email", { locale: event.locals.locale }));
+	}
 }

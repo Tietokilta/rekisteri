@@ -7,8 +7,10 @@ const config = {
 	// for more information about preprocessors
 	preprocess: vitePreprocess(),
 
-	experimental: {
-		await: true,
+	compilerOptions: {
+		experimental: {
+			async: true,
+		},
 	},
 
 	kit: {

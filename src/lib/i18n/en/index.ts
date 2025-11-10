@@ -18,6 +18,45 @@ const en = {
 		changeEmail: "Change email address",
 		emailSubject: "CSG Membership Registry Sign In Code",
 		emailBody: "Your code is {code}",
+
+		// Passkey
+		passkey: {
+			signInWithPasskey: "Sign in with passkey",
+			sendEmailCode: "Send email code",
+			signingInAs: "Signing in as:",
+			useDifferentEmail: "Use a different email",
+			or: "or",
+			authenticating: "Authenticating...",
+			authFailed: "Authentication failed. Please try again or use email code.",
+			authCancelled: "Authentication was cancelled",
+			regFailed: "Failed to register passkey. Please try again later.",
+			regCancelled: "Registration was cancelled",
+			regAlreadyRegistered:
+				"This device is already registered. If you want to re-register, please delete the old passkey first.",
+
+			// Banner
+			bannerTitle: "Add a passkey",
+			bannerSetup: "Set up now",
+			settingUp: "Setting up...",
+
+			// Management page
+			title: "Passkeys",
+			addPasskey: "Add passkey",
+			adding: "Adding...",
+			noPasskeys: "No passkeys",
+			createdAt: "Created",
+			lastUsedAt: "Last used",
+			never: "Never",
+			synced: "Synced",
+			transports: "Transports",
+			deleteConfirm: "Are you sure you want to delete this passkey?",
+			deletePasskey: "Delete passkey",
+			rename: "Rename",
+			deviceName: "Device name",
+			save: "Save",
+			cancel: "Cancel",
+			renameHint: "You can rename passkeys after adding them",
+		},
 	},
 
 	// User
