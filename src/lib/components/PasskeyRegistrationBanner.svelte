@@ -14,6 +14,7 @@
 	let showBanner = $state(false);
 	let showNameInput = $state(false);
 	let deviceNameInput = $state("");
+	let pendingCredential = $state<any>(null);
 	let isRegistering = $state(false);
 	let errorMessage = $state("");
 
@@ -50,35 +51,23 @@
 		showBanner = false;
 	}
 
-	function showNameDialog() {
-		showNameInput = true;
-		deviceNameInput = "";
-		errorMessage = "";
-	}
-
-	async function registerPasskey() {
+	async function startPasskeyRegistration() {
 		if (!user) return;
 
 		isRegistering = true;
 		errorMessage = "";
 
 		try {
-			// Use input or fall back to date-based name
-			const deviceName = deviceNameInput.trim() || getDeviceName();
+			// Step 1: Get registration options with temporary name
+			const { options } = await getRegistrationOptions(getDeviceName());
 
-			// Step 1: Get registration options
-			const { options } = await getRegistrationOptions(deviceName);
-
-			// Step 2: Create passkey
+			// Step 2: Create passkey (WebAuthn ceremony)
 			const credential = await startRegistration({ optionsJSON: options });
 
-			// Step 3: Verify registration
-			await verifyRegistration({ response: credential, deviceName });
-
-			// Success! Hide banner and name input
-			showBanner = false;
-			showNameInput = false;
-			localStorage.setItem(DISMISSED_KEY, "true");
+			// Step 3: Store credential and show name input
+			pendingCredential = credential;
+			showNameInput = true;
+			deviceNameInput = "";
 		} catch (error) {
 			console.error("Passkey registration error:", error);
 			if (error instanceof Error) {
@@ -91,6 +80,32 @@
 					errorMessage = $LL.auth.passkey.regFailed();
 				}
 			}
+		} finally {
+			isRegistering = false;
+		}
+	}
+
+	async function savePasskeyName() {
+		if (!pendingCredential) return;
+
+		isRegistering = true;
+		errorMessage = "";
+
+		try {
+			// Use input or fall back to date-based name
+			const deviceName = deviceNameInput.trim() || getDeviceName();
+
+			// Verify and save with chosen name
+			await verifyRegistration({ response: pendingCredential, deviceName });
+
+			// Success! Hide banner
+			showBanner = false;
+			showNameInput = false;
+			pendingCredential = null;
+			localStorage.setItem(DISMISSED_KEY, "true");
+		} catch (error) {
+			console.error("Passkey verification error:", error);
+			errorMessage = $LL.auth.passkey.regFailed();
 		} finally {
 			isRegistering = false;
 		}
@@ -113,34 +128,36 @@
 				<FingerprintIcon />
 			</Item.Media>
 			<Item.Content>
-				<Item.Title>{$LL.auth.passkey.bannerTitle()}</Item.Title>
 				{#if showNameInput}
+					<Item.Title>{$LL.auth.passkey.nameThisPasskey()}</Item.Title>
 					<div class="mt-2 space-y-2">
-						<Label for="passkey-name">{$LL.auth.passkey.deviceName()}</Label>
 						<Input
 							id="passkey-name"
 							type="text"
 							bind:value={deviceNameInput}
 							placeholder={getDeviceName()}
 							disabled={isRegistering}
+							onkeydown={(e) => {
+								if (e.key === "Enter") savePasskeyName();
+							}}
 						/>
 						<p class="text-sm text-muted-foreground">{$LL.auth.passkey.nameOptional()}</p>
 					</div>
-				{:else if errorMessage}
-					<Item.Description class="text-destructive">{errorMessage}</Item.Description>
+				{:else}
+					<Item.Title>{$LL.auth.passkey.bannerTitle()}</Item.Title>
+					{#if errorMessage}
+						<Item.Description class="text-destructive">{errorMessage}</Item.Description>
+					{/if}
 				{/if}
 			</Item.Content>
 			<Item.Actions>
 				{#if showNameInput}
-					<Button onclick={registerPasskey} disabled={isRegistering} size="sm" variant="default">
-						{isRegistering ? $LL.auth.passkey.settingUp() : $LL.auth.passkey.continue()}
-					</Button>
-					<Button onclick={() => (showNameInput = false)} size="sm" variant="ghost" disabled={isRegistering}>
-						{$LL.auth.passkey.cancel()}
+					<Button onclick={savePasskeyName} disabled={isRegistering} size="sm" variant="default">
+						{isRegistering ? $LL.auth.passkey.saving() : $LL.auth.passkey.save()}
 					</Button>
 				{:else}
-					<Button onclick={showNameDialog} disabled={isRegistering} size="sm" variant="default">
-						{$LL.auth.passkey.bannerSetup()}
+					<Button onclick={startPasskeyRegistration} disabled={isRegistering} size="sm" variant="default">
+						{isRegistering ? $LL.auth.passkey.settingUp() : $LL.auth.passkey.bannerSetup()}
 					</Button>
 					<Button onclick={dismiss} size="sm" variant="ghost" class="h-8 w-8 p-0">
 						<XIcon class="h-4 w-4" />

@@ -30,35 +30,25 @@
 	let isRegistering = $state(false);
 	let showNameInput = $state(false);
 	let deviceNameInput = $state("");
+	let pendingCredential = $state<any>(null);
 	let errorMessage = $state("");
 	let editingPasskeyId = $state<string | null>(null);
 
-	function showNameDialog() {
-		showNameInput = true;
-		deviceNameInput = "";
-		errorMessage = "";
-	}
-
-	async function registerNewPasskey() {
+	async function startPasskeyRegistration() {
 		isRegistering = true;
 		errorMessage = "";
 
 		try {
-			// Use input or fall back to date-based name
-			const deviceName = deviceNameInput.trim() || getDeviceName();
+			// Step 1: Get registration options with temporary name
+			const { options } = await getRegistrationOptions(getDeviceName());
 
-			// Step 1: Get registration options
-			const { options } = await getRegistrationOptions(deviceName);
-
-			// Step 2: Create passkey
+			// Step 2: Create passkey (WebAuthn ceremony)
 			const credential = await startRegistration({ optionsJSON: options });
 
-			// Step 3: Verify registration
-			await verifyRegistration({ response: credential, deviceName });
-
-			// Success! Hide name input and reload page data
-			showNameInput = false;
-			await invalidateAll();
+			// Step 3: Store credential and show name input
+			pendingCredential = credential;
+			showNameInput = true;
+			deviceNameInput = "";
 		} catch (error) {
 			console.error("Passkey registration error:", error);
 			if (error instanceof Error) {
@@ -71,6 +61,31 @@
 					errorMessage = $LL.auth.passkey.regFailed();
 				}
 			}
+		} finally {
+			isRegistering = false;
+		}
+	}
+
+	async function savePasskeyName() {
+		if (!pendingCredential) return;
+
+		isRegistering = true;
+		errorMessage = "";
+
+		try {
+			// Use input or fall back to date-based name
+			const deviceName = deviceNameInput.trim() || getDeviceName();
+
+			// Verify and save with chosen name
+			await verifyRegistration({ response: pendingCredential, deviceName });
+
+			// Success! Hide name input and reload page data
+			showNameInput = false;
+			pendingCredential = null;
+			await invalidateAll();
+		} catch (error) {
+			console.error("Passkey verification error:", error);
+			errorMessage = $LL.auth.passkey.regFailed();
 		} finally {
 			isRegistering = false;
 		}
@@ -98,11 +113,7 @@
 			<h1 class="text-3xl font-bold">{$LL.auth.passkey.title()}</h1>
 			<p class="mt-1 text-muted-foreground">{$LL.auth.passkey.renameHint()}</p>
 		</div>
-		<Button
-			data-testid="add-passkey-button-header"
-			onclick={showNameInput ? registerNewPasskey : showNameDialog}
-			disabled={isRegistering}
-		>
+		<Button data-testid="add-passkey-button-header" onclick={startPasskeyRegistration} disabled={isRegistering}>
 			{#if isRegistering}
 				{$LL.auth.passkey.adding()}
 			{:else}
@@ -112,26 +123,27 @@
 	</div>
 
 	{#if showNameInput}
-		<div class="mb-4 rounded-lg border p-4">
+		<div class="mb-4 rounded-lg border border-primary bg-primary/5 p-4">
 			<div class="space-y-4">
 				<div>
-					<Label for="new-passkey-name">{$LL.auth.passkey.deviceName()}</Label>
+					<h3 class="text-lg font-semibold">{$LL.auth.passkey.nameThisPasskey()}</h3>
+					<p class="mt-1 text-sm text-muted-foreground">{$LL.auth.passkey.nameOptional()}</p>
+				</div>
+				<div>
 					<Input
 						id="new-passkey-name"
 						type="text"
 						bind:value={deviceNameInput}
 						placeholder={getDeviceName()}
 						disabled={isRegistering}
-						class="mt-2"
+						onkeydown={(e) => {
+							if (e.key === "Enter") savePasskeyName();
+						}}
 					/>
-					<p class="mt-1 text-sm text-muted-foreground">{$LL.auth.passkey.nameOptional()}</p>
 				</div>
 				<div class="flex gap-2">
-					<Button onclick={registerNewPasskey} disabled={isRegistering}>
-						{isRegistering ? $LL.auth.passkey.settingUp() : $LL.auth.passkey.continue()}
-					</Button>
-					<Button variant="outline" onclick={() => (showNameInput = false)} disabled={isRegistering}>
-						{$LL.auth.passkey.cancel()}
+					<Button onclick={savePasskeyName} disabled={isRegistering}>
+						{isRegistering ? $LL.auth.passkey.saving() : $LL.auth.passkey.save()}
 					</Button>
 				</div>
 			</div>
@@ -155,7 +167,7 @@
 			<Empty.Content>
 				<Button
 					data-testid="add-passkey-button-empty"
-					onclick={showNameInput ? registerNewPasskey : showNameDialog}
+					onclick={startPasskeyRegistration}
 					disabled={isRegistering}
 					class="mt-4"
 				>
