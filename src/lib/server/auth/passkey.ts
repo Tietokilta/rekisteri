@@ -136,8 +136,9 @@ export async function verifyAuthenticationAndGetUser(
 	}
 
 	// Validate that the passkey belongs to the expected email (prevents wrong account login)
-	if (expectedEmail && user.email !== expectedEmail) {
-		console.warn(`Passkey email mismatch: expected ${expectedEmail}, got ${user.email}`);
+	// Use case-insensitive comparison since email addresses are case-insensitive per RFC 5321
+	if (expectedEmail && user.email.toLowerCase() !== expectedEmail.toLowerCase()) {
+		console.warn("Passkey email mismatch detected");
 		return null;
 	}
 
