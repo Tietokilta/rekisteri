@@ -7,6 +7,8 @@ export type AuditAction =
 	| "auth.login"
 	| "auth.login_failed"
 	| "auth.logout"
+	| "auth.passkey_registered"
+	| "auth.passkey_deleted"
 	| "member.approve"
 	| "member.reject"
 	| "member.expire"
@@ -120,5 +122,45 @@ export async function auditMemberAction(
 		targetType: "member",
 		targetId: memberId,
 		metadata,
+	});
+}
+
+/**
+ * Audit a passkey registration
+ */
+export async function auditPasskeyRegistered(
+	userId: string,
+	passkeyId: string,
+	ipAddress?: string,
+	userAgent?: string,
+	metadata?: Record<string, unknown>,
+): Promise<void> {
+	await createAuditLog({
+		userId,
+		action: "auth.passkey_registered",
+		targetType: "passkey",
+		targetId: passkeyId,
+		metadata,
+		ipAddress,
+		userAgent,
+	});
+}
+
+/**
+ * Audit a passkey deletion
+ */
+export async function auditPasskeyDeleted(
+	userId: string,
+	passkeyId: string,
+	ipAddress?: string,
+	userAgent?: string,
+): Promise<void> {
+	await createAuditLog({
+		userId,
+		action: "auth.passkey_deleted",
+		targetType: "passkey",
+		targetId: passkeyId,
+		ipAddress,
+		userAgent,
 	});
 }

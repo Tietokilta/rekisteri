@@ -59,6 +59,11 @@ const privateEnvSchema = z
 		// Server configuration
 		PORT: z.coerce.number().int().positive().default(5173),
 		ADDRESS_HEADER: z.string().default("X-Client-IP"),
+
+		// Passkey/WebAuthn Configuration
+		RP_NAME: z.string().min(1),
+		RP_ID: z.string().min(1),
+		RP_ORIGIN: z.url({ protocol: /^https?$/ }),
 	})
 	.superRefine((data, ctx) => {
 		// In production, Mailgun is required
@@ -107,6 +112,9 @@ const parsed = privateEnvSchema.safeParse({
 	MAILGUN_URL: privateEnv.MAILGUN_URL,
 	PORT: privateEnv.PORT,
 	ADDRESS_HEADER: privateEnv.ADDRESS_HEADER,
+	RP_NAME: privateEnv.RP_NAME,
+	RP_ID: privateEnv.RP_ID,
+	RP_ORIGIN: privateEnv.RP_ORIGIN,
 });
 
 if (!parsed.success) {
