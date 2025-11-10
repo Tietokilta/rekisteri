@@ -7,7 +7,6 @@ import {
 	deletePasskey,
 	renamePasskey,
 } from "$lib/server/auth/passkey";
-import { RefillingTokenBucket } from "$lib/server/auth/rate-limit";
 import { auditPasskeyRegistered, auditPasskeyDeleted } from "$lib/server/audit";
 import type { PublicKeyCredentialCreationOptionsJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
 import { dev } from "$app/environment";
@@ -38,12 +37,6 @@ const registrationResponseSchema: z.ZodType<RegistrationResponseJSON> = z.object
 	type: z.literal("public-key"), // PublicKeyCredentialType
 }) as z.ZodType<RegistrationResponseJSON>;
 
-// Rate limit: 5 registration attempts per hour per user
-const registerBucket = new RefillingTokenBucket<string>(5, 60 * 60);
-
-// Rate limit: 30 requests per minute per user (generous for legitimate use)
-const listBucket = new RefillingTokenBucket<string>(30, 60);
-
 const challengeCookieName = "passkey_register_challenge";
 
 /**
@@ -56,11 +49,6 @@ export const getRegistrationOptions = command(
 
 		if (!locals.user) {
 			throw error(401, "Not authenticated");
-		}
-
-		// Rate limiting by user ID
-		if (!registerBucket.consume(locals.user.id, 1)) {
-			throw error(429, "Too many registration attempts. Please try again later.");
 		}
 
 		try {
@@ -133,11 +121,6 @@ export const listPasskeys = query(async () => {
 
 	if (!locals.user) {
 		throw error(401, "Not authenticated");
-	}
-
-	// Rate limiting by user ID
-	if (!listBucket.consume(locals.user.id, 1)) {
-		throw error(429, "Too many requests. Please try again later.");
 	}
 
 	try {

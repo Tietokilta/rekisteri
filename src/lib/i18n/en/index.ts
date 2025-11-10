@@ -29,6 +29,7 @@ const en = {
 			authenticating: "Authenticating...",
 			authFailed: "Authentication failed. Please try again or use email code.",
 			authCancelled: "Authentication was cancelled",
+			rateLimited: "Too many authentication attempts. Please try again later or use email code.",
 			regFailed: "Failed to register passkey. Please try again later.",
 			regCancelled: "Registration was cancelled",
 			regAlreadyRegistered:

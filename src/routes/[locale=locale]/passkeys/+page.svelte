@@ -5,6 +5,7 @@
 	import { Badge } from "$lib/components/ui/badge/index.js";
 	import * as Alert from "$lib/components/ui/alert/index.js";
 	import { startRegistration } from "@simplewebauthn/browser";
+	import type { RegistrationResponseJSON } from "@simplewebauthn/server";
 	import Trash2 from "@lucide/svelte/icons/trash-2";
 	import Key from "@lucide/svelte/icons/key";
 	import Shield from "@lucide/svelte/icons/shield";
@@ -30,7 +31,7 @@
 	let isRegistering = $state(false);
 	let showNameInput = $state(false);
 	let deviceNameInput = $state("");
-	let pendingCredential = $state<any>(null);
+	let pendingCredential = $state<RegistrationResponseJSON | null>(null);
 	let errorMessage = $state("");
 	let editingPasskeyId = $state<string | null>(null);
 

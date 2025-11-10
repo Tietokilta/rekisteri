@@ -9,7 +9,7 @@ import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/serv
 import { dev } from "$app/environment";
 import { z } from "zod";
 
-// Rate limit: 10 authentication attempts per hour per IP
+// Rate limit: 10 authentication attempts per hour per email
 const authBucket = new RefillingTokenBucket<string>(10, 60 * 60);
 
 const challengeCookieName = "passkey_auth_challenge";
@@ -21,11 +21,10 @@ const emailCookieName = "passkey_auth_email";
 export const getAuthenticationOptions = command(
 	z.email(),
 	async (email): Promise<{ options: PublicKeyCredentialRequestOptionsJSON }> => {
-		const { cookies, getClientAddress } = getRequestEvent();
-		const clientAddress = getClientAddress();
+		const { cookies } = getRequestEvent();
 
-		// Rate limiting by IP
-		if (!authBucket.consume(clientAddress, 1)) {
+		// Rate limiting by email
+		if (!authBucket.consume(email, 1)) {
 			throw error(429, "Too many authentication attempts. Please try again later.");
 		}
 
@@ -73,7 +72,7 @@ export const verifyAuthentication = command(
 		}
 
 		try {
-			const result = await verifyAuthenticationAndGetUser(response, challenge);
+			const result = await verifyAuthenticationAndGetUser(response, challenge, email);
 
 			if (!result) {
 				// Clear cookies on failed authentication
@@ -132,6 +131,13 @@ export const verifyAuthentication = command(
 			cookies.delete(challengeCookieName, { path: "/" });
 			cookies.delete(emailCookieName, { path: "/" });
 			cookies.delete(signInEmailCookieName, { path: "/" });
+
+			// Re-throw HttpErrors (intentional errors like 401, 400) as-is
+			if (err && typeof err === "object" && "status" in err) {
+				throw err;
+			}
+
+			// Only unexpected errors become 500
 			throw error(500, "Failed to verify authentication");
 		}
 	},

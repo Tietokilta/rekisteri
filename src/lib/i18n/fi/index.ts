@@ -29,6 +29,7 @@ const fi = {
 			authenticating: "Autentikoidaan...",
 			authFailed: "Autentikointi epäonnistui. Yritä uudelleen tai käytä sähköpostikoodia.",
 			authCancelled: "Autentikointi peruttiin",
+			rateLimited: "Liian monta autentikointiyritystä. Yritä myöhemmin uudelleen tai käytä sähköpostikoodia.",
 			regFailed: "Passkey-avaimen rekisteröinti epäonnistui. Yritä myöhemmin uudelleen.",
 			regCancelled: "Rekisteröinti peruttiin",
 			regAlreadyRegistered:

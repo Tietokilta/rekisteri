@@ -2,19 +2,19 @@
 	import { Button } from "$lib/components/ui/button/index.js";
 	import * as Item from "$lib/components/ui/item/index.js";
 	import { Input } from "$lib/components/ui/input/index.js";
-	import { Label } from "$lib/components/ui/label/index.js";
 	import { startRegistration } from "@simplewebauthn/browser";
 	import { LL } from "$lib/i18n/i18n-svelte";
 	import FingerprintIcon from "@lucide/svelte/icons/fingerprint";
 	import XIcon from "@lucide/svelte/icons/x";
 	import { listPasskeys, getRegistrationOptions, verifyRegistration } from "$lib/api/passkeys.remote";
+	import type { RegistrationResponseJSON } from "@simplewebauthn/server";
 
 	let { user } = $props<{ user: { id: string; email: string } | null }>();
 
 	let showBanner = $state(false);
 	let showNameInput = $state(false);
 	let deviceNameInput = $state("");
-	let pendingCredential = $state<any>(null);
+	let pendingCredential = $state<RegistrationResponseJSON | null>(null);
 	let isRegistering = $state(false);
 	let errorMessage = $state("");
 

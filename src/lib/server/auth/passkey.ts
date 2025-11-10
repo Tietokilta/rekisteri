@@ -94,32 +94,17 @@ export async function verifyAndStoreRegistration(
 
 /**
  * Generate authentication options for signing in with a passkey
+ *
+ * Uses resident keys (discoverable credentials) approach with empty allowCredentials
+ * to prevent email enumeration - response is identical regardless of user existence.
  */
-export async function createAuthenticationOptions(userEmail: string): Promise<PublicKeyCredentialRequestOptionsJSON> {
-	// Look up user by email
-	const [user] = await db.select().from(table.user).where(eq(table.user.email, userEmail)).limit(1);
-
-	if (!user) {
-		// Return generic options if user doesn't exist to avoid errors
-		// Note: Email enumeration is still possible since real users return passkey IDs
-		return await generateAuthenticationOptions({
-			rpID: env.RP_ID,
-			allowCredentials: [],
-			userVerification: "preferred",
-		});
-	}
-
-	// Get user's passkeys
-	const passkeys = await db.select().from(table.passkey).where(eq(table.passkey.userId, user.id));
-
+export async function createAuthenticationOptions(_userEmail: string): Promise<PublicKeyCredentialRequestOptionsJSON> {
+	// Always return empty allowCredentials to prevent enumeration
+	// Browser will show all resident keys for this RP domain
+	// This is timing-safe: same response whether user exists or not
 	const options = await generateAuthenticationOptions({
 		rpID: env.RP_ID,
-		// Only allow the user's registered passkeys
-		allowCredentials: passkeys.map((passkey) => ({
-			id: passkey.id,
-			type: "public-key",
-			transports: passkey.transports || [],
-		})),
+		allowCredentials: [],
 		userVerification: "preferred",
 	});
 
@@ -128,10 +113,12 @@ export async function createAuthenticationOptions(userEmail: string): Promise<Pu
 
 /**
  * Verify a passkey authentication response and return the authenticated user
+ * @param expectedEmail Optional email to validate against (prevents wrong account login)
  */
 export async function verifyAuthenticationAndGetUser(
 	response: AuthenticationResponseJSON,
 	expectedChallenge: string,
+	expectedEmail?: string,
 ): Promise<{ user: User; passkey: Passkey } | null> {
 	// Look up the passkey by credential ID
 	const credentialId = response.id;
@@ -145,6 +132,12 @@ export async function verifyAuthenticationAndGetUser(
 	const [user] = await db.select().from(table.user).where(eq(table.user.id, passkey.userId)).limit(1);
 
 	if (!user) {
+		return null;
+	}
+
+	// Validate that the passkey belongs to the expected email (prevents wrong account login)
+	if (expectedEmail && user.email !== expectedEmail) {
+		console.warn(`Passkey email mismatch: expected ${expectedEmail}, got ${user.email}`);
 		return null;
 	}
 

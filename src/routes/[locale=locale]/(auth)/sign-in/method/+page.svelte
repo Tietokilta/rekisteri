@@ -4,6 +4,7 @@
 	import type { PageData } from "./$types";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import * as Card from "$lib/components/ui/card/index.js";
+	import * as Alert from "$lib/components/ui/alert/index.js";
 	import { Separator } from "$lib/components/ui/separator/index.js";
 	import { LL } from "$lib/i18n/i18n-svelte";
 	import { startAuthentication } from "@simplewebauthn/browser";
@@ -35,9 +36,23 @@
 			goto(route("/[locale=locale]", { locale: data.email.includes("tietokilta") ? "fi" : "en" }));
 		} catch (error) {
 			console.error("Passkey authentication error:", error);
+
+			// Handle different error types
 			if (error instanceof Error) {
-				errorMessage =
-					error.name === "NotAllowedError" ? $LL.auth.passkey.authCancelled() : $LL.auth.passkey.authFailed();
+				// User cancelled the passkey prompt
+				if (error.name === "NotAllowedError") {
+					errorMessage = $LL.auth.passkey.authCancelled();
+				}
+				// Rate limit error
+				else if ("status" in error && error.status === 429) {
+					errorMessage = $LL.auth.passkey.rateLimited();
+				}
+				// All other errors (including wrong account, invalid passkey, etc.)
+				else {
+					errorMessage = $LL.auth.passkey.authFailed();
+				}
+			} else {
+				errorMessage = $LL.auth.passkey.authFailed();
 			}
 		} finally {
 			isAuthenticating = false;
@@ -72,7 +87,9 @@
 			</Button>
 
 			{#if errorMessage}
-				<p class="text-center text-sm text-destructive">{errorMessage}</p>
+				<Alert.Root variant="destructive">
+					<Alert.Description>{errorMessage}</Alert.Description>
+				</Alert.Root>
 			{/if}
 
 			<!-- Divider -->
