@@ -14,7 +14,7 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
 		"test:e2e": "playwright test",
-		"test": "pnpm run test:e2e",
+		"test": "pnpm run test:e2e && pnpm run test:unit -- --run",
 		"db:start": "docker compose up",
 		"db:clear": "docker compose down -v",
 		"db:reset": "pnpm db:clear && pnpm db:start -d --wait && pnpm db:migrate && pnpm db:seed",
@@ -24,7 +24,8 @@
 		"db:studio": "drizzle-kit studio",
 		"i18n:generate": "typesafe-i18n --no-watch",
 		"i18n:watch": "typesafe-i18n",
-		"typesafe-i18n": "typesafe-i18n"
+		"typesafe-i18n": "typesafe-i18n",
+		"test:unit": "svelte-kit sync && vitest"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.4.1",
@@ -69,6 +70,7 @@
 		"vite": "^7.2.2",
 		"vite-plugin-devtools-json": "^1.0.0",
 		"vite-plugin-kit-routes": "^1.0.2",
+		"vitest": "^3.2.4",
 		"zod": "^4.1.12"
 	},
 	"dependencies": {

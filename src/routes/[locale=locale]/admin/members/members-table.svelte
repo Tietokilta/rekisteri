@@ -600,13 +600,14 @@
 			</Table.Header>
 			<Table.Body>
 				{#each table.getRowModel().rows as row (row.id)}
-					<Table.Row>
+					<Table.Row data-testid="member-row-{row.original.userId}">
 						{#each row.getVisibleCells() as cell (cell.id)}
 							<Table.Cell>
 								{#if cell.column.id === "expand"}
 									<Button
 										variant="ghost"
 										size="sm"
+										data-testid="expand-member-{row.original.userId}"
 										onclick={() => {
 											const userId = row.original.userId;
 											if (expandedRows.has(userId)) {
@@ -747,14 +748,21 @@
 														<div class="flex gap-2 border-t pt-3">
 															<form method="POST" action="?/approve" use:enhance>
 																<input type="hidden" name="memberId" value={membership.id} />
-																<Button type="submit" size="sm" variant="default"
+																<Button
+																	type="submit"
+																	size="sm"
+																	variant="default"
+																	data-testid="approve-member-{membership.id}"
 																	>{$LL.admin.members.table.approve()}</Button
 																>
 															</form>
 															<form method="POST" action="?/reject" use:enhance>
 																<input type="hidden" name="memberId" value={membership.id} />
-																<Button type="submit" size="sm" variant="destructive"
-																	>{$LL.admin.members.table.reject()}</Button
+																<Button
+																	type="submit"
+																	size="sm"
+																	variant="destructive"
+																	data-testid="reject-member-{membership.id}">{$LL.admin.members.table.reject()}</Button
 																>
 															</form>
 														</div>

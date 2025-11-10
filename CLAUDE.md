@@ -35,8 +35,9 @@ pnpm lint           # Run eslint and prettier checks
 pnpm format         # Format code with prettier
 
 # Testing
-pnpm test           # Run e2e tests (Playwright)
-pnpm test:e2e       # Same as above
+pnpm test           # Run all tests (integration + e2e)
+pnpm test:unit      # Run integration tests (Vitest)
+pnpm test:e2e       # Run e2e tests (Playwright)
 
 # Database
 pnpm db:reset       # Delete database volume
@@ -133,6 +134,18 @@ Required for development:
 - `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret (get via `stripe listen`)
 - `MAILGUN_*`: Mailgun credentials (optional in dev mode, logs to console)
 - `PORT`: Server port (optional)
+
+## Testing
+
+This project uses a hybrid testing approach with both integration tests (Vitest) and end-to-end tests (Playwright).
+
+**See [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) for comprehensive testing documentation** including:
+
+- Test organization and structure
+- Best practices and patterns
+- Writing new tests
+- Troubleshooting guides
+- Stripe testing strategies
 
 ## Important Notes
 

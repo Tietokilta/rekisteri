@@ -138,12 +138,12 @@
 								<Form.Label>{$LL.user.allowEmails()}</Form.Label>
 								<Form.Description>{$LL.user.allowEmailsDescription()}</Form.Description>
 							</div>
-							<Switch {...props} bind:checked={$formData.isAllowedEmails} />
+							<Switch {...props} data-testid="email-consent-toggle" bind:checked={$formData.isAllowedEmails} />
 						{/snippet}
 					</Form.Control>
 				</Form.Field>
 
-				<Form.Button type="submit">{$LL.common.save()}</Form.Button>
+				<Form.Button type="submit" data-testid="save-profile-button">{$LL.common.save()}</Form.Button>
 
 				<a
 					href={`/${$locale}/passkeys`}
@@ -161,8 +161,10 @@
 					formnovalidate
 					formmethod="post"
 					formaction={route("signOut /[locale=locale]", { locale: $locale })}
-					variant="outline">{$LL.auth.signOut()}</Form.Button
+					variant="outline"
 				>
+					{$LL.auth.signOut()}
+				</Form.Button>
 			</form>
 		</div>
 
@@ -173,6 +175,7 @@
 				<a
 					href={route("/[locale=locale]/admin/memberships", { locale: $locale })}
 					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
+					data-testid="admin-memberships-link"
 				>
 					<UserCog class="h-6 w-6" />
 					<div class="flex-1 space-y-1">
@@ -183,6 +186,7 @@
 				<a
 					href={route("/[locale=locale]/admin/members", { locale: $locale })}
 					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
+					data-testid="admin-members-link"
 				>
 					<UserCog class="h-6 w-6" />
 					<div class="flex-1 space-y-1">
@@ -193,6 +197,7 @@
 				<a
 					href={route("/[locale=locale]/admin/members/import", { locale: $locale })}
 					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
+					data-testid="admin-import-link"
 				>
 					<UserCog class="h-6 w-6" />
 					<div class="flex-1 space-y-1">
@@ -206,7 +211,11 @@
 		<Separator class="hidden md:block" orientation="vertical" />
 		<div class="flex w-full max-w-xs flex-col gap-4">
 			<h2 class="font-mono text-lg">{$LL.membership.title()}</h2>
-			<a href={route("/[locale=locale]/new", { locale: $locale })} class="flex w-full max-w-xs flex-col">
+			<a
+				href={route("/[locale=locale]/new", { locale: $locale })}
+				class="flex w-full max-w-xs flex-col"
+				data-testid="buy-membership-link"
+			>
 				<Form.Button variant="default">{$LL.membership.buy()}</Form.Button>
 			</a>
 			{#if data.memberships.length === 0}

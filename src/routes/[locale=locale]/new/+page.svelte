@@ -39,12 +39,14 @@
 					{#each filteredMemberships as membership (membership.id)}
 						<label
 							class="flex items-start gap-3 rounded-lg border p-4 focus-within:border-primary hover:border-primary"
+							data-testid="membership-option-{membership.id}"
 						>
 							<input
 								type="radio"
 								name="membershipId"
 								value={membership.id}
 								bind:group={$formData.membershipId}
+								data-testid="membership-radio-{membership.id}"
 								required
 							/>
 							<div class="flex flex-col">
@@ -64,14 +66,26 @@
 			{#if requireStudentVerification}
 				<div class="mt-4 rounded-lg border p-4">
 					<label class="flex items-start gap-3">
-						<input type="checkbox" name="isStudent" bind:checked={isStudent} required class="rounded" />
+						<input
+							type="checkbox"
+							name="isStudent"
+							bind:checked={isStudent}
+							required
+							class="rounded"
+							data-testid="student-verification-checkbox"
+						/>
 						<span class="text-sm">{$LL.membership.isStudent()}</span>
 					</label>
 				</div>
 			{/if}
 		</div>
 
-		<Form.Button type="submit" disabled={disableForm} class={disableForm ? "cursor-not-allowed opacity-50" : ""}>
+		<Form.Button
+			type="submit"
+			disabled={disableForm}
+			class={disableForm ? "cursor-not-allowed opacity-50" : ""}
+			data-testid="purchase-submit-button"
+		>
 			{$LL.membership.buy()}
 			{#if $formData.membershipId}
 				({(availableMemberships.find((x) => x.id === $formData.membershipId)?.priceCents ?? 0) / 100} €)
