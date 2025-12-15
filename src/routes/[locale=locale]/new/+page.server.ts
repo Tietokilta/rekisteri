@@ -53,8 +53,7 @@ export const load: PageServerLoad = async (event) => {
 		// Check if user has an active or pending membership for this exact membership period
 		const hasExisting = memberships.some(
 			(existing) =>
-				existing.id === available.id &&
-				(existing.status === "active" || existing.status === "awaiting_approval"),
+				existing.id === available.id && (existing.status === "active" || existing.status === "awaiting_approval"),
 		);
 		return !hasExisting;
 	});

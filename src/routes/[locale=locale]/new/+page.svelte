@@ -22,17 +22,16 @@
 
 	// Pre-select first available membership
 	$effect(() => {
-		if (availableMemberships.length > 0 && !$formData.membershipId) {
-			$formData.membershipId = availableMemberships[0].id;
+		const firstMembership = availableMemberships?.[0];
+		if (firstMembership && !$formData.membershipId) {
+			$formData.membershipId = firstMembership.id;
 		}
 	});
 
 	let isStudent = $state(false);
 
 	// Get currently selected membership
-	const selectedMembership = $derived(
-		availableMemberships.find((m) => m.id === $formData.membershipId)
-	);
+	const selectedMembership = $derived(availableMemberships.find((m) => m.id === $formData.membershipId));
 
 	const requireStudentVerification = $derived(selectedMembership?.requiresStudentVerification ?? false);
 	const disableForm = $derived(!isStudent && requireStudentVerification);
@@ -112,7 +111,11 @@
 					{/if}
 
 					<!-- Buy Button -->
-					<Form.Button type="submit" disabled={disableForm} class="w-full {disableForm ? 'cursor-not-allowed opacity-50' : ''}">
+					<Form.Button
+						type="submit"
+						disabled={disableForm}
+						class="w-full {disableForm ? 'cursor-not-allowed opacity-50' : ''}"
+					>
 						{$LL.membership.buy()}
 						{#if selectedMembership}
 							({selectedMembership.priceCents / 100} €)
@@ -133,7 +136,9 @@
 							</h2>
 							{#if selectedMembership.membershipType.descriptionFi || selectedMembership.membershipType.descriptionEn}
 								<p class="text-sm text-muted-foreground">
-									{$locale === "fi" ? selectedMembership.membershipType.descriptionFi : selectedMembership.membershipType.descriptionEn}
+									{$locale === "fi"
+										? selectedMembership.membershipType.descriptionFi
+										: selectedMembership.membershipType.descriptionEn}
 								</p>
 							{/if}
 						</div>
@@ -148,8 +153,7 @@
 									</dd>
 								</div>
 								<div>
-									<dt class="font-medium">{$LL.membership.price()}</dt>
-									<dd class="text-muted-foreground">{selectedMembership.priceCents / 100} €</dd>
+									<dt class="font-medium">{$LL.membership.price({ price: selectedMembership.priceCents / 100 })}</dt>
 								</div>
 								{#if selectedMembership.requiresStudentVerification}
 									<div>
@@ -163,7 +167,9 @@
 						<!-- Previous Membership Reminder -->
 						{#if latestMembership}
 							<div class="rounded-lg border border-muted bg-muted/50 p-3">
-								<p class="mb-1 text-xs font-medium uppercase text-muted-foreground">{$LL.membership.previousMembership()}</p>
+								<p class="mb-1 text-xs font-medium text-muted-foreground uppercase">
+									{$LL.membership.previousMembership()}
+								</p>
 								<p class="text-sm">
 									{$locale === "fi" ? latestMembership.membershipType.nameFi : latestMembership.membershipType.nameEn}
 								</p>

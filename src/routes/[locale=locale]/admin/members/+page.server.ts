@@ -90,10 +90,7 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 	// Get distinct membership types for filters
-	const membershipTypesResult = await db
-		.select()
-		.from(table.membershipType)
-		.orderBy(asc(table.membershipType.nameFi));
+	const membershipTypesResult = await db.select().from(table.membershipType).orderBy(asc(table.membershipType.nameFi));
 
 	const membershipTypes = membershipTypesResult;
 

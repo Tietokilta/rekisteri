@@ -182,7 +182,8 @@
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const grouped = new Map<string, MemberRow[]>();
 		for (const row of filteredRows) {
-			const type = ($locale === "fi" ? row.original.membershipTypeName : row.original.membershipTypeNameEn) ?? "Unknown";
+			const type =
+				($locale === "fi" ? row.original.membershipTypeName : row.original.membershipTypeNameEn) ?? "Unknown";
 			if (!grouped.has(type)) {
 				grouped.set(type, []);
 			}
@@ -350,7 +351,8 @@
 		{
 			accessorKey: "membershipTypeId",
 			header: $LL.admin.members.table.membershipType(),
-			cell: ({ row }) => ($locale === "fi" ? row.original.membershipTypeName : row.original.membershipTypeNameEn) ?? "-",
+			cell: ({ row }) =>
+				($locale === "fi" ? row.original.membershipTypeName : row.original.membershipTypeNameEn) ?? "-",
 			enableSorting: true,
 		},
 		{
@@ -646,7 +648,10 @@
 								{:else if cell.column.id === "membershipTypeId"}
 									{@const filteredMemberships = getFilteredMemberships(row.original.allMemberships)}
 									<div class="flex items-center gap-2">
-										<span>{($locale === "fi" ? row.original.membershipTypeName : row.original.membershipTypeNameEn) ?? "-"}</span>
+										<span
+											>{($locale === "fi" ? row.original.membershipTypeName : row.original.membershipTypeNameEn) ??
+												"-"}</span
+										>
 										{#if filteredMemberships.length > 1}
 											<Badge variant="secondary" class="text-xs">
 												{$LL.admin.members.table.membershipsCount({ count: filteredMemberships.length })}
@@ -719,7 +724,10 @@
 													<div class="mb-3 grid gap-2 text-sm md:grid-cols-3">
 														<div>
 															<dt class="text-muted-foreground">{$LL.admin.members.table.typeLabel()}</dt>
-															<dd class="font-medium">{($locale === "fi" ? membership.membershipTypeName : membership.membershipTypeNameEn) ?? "-"}</dd>
+															<dd class="font-medium">
+																{($locale === "fi" ? membership.membershipTypeName : membership.membershipTypeNameEn) ??
+																	"-"}
+															</dd>
 														</div>
 														<div>
 															<dt class="text-muted-foreground">{$LL.admin.members.table.periodLabel()}</dt>

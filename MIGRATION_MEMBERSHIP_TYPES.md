@@ -5,6 +5,7 @@ This document describes the migration from storing membership types as text stri
 ## Overview
 
 The membership system has been updated to support:
+
 - **Localized membership type names** (Finnish and English)
 - **Membership type descriptions** for both languages
 - **Editable memberships** (can only edit if no members are tied to it)
@@ -29,6 +30,7 @@ CREATE TABLE membership_type (
 ### Updated Table: `membership`
 
 **Before:**
+
 ```sql
 CREATE TABLE membership (
   id TEXT PRIMARY KEY,
@@ -42,6 +44,7 @@ CREATE TABLE membership (
 ```
 
 **After:**
+
 ```sql
 CREATE TABLE membership (
   id TEXT PRIMARY KEY,
@@ -74,12 +77,14 @@ pnpm db:seed
 **IMPORTANT:** The migration will modify your existing data. Make a backup first!
 
 1. **Backup your database** before running migration:
+
    ```bash
    # Example for PostgreSQL
    pg_dump your_database > backup_before_migration.sql
    ```
 
 2. **Run the Drizzle migration**:
+
    ```bash
    # This will run the SQL migration in drizzle/0003_localize_membership_types.sql
    # which:
@@ -93,6 +98,7 @@ pnpm db:seed
    ```
 
 3. **Verify the migration**:
+
    ```bash
    # Check membership types were created
    psql your_database -c "SELECT * FROM membership_type;"
@@ -104,6 +110,7 @@ pnpm db:seed
 ### Migration File
 
 The migration is located at `drizzle/0003_localize_membership_types.sql` and handles:
+
 - Creating the new `membership_type` table
 - **Dynamically extracting** unique membership types from existing memberships
 - **Automatically generating** URL-friendly IDs from type names (e.g., "varsinainen jäsen" → `varsinainen-jasen`)
@@ -116,6 +123,7 @@ The migration is located at `drizzle/0003_localize_membership_types.sql` and han
 
 **Post-Migration Tasks:**
 After running the migration, admins should:
+
 1. Navigate to `/admin/memberships` and edit each membership type
 2. Add proper English translations for `name_en`
 3. Add descriptions in both Finnish (`description_fi`) and English (`description_en`)
@@ -123,6 +131,7 @@ After running the migration, admins should:
 ## How the Migration Works
 
 The migration uses PL/pgSQL to:
+
 1. **Extract** all unique values from the existing `membership.type` column
 2. **Generate** URL-friendly IDs by:
    - Converting to lowercase
@@ -138,6 +147,7 @@ This dynamic approach works with any existing membership type names, not just pr
 ## UI Changes
 
 ### Admin - Manage Memberships (`/admin/memberships`)
+
 - Membership type is now selected from a dropdown (not a free-text field)
 - Shows localized names based on current locale
 - Displays membership type descriptions
@@ -146,35 +156,43 @@ This dynamic approach works with any existing membership type names, not just pr
 - Cannot edit if members are tied to the membership
 
 ### User - Buy Membership (`/new`)
+
 - Displays localized membership type names and descriptions
 - Shows proper Finnish/English names based on user's locale
 
 ### User - Dashboard (`/`)
+
 - Shows localized membership type names in membership list
 
 ### Admin - Members List (`/admin/members`)
+
 - Displays localized membership type names in table
 - Filter by membership type works with localized names
 - Export/copy functions use localized names
 
 ### Admin - Import Members (`/admin/members/import`)
+
 - CSV import now accepts **both Finnish and English** membership type names
 - Validates against existing membership types
 
 ## Code Changes
 
 ### Schema (`src/lib/server/db/schema.ts`)
+
 - Added `membershipType` table
 - Updated `membership` table with `membershipTypeId` foreign key
 - Added relations between tables
 - Added TypeScript types
 
 ### Seed Data (`src/lib/server/db/seed.ts`)
+
 - Seeds membership types before memberships
 - Uses `membershipTypeId` references
 
 ### All Pages Using Memberships
+
 Updated to use localized names:
+
 - Home page
 - New membership page
 - Admin memberships page
@@ -184,6 +202,7 @@ Updated to use localized names:
 ## Translation Keys Added
 
 ### English (`src/lib/i18n/en/index.ts`)
+
 ```typescript
 common: {
   edit: "Edit",
@@ -197,6 +216,7 @@ admin: {
 ```
 
 ### Finnish (`src/lib/i18n/fi/index.ts`)
+
 ```typescript
 common: {
   edit: "Muokkaa",
@@ -214,6 +234,7 @@ admin: {
 If you need to rollback the migration:
 
 1. **Restore from backup**:
+
    ```bash
    psql your_database < backup_before_migration.sql
    ```
@@ -240,6 +261,7 @@ If you need to rollback the migration:
 ## Support
 
 If you encounter issues during migration, check:
+
 1. Database connection string is correct
 2. You have Node.js 24.5.0 or higher
 3. All dependencies are installed (`pnpm install`)

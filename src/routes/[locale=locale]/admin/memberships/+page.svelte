@@ -5,12 +5,11 @@
 	import { superForm } from "sveltekit-superforms";
 	import type { PageProps } from "./$types";
 	import { zod4Client } from "sveltekit-superforms/adapters";
-	import { createSchema, editSchema } from "./schema";
+	import { createSchema } from "./schema";
 	import * as Form from "$lib/components/ui/form/index.js";
 	import { Input } from "$lib/components/ui/input";
 	import { Button } from "$lib/components/ui/button";
 	import { enhance as defaultEnhance } from "$app/forms";
-	import * as Select from "$lib/components/ui/select/index.js";
 
 	const { data }: PageProps = $props();
 
@@ -35,7 +34,7 @@
 		const desc = $locale === "fi" ? type.descriptionFi : type.descriptionEn;
 		return desc || "";
 	}
-
+</script>
 
 <main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
 	<h1 class="font-mono text-lg">{$LL.admin.memberships.title()}</h1>
@@ -163,7 +162,7 @@
 							<!-- Display view -->
 							<div class="flex items-start justify-between gap-4">
 								<div class="flex-1 space-y-1 text-sm">
-									<p class="font-medium text-base">
+									<p class="text-base font-medium">
 										{getMembershipTypeName(membership.membershipTypeId)}
 									</p>
 									{#if getMembershipTypeDescription(membership.membershipTypeId)}
@@ -188,7 +187,7 @@
 										{$LL.admin.members.count({ count: membership.memberCount })}
 									</p>
 									{#if membership.requiresStudentVerification}
-										<p class="text-muted-foreground text-xs">✓ {$LL.membership.requiresStudentVerification()}</p>
+										<p class="text-xs text-muted-foreground">✓ {$LL.membership.requiresStudentVerification()}</p>
 									{/if}
 								</div>
 								<div class="flex flex-col gap-2">
