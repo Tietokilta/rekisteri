@@ -249,15 +249,14 @@ const en = {
 	documents: {
 		privacyPolicy: {
 			title: "Privacy Policy",
-			lastUpdated: "Last updated: November 5, 2025",
+			lastUpdated: "Last updated: December 15, 2025",
 
 			section1Title: "1. Data Controller",
 			section1Content: `
 				<strong>Computer Science Guild of Aalto University (Tietokilta ry)</strong><br/>
-				Business ID: 1888541-3<br/>
+				Business ID: 1790346-8<br/>
 				Address: Konemiehentie 2, 02150 Espoo, Finland<br/>
 				Email: hallitus@tietokilta.fi<br/>
-				Phone: +358 50 431 4761
 			`,
 
 			section2Title: "2. Contact Person for Data Protection Matters",
@@ -290,7 +289,8 @@ const en = {
 					<li><strong>Student status:</strong> Information about whether the member is a student (self-reported, planned to be verified via Aalto University email address)</li>
 					<li><strong>Home municipality:</strong> Used for statistical purposes</li>
 					<li><strong>Consents:</strong> Information about whether the association may send non-membership emails</li>
-					<li><strong>Technical data:</strong> Session tokens, login codes, audit logs (retained for 90 days), IP addresses from login attempts (for abuse and attack monitoring, retained for 30 days), rate limiting data (in memory only)</li>
+					<li><strong>Passkeys:</strong> Public keys for passwordless authentication, device names, transport methods, sync status (e.g., iCloud Keychain), and last usage timestamps</li>
+					<li><strong>Technical data:</strong> Session tokens, login codes, audit logs (retained for 90 days), IP addresses and browser information (user agent) from login attempts and administrative actions (for abuse and attack monitoring, retained for 90 days), rate limiting data (in memory only)</li>
 				</ul>
 			`,
 
@@ -306,11 +306,18 @@ const en = {
 			section7Content: `
 				We delete data as soon as it is no longer needed. Retention periods are determined as follows:<br/><br/>
 
+				<strong>Incomplete registrations:</strong><br/>
+				<ul>
+					<li>Login codes from incomplete registrations automatically expire after 10 minutes</li>
+					<li>No personal data is retained for users who do not complete the registration process</li>
+				</ul><br/>
+
 				<strong>Service-related technical data (can be deleted quickly):</strong><br/>
 				<ul>
 					<li>Login codes: automatically expire after 10 minutes</li>
 					<li>Session tokens: automatically expire after 30 days</li>
-					<li>IP addresses: deleted after 30 days (security monitoring)</li>
+					<li>Passkeys: retained until deleted by user or user account is deleted</li>
+					<li>IP addresses and browser information: deleted after 90 days (security monitoring)</li>
 					<li>Audit logs: deleted after 90 days (administrative action tracking)</li>
 					<li>Rate limiting data: in memory only, no persistent storage</li>
 				</ul><br/>
@@ -353,19 +360,24 @@ const en = {
 				All service providers comply with GDPR requirements and use EU Commission-approved safeguards.
 				Data is not sold, rented, or disclosed to third parties for marketing purposes.
 			`,
+
+			section9Title: "9. Automated Decision-Making",
+			section9Content: `
+				The register does not use automated decision-making or profiling as defined in GDPR Article 22.
+				All membership-related decisions (e.g., approval of membership applications) are made by a human.
+			`,
 		},
 
 		registryDisclosure: {
 			title: "Register Description",
-			lastUpdated: "Last updated: November 5, 2025",
+			lastUpdated: "Last updated: December 15, 2025",
 
 			section1Title: "1. Data Controller",
 			section1Content: `
 				<strong>Computer Science Guild of Aalto University (Tietokilta ry)</strong><br/>
-				Business ID: 1888541-3<br/>
+				Business ID: 1790346-8<br/>
 				Address: Konemiehentie 2, 02150 Espoo, Finland<br/>
 				Email: hallitus@tietokilta.fi<br/>
-				Phone: +358 50 431 4761
 			`,
 
 			section2Title: "2. Name of the Register",
@@ -410,12 +422,23 @@ const en = {
 					<li>Reception of non-membership related emails</li>
 				</ul><br/>
 
+				<strong>Passkeys:</strong><br/>
+				<ul>
+					<li>Public keys for passwordless authentication</li>
+					<li>Device name (user-provided)</li>
+					<li>Passkey transport methods (e.g., USB, NFC, Bluetooth)</li>
+					<li>Sync status (e.g., backed up to iCloud Keychain)</li>
+					<li>Last usage timestamp</li>
+					<li>Creation and update timestamps</li>
+				</ul><br/>
+
 				<strong>Technical data:</strong><br/>
 				<ul>
 					<li>Session tokens for authentication</li>
 					<li>Login codes and their expiration times</li>
 					<li>Audit logs of administrative actions (retained for 90 days)</li>
-					<li>IP addresses from login attempts (for abuse and attack monitoring, retained for 30 days)</li>
+					<li>IP addresses from login attempts and administrative actions (for abuse and attack monitoring, retained for 90 days)</li>
+					<li>Browser information (user agent) from login attempts and administrative actions (retained for 90 days)</li>
 					<li>Rate limiting data to prevent overload (in memory only)</li>
 					<li>Creation and update timestamps</li>
 				</ul>
@@ -445,12 +468,19 @@ const en = {
 			section6Content: `
 				We delete data as soon as it is no longer needed. Retention periods are determined as follows:<br/><br/>
 
+				<strong>Incomplete registrations:</strong><br/>
+				<ul>
+					<li>Login codes from incomplete registrations automatically expire after 10 minutes</li>
+					<li>No personal data is retained for users who do not complete the registration process</li>
+				</ul><br/>
+
 				<strong>Service-related technical data (can be deleted quickly):</strong><br/>
 				<ul>
 					<li>Login codes: automatically expire after 10 minutes</li>
 					<li>Session tokens: automatically expire after 30 days</li>
-					<li>IP addresses: deleted after 30 days (security monitoring)</li>
-					<li>Audit logs: deleted after 90 days (administrative action tracking)</li>
+					<li>Passkeys: retained until deleted by user or user account is deleted</li>
+					<li>IP addresses and browser information: deleted after 90 days</li>
+					<li>Audit logs: deleted after 90 days</li>
 					<li>Rate limiting data: in memory only, no persistent storage</li>
 				</ul><br/>
 
@@ -582,17 +612,22 @@ const en = {
 				Email: tietosuoja@om.fi<br/>
 				Website: <a href="https://tietosuoja.fi/en/" target="_blank" rel="noopener noreferrer">https://tietosuoja.fi/en/</a>
 			`,
+
+			section11Title: "11. Automated Decision-Making",
+			section11Content: `
+				The register does not use automated decision-making or profiling as defined in GDPR Article 22.
+				All membership-related decisions (e.g., approval of membership applications) are made by a human.
+			`,
 		},
 
 		footer: {
 			version: "Version",
 			privacyPolicy: "Privacy Policy",
 			registryDisclosure: "Register Description",
-			organization: "Computer Science Guild of Aalto University",
-			businessId: "Business ID: 1888541-3",
+			organization: "Tietokilta ry",
+			businessId: "Business ID: 1790346-8",
 			contact: "Contact",
 			email: "hallitus@tietokilta.fi",
-			phone: "+358 50 431 4761",
 			address: "Konemiehentie 2, 02150 Espoo, Finland",
 		},
 	},
