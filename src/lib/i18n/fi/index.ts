@@ -297,10 +297,7 @@ const fi = {
 			section6Title: "6. Säännönmukaiset tietolähteet",
 			section6Content: `
 				Tiedot saadaan jäseneltä itseltään jäsenhakemuksen yhteydessä tai jäsenen päivittäessä omia tietojaan järjestelmässä.
-				Maksuun liittyvät tiedot saadaan Stripe-maksujärjestelmästä.<br/><br/>
-
-				<strong>Opiskelijastatus:</strong> Tieto on itse ilmoitettu. Opiskelijastatus voidaan vahvistaa automaattisesti
-				Aalto-yliopiston sähköpostiosoitteen avulla.
+				Maksuun liittyvät tiedot saadaan Stripe-maksujärjestelmästä.
 			`,
 
 			section7Title: "7. Tietojen säilytysaika",
@@ -325,9 +322,8 @@ const fi = {
 				<ul>
 					<li><strong>Kirjanpitolain mukaiset tiedot</strong> (maksut, laskut, tositteet): vähintään 6 vuotta
 					tilikauden päättymisestä. Laki edellyttää näiden tietojen säilyttämistä.</li>
-					<li><strong>Yhdistyslain mukaiset jäsenrekisteritiedot:</strong> säilytetään lakisääteisten velvoitteiden
+					<li><strong>Yhdistyslain mukaiset jäsentiedot:</strong> säilytetään lakisääteisten velvoitteiden
 					täyttämiseksi, jonka jälkeen anonymisoidaan tai poistetaan</li>
-					<li><strong>Tilastotiedot:</strong> voidaan anonymisoida ja säilyttää historiallisiin tarkoituksiin</li>
 				</ul><br/>
 
 				<strong>Käytännössä jäsenyyden päätyttyä:</strong> Tekniset tiedot (istunnot, lokit)
@@ -372,6 +368,26 @@ const fi = {
 				Rekisterissä ei käytetä GDPR:n artiklan 22 mukaista automaattista päätöksentekoa tai profilointia.
 				Kaikki jäsenyyttä koskevat päätökset (esim. jäsenhakemusten hyväksyminen) tekee ihminen.
 			`,
+
+			section10Title: "10. Rekisteröidyn oikeudet",
+			section10Content: `
+				Rekisteröidyllä on oikeus:<br/>
+				<ul>
+					<li>Tarkastaa itseään koskevat tiedot</li>
+					<li>Vaatia tietojen oikaisemista tai poistamista</li>
+					<li>Rajoittaa tai vastustaa tietojen käsittelyä</li>
+					<li>Siirtää tiedot toiselle rekisterinpitäjälle</li>
+					<li>Peruuttaa suostumuksensa milloin tahansa</li>
+					<li>Tehdä valitus tietosuojavaltuutetulle (<a href="https://tietosuoja.fi" target="_blank" rel="noopener noreferrer">tietosuoja.fi</a>)</li>
+				</ul><br/>
+
+				<strong>Huomautus tietojen poistamisesta:</strong> Yhdistyslaki (503/1989 § 11) edellyttää, että yhdistys
+				ylläpitää jäsenluetteloa. Tämä lakisääteinen velvoite menee GDPR:n mukaisen poisto-oikeuden edelle.
+				Emme voi poistaa jäsentietoja kokonaan, mutta tekniset tiedot (istunnot, lokit) poistetaan automaattisesti
+				niiden vanhennuttua.<br/><br/>
+
+				Pyynnöt tulee lähettää osoitteeseen hallitus@tietokilta.fi. Tarkemmat tiedot oikeuksista löytyvät rekisteriselosteesta.
+			`,
 		},
 
 		registryDisclosure: {
@@ -400,7 +416,6 @@ const fi = {
 					<li>Jäsenmaksujen käsittely</li>
 					<li>Viestintä jäsenille (tapahtumat, tiedotteet, jäsenedut)</li>
 					<li>Yhdistyksen lakisääteisten velvoitteiden täyttäminen</li>
-					<li>Tilastointi ja toiminnan kehittäminen</li>
 				</ul>
 			`,
 
@@ -494,7 +509,6 @@ const fi = {
 					tilikauden päättymisestä. Laki edellyttää näiden tietojen säilyttämistä.</li>
 					<li><strong>Yhdistyslain mukaiset jäsentiedot:</strong> säilytetään lakisääteisten velvoitteiden
 					täyttämiseksi, jonka jälkeen anonymisoidaan tai poistetaan</li>
-					<li><strong>Tilastotiedot:</strong> voidaan anonymisoida ja säilyttää historiallisiin tarkoituksiin</li>
 				</ul><br/>
 
 				<strong>Käytännössä jäsenyyden päätyttyä:</strong> Tekniset tiedot (istunnot, lokit)
