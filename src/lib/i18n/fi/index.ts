@@ -286,20 +286,22 @@ const fi = {
 				<ul>
 					<li><strong>Perustiedot:</strong> Etunimi, sukunimi, sähköpostiosoite</li>
 					<li><strong>Jäsenyyteen liittyvät tiedot:</strong> Jäsenyyden tyyppi, voimassaoloaika, maksuhistoria, jäsenyyden tila, Stripe-asiakastunnus</li>
-					<li><strong>Opiskelijastatus:</strong> Tieto siitä, onko jäsen opiskelija (itse ilmoitettu, suunniteltu vahvistettavaksi Aalto-yliopiston sähköpostiosoitteella)</li>
+					<li><strong>Opiskelijastatus:</strong> Tieto siitä, onko jäsen opiskelija. Tieto on tällä hetkellä itse ilmoitettu; tulevaisuudessa status on tarkoitus vahvistaa Aalto-yliopiston sähköpostiosoitteen avulla.</li>
 					<li><strong>Kotikunta:</strong> Käytetään tilastointitarkoituksiin</li>
 					<li><strong>Suostumukset:</strong> Tieto siitä, saako yhdistys lähettää jäsenyyteen liittymättömiä sähköposteja</li>
 					<li><strong>Avainkoodit (Passkeys):</strong> Salasanattomaan kirjautumiseen käytettävät julkiset avaimet, laitteen nimi, kuljetustavat, synkronointitila (esim. iCloud-avainnippu) ja viimeisimmän käyttökerran ajankohta</li>
-					<li><strong>Tekniset tiedot:</strong> Istuntotunnisteet, kirjautumiskoodit, audit-lokitiedot (säilytetään 90 päivää), IP-osoitteet ja selaintiedot (user agent) kirjautumisyrityksistä ja hallinnollisista toimenpiteistä (väärinkäytön ja hyökkäysten valvontaa varten, säilytetään 90 päivää), rate limiting -tiedot (vain muistissa)</li>
+					<li><strong>Tekniset tiedot:</strong> Istuntotunnisteet, kirjautumiskoodit, tarkastusloki (audit log) hallinnollisista toimenpiteistä (säilytetään 90 päivää), IP-osoitteet ja selaintiedot (user agent) kirjautumisyrityksistä ja hallinnollisista toimenpiteistä (väärinkäytön ja hyökkäysten valvontaa varten, säilytetään 90 päivää), kuormituksenrajoitustiedot (rate limiting) (vain muistissa)</li>
 				</ul>
 			`,
 
 			section6Title: "6. Säännönmukaiset tietolähteet",
 			section6Content: `
 				Tiedot saadaan jäseneltä itseltään jäsenhakemuksen yhteydessä tai jäsenen päivittäessä omia tietojaan järjestelmässä.
-				Maksuun liittyvät tiedot saadaan Stripe-maksujärjestelmästä. Opiskelijastatus on tällä hetkellä itse ilmoitettu;
-				tulevaisuudessa suunniteltu vahvistettavaksi Aalto-yliopiston sähköpostiosoitteen kautta, mutta ei integraatiota
-				Aalto-yliopiston järjestelmiin.
+				Maksuun liittyvät tiedot saadaan Stripe-maksujärjestelmästä.<br/><br/>
+
+				<strong>Opiskelijastatus:</strong> Tieto on tällä hetkellä itse ilmoitettu. Tulevaisuudessa status on tarkoitus
+				vahvistaa Aalto-yliopiston sähköpostiosoitteen avulla. Järjestelmällä ei ole integraatiota Aalto-yliopiston
+				tietojärjestelmiin.
 			`,
 
 			section7Title: "7. Tietojen säilytysaika",
@@ -307,31 +309,29 @@ const fi = {
 				Poistamme tietoja mahdollisimman pian, kun niitä ei enää tarvita. Säilytysajat määräytyvät seuraavasti:<br/><br/>
 
 				<strong>Keskeneräiset rekisteröitymiset:</strong><br/>
-				<ul>
-					<li>Kirjautumiskoodit keskeneräisistä rekisteröitymisistä vanhenevat automaattisesti 10 minuutissa</li>
-					<li>Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröitymistä loppuun</li>
-				</ul><br/>
+				Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröitymistä loppuun.
+				Kirjautumiskoodit vanhenevat automaattisesti 10 minuutissa.<br/><br/>
 
-				<strong>Palveluun liittyvät tekniset tiedot (voidaan poistaa nopeasti):</strong><br/>
+				<strong>Tekniset tiedot:</strong><br/>
 				<ul>
 					<li>Kirjautumiskoodit: vanhenevat automaattisesti 10 minuutissa</li>
 					<li>Istuntotunnisteet: vanhenevat automaattisesti 30 päivässä</li>
 					<li>Avainkoodit: säilytetään kunnes käyttäjä poistaa ne tai käyttäjätili poistetaan</li>
-					<li>IP-osoitteet ja selaintiedot: poistetaan 90 päivän kuluttua (turvallisuuden valvonta)</li>
-					<li>Audit-lokitiedot: poistetaan 90 päivän kuluttua (hallinnollisten toimenpiteiden seuranta)</li>
-					<li>Rate limiting -tiedot: vain muistissa, ei pysyvää tallennusta</li>
+					<li>IP-osoitteet ja selaintiedot: poistetaan 90 päivän kuluttua</li>
+					<li>Tarkastusloki (audit log): poistetaan 90 päivän kuluttua</li>
+					<li>Kuormituksenrajoitustiedot (rate limiting): vain muistissa, ei pysyvää tallennusta</li>
 				</ul><br/>
 
 				<strong>Jäsenrekisteritiedot (lakisääteiset säilytysvelvoitteet):</strong><br/>
 				<ul>
 					<li><strong>Kirjanpitolain mukaiset tiedot</strong> (maksut, laskut, tositteet): vähintään 6 vuotta
-					tilikauden päättymisestä. <em>Laki ei salli näiden tietojen poistamista aikaisemmin.</em></li>
+					tilikauden päättymisestä. Laki edellyttää näiden tietojen säilyttämistä.</li>
 					<li><strong>Yhdistyslain mukaiset jäsenrekisteritiedot:</strong> säilytetään lakisääteisten velvoitteiden
 					täyttämiseksi, jonka jälkeen anonymisoidaan tai poistetaan</li>
 					<li><strong>Tilastotiedot:</strong> voidaan anonymisoida ja säilyttää historiallisiin tarkoituksiin</li>
 				</ul><br/>
 
-				<strong>Käytännössä jäsenyyden päätyttyä:</strong> Palveluun liittyvät tekniset tiedot (istunnot, lokit)
+				<strong>Käytännössä jäsenyyden päätyttyä:</strong> Tekniset tiedot (istunnot, lokit)
 				poistetaan automaattisesti niiden vanhennuttua. Jäsenrekisteritiedot ja kirjanpitotiedot säilytetään
 				lakisääteisten velvoitteiden mukaisesti, jonka jälkeen ne poistetaan tai anonymisoidaan.
 			`,
@@ -416,10 +416,10 @@ const fi = {
 
 				<strong>Jäsenyystiedot:</strong><br/>
 				<ul>
-					<li>Jäsenyyden tyyppi (varsinainen jäsen, kannatusjäsen, opiskelijajäsen jne.)</li>
+					<li>Jäsenyyden tyyppi (varsinainen jäsen, alumnijäsen jne.)</li>
 					<li>Jäsenyyden alkamis- ja päättymispäivä</li>
 					<li>Jäsenyyden tila (aktiivinen, vanhentunut, odottaa hyväksyntää jne.)</li>
-					<li>Opiskelijastatus (itse ilmoitettu, suunniteltu vahvistettavaksi Aalto-yliopiston sähköpostiosoitteella)</li>
+					<li>Opiskelijastatus (tieto on tällä hetkellä itse ilmoitettu; tulevaisuudessa vahvistetaan Aalto-yliopiston sähköpostiosoitteella)</li>
 					<li>Maksuhistoria ja maksutiedot</li>
 					<li>Stripe-asiakastunnus</li>
 				</ul><br/>
@@ -443,10 +443,10 @@ const fi = {
 				<ul>
 					<li>Istuntotunnisteet kirjautumista varten</li>
 					<li>Kirjautumiskoodit ja niiden voimassaoloajat</li>
-					<li>Audit-lokitiedot hallinnollisista toimenpiteistä (säilytetään 90 päivää)</li>
-					<li>IP-osoitteet kirjautumisyrityksistä ja hallinnollisista toimenpiteistä (väärinkäytön ja hyökkäysten valvontaa varten, säilytetään 90 päivää)</li>
+					<li>Tarkastusloki (audit log) hallinnollisista toimenpiteistä (säilytetään 90 päivää)</li>
+					<li>IP-osoitteet kirjautumisyrityksistä ja hallinnollisista toimenpiteistä (säilytetään 90 päivää)</li>
 					<li>Selaintiedot (user agent) kirjautumisyrityksistä ja hallinnollisista toimenpiteistä (säilytetään 90 päivää)</li>
-					<li>Rate limiting -tiedot ylikuormituksen estämiseksi (vain muistissa)</li>
+					<li>Kuormituksenrajoitustiedot (rate limiting) ylikuormituksen estämiseksi (vain muistissa)</li>
 					<li>Luomis- ja päivitysajankohdat</li>
 				</ul>
 			`,
@@ -467,9 +467,9 @@ const fi = {
 					<li>Hallituksen jäsenrekisteristä massatuonnin yhteydessä (esim. aiempien vuosien jäsenet)</li>
 				</ul><br/>
 
-				<strong>Opiskelijastatus:</strong> Tällä hetkellä itse ilmoitettu. Tulevaisuudessa suunniteltu
-				vahvistettavaksi Aalto-yliopiston sähköpostiosoitteen kautta, mutta ei integraatiota
-				Aalto-yliopiston järjestelmiin.
+				<strong>Opiskelijastatus:</strong> Tieto on tällä hetkellä itse ilmoitettu. Tulevaisuudessa status on
+				tarkoitus vahvistaa Aalto-yliopiston sähköpostiosoitteen avulla. Järjestelmällä ei ole integraatiota
+				Aalto-yliopiston tietojärjestelmiin.
 			`,
 
 			section6Title: "6. Tietojen säilytysaika",
@@ -477,31 +477,29 @@ const fi = {
 				Poistamme tietoja mahdollisimman pian, kun niitä ei enää tarvita. Säilytysajat määräytyvät seuraavasti:<br/><br/>
 
 				<strong>Keskeneräiset rekisteröitymiset:</strong><br/>
-				<ul>
-					<li>Kirjautumiskoodit keskeneräisistä rekisteröitymisistä vanhenevat automaattisesti 10 minuutissa</li>
-					<li>Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröitymistä loppuun</li>
-				</ul><br/>
+				Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröitymistä loppuun.
+				Kirjautumiskoodit vanhenevat automaattisesti 10 minuutissa.<br/><br/>
 
-				<strong>Palveluun liittyvät tekniset tiedot (voidaan poistaa nopeasti):</strong><br/>
+				<strong>Tekniset tiedot:</strong><br/>
 				<ul>
 					<li>Kirjautumiskoodit: vanhenevat automaattisesti 10 minuutissa</li>
 					<li>Istuntotunnisteet: vanhenevat automaattisesti 30 päivässä</li>
 					<li>Avainkoodit: säilytetään kunnes käyttäjä poistaa ne tai käyttäjätili poistetaan</li>
 					<li>IP-osoitteet ja selaintiedot: poistetaan 90 päivän kuluttua</li>
-					<li>Audit-lokitiedot: poistetaan 90 päivän kuluttua</li>
-					<li>Rate limiting -tiedot: vain muistissa, ei pysyvää tallennusta</li>
+					<li>Tarkastusloki (audit log): poistetaan 90 päivän kuluttua</li>
+					<li>Kuormituksenrajoitustiedot (rate limiting): vain muistissa, ei pysyvää tallennusta</li>
 				</ul><br/>
 
 				<strong>Jäsenrekisteritiedot (lakisääteiset säilytysvelvoitteet):</strong><br/>
 				<ul>
 					<li><strong>Kirjanpitolain mukaiset tiedot</strong> (maksut, laskut, tositteet): vähintään 6 vuotta
-					tilikauden päättymisestä. <em>Laki ei salli näiden tietojen poistamista aikaisemmin.</em></li>
+					tilikauden päättymisestä. Laki edellyttää näiden tietojen säilyttämistä.</li>
 					<li><strong>Yhdistyslain mukaiset jäsentiedot:</strong> säilytetään lakisääteisten velvoitteiden
 					täyttämiseksi, jonka jälkeen anonymisoidaan tai poistetaan</li>
 					<li><strong>Tilastotiedot:</strong> voidaan anonymisoida ja säilyttää historiallisiin tarkoituksiin</li>
 				</ul><br/>
 
-				<strong>Käytännössä jäsenyyden päätyttyä:</strong> Palveluun liittyvät tekniset tiedot (istunnot, lokit)
+				<strong>Käytännössä jäsenyyden päätyttyä:</strong> Tekniset tiedot (istunnot, lokit)
 				poistetaan automaattisesti niiden vanhennuttua. Jäsenrekisteritiedot ja kirjanpitotiedot säilytetään
 				lakisääteisten velvoitteiden mukaisesti, jonka jälkeen ne poistetaan tai anonymisoidaan.
 			`,
@@ -555,7 +553,7 @@ const fi = {
 					<li>Salasanoja ei tallenneta - käytetään sähköpostipohjaista kertakäyttökoodi-autentikointia</li>
 					<li>Istuntotunnisteet tallennetaan hajautettuna (hashed)</li>
 					<li>Järjestelmässä käytetään turvallista session-hallintaa (vanheneminen 30 päivässä)</li>
-					<li>Audit-lokitiedot kaikista hallinnollisista toimenpiteistä (säilytetään 90 päivää)</li>
+					<li>Tarkastusloki (audit log) kaikista hallinnollisista toimenpiteistä (säilytetään 90 päivää)</li>
 					<li>Säännölliset automaattiset varmuuskopiot Azure-infrastruktuurissa</li>
 				</ul><br/>
 
@@ -567,7 +565,7 @@ const fi = {
 					<li>Pääsy voidaan myöntää tarvittaessa muille hallituksen jäsenille esim. kokouksissa
 					läsnäolon tarkistamiseen</li>
 					<li>Käyttöoikeudet myönnetään vain tehtävän edellyttämässä laajuudessa</li>
-					<li>Kaikki hallinnolliset toimenpiteet kirjataan audit-lokiin</li>
+					<li>Kaikki hallinnolliset toimenpiteet kirjataan tarkastuslokiin</li>
 					<li>Hallituksen jäsenet on sitoutettu salassapitoon</li>
 				</ul><br/>
 
