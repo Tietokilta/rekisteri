@@ -151,8 +151,8 @@
 				>
 					<KeyRound class="h-6 w-6" />
 					<div class="flex-1 space-y-1">
-						<p class="text-sm leading-none font-medium">Passkeys</p>
-						<p class="text-sm text-muted-foreground">Manage your passkeys for faster sign-in</p>
+						<p class="text-sm leading-none font-medium">{$LL.auth.passkey.title()}</p>
+						<p class="text-sm text-muted-foreground">{$LL.auth.passkey.manageDescription()}</p>
 					</div>
 				</a>
 
