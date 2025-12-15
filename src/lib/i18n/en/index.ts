@@ -74,7 +74,7 @@ const en = {
 		email: "Email",
 		firstNames: "First names",
 		lastName: "Last name",
-		homeMunicipality: "Home municipality",
+		homeMunicipality: "Municipality of residence",
 		preferredLanguage: "Preferred language (optional)",
 		preferredLanguageDescription:
 			"Language you prefer to receive communications in (e.g. membership emails or weekly newsletters)",
@@ -134,7 +134,7 @@ const en = {
 			description: "Manage individual members",
 			listTitle: "Members",
 			count: "{count} {{member|members}}",
-			homeMunicipality: "Home municipality: {homeMunicipality}",
+			homeMunicipality: "Municipality of residence: {homeMunicipality}",
 			membershipType: "Membership type: {membershipType}",
 			userId: "User Identifier",
 			userIdentifier: "Identifier",
@@ -286,8 +286,8 @@ const en = {
 				<ul>
 					<li><strong>Basic information:</strong> First name, last name, email address</li>
 					<li><strong>Membership-related information:</strong> Membership type, validity period, payment history, membership status, Stripe customer ID</li>
-					<li><strong>Student status:</strong> Information about whether the member is a student (self-reported, planned to be verified via Aalto University email address)</li>
-					<li><strong>Home municipality:</strong> Used for statistical purposes</li>
+					<li><strong>Student status:</strong> Information regarding student status (currently self-reported; verification via Aalto University email address planned for the future).</li>
+					<li><strong>Municipality of residence:</strong> Used for statistical purposes.</li>
 					<li><strong>Consents:</strong> Information about whether the association may send non-membership emails</li>
 					<li><strong>Passkeys:</strong> Public keys for passwordless authentication, device names, transport methods, sync status (e.g., iCloud Keychain), and last usage timestamps</li>
 					<li><strong>Technical data:</strong> Session tokens, login codes, audit logs (retained for 90 days), IP addresses and browser information (user agent) from login attempts and administrative actions (for abuse and attack monitoring, retained for 90 days), rate limiting data (in memory only)</li>
@@ -296,69 +296,52 @@ const en = {
 
 			section6Title: "6. Regular Sources of Data",
 			section6Content: `
-				Data is obtained from the member themselves during membership application or when updating
-				their information in the system. Payment-related data is obtained from the Stripe payment system.
-				Student status is currently self-reported; in the future planned to be verified via Aalto University
-				email address, but no integration with Aalto University systems.
+				Data is primarily obtained from the members themselves during the application process or when updating their information.
+				Payment-related data is obtained from the Stripe payment system.
 			`,
 
 			section7Title: "7. Data Retention Period",
 			section7Content: `
-				We delete data as soon as it is no longer needed. Retention periods are determined as follows:<br/><br/>
+				We retain data only for as long as necessary. Retention periods are determined as follows:<br/><br/>
 
 				<strong>Incomplete registrations:</strong><br/>
-				<ul>
-					<li>Login codes from incomplete registrations automatically expire after 10 minutes</li>
-					<li>No personal data is retained for users who do not complete the registration process</li>
-				</ul><br/>
+				Login codes expire in 10 minutes. No personal data is retained if the registration is not completed.<br/><br/>
 
-				<strong>Service-related technical data (can be deleted quickly):</strong><br/>
-				<ul>
-					<li>Login codes: automatically expire after 10 minutes</li>
-					<li>Session tokens: automatically expire after 30 days</li>
-					<li>Passkeys: retained until deleted by user or user account is deleted</li>
-					<li>IP addresses and browser information: deleted after 90 days (security monitoring)</li>
-					<li>Audit logs: deleted after 90 days (administrative action tracking)</li>
-					<li>Rate limiting data: in memory only, no persistent storage</li>
-				</ul><br/>
+				<strong>Technical logs:</strong><br/>
+				Login codes (10 min), session tokens (30 days), IP addresses and audit logs (90 days).<br/><br/>
 
-				<strong>Member registry data (statutory retention obligations):</strong><br/>
-				<ul>
-					<li><strong>Accounting Act records</strong> (payments, invoices, receipts): at least 6 years
-					from the end of the fiscal year. <em>The law does not permit deletion of this data earlier.</em></li>
-					<li><strong>Associations Act member registry data:</strong> retained to fulfill statutory obligations,
-					then anonymized or deleted</li>
-					<li><strong>Statistical data:</strong> may be anonymized and retained for historical purposes</li>
-				</ul><br/>
+				<strong>Passkeys:</strong><br/>
+				Retained until deleted by the user or the account is removed.<br/><br/>
 
-				<strong>In practice after membership ends:</strong> Service-related technical data (sessions, logs)
-				are automatically deleted when they expire. Member registry data and accounting records are retained
-				in accordance with statutory obligations, after which they are deleted or anonymized.
+				<strong>Accounting records:</strong><br/>
+				Payments, invoices, and receipts are retained for at least 6 years from the end of the fiscal year,
+				as required by the Accounting Act.<br/><br/>
+
+				<strong>Member registry data:</strong><br/>
+				Retained for the duration of membership and subsequently as required to fulfill statutory obligations
+				(Associations Act), after which data is anonymized or deleted.
 			`,
 
 			section8Title: "8. Data Disclosure and Transfers",
 			section8Content: `
-				<strong>Data recipients:</strong><br/><br/>
+				We use trusted service providers for data processing:<br/><br/>
 
 				<ul>
-					<li><strong>Microsoft Azure (North Europe, Ireland):</strong> Cloud service hosting the registry
-					database (Azure Database for PostgreSQL) and application server (Azure App Service). All data is
-					stored within the EU.</li>
+					<li><strong>Microsoft Azure (North Europe, Ireland):</strong> Cloud hosting for the database
+					and application. Data remains within the EU.</li>
 
-					<li><strong>Stripe (EU infrastructure):</strong> Payment processing service for membership fees.
-					All payment card data is handled by Stripe; we only store the Stripe customer ID and member's
-					email address for payment transactions.</li>
+					<li><strong>Stripe (EU infrastructure):</strong> Payment processing. We only store the Stripe
+					customer ID and email; Stripe handles all payment card data.</li>
 
-					<li><strong>Mailgun (EU endpoint):</strong> Email service (api.eu.mailgun.net) for sending
-					communications from rekisteri.tietokilta.fi. Data is processed within the EU.</li>
+					<li><strong>Mailgun (EU endpoint):</strong> Email delivery service. Data is processed within the EU.</li>
 
-					<li><strong>Google Workspace:</strong> Member email addresses are used in guild mailing lists
-					(Google Groups) for communication purposes.</li>
+					<li><strong>Google Workspace (Google Groups):</strong> Used for mailing lists.</li>
 				</ul>
 				<br/>
 
-				All service providers comply with GDPR requirements and use EU Commission-approved safeguards.
-				Data is not sold, rented, or disclosed to third parties for marketing purposes.
+				Generally, data is stored within the EU. If a service provider (e.g., Google) processes data outside
+				the EU/EEA, the transfer is secured using appropriate safeguards, such as the EU Commission's
+				Standard Contractual Clauses (SCCs). Data is not sold or disclosed to third parties for marketing purposes.
 			`,
 
 			section9Title: "9. Automated Decision-Making",
@@ -404,15 +387,15 @@ const en = {
 				<ul>
 					<li>First name and last name</li>
 					<li>Email address</li>
-					<li>Home municipality</li>
+					<li>Municipality of residence</li>
 				</ul><br/>
 
 				<strong>Membership information:</strong><br/>
 				<ul>
-					<li>Membership type (regular member, supporting member, student member, etc.)</li>
-					<li>Membership start and end date</li>
-					<li>Membership status (active, expired, awaiting approval, etc.)</li>
-					<li>Student status (self-reported, planned to be verified via Aalto University email address)</li>
+					<li>Membership type (e.g., regular member, alumni member)</li>
+					<li>Start and end dates of membership</li>
+					<li>Membership status (e.g., active, expired, pending approval)</li>
+					<li>Student status (currently self-reported; future verification planned via Aalto University email confirmation)</li>
 					<li>Payment history and payment information</li>
 					<li>Stripe customer ID</li>
 				</ul><br/>
@@ -460,111 +443,69 @@ const en = {
 					<li>Board member registry during bulk imports (e.g., members from previous years)</li>
 				</ul><br/>
 
-				<strong>Student status:</strong> Currently self-reported. In the future planned to be verified via
-				Aalto University email address, but no integration with Aalto University systems.
+				<strong>Note on Student Status:</strong> Currently self-reported. Future verification is planned via Aalto University
+				email address confirmation, without direct integration into university systems.
 			`,
 
 			section6Title: "6. Data Retention Period",
 			section6Content: `
-				We delete data as soon as it is no longer needed. Retention periods are determined as follows:<br/><br/>
+				Data is deleted as soon as it is no longer needed.<br/><br/>
 
-				<strong>Incomplete registrations:</strong><br/>
+				<strong>Technical Data:</strong><br/>
 				<ul>
-					<li>Login codes from incomplete registrations automatically expire after 10 minutes</li>
-					<li>No personal data is retained for users who do not complete the registration process</li>
+					<li>Login codes: expire automatically in 10 minutes.</li>
+					<li>Session tokens: expire automatically in 30 days.</li>
+					<li>Passkeys: retained until deleted by the user or the account is removed.</li>
+					<li>IP addresses, browser info, and audit logs: deleted after 90 days.</li>
+					<li>Incomplete registrations: No personal data is retained if the process is not completed.</li>
 				</ul><br/>
 
-				<strong>Service-related technical data (can be deleted quickly):</strong><br/>
+				<strong>Statutory Retention Obligations:</strong><br/>
 				<ul>
-					<li>Login codes: automatically expire after 10 minutes</li>
-					<li>Session tokens: automatically expire after 30 days</li>
-					<li>Passkeys: retained until deleted by user or user account is deleted</li>
-					<li>IP addresses and browser information: deleted after 90 days</li>
-					<li>Audit logs: deleted after 90 days</li>
-					<li>Rate limiting data: in memory only, no persistent storage</li>
-				</ul><br/>
-
-				<strong>Member registry data (statutory retention obligations):</strong><br/>
-				<ul>
-					<li><strong>Accounting Act records</strong> (payments, invoices, receipts): at least 6 years
-					from the end of the fiscal year. <em>The law does not permit deletion of this data earlier.</em></li>
-					<li><strong>Associations Act member registry data:</strong> retained to fulfill statutory obligations,
-					then anonymized or deleted</li>
-					<li><strong>Statistical data:</strong> may be anonymized and retained for historical purposes</li>
-				</ul><br/>
-
-				<strong>In practice after membership ends:</strong> Service-related technical data (sessions, logs)
-				are automatically deleted when they expire. Member registry data and accounting records are retained
-				in accordance with statutory obligations, after which they are deleted or anonymized.
+					<li><strong>Accounting Act:</strong> Payment records and receipts are retained for at least 6 years
+					from the end of the fiscal year, as required by law.</li>
+					<li><strong>Associations Act:</strong> Member data is retained to fulfill legal obligations,
+					after which it is anonymized or deleted.</li>
+					<li><strong>Statistics:</strong> May be anonymized and retained for historical purposes.</li>
+				</ul>
 			`,
 
 			section7Title: "7. Data Disclosure and Transfers",
 			section7Content: `
-				<strong>Regular disclosures:</strong><br/><br/>
-
+				<strong>Regular disclosures:</strong><br/>
 				<ul>
-					<li><strong>Microsoft Azure (North Europe, Ireland):</strong> Cloud service hosting the registry
-					database (Azure Database for PostgreSQL) and application server (Azure App Service). All data is
-					stored within the EU. Microsoft complies with GDPR requirements.</li>
-
-					<li><strong>Stripe Inc. (EU infrastructure):</strong> Payment processing service. Data is securely
-					transferred to Stripe's EU systems for payment processing. All payment card data is handled by
-					Stripe; we only store the Stripe customer ID and email address. Stripe complies with GDPR
-					requirements and uses EU Commission-approved standard contractual clauses.</li>
-
-					<li><strong>Mailgun (Sinch MessageMedia Pty Ltd, EU endpoint):</strong> Email service for sending
-					communications (api.eu.mailgun.net). The service processes email addresses and message content
-					within the EU.</li>
-
-					<li><strong>Google Workspace (Google Groups):</strong> Member email addresses are used in guild
-					mailing lists (Google Groups) for member communication (events, announcements, member benefits).
-					This is necessary for effective member communication. Google may process data outside the EU and EEA;
-					in these situations, Google uses EU Commission-approved standard contractual clauses and other
-					appropriate safeguards to comply with GDPR requirements.</li>
+					<li><strong>Microsoft Azure (Ireland):</strong> Hosting provider. Data stored in the EU.</li>
+					<li><strong>Stripe (EU):</strong> Payment processing. We do not store card details. Stripe complies with GDPR.</li>
+					<li><strong>Mailgun (EU):</strong> Email service. Data processed in the EU.</li>
+					<li><strong>Google Workspace:</strong> Mailing lists. Google may process data outside the EU using
+					appropriate safeguards (Standard Contractual Clauses).</li>
 				</ul><br/>
 
-				<strong>Occasional disclosures:</strong><br/>
-				Data may be disclosed to authorities based on legal obligations.<br/><br/>
-
-				<strong>Data transfers outside the EU:</strong><br/>
-				Generally, all data is stored within the EU (Azure North Europe, Stripe EU, Mailgun EU).
-				However, Google Workspace may process mailing list-related email addresses outside the EU
-				using appropriate safeguards (standard contractual clauses).<br/><br/>
-
-				<strong>Data security in transfers:</strong><br/>
-				All data transfers occur using encrypted connections (HTTPS/TLS).
-				Data is not sold, rented, or disclosed for marketing purposes.
+				<strong>Transfer security:</strong><br/>
+				All transfers use encrypted connections (HTTPS/TLS). Data is not sold or used for marketing by third parties.
 			`,
 
 			section8Title: "8. Principles of Register Protection",
 			section8Content: `
-				<strong>Technical safeguards:</strong><br/><br/>
-
+				<strong>Technical safeguards:</strong><br/>
 				<ul>
-					<li>Database (Azure Database for PostgreSQL) is protected by firewall and access is restricted
-					to authorized systems only</li>
-					<li>All data traffic uses encrypted HTTPS/TLS connections</li>
-					<li>No passwords stored - email-based one-time code authentication is used</li>
-					<li>Session tokens are stored hashed</li>
-					<li>System uses secure session management (expiration after 30 days)</li>
-					<li>Audit logs of all administrative actions (retained for 90 days)</li>
-					<li>Regular automated backups in Azure infrastructure</li>
+					<li>Database protected by firewall; access restricted to authorized systems.</li>
+					<li>Encrypted traffic (HTTPS/TLS).</li>
+					<li>No passwords stored (email-based OTP and Passkeys used).</li>
+					<li>Session tokens are hashed.</li>
+					<li>Comprehensive audit logging of administrative actions.</li>
+					<li>Regular automated backups.</li>
 				</ul><br/>
 
-				<strong>Organizational safeguards:</strong><br/><br/>
-
+				<strong>Organizational safeguards:</strong><br/>
 				<ul>
-					<li>Access to the register is restricted to board key personnel: chair, vice chair/secretary,
-					treasurer, and actively developing programmers</li>
-					<li>Access may be granted to other board members as needed, e.g., for attendance checking at meetings</li>
-					<li>Access rights are granted only to the extent required by the task</li>
-					<li>All administrative actions are logged in audit log</li>
-					<li>Board members are committed to confidentiality</li>
+					<li>Access restricted to key board members (Chair, Secretary, Treasurer, System Admins).</li>
+					<li>Access granted only as required by specific tasks.</li>
+					<li>Board members are bound by confidentiality agreements.</li>
 				</ul><br/>
 
 				<strong>Physical security:</strong><br/>
-				Servers are located in Microsoft Azure North Europe (Ireland) data center, which meets high
-				security requirements (ISO 27001, SOC 2, etc.).
+				Servers located in Microsoft Azure North Europe (Ireland) data center (ISO 27001, SOC 2 compliant).
 			`,
 
 			section9Title: "9. Right of Access and Right to Rectification",
