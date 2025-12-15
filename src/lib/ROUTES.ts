@@ -38,9 +38,6 @@ const PAGES = {
   },
   "/[locale=locale]/privacy-policy": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
     return `/${params['locale']}/privacy-policy`
-  },
-  "/[locale=locale]/registry-disclosure": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
-    return `/${params['locale']}/registry-disclosure`
   }
 }
 
@@ -225,7 +222,7 @@ type ExtractParamType<T extends (param: any) => any> = ExtractFnPredicate<T> ext
 * ```
 */
 export type KIT_ROUTES = {
-  PAGES: { '/[locale=locale]': 'locale', '/[locale=locale]/sign-in': 'locale', '/[locale=locale]/sign-in/email': 'locale', '/[locale=locale]/sign-in/method': 'locale', '/[locale=locale]/admin/members': 'locale', '/[locale=locale]/admin/members/import': 'locale', '/[locale=locale]/admin/memberships': 'locale', '/[locale=locale]/new': 'locale', '/[locale=locale]/passkeys': 'locale', '/[locale=locale]/privacy-policy': 'locale', '/[locale=locale]/registry-disclosure': 'locale' }
+  PAGES: { '/[locale=locale]': 'locale', '/[locale=locale]/sign-in': 'locale', '/[locale=locale]/sign-in/email': 'locale', '/[locale=locale]/sign-in/method': 'locale', '/[locale=locale]/admin/members': 'locale', '/[locale=locale]/admin/members/import': 'locale', '/[locale=locale]/admin/memberships': 'locale', '/[locale=locale]/new': 'locale', '/[locale=locale]/passkeys': 'locale', '/[locale=locale]/privacy-policy': 'locale' }
   SERVERS: { 'GET /api/health': never, 'POST /api/webhook/stripe': never }
   ACTIONS: { 'saveInfo /[locale=locale]': 'locale', 'signOut /[locale=locale]': 'locale', 'default /[locale=locale]/sign-in': 'locale', 'verify /[locale=locale]/sign-in/email': 'locale', 'resend /[locale=locale]/sign-in/email': 'locale', 'changeEmail /[locale=locale]/sign-in/email': 'locale', 'useEmail /[locale=locale]/sign-in/method': 'locale', 'changeEmail /[locale=locale]/sign-in/method': 'locale', 'approve /[locale=locale]/admin/members': 'locale', 'reject /[locale=locale]/admin/members': 'locale', 'markExpired /[locale=locale]/admin/members': 'locale', 'cancel /[locale=locale]/admin/members': 'locale', 'reactivate /[locale=locale]/admin/members': 'locale', 'import /[locale=locale]/admin/members/import': 'locale', 'createMembership /[locale=locale]/admin/memberships': 'locale', 'deleteMembership /[locale=locale]/admin/memberships': 'locale', 'payMembership /[locale=locale]/new': 'locale' }
   LINKS: Record<string, never>
