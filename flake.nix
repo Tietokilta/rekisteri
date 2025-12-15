@@ -39,6 +39,7 @@
             STRIPE_WEBHOOK_SECRET = "whsec_...";
             DATABASE_URL = "postgres://root:mysecretpassword@localhost:5432/local";
             PUBLIC_URL = "http://localhost:3000";
+            PUBLIC_GIT_COMMIT_SHA = self.rev or "development";
             RP_NAME = "Tietokilta Rekisteri";
             RP_ID = "localhost";
             RP_ORIGIN = "http://localhost:3000";

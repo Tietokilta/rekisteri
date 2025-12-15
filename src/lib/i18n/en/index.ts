@@ -585,6 +585,7 @@ const en = {
 		},
 
 		footer: {
+			version: "Version",
 			privacyPolicy: "Privacy Policy",
 			registryDisclosure: "Register Description",
 			organization: "Computer Science Guild of Aalto University",

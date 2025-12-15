@@ -595,6 +595,7 @@ const fi = {
 		},
 
 		footer: {
+			version: "Versio",
 			privacyPolicy: "Tietosuojaseloste",
 			registryDisclosure: "Rekisteriseloste",
 			organization: "Aalto-yliopiston tietotekniikan korkeakouluopiskelijat Tietokilta ry",
