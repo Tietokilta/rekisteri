@@ -50,6 +50,11 @@
 			<h2>{$LL.documents.privacyPolicy.section8Title()}</h2>
 			<p>{@html $LL.documents.privacyPolicy.section8Content()}</p>
 		</section>
+
+		<section>
+			<h2>{$LL.documents.privacyPolicy.section9Title()}</h2>
+			<p>{@html $LL.documents.privacyPolicy.section9Content()}</p>
+		</section>
 		<!-- eslint-enable svelte/no-at-html-tags -->
 
 		<p class="mt-8 text-sm text-gray-600 dark:text-gray-400">

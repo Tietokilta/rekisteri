@@ -249,15 +249,14 @@ const fi = {
 	documents: {
 		privacyPolicy: {
 			title: "Tietosuojaseloste",
-			lastUpdated: "Viimeksi päivitetty: 5.11.2025",
+			lastUpdated: "Viimeksi päivitetty: 15.12.2025",
 
 			section1Title: "1. Rekisterinpitäjä",
 			section1Content: `
-				<strong>Aalto-yliopiston tietotekniikan korkeakouluopiskelijat Tietokilta ry</strong><br/>
-				Y-tunnus: 1888541-3<br/>
+				<strong>Tietokilta ry</strong><br/>
+				Y-tunnus: 1790346-8<br/>
 				Osoite: Konemiehentie 2, 02150 Espoo<br/>
 				Sähköposti: hallitus@tietokilta.fi<br/>
-				Puhelin: +358 50 431 4761
 			`,
 
 			section2Title: "2. Yhteyshenkilö tietosuoja-asioissa",
@@ -290,7 +289,8 @@ const fi = {
 					<li><strong>Opiskelijastatus:</strong> Tieto siitä, onko jäsen opiskelija (itse ilmoitettu, suunniteltu vahvistettavaksi Aalto-yliopiston sähköpostiosoitteella)</li>
 					<li><strong>Kotikunta:</strong> Käytetään tilastointitarkoituksiin</li>
 					<li><strong>Suostumukset:</strong> Tieto siitä, saako yhdistys lähettää jäsenyyteen liittymättömiä sähköposteja</li>
-					<li><strong>Teknisiä tietoja:</strong> Istuntotunnisteet, kirjautumiskoodit, audit-lokitiedot (säilytetään 90 päivää), IP-osoitteet kirjautumisyrityksistä (väärinkäytön ja hyökkäysten valvontaa varten, säilytetään 30 päivää), rate limiting -tiedot (vain muistissa)</li>
+					<li><strong>Avainkoodit (Passkeys):</strong> Salasanattomaan kirjautumiseen käytettävät julkiset avaimet, laitteen nimi, kuljetustavat, synkronointitila (esim. iCloud-avainnippu) ja viimeisimmän käyttökerran ajankohta</li>
+					<li><strong>Tekniset tiedot:</strong> Istuntotunnisteet, kirjautumiskoodit, audit-lokitiedot (säilytetään 90 päivää), IP-osoitteet ja selaintiedot (user agent) kirjautumisyrityksistä ja hallinnollisista toimenpiteistä (väärinkäytön ja hyökkäysten valvontaa varten, säilytetään 90 päivää), rate limiting -tiedot (vain muistissa)</li>
 				</ul>
 			`,
 
@@ -306,11 +306,18 @@ const fi = {
 			section7Content: `
 				Poistamme tietoja mahdollisimman pian, kun niitä ei enää tarvita. Säilytysajat määräytyvät seuraavasti:<br/><br/>
 
+				<strong>Keskeneräiset rekisteröitymiset:</strong><br/>
+				<ul>
+					<li>Kirjautumiskoodit keskeneräisistä rekisteröitymisistä vanhenevat automaattisesti 10 minuutissa</li>
+					<li>Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröitymistä loppuun</li>
+				</ul><br/>
+
 				<strong>Palveluun liittyvät tekniset tiedot (voidaan poistaa nopeasti):</strong><br/>
 				<ul>
 					<li>Kirjautumiskoodit: vanhenevat automaattisesti 10 minuutissa</li>
 					<li>Istuntotunnisteet: vanhenevat automaattisesti 30 päivässä</li>
-					<li>IP-osoitteet: poistetaan 30 päivän kuluttua (turvallisuuden valvonta)</li>
+					<li>Avainkoodit: säilytetään kunnes käyttäjä poistaa ne tai käyttäjätili poistetaan</li>
+					<li>IP-osoitteet ja selaintiedot: poistetaan 90 päivän kuluttua (turvallisuuden valvonta)</li>
 					<li>Audit-lokitiedot: poistetaan 90 päivän kuluttua (hallinnollisten toimenpiteiden seuranta)</li>
 					<li>Rate limiting -tiedot: vain muistissa, ei pysyvää tallennusta</li>
 				</ul><br/>
@@ -360,19 +367,24 @@ const fi = {
 
 				Tietoja ei myydä, vuokrata tai luovuteta kolmansille osapuolille markkinointitarkoituksiin.
 			`,
+
+			section9Title: "9. Automaattinen päätöksenteko",
+			section9Content: `
+				Rekisterissä ei käytetä GDPR:n artiklan 22 mukaista automaattista päätöksentekoa tai profilointia.
+				Kaikki jäsenyyttä koskevat päätökset (esim. jäsenhakemusten hyväksyminen) tekee ihminen.
+			`,
 		},
 
 		registryDisclosure: {
 			title: "Rekisteriseloste",
-			lastUpdated: "Viimeksi päivitetty: 5.11.2025",
+			lastUpdated: "Viimeksi päivitetty: 15.12.2025",
 
 			section1Title: "1. Rekisterinpitäjä",
 			section1Content: `
-				<strong>Aalto-yliopiston tietotekniikan korkeakouluopiskelijat Tietokilta ry</strong><br/>
-				Y-tunnus: 1888541-3<br/>
+				<strong>Tietokilta ry</strong><br/>
+				Y-tunnus: 1790346-8<br/>
 				Osoite: Konemiehentie 2, 02150 Espoo<br/>
 				Sähköposti: hallitus@tietokilta.fi<br/>
-				Puhelin: +358 50 431 4761
 			`,
 
 			section2Title: "2. Rekisterin nimi",
@@ -417,12 +429,23 @@ const fi = {
 					<li>Jäsenyyteen liittymättömien sähköpostien vastaanotto</li>
 				</ul><br/>
 
+				<strong>Avainkoodit (Passkeys):</strong><br/>
+				<ul>
+					<li>Julkiset avaimet salasanattomaan kirjautumiseen</li>
+					<li>Laitteen nimi (käyttäjän antama)</li>
+					<li>Avainkoodin kuljetustavat (esim. USB, NFC, Bluetooth)</li>
+					<li>Synkronointitila (esim. varmuuskopioitu iCloud-avainnippuun)</li>
+					<li>Viimeisimmän käyttökerran ajankohta</li>
+					<li>Luomis- ja päivitysajankohdat</li>
+				</ul><br/>
+
 				<strong>Tekniset tiedot:</strong><br/>
 				<ul>
 					<li>Istuntotunnisteet kirjautumista varten</li>
 					<li>Kirjautumiskoodit ja niiden voimassaoloajat</li>
 					<li>Audit-lokitiedot hallinnollisista toimenpiteistä (säilytetään 90 päivää)</li>
-					<li>IP-osoitteet kirjautumisyrityksistä (väärinkäytön ja hyökkäysten valvontaa varten, säilytetään 30 päivää)</li>
+					<li>IP-osoitteet kirjautumisyrityksistä ja hallinnollisista toimenpiteistä (väärinkäytön ja hyökkäysten valvontaa varten, säilytetään 90 päivää)</li>
+					<li>Selaintiedot (user agent) kirjautumisyrityksistä ja hallinnollisista toimenpiteistä (säilytetään 90 päivää)</li>
 					<li>Rate limiting -tiedot ylikuormituksen estämiseksi (vain muistissa)</li>
 					<li>Luomis- ja päivitysajankohdat</li>
 				</ul>
@@ -453,11 +476,18 @@ const fi = {
 			section6Content: `
 				Poistamme tietoja mahdollisimman pian, kun niitä ei enää tarvita. Säilytysajat määräytyvät seuraavasti:<br/><br/>
 
+				<strong>Keskeneräiset rekisteröitymiset:</strong><br/>
+				<ul>
+					<li>Kirjautumiskoodit keskeneräisistä rekisteröitymisistä vanhenevat automaattisesti 10 minuutissa</li>
+					<li>Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröitymistä loppuun</li>
+				</ul><br/>
+
 				<strong>Palveluun liittyvät tekniset tiedot (voidaan poistaa nopeasti):</strong><br/>
 				<ul>
 					<li>Kirjautumiskoodit: vanhenevat automaattisesti 10 minuutissa</li>
 					<li>Istuntotunnisteet: vanhenevat automaattisesti 30 päivässä</li>
-					<li>IP-osoitteet: poistetaan 30 päivän kuluttua</li>
+					<li>Avainkoodit: säilytetään kunnes käyttäjä poistaa ne tai käyttäjätili poistetaan</li>
+					<li>IP-osoitteet ja selaintiedot: poistetaan 90 päivän kuluttua</li>
 					<li>Audit-lokitiedot: poistetaan 90 päivän kuluttua</li>
 					<li>Rate limiting -tiedot: vain muistissa, ei pysyvää tallennusta</li>
 				</ul><br/>
@@ -592,17 +622,22 @@ const fi = {
 				Sähköposti: tietosuoja@om.fi<br/>
 				Verkkosivu: <a href="https://tietosuoja.fi" target="_blank" rel="noopener noreferrer">https://tietosuoja.fi</a>
 			`,
+
+			section11Title: "11. Automaattinen päätöksenteko",
+			section11Content: `
+				Rekisterissä ei käytetä GDPR:n artiklan 22 mukaista automaattista päätöksentekoa tai profilointia.
+				Kaikki jäsenyyttä koskevat päätökset (esim. jäsenhakemusten hyväksyminen) tekee ihminen.
+			`,
 		},
 
 		footer: {
 			version: "Versio",
 			privacyPolicy: "Tietosuojaseloste",
 			registryDisclosure: "Rekisteriseloste",
-			organization: "Aalto-yliopiston tietotekniikan korkeakouluopiskelijat Tietokilta ry",
-			businessId: "Y-tunnus: 1888541-3",
+			organization: "Tietokilta ry",
+			businessId: "Y-tunnus: 1790346-8",
 			contact: "Yhteystiedot",
 			email: "hallitus@tietokilta.fi",
-			phone: "+358 50 431 4761",
 			address: "Konemiehentie 2, 02150 Espoo",
 		},
 	},
