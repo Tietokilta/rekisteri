@@ -286,8 +286,8 @@ const en = {
 				<ul>
 					<li><strong>Basic information:</strong> First name, last name, email address</li>
 					<li><strong>Membership-related information:</strong> Membership type, validity period, payment history, membership status, Stripe customer ID</li>
-					<li><strong>Student status:</strong> Information regarding student status (currently self-reported; verification via Aalto University email address planned for the future).</li>
-					<li><strong>Municipality of residence:</strong> Used for statistical purposes.</li>
+					<li><strong>Student status:</strong> Information regarding student status. Self-reported; may be verified via Aalto University email address.</li>
+					<li><strong>Municipality of residence:</strong> Required under the Associations Act.</li>
 					<li><strong>Consents:</strong> Information about whether the association may send non-membership emails</li>
 					<li><strong>Passkeys:</strong> Public keys for passwordless authentication, device names, transport methods, sync status (e.g., iCloud Keychain), and last usage timestamps</li>
 					<li><strong>Technical data:</strong> Session tokens, login codes, audit logs (retained for 90 days), IP addresses and browser information (user agent) from login attempts and administrative actions (for abuse and attack monitoring, retained for 90 days), rate limiting data (in memory only)</li>
@@ -395,7 +395,7 @@ const en = {
 					<li>Membership type (e.g., regular member, alumni member)</li>
 					<li>Start and end dates of membership</li>
 					<li>Membership status (e.g., active, expired, pending approval)</li>
-					<li>Student status (currently self-reported; future verification planned via Aalto University email confirmation)</li>
+					<li>Student status (self-reported; may be verified via Aalto University email address)</li>
 					<li>Payment history and payment information</li>
 					<li>Stripe customer ID</li>
 				</ul><br/>
@@ -443,8 +443,7 @@ const en = {
 					<li>Board member registry during bulk imports (e.g., members from previous years)</li>
 				</ul><br/>
 
-				<strong>Note on Student Status:</strong> Currently self-reported. Future verification is planned via Aalto University
-				email address confirmation, without direct integration into university systems.
+				<strong>Student status:</strong> Self-reported. May be verified via Aalto University email address.
 			`,
 
 			section6Title: "6. Data Retention Period",
