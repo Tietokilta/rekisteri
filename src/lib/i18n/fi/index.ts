@@ -247,16 +247,19 @@ const fi = {
 
 	// Documents & Legal
 	documents: {
-		privacyPolicy: {
-			title: "Tietosuojaseloste",
-			lastUpdated: "Viimeksi päivitetty: 15.12.2025",
+		memberRegistryPrivacy: {
+			title: "Jäsenrekisterin rekisteri- ja tietosuojaseloste",
+			intro: `Tämä on EU:n yleisen tietosuoja-asetuksen (GDPR) sekä yhdistyslain (503/1989)
+				mukainen rekisteri- ja tietosuojaseloste.`,
+			createdDate: "Laatimispäivämäärä: 22.5.2018",
+			lastUpdated: "Viimeisin muutos: 15.12.2025",
 
 			section1Title: "1. Rekisterinpitäjä",
 			section1Content: `
 				<strong>Tietokilta ry</strong><br/>
 				Y-tunnus: 1790346-8<br/>
 				Osoite: Konemiehentie 2, 02150 Espoo<br/>
-				Sähköposti: hallitus@tietokilta.fi<br/>
+				Sähköposti: hallitus@tietokilta.fi
 			`,
 
 			section2Title: "2. Yhteyshenkilö tietosuoja-asioissa",
@@ -269,148 +272,17 @@ const fi = {
 				Tietokillan jäsenrekisteri
 			`,
 
-			section4Title: "4. Henkilötietojen käsittelyn tarkoitus ja oikeusperuste",
+			section4Title: "4. Oikeusperuste ja käsittelyn tarkoitus",
 			section4Content: `
-				<strong>Käsittelyn tarkoitus:</strong> Jäsenyyksien hallinta, jäsenpalveluiden tarjoaminen,
-				viestintä jäsenille sekä yhdistyksen lakisääteisten velvoitteiden täyttäminen.<br/><br/>
-
-				<strong>Oikeusperuste:</strong> Jäsenyyssopimuksen täyttäminen (GDPR 6(1)(b)),
-				oikeutettu etu jäsentoiminnan järjestämiseksi (GDPR 6(1)(f)) sekä
-				suostumus vapaaehtoisten markkinointiviestien osalta (GDPR 6(1)(a)).
-			`,
-
-			section5Title: "5. Rekisterin tietosisältö",
-			section5Content: `
-				Rekisteriin tallennetaan seuraavat tiedot:<br/><br/>
-
+				<strong>Oikeusperuste:</strong><br/>
 				<ul>
-					<li><strong>Perustiedot:</strong> Etunimi, sukunimi, sähköpostiosoite</li>
-					<li><strong>Jäsenyyteen liittyvät tiedot:</strong> Jäsenyyden tyyppi, voimassaoloaika, maksuhistoria, jäsenyyden tila, Stripe-asiakastunnus</li>
-					<li><strong>Opiskelijastatus:</strong> Tieto siitä, onko jäsen opiskelija. Tieto on itse ilmoitettu. Opiskelijastatus voidaan vahvistaa automaattisesti Aalto-yliopiston sähköpostiosoitteen avulla.</li>
-					<li><strong>Kotikunta:</strong> Yhdistyslain (503/1989 § 11) edellyttämä tieto</li>
-					<li><strong>Suostumukset:</strong> Tieto siitä, saako yhdistys lähettää jäsenyyteen liittymättömiä sähköposteja</li>
-					<li><strong>Avainkoodit (Passkeys):</strong> Salasanattomaan kirjautumiseen käytettävät julkiset avaimet, laitteen nimi, kuljetustavat, synkronointitila (esim. iCloud-avainnippu) ja viimeisimmän käyttökerran ajankohta</li>
-					<li><strong>Tekniset tiedot:</strong> Istuntotunnisteet, kirjautumiskoodit, tarkastusloki (audit log) hallinnollisista toimenpiteistä (säilytetään 90 päivää), IP-osoitteet ja selaintiedot (user agent) kirjautumisyrityksistä ja hallinnollisista toimenpiteistä (väärinkäytön ja hyökkäysten valvontaa varten, säilytetään 90 päivää), kuormituksenrajoitustiedot (rate limiting) (vain muistissa)</li>
-				</ul>
-			`,
-
-			section6Title: "6. Säännönmukaiset tietolähteet",
-			section6Content: `
-				Tiedot saadaan jäseneltä itseltään jäsenhakemuksen yhteydessä tai jäsenen päivittäessä omia tietojaan järjestelmässä.
-				Maksuun liittyvät tiedot saadaan Stripe-maksujärjestelmästä.
-			`,
-
-			section7Title: "7. Tietojen säilytysaika",
-			section7Content: `
-				Poistamme tietoja mahdollisimman pian, kun niitä ei enää tarvita. Säilytysajat määräytyvät seuraavasti:<br/><br/>
-
-				<strong>Keskeneräiset rekisteröitymiset:</strong><br/>
-				Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröitymistä loppuun.
-				Kirjautumiskoodit vanhenevat automaattisesti 10 minuutissa.<br/><br/>
-
-				<strong>Tekniset tiedot:</strong><br/>
-				<ul>
-					<li>Kirjautumiskoodit: vanhenevat automaattisesti 10 minuutissa</li>
-					<li>Istuntotunnisteet: vanhenevat automaattisesti 30 päivässä</li>
-					<li>Avainkoodit: säilytetään kunnes käyttäjä poistaa ne tai käyttäjätili poistetaan</li>
-					<li>IP-osoitteet ja selaintiedot: poistetaan 90 päivän kuluttua</li>
-					<li>Tarkastusloki (audit log): poistetaan 90 päivän kuluttua</li>
-					<li>Kuormituksenrajoitustiedot (rate limiting): vain muistissa, ei pysyvää tallennusta</li>
+					<li>Jäsenyyssopimuksen täyttäminen (GDPR 6(1)(b))</li>
+					<li>Lakisääteinen velvoite – yhdistyslaki (GDPR 6(1)(c))</li>
+					<li>Oikeutettu etu jäsentoiminnan järjestämiseksi (GDPR 6(1)(f))</li>
+					<li>Suostumus vapaaehtoisten markkinointiviestien osalta (GDPR 6(1)(a))</li>
 				</ul><br/>
 
-				<strong>Jäsenrekisteritiedot (lakisääteiset säilytysvelvoitteet):</strong><br/>
-				<ul>
-					<li><strong>Kirjanpitolain mukaiset tiedot</strong> (maksut, laskut, tositteet): vähintään 6 vuotta
-					tilikauden päättymisestä. Laki edellyttää näiden tietojen säilyttämistä.</li>
-					<li><strong>Yhdistyslain mukaiset jäsentiedot:</strong> säilytetään lakisääteisten velvoitteiden
-					täyttämiseksi, jonka jälkeen anonymisoidaan tai poistetaan</li>
-				</ul><br/>
-
-				<strong>Käytännössä jäsenyyden päätyttyä:</strong> Tekniset tiedot (istunnot, lokit)
-				poistetaan automaattisesti niiden vanhennuttua. Jäsenrekisteritiedot ja kirjanpitotiedot säilytetään
-				lakisääteisten velvoitteiden mukaisesti, jonka jälkeen ne poistetaan tai anonymisoidaan.
-			`,
-
-			section8Title: "8. Tietojen luovutus ja siirrot",
-			section8Content: `
-				<strong>Tietojen vastaanottajat:</strong><br/><br/>
-
-				<ul>
-					<li><strong>Microsoft Azure (North Europe, Irlanti):</strong> Pilvipalvelu, jossa rekisterin
-					tietokanta (Azure Database for PostgreSQL) ja sovelluspalvelin (Azure App Service) sijaitsevat.
-					Kaikki data säilytetään EU-alueella.</li>
-
-					<li><strong>Stripe (EU-infrastruktuuri):</strong> Maksujenkäsittelypalvelu jäsenmaksujen käsittelyyn.
-					Kaikki maksukorttitiedot käsittelee Stripe; itse tallennamme vain Stripe-asiakastunnuksen ja
-					jäsenen sähköpostiosoitteen maksutapahtumia varten.</li>
-
-					<li><strong>Mailgun (EU-endpoint):</strong> Sähköpostipalvelu (api.eu.mailgun.net) viestinnän
-					lähettämiseen osoitteesta rekisteri.tietokilta.fi. Data käsitellään EU-alueella.</li>
-
-					<li><strong>Google Workspace (Google Groups):</strong> Jäsenten sähköpostiosoitteita käytetään
-					killan postituslistoilla (Google Groups) jäsenviestintää varten (tapahtumat, tiedotteet,
-					jäsenedut). Tämä on välttämätöntä tehokkaalle jäsenviestinnälle. Google voi käsitellä tietoja
-					EU:n ja ETA:n ulkopuolella; näissä tilanteissa Google käyttää EU-komission hyväksymiä
-					vakiolausekkeita ja muita asianmukaisia suojausmekanismeja GDPR-vaatimusten noudattamiseksi.</li>
-				</ul>
-				<br/>
-
-				<strong>Tietojen siirrot EU:n ulkopuolelle:</strong><br/>
-				Pääsääntöisesti kaikki data säilytetään EU-alueella (Azure North Europe, Stripe EU, Mailgun EU).
-				Google Workspace voi kuitenkin käsitellä postituslistoihin liittyviä sähköpostiosoitteita EU:n
-				ulkopuolella käyttäen asianmukaisia suojausmekanismeja (vakiolausekkeet).<br/><br/>
-
-				Tietoja ei myydä, vuokrata tai luovuteta kolmansille osapuolille markkinointitarkoituksiin.
-			`,
-
-			section9Title: "9. Automaattinen päätöksenteko",
-			section9Content: `
-				Rekisterissä ei käytetä GDPR:n artiklan 22 mukaista automaattista päätöksentekoa tai profilointia.
-				Kaikki jäsenyyttä koskevat päätökset (esim. jäsenhakemusten hyväksyminen) tekee ihminen.
-			`,
-
-			section10Title: "10. Rekisteröidyn oikeudet",
-			section10Content: `
-				Rekisteröidyllä on oikeus:<br/>
-				<ul>
-					<li>Tarkastaa itseään koskevat tiedot</li>
-					<li>Vaatia tietojen oikaisemista tai poistamista</li>
-					<li>Rajoittaa tai vastustaa tietojen käsittelyä</li>
-					<li>Siirtää tiedot toiselle rekisterinpitäjälle</li>
-					<li>Peruuttaa suostumuksensa milloin tahansa</li>
-					<li>Tehdä valitus tietosuojavaltuutetulle (<a href="https://tietosuoja.fi" target="_blank" rel="noopener noreferrer">tietosuoja.fi</a>)</li>
-				</ul><br/>
-
-				<strong>Huomautus tietojen poistamisesta:</strong> Yhdistyslaki (503/1989 § 11) edellyttää, että yhdistys
-				ylläpitää jäsenluetteloa. Tämä lakisääteinen velvoite menee GDPR:n mukaisen poisto-oikeuden edelle.
-				Emme voi poistaa jäsentietoja kokonaan, mutta tekniset tiedot (istunnot, lokit) poistetaan automaattisesti
-				niiden vanhennuttua.<br/><br/>
-
-				Pyynnöt tulee lähettää osoitteeseen hallitus@tietokilta.fi. Tarkemmat tiedot oikeuksista löytyvät rekisteriselosteesta.
-			`,
-		},
-
-		registryDisclosure: {
-			title: "Rekisteriseloste",
-			lastUpdated: "Viimeksi päivitetty: 15.12.2025",
-
-			section1Title: "1. Rekisterinpitäjä",
-			section1Content: `
-				<strong>Tietokilta ry</strong><br/>
-				Y-tunnus: 1790346-8<br/>
-				Osoite: Konemiehentie 2, 02150 Espoo<br/>
-				Sähköposti: hallitus@tietokilta.fi<br/>
-			`,
-
-			section2Title: "2. Rekisterin nimi",
-			section2Content: `
-				Tietokillan jäsenrekisteri
-			`,
-
-			section3Title: "3. Henkilötietojen käsittelyn tarkoitus",
-			section3Content: `
-				Rekisteriä käytetään seuraaviin tarkoituksiin:<br/><br/>
-
+				<strong>Käsittelyn tarkoitus:</strong><br/>
 				<ul>
 					<li>Jäsenyyksien ylläpito ja hallinta</li>
 					<li>Jäsenmaksujen käsittely</li>
@@ -419,23 +291,21 @@ const fi = {
 				</ul>
 			`,
 
-			section4Title: "4. Rekisterin tietosisältö",
-			section4Content: `
+			section5Title: "5. Rekisterin tietosisältö",
+			section5Content: `
 				<strong>Jäsenen perustiedot:</strong><br/>
 				<ul>
 					<li>Etunimi ja sukunimi</li>
 					<li>Sähköpostiosoite</li>
-					<li>Kotikunta</li>
+					<li>Kotikunta (yhdistyslain edellyttämä tieto)</li>
+					<li>Ensisijainen kieli (valinnainen)</li>
 				</ul><br/>
 
 				<strong>Jäsenyystiedot:</strong><br/>
 				<ul>
-					<li>Jäsenyyden tyyppi (varsinainen jäsen, alumnijäsen jne.)</li>
-					<li>Jäsenyyden alkamis- ja päättymispäivä</li>
-					<li>Jäsenyyden tila (aktiivinen, vanhentunut, odottaa hyväksyntää jne.)</li>
-					<li>Opiskelijastatus (itse ilmoitettu; voidaan vahvistaa Aalto-yliopiston sähköpostiosoitteella)</li>
-					<li>Maksuhistoria ja maksutiedot</li>
-					<li>Stripe-asiakastunnus</li>
+					<li>Jäsenyyden tyyppi (varsinainen jäsen, alumnijäsen jne.), alkamis- ja päättymispäivä, tila</li>
+					<li>Opiskelijastatus (itse ilmoitettu; voidaan vahvistaa Aalto-sähköpostilla)</li>
+					<li>Maksuhistoria, Stripe-asiakastunnus</li>
 				</ul><br/>
 
 				<strong>Suostumukset:</strong><br/>
@@ -446,48 +316,37 @@ const fi = {
 				<strong>Avainkoodit (Passkeys):</strong><br/>
 				<ul>
 					<li>Julkiset avaimet salasanattomaan kirjautumiseen</li>
-					<li>Laitteen nimi (käyttäjän antama)</li>
-					<li>Avainkoodin kuljetustavat (esim. USB, NFC, Bluetooth)</li>
-					<li>Synkronointitila (esim. varmuuskopioitu iCloud-avainnippuun)</li>
+					<li>Laitteen nimi, kuljetustavat, synkronointitila</li>
 					<li>Viimeisimmän käyttökerran ajankohta</li>
-					<li>Luomis- ja päivitysajankohdat</li>
 				</ul><br/>
 
 				<strong>Tekniset tiedot:</strong><br/>
 				<ul>
-					<li>Istuntotunnisteet kirjautumista varten</li>
-					<li>Kirjautumiskoodit ja niiden voimassaoloajat</li>
-					<li>Tarkastusloki (audit log) hallinnollisista toimenpiteistä (säilytetään 90 päivää)</li>
-					<li>IP-osoitteet kirjautumisyrityksistä ja hallinnollisista toimenpiteistä (säilytetään 90 päivää)</li>
-					<li>Selaintiedot (user agent) kirjautumisyrityksistä ja hallinnollisista toimenpiteistä (säilytetään 90 päivää)</li>
-					<li>Kuormituksenrajoitustiedot (rate limiting) ylikuormituksen estämiseksi (vain muistissa)</li>
-					<li>Luomis- ja päivitysajankohdat</li>
+					<li>Istuntotunnisteet, kirjautumiskoodit</li>
+					<li>Tarkastusloki (audit log) hallinnollisista toimenpiteistä (90 pv)</li>
+					<li>IP-osoitteet ja selaintiedot (user agent) kirjautumisyrityksistä (90 pv)</li>
+					<li>Kuormituksenrajoitustiedot (rate limiting) (vain muistissa)</li>
 				</ul>
 			`,
 
-			section5Title: "5. Säännönmukaiset tietolähteet",
-			section5Content: `
-				Henkilötiedot kerätään ensisijaisesti jäseneltä itseltään seuraavissa tilanteissa:<br/><br/>
-
+			section6Title: "6. Säännönmukaiset tietolähteet",
+			section6Content: `
+				Henkilötiedot kerätään ensisijaisesti jäseneltä itseltään:<br/>
 				<ul>
 					<li>Jäsenhakemus ja jäsenyyden ostaminen</li>
 					<li>Jäsentietojen päivittäminen järjestelmässä</li>
 					<li>Kirjautuminen järjestelmään</li>
 				</ul><br/>
 
-				Lisäksi tietoja voidaan saada:<br/>
+				Lisäksi tietoja saadaan:<br/>
 				<ul>
-					<li>Stripe-maksujärjestelmästä (maksutapahtumat, maksutiedot)</li>
-					<li>Hallituksen jäsenrekisteristä massatuonnin yhteydessä (esim. aiempien vuosien jäsenet)</li>
-				</ul><br/>
-
-				<strong>Opiskelijastatus:</strong> Tieto on itse ilmoitettu. Opiskelijastatus voidaan vahvistaa automaattisesti
-				Aalto-yliopiston sähköpostiosoitteen avulla.
+					<li>Stripe-maksujärjestelmästä (maksutapahtumat)</li>
+				</ul>
 			`,
 
-			section6Title: "6. Tietojen säilytysaika",
-			section6Content: `
-				Poistamme tietoja mahdollisimman pian, kun niitä ei enää tarvita. Säilytysajat määräytyvät seuraavasti:<br/><br/>
+			section7Title: "7. Tietojen säilytysaika",
+			section7Content: `
+				Poistamme tietoja mahdollisimman pian, kun niitä ei enää tarvita.<br/><br/>
 
 				<strong>Keskeneräiset rekisteröitymiset:</strong><br/>
 				Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröitymistä loppuun.
@@ -495,134 +354,117 @@ const fi = {
 
 				<strong>Tekniset tiedot:</strong><br/>
 				<ul>
-					<li>Kirjautumiskoodit: vanhenevat automaattisesti 10 minuutissa</li>
-					<li>Istuntotunnisteet: vanhenevat automaattisesti 30 päivässä</li>
-					<li>Avainkoodit: säilytetään kunnes käyttäjä poistaa ne tai käyttäjätili poistetaan</li>
-					<li>IP-osoitteet ja selaintiedot: poistetaan 90 päivän kuluttua</li>
-					<li>Tarkastusloki (audit log): poistetaan 90 päivän kuluttua</li>
-					<li>Kuormituksenrajoitustiedot (rate limiting): vain muistissa, ei pysyvää tallennusta</li>
+					<li>Kirjautumiskoodit: 10 minuuttia</li>
+					<li>Istuntotunnisteet: 30 päivää</li>
+					<li>Avainkoodit: kunnes käyttäjä poistaa tai tili poistetaan</li>
+					<li>IP-osoitteet, selaintiedot, tarkastusloki: 90 päivää</li>
+					<li>Kuormituksenrajoitustiedot: vain muistissa</li>
 				</ul><br/>
 
-				<strong>Jäsenrekisteritiedot (lakisääteiset säilytysvelvoitteet):</strong><br/>
+				<strong>Lakisääteiset säilytysvelvoitteet:</strong><br/>
 				<ul>
-					<li><strong>Kirjanpitolain mukaiset tiedot</strong> (maksut, laskut, tositteet): vähintään 6 vuotta
-					tilikauden päättymisestä. Laki edellyttää näiden tietojen säilyttämistä.</li>
-					<li><strong>Yhdistyslain mukaiset jäsentiedot:</strong> säilytetään lakisääteisten velvoitteiden
-					täyttämiseksi, jonka jälkeen anonymisoidaan tai poistetaan</li>
+					<li><strong>Kirjanpitolaki:</strong> Maksut, laskut ja tositteet vähintään 6 vuotta tilikauden päättymisestä</li>
+					<li><strong>Yhdistyslaki:</strong> Jäsentiedot säilytetään lakisääteisten velvoitteiden täyttämiseksi</li>
 				</ul><br/>
 
-				<strong>Käytännössä jäsenyyden päätyttyä:</strong> Tekniset tiedot (istunnot, lokit)
-				poistetaan automaattisesti niiden vanhennuttua. Jäsenrekisteritiedot ja kirjanpitotiedot säilytetään
-				lakisääteisten velvoitteiden mukaisesti, jonka jälkeen ne poistetaan tai anonymisoidaan.
+				<strong>Käytännössä jäsenyyden päätyttyä:</strong> Tekniset tiedot poistetaan automaattisesti niiden
+				vanhennuttua. Jäsenrekisteritiedot ja kirjanpitotiedot säilytetään lakisääteisten velvoitteiden mukaisesti.
 			`,
 
-			section7Title: "7. Tietojen luovutus ja siirrot",
-			section7Content: `
-				<strong>Säännönmukaiset luovutukset:</strong><br/><br/>
-
-				<ul>
-					<li><strong>Microsoft Azure (North Europe, Irlanti):</strong> Pilvipalvelu, jossa rekisterin
-					tietokanta (Azure Database for PostgreSQL) ja sovelluspalvelin (Azure App Service) sijaitsevat.
-					Kaikki data säilytetään EU-alueella. Microsoft noudattaa GDPR-vaatimuksia.</li>
-
-					<li><strong>Stripe Inc. (EU-infrastruktuuri):</strong> Maksujenkäsittelypalvelu. Tiedot siirretään
-					turvallisesti Stripen EU-järjestelmiin maksujen käsittelyä varten. Kaikki maksukorttitiedot
-					käsittelee Stripe; itse tallennamme vain Stripe-asiakastunnuksen ja sähköpostiosoitteen.
-					Stripe noudattaa GDPR-vaatimuksia ja käyttää EU-komission hyväksymiä vakiolausekkeita.</li>
-
-					<li><strong>Mailgun (Sinch MessageMedia Pty Ltd, EU-endpoint):</strong> Sähköpostipalvelu
-					viestinnän lähettämiseen (api.eu.mailgun.net). Palvelu käsittelee sähköpostiosoitteita ja
-					viestin sisältöä EU-alueella.</li>
-
-					<li><strong>Google Workspace (Google Groups):</strong> Jäsenten sähköpostiosoitteita käytetään
-					killan postituslistoilla (Google Groups) jäsenviestintää varten (tapahtumat, tiedotteet,
-					jäsenedut). Tämä on välttämätöntä tehokkaalle jäsenviestinnälle. Google voi käsitellä tietoja
-					EU:n ja ETA:n ulkopuolella; näissä tilanteissa Google käyttää EU-komission hyväksymiä
-					vakiolausekkeita ja muita asianmukaisia suojausmekanismeja GDPR-vaatimusten noudattamiseksi.</li>
-				</ul><br/>
+			section8Title: "8. Tietojen luovutus ja siirrot",
+			section8Content: `
+				<table>
+					<thead>
+						<tr>
+							<th>Palveluntarjoaja</th>
+							<th>Sijainti</th>
+							<th>Käyttötarkoitus</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>Microsoft Azure</td>
+							<td>EU (Irlanti)</td>
+							<td>Tietokanta ja sovellus</td>
+						</tr>
+						<tr>
+							<td>Stripe</td>
+							<td>EU</td>
+							<td>Maksujenkäsittely</td>
+						</tr>
+						<tr>
+							<td>Mailgun</td>
+							<td>EU</td>
+							<td>Sähköpostipalvelu</td>
+						</tr>
+						<tr>
+							<td>Google Workspace</td>
+							<td>EU/Globaali*</td>
+							<td>Postituslistat</td>
+						</tr>
+					</tbody>
+				</table>
+				<p class="text-sm">*Google voi käsitellä tietoja EU:n ulkopuolella vakiolausekkein (SCCs).</p><br/>
 
 				<strong>Satunnaiset luovutukset:</strong><br/>
 				Tietoja voidaan luovuttaa viranomaisille lakisääteisen velvoitteen perusteella.<br/><br/>
-
-				<strong>Tietojen siirrot EU:n ulkopuolelle:</strong><br/>
-				Pääsääntöisesti kaikki data säilytetään EU-alueella (Azure North Europe, Stripe EU, Mailgun EU).
-				Google Workspace voi kuitenkin käsitellä postituslistoihin liittyviä sähköpostiosoitteita EU:n
-				ulkopuolella käyttäen asianmukaisia suojausmekanismeja (vakiolausekkeet).<br/><br/>
 
 				<strong>Tietoturva siirroissa:</strong><br/>
 				Kaikki tiedonsiirrot tapahtuvat salattuja yhteyksiä (HTTPS/TLS) käyttäen.
 				Tietoja ei myydä, vuokrata tai luovuteta markkinointitarkoituksiin.
 			`,
 
-			section8Title: "8. Rekisterin suojauksen periaatteet",
-			section8Content: `
-				<strong>Tekniset suojatoimet:</strong><br/><br/>
-
+			section9Title: "9. Rekisterin suojaus",
+			section9Content: `
+				<strong>Tekniset suojatoimet:</strong><br/>
 				<ul>
-					<li>Tietokanta (Azure Database for PostgreSQL) on suojattu palomuurilla ja pääsy on rajattu
-					vain valtuutetuille järjestelmille</li>
-					<li>Kaikki tietoliikenne tapahtuu salattua HTTPS/TLS-yhteyttä käyttäen</li>
-					<li>Salasanoja ei tallenneta - käytetään sähköpostipohjaista kertakäyttökoodi-autentikointia</li>
+					<li>Tietokanta suojattu palomuurilla, pääsy rajattu valtuutetuille järjestelmille</li>
+					<li>Kaikki tietoliikenne salattu (HTTPS/TLS)</li>
+					<li>Ei salasanoja – sähköpostipohjainen kertakäyttökoodi ja avainkoodit</li>
 					<li>Istuntotunnisteet tallennetaan hajautettuna (hashed)</li>
-					<li>Järjestelmässä käytetään turvallista session-hallintaa (vanheneminen 30 päivässä)</li>
-					<li>Tarkastusloki (audit log) kaikista hallinnollisista toimenpiteistä (säilytetään 90 päivää)</li>
-					<li>Säännölliset automaattiset varmuuskopiot Azure-infrastruktuurissa</li>
+					<li>Tarkastusloki kaikista hallinnollisista toimenpiteistä</li>
+					<li>Säännölliset automaattiset varmuuskopiot</li>
 				</ul><br/>
 
-				<strong>Organisatoriset suojatoimet:</strong><br/><br/>
-
+				<strong>Organisatoriset suojatoimet:</strong><br/>
 				<ul>
-					<li>Pääsy rekisteriin on rajattu hallituksen avainhenkilöille: puheenjohtaja, varapuheenjohtaja/sihteeri,
-					rahastonhoitaja, sekä aktiivisesti kehittävät ohjelmoijat</li>
-					<li>Pääsy voidaan myöntää tarvittaessa muille hallituksen jäsenille esim. kokouksissa
-					läsnäolon tarkistamiseen</li>
+					<li>Pääsy rajattu hallituksen avainhenkilöille (puheenjohtaja, sihteeri, rahastonhoitaja, kehittäjät)</li>
 					<li>Käyttöoikeudet myönnetään vain tehtävän edellyttämässä laajuudessa</li>
 					<li>Kaikki hallinnolliset toimenpiteet kirjataan tarkastuslokiin</li>
-					<li>Hallituksen jäsenet on sitoutettu salassapitoon</li>
 				</ul><br/>
 
 				<strong>Fyysinen turvallisuus:</strong><br/>
-				Palvelimet sijaitsevat Microsoft Azure North Europe (Irlanti) -datakeskuksessa, joka täyttää
-				korkeat turvallisuusvaatimukset (ISO 27001, SOC 2, jne.).
+				Palvelimet sijaitsevat Microsoft Azure North Europe (Irlanti) -datakeskuksessa (ISO 27001, SOC 2).
 			`,
 
-			section9Title: "9. Tarkastusoikeus ja oikeus vaatia tiedon korjaamista",
-			section9Content: `
+			section10Title: "10. Rekisteröidyn oikeudet",
+			section10Content: `
+				Rekisteröidyllä on oikeus:<br/>
+				<ul>
+					<li>Tarkastaa itseään koskevat tiedot</li>
+					<li>Vaatia tietojen oikaisemista</li>
+					<li>Rajoittaa tai vastustaa käsittelyä</li>
+					<li>Siirtää tiedot toiselle rekisterinpitäjälle</li>
+					<li>Peruuttaa suostumuksensa</li>
+					<li>Tehdä valitus tietosuojavaltuutetulle (<a href="https://tietosuoja.fi" target="_blank" rel="noopener noreferrer">tietosuoja.fi</a>)</li>
+				</ul><br/>
+
+				<strong>⚠️ Huomautus tietojen poistamisesta:</strong><br/>
+				Yhdistyslaki (503/1989 § 11) edellyttää jäsenluettelon ylläpitoa.
+				Tämä lakisääteinen velvoite menee GDPR:n poisto-oikeuden edelle.
+			`,
+
+			section11Title: "11. Tarkastusoikeus ja oikaisu",
+			section11Content: `
 				<strong>Tarkastusoikeus:</strong><br/>
-				Jokaisella rekisteröidyllä on oikeus tarkistaa, mitä häntä koskevia tietoja
-				henkilötietorekisteriin on talletettu. Tarkastuspyyntö tulee lähettää kirjallisesti
-				osoitteeseen hallitus@tietokilta.fi.<br/><br/>
+				Jäsen voi tarkastaa ja hallita omia tietojaan kirjautumalla järjestelmään.
+				Tekniset tiedot (istunnot, lokit, IP-osoitteet) voi pyytää erikseen osoitteesta
+				hallitus@tietokilta.fi.<br/><br/>
 
 				<strong>Oikeus tietojen korjaamiseen:</strong><br/>
 				Rekisteröity voi itse korjata ja päivittää tietojaan kirjautumalla järjestelmään.
 				Mikäli tietoja ei voi korjata itse, voi pyytää tietojen korjaamista ottamalla yhteyttä
 				osoitteeseen hallitus@tietokilta.fi.<br/><br/>
-
-				<strong>Oikeus tietojen poistamiseen:</strong><br/>
-				Rekisteröidyllä on oikeus pyytää tietojensa poistamista ("oikeus tulla unohdetuksi"),
-				ellei tietojen säilyttämiseen ole lakisääteistä perustetta (esim. kirjanpitovelvoite).
-			`,
-
-			section10Title: "10. Muut henkilötietojen käsittelyyn liittyvät oikeudet",
-			section10Content: `
-				Rekisteröidyllä on oikeus:<br/><br/>
-
-				<ul>
-					<li><strong>Pyytää tietojensa käsittelyn rajoittamista</strong> tietyissä tilanteissa
-					(esim. kun käsittelyn lainmukaisuus on kiistanalainen)</li>
-
-					<li><strong>Vastustaa tietojensa käsittelyä</strong>, kun käsittely perustuu
-					oikeutettuun etuun</li>
-
-					<li><strong>Siirtää tietonsa</strong> toiselle rekisterinpitäjälle koneluettavassa muodossa
-					(tietojen siirrettävyys)</li>
-
-					<li><strong>Peruuttaa suostumuksensa</strong> milloin tahansa, kun käsittely perustuu
-					suostumukseen (esim. markkinointiviestien vastaanotto)</li>
-
-					<li><strong>Tehdä valitus valvontaviranomaiselle</strong>, jos katsoo, että häntä koskevien
-					henkilötietojen käsittelyssä rikotaan tietosuoja-asetusta</li>
-				</ul><br/>
 
 				<strong>Valvontaviranomainen Suomessa:</strong><br/>
 				Tietosuojavaltuutetun toimisto<br/>
@@ -633,8 +475,8 @@ const fi = {
 				Verkkosivu: <a href="https://tietosuoja.fi" target="_blank" rel="noopener noreferrer">https://tietosuoja.fi</a>
 			`,
 
-			section11Title: "11. Automaattinen päätöksenteko",
-			section11Content: `
+			section12Title: "12. Automaattinen päätöksenteko",
+			section12Content: `
 				Rekisterissä ei käytetä GDPR:n artiklan 22 mukaista automaattista päätöksentekoa tai profilointia.
 				Kaikki jäsenyyttä koskevat päätökset (esim. jäsenhakemusten hyväksyminen) tekee ihminen.
 			`,
@@ -642,8 +484,7 @@ const fi = {
 
 		footer: {
 			version: "Versio",
-			privacyPolicy: "Tietosuojaseloste",
-			registryDisclosure: "Rekisteriseloste",
+			privacyPolicy: "Rekisteri- ja tietosuojaseloste",
 			organization: "Tietokilta ry",
 			businessId: "Y-tunnus: 1790346-8",
 			contact: "Yhteystiedot",

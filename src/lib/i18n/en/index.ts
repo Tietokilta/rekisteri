@@ -247,8 +247,13 @@ const en = {
 
 	// Documents & Legal
 	documents: {
-		privacyPolicy: {
-			title: "Privacy Policy",
+		memberRegistryPrivacy: {
+			title: "Member Registry Privacy Statement",
+			intro: `This is a registry and privacy statement in accordance with the EU General Data Protection
+				Regulation (GDPR) and the Finnish Associations Act (503/1989).<br/><br/>
+				<em>Note: The legally binding version of this document is in Finnish. This English translation
+				is provided for convenience only.</em>`,
+			createdDate: "Created: May 22, 2018",
 			lastUpdated: "Last updated: December 15, 2025",
 
 			section1Title: "1. Data Controller",
@@ -256,7 +261,7 @@ const en = {
 				<strong>Computer Science Guild of Aalto University (Tietokilta ry)</strong><br/>
 				Business ID: 1790346-8<br/>
 				Address: Konemiehentie 2, 02150 Espoo, Finland<br/>
-				Email: hallitus@tietokilta.fi<br/>
+				Email: hallitus@tietokilta.fi
 			`,
 
 			section2Title: "2. Contact Person for Data Protection Matters",
@@ -269,138 +274,17 @@ const en = {
 				Tietokilta Membership Registry
 			`,
 
-			section4Title: "4. Purpose and Legal Basis for Processing Personal Data",
+			section4Title: "4. Legal Basis and Purpose of Processing",
 			section4Content: `
-				<strong>Purpose of processing:</strong> Managing memberships, providing member services,
-				communication with members, and fulfilling the association's legal obligations.<br/><br/>
-
-				<strong>Legal basis:</strong> Performance of membership agreement (GDPR 6(1)(b)),
-				legitimate interest in organizing member activities (GDPR 6(1)(f)), and
-				consent for voluntary marketing communications (GDPR 6(1)(a)).
-			`,
-
-			section5Title: "5. Data Content of the Register",
-			section5Content: `
-				The following data is stored in the register:<br/><br/>
-
+				<strong>Legal basis:</strong><br/>
 				<ul>
-					<li><strong>Basic information:</strong> First name, last name, email address</li>
-					<li><strong>Membership-related information:</strong> Membership type, validity period, payment history, membership status, Stripe customer ID</li>
-					<li><strong>Student status:</strong> Information regarding student status. Self-reported; may be verified via Aalto University email address.</li>
-					<li><strong>Municipality of residence:</strong> Required under the Associations Act.</li>
-					<li><strong>Consents:</strong> Information about whether the association may send non-membership emails</li>
-					<li><strong>Passkeys:</strong> Public keys for passwordless authentication, device names, transport methods, sync status (e.g., iCloud Keychain), and last usage timestamps</li>
-					<li><strong>Technical data:</strong> Session tokens, login codes, audit logs (retained for 90 days), IP addresses and browser information (user agent) from login attempts and administrative actions (for abuse and attack monitoring, retained for 90 days), rate limiting data (in memory only)</li>
-				</ul>
-			`,
-
-			section6Title: "6. Regular Sources of Data",
-			section6Content: `
-				Data is obtained from the member themselves during membership application or when updating their information.
-				Payment-related data is obtained from the Stripe payment system.
-			`,
-
-			section7Title: "7. Data Retention Period",
-			section7Content: `
-				We delete data as soon as it is no longer needed. Retention periods are determined as follows:<br/><br/>
-
-				<strong>Incomplete registrations:</strong><br/>
-				No personal data is retained for users who do not complete the registration process.
-				Login codes expire automatically in 10 minutes.<br/><br/>
-
-				<strong>Technical data:</strong><br/>
-				<ul>
-					<li>Login codes: expire automatically in 10 minutes</li>
-					<li>Session tokens: expire automatically in 30 days</li>
-					<li>Passkeys: retained until deleted by user or user account is deleted</li>
-					<li>IP addresses and browser information: deleted after 90 days</li>
-					<li>Audit logs: deleted after 90 days</li>
-					<li>Rate limiting data: in memory only, no persistent storage</li>
+					<li>Performance of membership agreement (GDPR 6(1)(b))</li>
+					<li>Legal obligation – Associations Act (GDPR 6(1)(c))</li>
+					<li>Legitimate interest in organizing member activities (GDPR 6(1)(f))</li>
+					<li>Consent for voluntary marketing communications (GDPR 6(1)(a))</li>
 				</ul><br/>
 
-				<strong>Member registry data (statutory retention obligations):</strong><br/>
-				<ul>
-					<li><strong>Accounting Act records</strong> (payments, invoices, receipts): at least 6 years
-					from the end of the fiscal year, as required by the Accounting Act.</li>
-					<li><strong>Associations Act member data:</strong> retained to fulfill statutory obligations,
-					after which data is anonymized or deleted</li>
-				</ul><br/>
-
-				<strong>In practice after membership ends:</strong> Technical data (sessions, logs) are automatically
-				deleted when they expire. Member registry data and accounting records are retained in accordance with
-				statutory obligations, after which they are deleted or anonymized.
-			`,
-
-			section8Title: "8. Data Disclosure and Transfers",
-			section8Content: `
-				We use trusted service providers for data processing:<br/><br/>
-
-				<ul>
-					<li><strong>Microsoft Azure (North Europe, Ireland):</strong> Cloud hosting for the database
-					and application. Data remains within the EU.</li>
-
-					<li><strong>Stripe (EU infrastructure):</strong> Payment processing. We only store the Stripe
-					customer ID and email; Stripe handles all payment card data.</li>
-
-					<li><strong>Mailgun (EU endpoint):</strong> Email delivery service. Data is processed within the EU.</li>
-
-					<li><strong>Google Workspace (Google Groups):</strong> Used for mailing lists.</li>
-				</ul>
-				<br/>
-
-				Generally, data is stored within the EU. If a service provider (e.g., Google) processes data outside
-				the EU/EEA, the transfer is secured using appropriate safeguards, such as the EU Commission's
-				Standard Contractual Clauses (SCCs). Data is not sold or disclosed to third parties for marketing purposes.
-			`,
-
-			section9Title: "9. Automated Decision-Making",
-			section9Content: `
-				The register does not use automated decision-making or profiling as defined in GDPR Article 22.
-				All membership-related decisions (e.g., approval of membership applications) are made by a human.
-			`,
-
-			section10Title: "10. Data Subject Rights",
-			section10Content: `
-				Data subjects have the right to:<br/>
-				<ul>
-					<li>Access their personal data</li>
-					<li>Request rectification or erasure of their data</li>
-					<li>Restrict or object to processing</li>
-					<li>Data portability</li>
-					<li>Withdraw consent at any time</li>
-					<li>Lodge a complaint with the Data Protection Ombudsman (<a href="https://tietosuoja.fi/en/" target="_blank" rel="noopener noreferrer">tietosuoja.fi</a>)</li>
-				</ul><br/>
-
-				<strong>Note on data erasure:</strong> The Finnish Associations Act (503/1989 § 11) requires associations
-				to maintain a member registry. This statutory obligation takes precedence over GDPR erasure rights.
-				We cannot fully delete member data, but technical data (sessions, logs) is automatically deleted
-				when it expires.<br/><br/>
-
-				Requests should be sent to hallitus@tietokilta.fi. For detailed information about rights, see the Register Description.
-			`,
-		},
-
-		registryDisclosure: {
-			title: "Register Description",
-			lastUpdated: "Last updated: December 15, 2025",
-
-			section1Title: "1. Data Controller",
-			section1Content: `
-				<strong>Computer Science Guild of Aalto University (Tietokilta ry)</strong><br/>
-				Business ID: 1790346-8<br/>
-				Address: Konemiehentie 2, 02150 Espoo, Finland<br/>
-				Email: hallitus@tietokilta.fi<br/>
-			`,
-
-			section2Title: "2. Name of the Register",
-			section2Content: `
-				Tietokilta Membership Registry
-			`,
-
-			section3Title: "3. Purpose of Processing Personal Data",
-			section3Content: `
-				The register is used for the following purposes:<br/><br/>
-
+				<strong>Purpose of processing:</strong><br/>
 				<ul>
 					<li>Maintaining and managing memberships</li>
 					<li>Processing membership fees</li>
@@ -409,23 +293,21 @@ const en = {
 				</ul>
 			`,
 
-			section4Title: "4. Data Content of the Register",
-			section4Content: `
+			section5Title: "5. Data Content of the Register",
+			section5Content: `
 				<strong>Member basic information:</strong><br/>
 				<ul>
 					<li>First name and last name</li>
 					<li>Email address</li>
-					<li>Municipality of residence</li>
+					<li>Municipality of residence (required by Associations Act)</li>
+					<li>Preferred language (optional)</li>
 				</ul><br/>
 
 				<strong>Membership information:</strong><br/>
 				<ul>
-					<li>Membership type (e.g., regular member, alumni member)</li>
-					<li>Start and end dates of membership</li>
-					<li>Membership status (e.g., active, expired, pending approval)</li>
-					<li>Student status (self-reported; may be verified via Aalto University email address)</li>
-					<li>Payment history and payment information</li>
-					<li>Stripe customer ID</li>
+					<li>Membership type (e.g., regular member, alumni member), start/end dates, status</li>
+					<li>Student status (self-reported; may be verified via Aalto email)</li>
+					<li>Payment history, Stripe customer ID</li>
 				</ul><br/>
 
 				<strong>Consents:</strong><br/>
@@ -436,140 +318,155 @@ const en = {
 				<strong>Passkeys:</strong><br/>
 				<ul>
 					<li>Public keys for passwordless authentication</li>
-					<li>Device name (user-provided)</li>
-					<li>Passkey transport methods (e.g., USB, NFC, Bluetooth)</li>
-					<li>Sync status (e.g., backed up to iCloud Keychain)</li>
+					<li>Device name, transport methods, sync status</li>
 					<li>Last usage timestamp</li>
-					<li>Creation and update timestamps</li>
 				</ul><br/>
 
 				<strong>Technical data:</strong><br/>
 				<ul>
-					<li>Session tokens for authentication</li>
-					<li>Login codes and their expiration times</li>
-					<li>Audit logs of administrative actions (retained for 90 days)</li>
-					<li>IP addresses from login attempts and administrative actions (for abuse and attack monitoring, retained for 90 days)</li>
-					<li>Browser information (user agent) from login attempts and administrative actions (retained for 90 days)</li>
-					<li>Rate limiting data to prevent overload (in memory only)</li>
-					<li>Creation and update timestamps</li>
+					<li>Session tokens, login codes</li>
+					<li>Audit logs of administrative actions (90 days)</li>
+					<li>IP addresses and browser information from login attempts (90 days)</li>
+					<li>Rate limiting data (in memory only)</li>
 				</ul>
 			`,
 
-			section5Title: "5. Regular Sources of Data",
-			section5Content: `
-				Personal data is primarily collected from the member themselves in the following situations:<br/><br/>
-
+			section6Title: "6. Regular Sources of Data",
+			section6Content: `
+				Personal data is primarily collected from the member themselves:<br/>
 				<ul>
 					<li>Membership application and purchase</li>
 					<li>Updating member information in the system</li>
 					<li>Logging into the system</li>
 				</ul><br/>
 
-				Additionally, data may be obtained from:<br/>
+				Additionally, data is obtained from:<br/>
 				<ul>
-					<li>Stripe payment system (payment transactions, payment information)</li>
-					<li>Board member registry during bulk imports (e.g., members from previous years)</li>
-				</ul><br/>
-
-				<strong>Student status:</strong> Self-reported. May be verified via Aalto University email address.
-			`,
-
-			section6Title: "6. Data Retention Period",
-			section6Content: `
-				Data is deleted as soon as it is no longer needed.<br/><br/>
-
-				<strong>Technical Data:</strong><br/>
-				<ul>
-					<li>Login codes: expire automatically in 10 minutes.</li>
-					<li>Session tokens: expire automatically in 30 days.</li>
-					<li>Passkeys: retained until deleted by the user or the account is removed.</li>
-					<li>IP addresses, browser info, and audit logs: deleted after 90 days.</li>
-					<li>Incomplete registrations: No personal data is retained if the process is not completed.</li>
-				</ul><br/>
-
-				<strong>Statutory Retention Obligations:</strong><br/>
-				<ul>
-					<li><strong>Accounting Act:</strong> Payment records and receipts are retained for at least 6 years
-					from the end of the fiscal year, as required by law.</li>
-					<li><strong>Associations Act:</strong> Member data is retained to fulfill legal obligations,
-					after which it is anonymized or deleted.</li>
+					<li>Stripe payment system (payment transactions)</li>
 				</ul>
 			`,
 
-			section7Title: "7. Data Disclosure and Transfers",
+			section7Title: "7. Data Retention Period",
 			section7Content: `
-				<strong>Regular disclosures:</strong><br/>
+				We delete data as soon as it is no longer needed.<br/><br/>
+
+				<strong>Incomplete registrations:</strong><br/>
+				No personal data is retained for users who do not complete the registration process.
+				Login codes expire automatically in 10 minutes.<br/><br/>
+
+				<strong>Technical data:</strong><br/>
 				<ul>
-					<li><strong>Microsoft Azure (Ireland):</strong> Hosting provider. Data stored in the EU.</li>
-					<li><strong>Stripe (EU):</strong> Payment processing. We do not store card details. Stripe complies with GDPR.</li>
-					<li><strong>Mailgun (EU):</strong> Email service. Data processed in the EU.</li>
-					<li><strong>Google Workspace:</strong> Mailing lists. Google may process data outside the EU using
-					appropriate safeguards (Standard Contractual Clauses).</li>
+					<li>Login codes: 10 minutes</li>
+					<li>Session tokens: 30 days</li>
+					<li>Passkeys: until deleted by user or account is removed</li>
+					<li>IP addresses, browser info, audit logs: 90 days</li>
+					<li>Rate limiting data: in memory only</li>
 				</ul><br/>
 
-				<strong>Transfer security:</strong><br/>
-				All transfers use encrypted connections (HTTPS/TLS). Data is not sold or used for marketing by third parties.
+				<strong>Statutory retention obligations:</strong><br/>
+				<ul>
+					<li><strong>Accounting Act:</strong> Payments, invoices, and receipts for at least 6 years from end of fiscal year</li>
+					<li><strong>Associations Act:</strong> Member data retained to fulfill legal obligations</li>
+				</ul><br/>
+
+				<strong>In practice after membership ends:</strong> Technical data is automatically deleted when it
+				expires. Member registry data and accounting records are retained in accordance with statutory obligations.
 			`,
 
-			section8Title: "8. Principles of Register Protection",
+			section8Title: "8. Data Disclosure and Transfers",
 			section8Content: `
+				<table>
+					<thead>
+						<tr>
+							<th>Service Provider</th>
+							<th>Location</th>
+							<th>Purpose</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>Microsoft Azure</td>
+							<td>EU (Ireland)</td>
+							<td>Database and application</td>
+						</tr>
+						<tr>
+							<td>Stripe</td>
+							<td>EU</td>
+							<td>Payment processing</td>
+						</tr>
+						<tr>
+							<td>Mailgun</td>
+							<td>EU</td>
+							<td>Email service</td>
+						</tr>
+						<tr>
+							<td>Google Workspace</td>
+							<td>EU/Global*</td>
+							<td>Mailing lists</td>
+						</tr>
+					</tbody>
+				</table>
+				<p class="text-sm">*Google may process data outside the EU using Standard Contractual Clauses (SCCs).</p><br/>
+
+				<strong>Occasional disclosures:</strong><br/>
+				Data may be disclosed to authorities based on statutory obligations.<br/><br/>
+
+				<strong>Transfer security:</strong><br/>
+				All transfers use encrypted connections (HTTPS/TLS).
+				Data is not sold, rented, or disclosed for marketing purposes.
+			`,
+
+			section9Title: "9. Principles of Register Protection",
+			section9Content: `
 				<strong>Technical safeguards:</strong><br/>
 				<ul>
-					<li>Database protected by firewall; access restricted to authorized systems.</li>
-					<li>Encrypted traffic (HTTPS/TLS).</li>
-					<li>No passwords stored (email-based OTP and Passkeys used).</li>
-					<li>Session tokens are hashed.</li>
-					<li>Comprehensive audit logging of administrative actions.</li>
-					<li>Regular automated backups.</li>
+					<li>Database protected by firewall; access restricted to authorized systems</li>
+					<li>All traffic encrypted (HTTPS/TLS)</li>
+					<li>No passwords – email-based OTP and passkeys used</li>
+					<li>Session tokens stored hashed</li>
+					<li>Comprehensive audit logging of administrative actions</li>
+					<li>Regular automated backups</li>
 				</ul><br/>
 
 				<strong>Organizational safeguards:</strong><br/>
 				<ul>
-					<li>Access restricted to key board members (Chair, Secretary, Treasurer, System Admins).</li>
-					<li>Access granted only as required by specific tasks.</li>
-					<li>Board members are bound by confidentiality agreements.</li>
+					<li>Access restricted to key board members (Chair, Secretary, Treasurer, System Admins)</li>
+					<li>Access granted only as required by specific tasks</li>
+					<li>All administrative actions recorded in audit log</li>
 				</ul><br/>
 
 				<strong>Physical security:</strong><br/>
-				Servers located in Microsoft Azure North Europe (Ireland) data center (ISO 27001, SOC 2 compliant).
+				Servers located in Microsoft Azure North Europe (Ireland) data center (ISO 27001, SOC 2).
 			`,
 
-			section9Title: "9. Right of Access and Right to Rectification",
-			section9Content: `
+			section10Title: "10. Data Subject Rights",
+			section10Content: `
+				Data subjects have the right to:<br/>
+				<ul>
+					<li>Access their personal data</li>
+					<li>Request rectification of their data</li>
+					<li>Restrict or object to processing</li>
+					<li>Data portability</li>
+					<li>Withdraw consent</li>
+					<li>Lodge a complaint with the Data Protection Ombudsman (<a href="https://tietosuoja.fi/en/" target="_blank" rel="noopener noreferrer">tietosuoja.fi</a>)</li>
+				</ul><br/>
+
+				<strong>⚠️ Note on data erasure:</strong><br/>
+				The Finnish Associations Act (503/1989 § 11) requires associations to maintain a member registry.
+				This statutory obligation takes precedence over GDPR erasure rights.
+			`,
+
+			section11Title: "11. Right of Access and Rectification",
+			section11Content: `
 				<strong>Right of access:</strong><br/>
-				Every data subject has the right to check what information about them has been stored in the
-				personal data register. Access requests should be sent in writing to hallitus@tietokilta.fi.<br/><br/>
+				Members can view and manage their own data by signing into the system.
+				Technical data (sessions, logs, IP addresses) can be requested separately at
+				hallitus@tietokilta.fi.<br/><br/>
 
 				<strong>Right to rectification:</strong><br/>
 				Data subjects can correct and update their information by logging into the system.
 				If information cannot be corrected by the data subject, they can request correction by
 				contacting hallitus@tietokilta.fi.<br/><br/>
-
-				<strong>Right to erasure:</strong><br/>
-				Data subjects have the right to request deletion of their data ("right to be forgotten"),
-				unless there is a legal basis for retaining the data (e.g., accounting obligations).
-			`,
-
-			section10Title: "10. Other Rights Related to Personal Data Processing",
-			section10Content: `
-				Data subjects have the right to:<br/><br/>
-
-				<ul>
-					<li><strong>Request restriction of processing</strong> in certain situations
-					(e.g., when the lawfulness of processing is disputed)</li>
-
-					<li><strong>Object to processing</strong> of their data when processing is based on
-					legitimate interest</li>
-
-					<li><strong>Data portability</strong> - transfer their data to another controller in a
-					machine-readable format</li>
-
-					<li><strong>Withdraw consent</strong> at any time when processing is based on consent
-					(e.g., receiving marketing communications)</li>
-
-					<li><strong>Lodge a complaint with a supervisory authority</strong> if they believe that
-					the processing of their personal data violates data protection regulation</li>
-				</ul><br/>
 
 				<strong>Supervisory authority in Finland:</strong><br/>
 				Office of the Data Protection Ombudsman<br/>
@@ -580,8 +477,8 @@ const en = {
 				Website: <a href="https://tietosuoja.fi/en/" target="_blank" rel="noopener noreferrer">https://tietosuoja.fi/en/</a>
 			`,
 
-			section11Title: "11. Automated Decision-Making",
-			section11Content: `
+			section12Title: "12. Automated Decision-Making",
+			section12Content: `
 				The register does not use automated decision-making or profiling as defined in GDPR Article 22.
 				All membership-related decisions (e.g., approval of membership applications) are made by a human.
 			`,
@@ -589,8 +486,7 @@ const en = {
 
 		footer: {
 			version: "Version",
-			privacyPolicy: "Privacy Policy",
-			registryDisclosure: "Register Description",
+			privacyPolicy: "Privacy Statement",
 			organization: "Tietokilta ry",
 			businessId: "Business ID: 1790346-8",
 			contact: "Contact",

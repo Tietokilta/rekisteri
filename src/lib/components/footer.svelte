@@ -46,14 +46,6 @@
 							{$LL.documents.footer.privacyPolicy()}
 						</a>
 					</p>
-					<p>
-						<a
-							href={route(`/[locale=locale]/registry-disclosure`, { locale: $locale })}
-							class="text-muted-foreground hover:text-foreground hover:underline"
-						>
-							{$LL.documents.footer.registryDisclosure()}
-						</a>
-					</p>
 				</div>
 			</div>
 		</div>
