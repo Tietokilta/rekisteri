@@ -1,4 +1,5 @@
 import { env as publicEnv } from "$env/dynamic/public";
+import { PUBLIC_GIT_COMMIT_SHA } from "$env/static/public";
 import { z } from "zod";
 
 /**
@@ -8,11 +9,14 @@ import { z } from "zod";
 const publicEnvSchema = z.object({
 	// Public URL (required for Stripe redirects and other use cases)
 	PUBLIC_URL: z.url({ protocol: /^https?$/ }),
+	// Git commit SHA for version display (optional, baked in at build time)
+	PUBLIC_GIT_COMMIT_SHA: z.string().optional(),
 });
 
 // Validate public environment variables at module load (fail fast)
 const parsed = publicEnvSchema.safeParse({
 	PUBLIC_URL: publicEnv.PUBLIC_URL,
+	PUBLIC_GIT_COMMIT_SHA: PUBLIC_GIT_COMMIT_SHA || undefined,
 });
 
 if (!parsed.success) {
