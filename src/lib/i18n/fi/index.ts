@@ -286,8 +286,8 @@ const fi = {
 				<ul>
 					<li><strong>Perustiedot:</strong> Etunimi, sukunimi, sähköpostiosoite</li>
 					<li><strong>Jäsenyyteen liittyvät tiedot:</strong> Jäsenyyden tyyppi, voimassaoloaika, maksuhistoria, jäsenyyden tila, Stripe-asiakastunnus</li>
-					<li><strong>Opiskelijastatus:</strong> Tieto siitä, onko jäsen opiskelija. Tieto on tällä hetkellä itse ilmoitettu; tulevaisuudessa status on tarkoitus vahvistaa Aalto-yliopiston sähköpostiosoitteen avulla.</li>
-					<li><strong>Kotikunta:</strong> Käytetään tilastointitarkoituksiin</li>
+					<li><strong>Opiskelijastatus:</strong> Tieto siitä, onko jäsen opiskelija. Tieto on itse ilmoitettu. Opiskelijastatus voidaan vahvistaa automaattisesti Aalto-yliopiston sähköpostiosoitteen avulla.</li>
+					<li><strong>Kotikunta:</strong> Yhdistyslain (503/1989 § 11) edellyttämä tieto</li>
 					<li><strong>Suostumukset:</strong> Tieto siitä, saako yhdistys lähettää jäsenyyteen liittymättömiä sähköposteja</li>
 					<li><strong>Avainkoodit (Passkeys):</strong> Salasanattomaan kirjautumiseen käytettävät julkiset avaimet, laitteen nimi, kuljetustavat, synkronointitila (esim. iCloud-avainnippu) ja viimeisimmän käyttökerran ajankohta</li>
 					<li><strong>Tekniset tiedot:</strong> Istuntotunnisteet, kirjautumiskoodit, tarkastusloki (audit log) hallinnollisista toimenpiteistä (säilytetään 90 päivää), IP-osoitteet ja selaintiedot (user agent) kirjautumisyrityksistä ja hallinnollisista toimenpiteistä (väärinkäytön ja hyökkäysten valvontaa varten, säilytetään 90 päivää), kuormituksenrajoitustiedot (rate limiting) (vain muistissa)</li>
@@ -299,9 +299,8 @@ const fi = {
 				Tiedot saadaan jäseneltä itseltään jäsenhakemuksen yhteydessä tai jäsenen päivittäessä omia tietojaan järjestelmässä.
 				Maksuun liittyvät tiedot saadaan Stripe-maksujärjestelmästä.<br/><br/>
 
-				<strong>Opiskelijastatus:</strong> Tieto on tällä hetkellä itse ilmoitettu. Tulevaisuudessa status on tarkoitus
-				vahvistaa Aalto-yliopiston sähköpostiosoitteen avulla. Järjestelmällä ei ole integraatiota Aalto-yliopiston
-				tietojärjestelmiin.
+				<strong>Opiskelijastatus:</strong> Tieto on itse ilmoitettu. Opiskelijastatus voidaan vahvistaa automaattisesti
+				Aalto-yliopiston sähköpostiosoitteen avulla.
 			`,
 
 			section7Title: "7. Tietojen säilytysaika",
@@ -419,7 +418,7 @@ const fi = {
 					<li>Jäsenyyden tyyppi (varsinainen jäsen, alumnijäsen jne.)</li>
 					<li>Jäsenyyden alkamis- ja päättymispäivä</li>
 					<li>Jäsenyyden tila (aktiivinen, vanhentunut, odottaa hyväksyntää jne.)</li>
-					<li>Opiskelijastatus (tieto on tällä hetkellä itse ilmoitettu; tulevaisuudessa vahvistetaan Aalto-yliopiston sähköpostiosoitteella)</li>
+					<li>Opiskelijastatus (itse ilmoitettu; voidaan vahvistaa Aalto-yliopiston sähköpostiosoitteella)</li>
 					<li>Maksuhistoria ja maksutiedot</li>
 					<li>Stripe-asiakastunnus</li>
 				</ul><br/>
@@ -467,9 +466,8 @@ const fi = {
 					<li>Hallituksen jäsenrekisteristä massatuonnin yhteydessä (esim. aiempien vuosien jäsenet)</li>
 				</ul><br/>
 
-				<strong>Opiskelijastatus:</strong> Tieto on tällä hetkellä itse ilmoitettu. Tulevaisuudessa status on
-				tarkoitus vahvistaa Aalto-yliopiston sähköpostiosoitteen avulla. Järjestelmällä ei ole integraatiota
-				Aalto-yliopiston tietojärjestelmiin.
+				<strong>Opiskelijastatus:</strong> Tieto on itse ilmoitettu. Opiskelijastatus voidaan vahvistaa automaattisesti
+				Aalto-yliopiston sähköpostiosoitteen avulla.
 			`,
 
 			section6Title: "6. Tietojen säilytysaika",
