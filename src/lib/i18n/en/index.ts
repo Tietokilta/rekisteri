@@ -296,30 +296,39 @@ const en = {
 
 			section6Title: "6. Regular Sources of Data",
 			section6Content: `
-				Data is primarily obtained from the members themselves during the application process or when updating their information.
+				Data is obtained from the member themselves during membership application or when updating their information.
 				Payment-related data is obtained from the Stripe payment system.
 			`,
 
 			section7Title: "7. Data Retention Period",
 			section7Content: `
-				We retain data only for as long as necessary. Retention periods are determined as follows:<br/><br/>
+				We delete data as soon as it is no longer needed. Retention periods are determined as follows:<br/><br/>
 
 				<strong>Incomplete registrations:</strong><br/>
-				Login codes expire in 10 minutes. No personal data is retained if the registration is not completed.<br/><br/>
+				No personal data is retained for users who do not complete the registration process.
+				Login codes expire automatically in 10 minutes.<br/><br/>
 
-				<strong>Technical logs:</strong><br/>
-				Login codes (10 min), session tokens (30 days), IP addresses and audit logs (90 days).<br/><br/>
+				<strong>Technical data:</strong><br/>
+				<ul>
+					<li>Login codes: expire automatically in 10 minutes</li>
+					<li>Session tokens: expire automatically in 30 days</li>
+					<li>Passkeys: retained until deleted by user or user account is deleted</li>
+					<li>IP addresses and browser information: deleted after 90 days</li>
+					<li>Audit logs: deleted after 90 days</li>
+					<li>Rate limiting data: in memory only, no persistent storage</li>
+				</ul><br/>
 
-				<strong>Passkeys:</strong><br/>
-				Retained until deleted by the user or the account is removed.<br/><br/>
+				<strong>Member registry data (statutory retention obligations):</strong><br/>
+				<ul>
+					<li><strong>Accounting Act records</strong> (payments, invoices, receipts): at least 6 years
+					from the end of the fiscal year, as required by the Accounting Act.</li>
+					<li><strong>Associations Act member data:</strong> retained to fulfill statutory obligations,
+					after which data is anonymized or deleted</li>
+				</ul><br/>
 
-				<strong>Accounting records:</strong><br/>
-				Payments, invoices, and receipts are retained for at least 6 years from the end of the fiscal year,
-				as required by the Accounting Act.<br/><br/>
-
-				<strong>Member registry data:</strong><br/>
-				Retained for the duration of membership and subsequently as required to fulfill statutory obligations
-				(Associations Act), after which data is anonymized or deleted.
+				<strong>In practice after membership ends:</strong> Technical data (sessions, logs) are automatically
+				deleted when they expire. Member registry data and accounting records are retained in accordance with
+				statutory obligations, after which they are deleted or anonymized.
 			`,
 
 			section8Title: "8. Data Disclosure and Transfers",
@@ -349,6 +358,26 @@ const en = {
 				The register does not use automated decision-making or profiling as defined in GDPR Article 22.
 				All membership-related decisions (e.g., approval of membership applications) are made by a human.
 			`,
+
+			section10Title: "10. Data Subject Rights",
+			section10Content: `
+				Data subjects have the right to:<br/>
+				<ul>
+					<li>Access their personal data</li>
+					<li>Request rectification or erasure of their data</li>
+					<li>Restrict or object to processing</li>
+					<li>Data portability</li>
+					<li>Withdraw consent at any time</li>
+					<li>Lodge a complaint with the Data Protection Ombudsman (<a href="https://tietosuoja.fi/en/" target="_blank" rel="noopener noreferrer">tietosuoja.fi</a>)</li>
+				</ul><br/>
+
+				<strong>Note on data erasure:</strong> The Finnish Associations Act (503/1989 § 11) requires associations
+				to maintain a member registry. This statutory obligation takes precedence over GDPR erasure rights.
+				We cannot fully delete member data, but technical data (sessions, logs) is automatically deleted
+				when it expires.<br/><br/>
+
+				Requests should be sent to hallitus@tietokilta.fi. For detailed information about rights, see the Register Description.
+			`,
 		},
 
 		registryDisclosure: {
@@ -377,7 +406,6 @@ const en = {
 					<li>Processing membership fees</li>
 					<li>Communication with members (events, newsletters, member benefits)</li>
 					<li>Fulfilling the association's legal obligations</li>
-					<li>Statistics and development of operations</li>
 				</ul>
 			`,
 
@@ -465,7 +493,6 @@ const en = {
 					from the end of the fiscal year, as required by law.</li>
 					<li><strong>Associations Act:</strong> Member data is retained to fulfill legal obligations,
 					after which it is anonymized or deleted.</li>
-					<li><strong>Statistics:</strong> May be anonymized and retained for historical purposes.</li>
 				</ul>
 			`,
 
