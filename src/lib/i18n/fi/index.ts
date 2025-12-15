@@ -288,6 +288,7 @@ const fi = {
 					<li>Jäsenmaksujen käsittely</li>
 					<li>Viestintä jäsenille (tapahtumat, tiedotteet, jäsenedut)</li>
 					<li>Yhdistyksen lakisääteisten velvoitteiden täyttäminen</li>
+					<li>Tunnistautumispalveluiden tarjoaminen muihin killan sähköisiin palveluihin</li>
 				</ul>
 			`,
 
@@ -405,6 +406,11 @@ const fi = {
 					</tbody>
 				</table>
 				<p class="text-sm">*Google voi käsitellä tietoja EU:n ulkopuolella vakiolausekkein (SCCs).</p><br/>
+
+				<strong>Tietokillan muut palvelut:</strong><br/>
+				Rekisteriä voidaan käyttää jäsenen suostumuksella tunnistautumiseen muissa killan
+				tarjoamissa sähköisissä palveluissa. Tällöin palvelulle luovutetaan vain välttämättömät
+				tiedot (esim. nimi, sähköpostiosoite, jäsenyysstatus).<br/><br/>
 
 				<strong>Satunnaiset luovutukset:</strong><br/>
 				Tietoja voidaan luovuttaa viranomaisille lakisääteisen velvoitteen perusteella.<br/><br/>

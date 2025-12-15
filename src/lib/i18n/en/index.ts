@@ -290,6 +290,7 @@ const en = {
 					<li>Processing membership fees</li>
 					<li>Communication with members (events, newsletters, member benefits)</li>
 					<li>Fulfilling the association's legal obligations</li>
+					<li>Providing authentication services for other guild digital services</li>
 				</ul>
 			`,
 
@@ -407,6 +408,11 @@ const en = {
 					</tbody>
 				</table>
 				<p class="text-sm">*Google may process data outside the EU using Standard Contractual Clauses (SCCs).</p><br/>
+
+				<strong>Other Tietokilta services:</strong><br/>
+				With the member's consent, the registry may be used for authentication in other
+				digital services provided by the guild. In such cases, only necessary data
+				(e.g., name, email, membership status) is disclosed to the service.<br/><br/>
 
 				<strong>Occasional disclosures:</strong><br/>
 				Data may be disclosed to authorities based on statutory obligations.<br/><br/>
