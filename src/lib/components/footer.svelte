@@ -7,9 +7,9 @@
 	const versionSha = env.PUBLIC_GIT_COMMIT_SHA ?? "development";
 	const showVersionSha = versionSha !== "development" || dev;
 	const shaLinkUrl =
-		versionSha !== "development"
-			? `https://github.com/Tietokilta/rekisteri/tree/${versionSha}`
-			: "https://youtu.be/dQw4w9WgXcQ";
+		versionSha === "development"
+			? "https://youtu.be/dQw4w9WgXcQ"
+			: `https://github.com/Tietokilta/rekisteri/tree/${versionSha}`;
 </script>
 
 <footer class="mt-auto border-t border-border/40 bg-muted/50">
