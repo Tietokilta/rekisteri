@@ -213,29 +213,26 @@
 				<p class="text-sm text-muted-foreground">{$LL.membership.noMembership()}</p>
 			{:else}
 				{#each data.memberships as membership (membership.unique_id)}
-					<li class="flex items-center justify-between space-x-4 rounded-md border p-4">
-						{#if membership.status === "active"}
-							<span title={$LL.membership.status.active()}>
-								<CircleCheck class="h-6 w-6" />
-							</span>
-						{:else if membership.status === "expired"}
-							<span title={$LL.membership.status.expired()}>
-								<Trash class="h-6 w-6" />
-							</span>
-						{:else if membership.status === "awaiting_payment"}
-							<span title={$LL.membership.status.awaitingPayment()}>
-								<Banknote class="h-6 w-6" />
-							</span>
-						{:else if membership.status === "awaiting_approval"}
-							<span title={$LL.membership.status.awaitingApproval()}>
-								<Hourglass class="h-6 w-6" />
-							</span>
-						{:else}
-							<span title={$LL.membership.status.unknown()}>
-								<CircleAlert class="h-6 w-6" />
-							</span>
-						{/if}
-						<div class="flex-1 space-y-1">
+					<li class="flex items-start space-x-4 rounded-md border p-4">
+						<div class="flex min-w-0 flex-1 flex-col gap-2">
+							<div class="flex items-center gap-2">
+								{#if membership.status === "active"}
+									<CircleCheck class="h-5 w-5 flex-shrink-0" />
+									<span class="text-sm font-medium">{$LL.membership.status.active()}</span>
+								{:else if membership.status === "expired"}
+									<Trash class="h-5 w-5 flex-shrink-0" />
+									<span class="text-sm font-medium">{$LL.membership.status.expired()}</span>
+								{:else if membership.status === "awaiting_payment"}
+									<Banknote class="h-5 w-5 flex-shrink-0" />
+									<span class="text-sm font-medium">{$LL.membership.status.awaitingPayment()}</span>
+								{:else if membership.status === "awaiting_approval"}
+									<Hourglass class="h-5 w-5 flex-shrink-0" />
+									<span class="text-sm font-medium">{$LL.membership.status.awaitingApproval()}</span>
+								{:else}
+									<CircleAlert class="h-5 w-5 flex-shrink-0" />
+									<span class="text-sm font-medium">{$LL.membership.status.unknown()}</span>
+								{/if}
+							</div>
 							<div class="text-sm">
 								<p class="font-medium">{membership.type}</p>
 								<p>
