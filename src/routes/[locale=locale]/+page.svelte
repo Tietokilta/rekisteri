@@ -234,7 +234,9 @@
 								{/if}
 							</div>
 							<div class="text-sm">
-								<p class="font-medium">{membership.type}</p>
+								<p class="font-medium">
+									{$locale === "fi" ? membership.membershipType.nameFi : membership.membershipType.nameEn}
+								</p>
 								<p>
 									<time datetime={membership.startTime.toISOString()}
 										>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time

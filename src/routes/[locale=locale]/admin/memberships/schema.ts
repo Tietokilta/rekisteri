@@ -1,7 +1,17 @@
 import * as z from "zod";
 
 export const createSchema = z.object({
-	type: z.string().min(1),
+	membershipTypeId: z.string().min(1),
+	stripePriceId: z.string().min(1),
+	startTime: z.iso.date(),
+	endTime: z.iso.date(),
+	priceCents: z.coerce.number().int().nonnegative(),
+	requiresStudentVerification: z.coerce.boolean().default(false),
+});
+
+export const editSchema = z.object({
+	id: z.uuid(),
+	membershipTypeId: z.string().min(1),
 	stripePriceId: z.string().min(1),
 	startTime: z.iso.date(),
 	endTime: z.iso.date(),

@@ -26,7 +26,9 @@ export const load: PageServerLoad = async (event) => {
 			homeMunicipality: table.user.homeMunicipality,
 			preferredLanguage: table.user.preferredLanguage,
 			isAllowedEmails: table.user.isAllowedEmails,
-			membershipType: table.membership.type,
+			membershipTypeId: table.membership.membershipTypeId,
+			membershipTypeName: table.membershipType.nameFi,
+			membershipTypeNameEn: table.membershipType.nameEn,
 			membershipStartTime: table.membership.startTime,
 			membershipEndTime: table.membership.endTime,
 			membershipPriceCents: table.membership.priceCents,
@@ -34,6 +36,7 @@ export const load: PageServerLoad = async (event) => {
 		.from(table.member)
 		.leftJoin(table.user, sql`${table.member.userId} = ${table.user.id}`)
 		.leftJoin(table.membership, sql`${table.member.membershipId} = ${table.membership.id}`)
+		.leftJoin(table.membershipType, sql`${table.membership.membershipTypeId} = ${table.membershipType.id}`)
 		.as("subQuery");
 
 	const allMembers = await db.select().from(subQuery).orderBy(asc(subQuery.firstNames), asc(subQuery.lastName));
@@ -87,18 +90,19 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 	// Get distinct membership types for filters
+	const membershipTypesResult = await db.select().from(table.membershipType).orderBy(asc(table.membershipType.nameFi));
+
+	const membershipTypes = membershipTypesResult;
+
+	// Get memberships for year filters
 	const memberships = await db
 		.select({
 			id: table.membership.id,
-			type: table.membership.type,
 			startTime: table.membership.startTime,
 			endTime: table.membership.endTime,
 		})
 		.from(table.membership)
 		.orderBy(asc(table.membership.startTime));
-
-	// Extract unique types and years
-	const membershipTypes = Array.from(new Set(memberships.map((m) => m.type)));
 	const years = Array.from(
 		new Set(memberships.flatMap((m) => [m.startTime.getFullYear(), m.endTime.getFullYear()])),
 	).toSorted((a, b) => b - a); // Most recent first
