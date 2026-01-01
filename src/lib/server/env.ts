@@ -64,6 +64,15 @@ const privateEnvSchema = z
 		RP_NAME: z.string().min(1),
 		RP_ID: z.string().min(1),
 		RP_ORIGIN: z.url({ protocol: /^https?$/ }),
+
+		// SSO configuration (optional)
+		// Cookie domain for sharing session across subdomains (e.g., ".tietokilta.fi")
+		// Leave empty for localhost development
+		COOKIE_DOMAIN: z
+			.string()
+			.min(1)
+			.optional()
+			.or(z.literal("").transform((): undefined => undefined)),
 	})
 	.superRefine((data, ctx) => {
 		// In production, Mailgun is required
@@ -115,6 +124,7 @@ const parsed = privateEnvSchema.safeParse({
 	RP_NAME: privateEnv.RP_NAME,
 	RP_ID: privateEnv.RP_ID,
 	RP_ORIGIN: privateEnv.RP_ORIGIN,
+	COOKIE_DOMAIN: privateEnv.COOKIE_DOMAIN,
 });
 
 if (!parsed.success) {

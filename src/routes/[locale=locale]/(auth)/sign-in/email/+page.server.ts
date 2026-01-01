@@ -21,6 +21,22 @@ import { route } from "$lib/ROUTES";
 import { auditLogin, auditLoginFailed } from "$lib/server/audit";
 import { timingSafeEqual } from "node:crypto";
 
+/**
+ * Helper function to validate return_to URLs.
+ * Only allows same domain or subdomains of tietokilta.fi to prevent open redirect attacks.
+ */
+function isValidReturnUrl(url: string): boolean {
+	try {
+		const parsed = new URL(url);
+		const hostname = parsed.hostname;
+
+		// Allow same domain or subdomains of tietokilta.fi
+		return hostname === "tietokilta.fi" || hostname.endsWith(".tietokilta.fi");
+	} catch {
+		return false;
+	}
+}
+
 export async function load(event: RequestEvent) {
 	const email = event.cookies.get(emailCookieName);
 	if (typeof email !== "string") {
@@ -137,6 +153,13 @@ async function verifyCode(event: RequestEvent) {
 	deleteEmailCookie(event);
 	deleteEmailOTP(otp.id);
 	deleteEmailOTPCookie(event);
+
+	// Check for return_to parameter to redirect back to requesting service
+	const returnTo = event.url.searchParams.get("return_to");
+
+	if (returnTo && isValidReturnUrl(returnTo)) {
+		redirect(302, returnTo);
+	}
 
 	redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
 }
