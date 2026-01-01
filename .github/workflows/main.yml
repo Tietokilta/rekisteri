@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Nix
-        uses: nixbuild/nix-quick-install-action@8505cd40ae3d4791ca658f2697c5767212e5ce71
+        uses: nixbuild/nix-quick-install-action@c57091870f58910a7aef53a0b0a99f6ba568aa6f
         with:
           nix_conf: |
             experimental-features = nix-command flakes
@@ -117,7 +117,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Nix
-        uses: nixbuild/nix-quick-install-action@8505cd40ae3d4791ca658f2697c5767212e5ce71
+        uses: nixbuild/nix-quick-install-action@c57091870f58910a7aef53a0b0a99f6ba568aa6f
         with:
           nix_conf: |
             experimental-features = nix-command flakes
