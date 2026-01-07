@@ -66,6 +66,25 @@ export const passkey = pgTable(
 	(table) => [index("idx_passkey_user_id").on(table.userId)],
 );
 
+export const secondaryEmail = pgTable(
+	"secondary_email",
+	{
+		id: text().primaryKey(),
+		userId: text()
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		email: text().notNull().unique(), // Must be unique across all secondary emails
+		domain: text().notNull(), // Extracted domain (e.g., "aalto.fi") for filtering
+		verifiedAt: timestamp({ withTimezone: true }), // null if not yet verified
+		expiresAt: timestamp({ withTimezone: true }), // null for domains that never expire
+		...timestamps,
+	},
+	(table) => [
+		index("idx_secondary_email_user_id").on(table.userId),
+		index("idx_secondary_email_domain").on(table.domain),
+	],
+);
+
 export const membership = pgTable("membership", {
 	id: text().primaryKey(),
 	type: text().notNull(), // todo l10n
@@ -129,3 +148,5 @@ export type User = typeof user.$inferSelect;
 export type AuditLog = typeof auditLog.$inferSelect;
 
 export type Passkey = typeof passkey.$inferSelect;
+
+export type SecondaryEmail = typeof secondaryEmail.$inferSelect;
