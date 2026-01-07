@@ -19,6 +19,7 @@
 	import * as z from "zod";
 	import { fi, en } from "zod/locales";
 	import KeyRound from "@lucide/svelte/icons/key-round";
+	import Mail from "@lucide/svelte/icons/mail";
 	import PasskeyRegistrationBanner from "$lib/components/PasskeyRegistrationBanner.svelte";
 
 	let { data }: { data: PageServerData } = $props();
@@ -153,6 +154,17 @@
 					<div class="flex-1 space-y-1">
 						<p class="text-sm leading-none font-medium">{$LL.auth.passkey.title()}</p>
 						<p class="text-sm text-muted-foreground">{$LL.auth.passkey.manageDescription()}</p>
+					</div>
+				</a>
+
+				<a
+					href={route(`/[locale=locale]/secondary-emails`, { locale: $locale })}
+					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
+				>
+					<Mail class="h-6 w-6" />
+					<div class="flex-1 space-y-1">
+						<p class="text-sm leading-none font-medium">{$LL.secondaryEmail.title()}</p>
+						<p class="text-sm text-muted-foreground">{$LL.secondaryEmail.manageDescription()}</p>
 					</div>
 				</a>
 

@@ -6,6 +6,9 @@
 	import { schema } from "./schema";
 	import { route } from "$lib/ROUTES";
 	import * as Form from "$lib/components/ui/form/index.js";
+	import * as Alert from "$lib/components/ui/alert/index.js";
+	import CircleCheck from "@lucide/svelte/icons/circle-check";
+	import CircleAlert from "@lucide/svelte/icons/circle-alert";
 
 	const { data }: PageProps = $props();
 
@@ -62,11 +65,51 @@
 			</Form.Field>
 
 			{#if requireStudentVerification}
-				<div class="mt-4 rounded-lg border p-4">
-					<label class="flex items-start gap-3">
-						<input type="checkbox" name="isStudent" bind:checked={isStudent} required class="rounded" />
-						<span class="text-sm">{$LL.membership.isStudent()}</span>
-					</label>
+				<div class="mt-4 space-y-3">
+					<div class="rounded-lg border p-4">
+						<label class="flex items-start gap-3">
+							<input type="checkbox" name="isStudent" bind:checked={isStudent} required class="rounded" />
+							<span class="text-sm">{$LL.membership.isStudent()}</span>
+						</label>
+					</div>
+
+					{#if data.hasValidAaltoEmail}
+						<Alert.Root variant="default" class="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950">
+							<CircleCheck class="h-4 w-4 text-green-600 dark:text-green-400" />
+							<Alert.Description class="text-green-800 dark:text-green-200">
+								Verified as aalto.fi student
+								{#if data.aaltoEmailExpiry}
+									(expires {new Date(data.aaltoEmailExpiry).toLocaleDateString(`${$locale}-FI`)})
+								{/if}
+							</Alert.Description>
+						</Alert.Root>
+					{:else if data.hasExpiredAaltoEmail}
+						<Alert.Root variant="destructive">
+							<CircleAlert class="h-4 w-4" />
+							<Alert.Description>
+								{$LL.secondaryEmail.expiredMessage()}
+								<a
+									href={route("/[locale=locale]/secondary-emails", { locale: $locale })}
+									class="ml-1 underline font-medium"
+								>
+									Re-verify now →
+								</a>
+							</Alert.Description>
+						</Alert.Root>
+					{:else}
+						<Alert.Root variant="destructive">
+							<CircleAlert class="h-4 w-4" />
+							<Alert.Description>
+								{$LL.secondaryEmail.notVerifiedMessage()}
+								<a
+									href={route("/[locale=locale]/secondary-emails", { locale: $locale })}
+									class="ml-1 underline font-medium"
+								>
+									Add aalto.fi email →
+								</a>
+							</Alert.Description>
+						</Alert.Root>
+					{/if}
 				</div>
 			{/if}
 		</div>

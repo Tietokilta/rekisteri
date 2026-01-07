@@ -90,6 +90,70 @@ const en = {
 		saveError: "Failed to save information",
 	},
 
+	// Secondary Emails
+	secondaryEmail: {
+		// Page titles
+		title: "Secondary Emails",
+		manageDescription: "Manage verified emails for student membership",
+
+		// Add email
+		addEmail: "Add secondary email",
+		adding: "Adding...",
+		emailAddress: "Email address",
+		emailPlaceholder: "student@aalto.fi",
+		addAndVerify: "Add and verify email",
+
+		// Verification
+		verifyTitle: "Verify your email",
+		verifyDescription: "We sent an 8-digit code to {email}",
+		code: "Verification code",
+		verify: "Verify",
+		resendCode: "Resend code",
+		changeEmail: "Change email",
+
+		// Status
+		status: {
+			verified: "Verified",
+			unverified: "Unverified",
+			expired: "Expired",
+		},
+
+		// Details
+		verifiedAt: "Verified",
+		expiresAt: "Expires",
+		neverExpires: "Never expires",
+		domain: "Domain",
+
+		// Actions
+		delete: "Delete email",
+		deleteConfirm: "Are you sure you want to delete this email?",
+		reverify: "Re-verify",
+		verifyNow: "Verify now",
+
+		// Messages
+		addSuccess: "Verification code sent to {email}",
+		verifySuccess: "Email verified successfully!",
+		verifySuccessExpires: "Email verified! Expires on {date}",
+		deleteSuccess: "Email deleted successfully",
+		expiredMessage: "Your student email verification expired",
+		notVerifiedMessage: "Please verify your student email",
+
+		// Errors
+		invalidEmail: "Invalid email address",
+		emailExists: "This email is already registered",
+		limitReached: "Maximum 10 secondary emails allowed",
+		verificationFailed: "Invalid verification code",
+		rateLimited: "Too many requests. Please try again later",
+
+		// Empty state
+		noEmails: "No secondary emails",
+		noEmailsDescription: "Add a secondary email to verify your student status",
+
+		// Info
+		infoExpiring: "Aalto.fi emails expire after 6 months and need re-verification",
+		infoGeneral: "Secondary emails can be used to verify your student status",
+	},
+
 	// Membership
 	membership: {
 		title: "Memberships",

@@ -88,3 +88,134 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 
 	return result?.user ?? null;
 }
+
+/**
+ * Get all secondary emails for a user
+ * Returns emails sorted by creation date (newest first)
+ */
+export async function getUserSecondaryEmails(userId: string): Promise<SecondaryEmail[]> {
+	const emails = await db
+		.select()
+		.from(table.secondaryEmail)
+		.where(eq(table.secondaryEmail.userId, userId))
+		.orderBy(table.secondaryEmail.createdAt);
+
+	return emails;
+}
+
+/**
+ * Get a secondary email by ID, ensuring it belongs to the user
+ * Returns null if not found or doesn't belong to user
+ */
+export async function getSecondaryEmailById(emailId: string, userId: string): Promise<SecondaryEmail | null> {
+	const [email] = await db
+		.select()
+		.from(table.secondaryEmail)
+		.where(eq(table.secondaryEmail.id, emailId));
+
+	if (!email || email.userId !== userId) {
+		return null;
+	}
+
+	return email;
+}
+
+/**
+ * Create a new unverified secondary email
+ * Validates:
+ * - Email format
+ * - Not already a primary email (any user)
+ * - Not already a secondary email (any user)
+ * - User hasn't exceeded limit (10 emails)
+ *
+ * Throws error if validation fails
+ */
+export async function createSecondaryEmail(userId: string, email: string): Promise<SecondaryEmail> {
+	const normalizedEmail = email.toLowerCase();
+
+	// Validate email format
+	const domain = extractDomain(normalizedEmail);
+
+	// Check if email already exists as primary email
+	const existingPrimaryUser = await db
+		.select()
+		.from(table.user)
+		.where(eq(table.user.email, normalizedEmail))
+		.limit(1);
+
+	if (existingPrimaryUser.length > 0) {
+		throw new Error("Email already registered");
+	}
+
+	// Check if email already exists as secondary email
+	const existingSecondaryEmail = await db
+		.select()
+		.from(table.secondaryEmail)
+		.where(eq(table.secondaryEmail.email, normalizedEmail))
+		.limit(1);
+
+	if (existingSecondaryEmail.length > 0) {
+		throw new Error("Email already registered");
+	}
+
+	// Check user hasn't exceeded limit
+	const userEmailCount = await db
+		.select()
+		.from(table.secondaryEmail)
+		.where(eq(table.secondaryEmail.userId, userId));
+
+	if (userEmailCount.length >= 10) {
+		throw new Error("Maximum 10 secondary emails allowed");
+	}
+
+	// Create unverified secondary email
+	const newEmail: SecondaryEmail = {
+		id: crypto.randomUUID(),
+		userId,
+		email: normalizedEmail,
+		domain,
+		verifiedAt: null,
+		expiresAt: null,
+		createdAt: new Date(),
+		updatedAt: new Date(),
+	};
+
+	await db.insert(table.secondaryEmail).values(newEmail);
+
+	return newEmail;
+}
+
+/**
+ * Mark a secondary email as verified and calculate expiry
+ */
+export async function markSecondaryEmailVerified(emailId: string, userId: string): Promise<boolean> {
+	const email = await getSecondaryEmailById(emailId, userId);
+	if (!email) {
+		return false;
+	}
+
+	const verifiedAt = new Date();
+	const expiresAt = calculateExpiry(email.domain, verifiedAt);
+
+	await db
+		.update(table.secondaryEmail)
+		.set({ verifiedAt, expiresAt })
+		.where(eq(table.secondaryEmail.id, emailId));
+
+	return true;
+}
+
+/**
+ * Delete a secondary email
+ * Returns true if deleted, false if not found or doesn't belong to user
+ */
+export async function deleteSecondaryEmail(emailId: string, userId: string): Promise<boolean> {
+	const email = await getSecondaryEmailById(emailId, userId);
+	if (!email) {
+		return false;
+	}
+
+	await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.id, emailId));
+
+	return true;
+}

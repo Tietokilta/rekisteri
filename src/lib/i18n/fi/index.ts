@@ -90,6 +90,70 @@ const fi = {
 		saveError: "Tietojen tallentaminen epäonnistui",
 	},
 
+	// Secondary Emails
+	secondaryEmail: {
+		// Page titles
+		title: "Toissijaiset sähköpostit",
+		manageDescription: "Hallinnoi vahvistettuja sähköposteja opiskelijajäsenyyttä varten",
+
+		// Add email
+		addEmail: "Lisää toissijainen sähköposti",
+		adding: "Lisätään...",
+		emailAddress: "Sähköpostiosoite",
+		emailPlaceholder: "opiskelija@aalto.fi",
+		addAndVerify: "Lisää ja vahvista sähköposti",
+
+		// Verification
+		verifyTitle: "Vahvista sähköpostisi",
+		verifyDescription: "Lähetimme 8-numeroisen koodin osoitteeseen {email}",
+		code: "Vahvistuskoodi",
+		verify: "Vahvista",
+		resendCode: "Lähetä uusi koodi",
+		changeEmail: "Vaihda sähköpostiosoite",
+
+		// Status
+		status: {
+			verified: "Vahvistettu",
+			unverified: "Vahvistamaton",
+			expired: "Vanhentunut",
+		},
+
+		// Details
+		verifiedAt: "Vahvistettu",
+		expiresAt: "Vanhenee",
+		neverExpires: "Ei vanhene",
+		domain: "Verkkotunnus",
+
+		// Actions
+		delete: "Poista sähköposti",
+		deleteConfirm: "Haluatko varmasti poistaa tämän sähköpostin?",
+		reverify: "Vahvista uudelleen",
+		verifyNow: "Vahvista nyt",
+
+		// Messages
+		addSuccess: "Vahvistuskoodi lähetetty osoitteeseen {email}",
+		verifySuccess: "Sähköposti vahvistettu onnistuneesti!",
+		verifySuccessExpires: "Sähköposti vahvistettu! Vanhenee {date}",
+		deleteSuccess: "Sähköposti poistettu onnistuneesti",
+		expiredMessage: "Opiskelijasähköpostisi vahvistus on vanhentunut",
+		notVerifiedMessage: "Vahvista opiskelijasähköpostisi",
+
+		// Errors
+		invalidEmail: "Virheellinen sähköpostiosoite",
+		emailExists: "Tämä sähköpostiosoite on jo rekisteröity",
+		limitReached: "Enintään 10 toissijaista sähköpostia sallittu",
+		verificationFailed: "Virheellinen vahvistuskoodi",
+		rateLimited: "Liian monta pyyntöä. Yritä myöhemmin uudelleen",
+
+		// Empty state
+		noEmails: "Ei toissijaisia sähköposteja",
+		noEmailsDescription: "Lisää toissijainen sähköposti vahvistaaksesi opiskelijastatuksesi",
+
+		// Info
+		infoExpiring: "Aalto.fi-sähköpostit vanhenevat 6 kuukauden kuluttua ja vaativat uudelleenvahvistuksen",
+		infoGeneral: "Toissijaisia sähköposteja voidaan käyttää opiskelijastatuksen vahvistamiseen",
+	},
+
 	// Membership
 	membership: {
 		title: "Jäsenyydet",
