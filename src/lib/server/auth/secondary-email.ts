@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { db } from "../db";
 import * as table from "../db/schema";
 import type { SecondaryEmail, User } from "../db/schema";
@@ -44,7 +44,7 @@ export function isSecondaryEmailValid(secondaryEmail: SecondaryEmail): boolean {
  */
 export function extractDomain(email: string): string {
 	const parts = email.toLowerCase().split("@");
-	if (parts.length !== 2) {
+	if (parts.length !== 2 || !parts[1]) {
 		throw new Error("Invalid email format");
 	}
 	return parts[1];
@@ -53,10 +53,7 @@ export function extractDomain(email: string): string {
 /**
  * Check if a user has a valid secondary email for a specific domain
  */
-export function hasValidDomainEmail(
-	secondaryEmails: SecondaryEmail[],
-	domain: string,
-): boolean {
+export function hasValidDomainEmail(secondaryEmails: SecondaryEmail[], domain: string): boolean {
 	return secondaryEmails.some(
 		(email) => email.domain.toLowerCase() === domain.toLowerCase() && isSecondaryEmailValid(email),
 	);
@@ -77,10 +74,7 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 		})
 		.from(table.user)
 		.leftJoin(table.secondaryEmail, eq(table.user.id, table.secondaryEmail.userId))
-		.where(
-			eq(table.user.email, normalizedEmail)
-				.or(eq(table.secondaryEmail.email, normalizedEmail)),
-		);
+		.where(or(eq(table.user.email, normalizedEmail), eq(table.secondaryEmail.email, normalizedEmail)));
 
 	return result?.user ?? null;
 }
