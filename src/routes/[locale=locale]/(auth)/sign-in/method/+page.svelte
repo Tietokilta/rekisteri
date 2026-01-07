@@ -102,7 +102,7 @@
 					{/if}
 				</Button>
 				{#if lastUsedMethod.current === "passkey"}
-					<span class="absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+					<span class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
 						(last used)
 					</span>
 				{/if}
@@ -132,12 +132,12 @@
 						{$LL.auth.passkey.sendEmailCode()}
 					</Button>
 					{#if lastUsedMethod.current === "email"}
-						<span class="absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+						<span class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
 							(last used)
 						</span>
 					{:else if lastUsedMethod.current === null}
-						<span class="absolute -top-2 -right-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-							(suggested)
+						<span class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+							(recommended)
 						</span>
 					{/if}
 				</div>
