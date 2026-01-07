@@ -63,8 +63,8 @@
 		return expiresAt > new Date();
 	}
 
-	// Check if user is the last admin
-	const isLastAdmin = $derived(filteredAdmins.length === 1);
+	// Check if user is the last admin (use total admins, not filtered)
+	const isLastAdmin = $derived(admins.length === 1);
 </script>
 
 <main class="container mx-auto py-6">
