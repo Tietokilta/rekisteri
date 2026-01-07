@@ -1,4 +1,4 @@
-import { fail, redirect } from "@sveltejs/kit";
+import { fail, isRedirect, redirect } from "@sveltejs/kit";
 import { superValidate } from "sveltekit-superforms";
 import { zod4 } from "sveltekit-superforms/adapters";
 import { schema } from "./schema";
@@ -57,6 +57,9 @@ export const actions: Actions = {
 
 			return redirect(303, route("/[locale=locale]/secondary-emails/verify", { locale: locals.locale }));
 		} catch (error) {
+			if (isRedirect(error)) {
+				throw error;
+			}
 			if (error instanceof Error) {
 				return fail(400, { form, message: error.message });
 			}
