@@ -237,6 +237,30 @@ const fi = {
 			importing: "Tuodaan...",
 			importButton: "Tuo {count} {{jäsen|jäsentä}}",
 		},
+
+		users: {
+			title: "Hallinnoi käyttäjiä",
+			description: "Hallinnoi käyttäjätilejä ja ylläpitäjiä",
+			adminsSection: "Ylläpitäjät",
+			usersSection: "Käyttäjät",
+
+			table: {
+				search: "Hae käyttäjiä...",
+				id: "ID",
+				email: "Sähköposti",
+				name: "Nimi",
+				role: "Rooli",
+				lastSession: "Viimeisin istunto",
+				actions: "Toiminnot",
+				active: "Aktiivinen",
+				sessionExpired: "Vanhentunut",
+				promote: "Ylennä ylläpitäjäksi",
+				demote: "Poista ylläpitäjyys",
+				noUsers: "Ei käyttäjiä",
+				noResults: "Ei hakutuloksia",
+				showing: "Näytetään {current} / {total} käyttäjää",
+			},
+		},
 	},
 
 	// Common
