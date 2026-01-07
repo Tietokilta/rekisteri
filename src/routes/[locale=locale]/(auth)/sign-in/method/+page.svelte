@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { enhance } from "$app/forms";
 	import { goto } from "$app/navigation";
-	import { onMount } from "svelte";
 	import type { PageData } from "./$types";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import * as Card from "$lib/components/ui/card/index.js";
@@ -13,32 +12,18 @@
 	import Fingerprint from "@lucide/svelte/icons/fingerprint";
 	import Mail from "@lucide/svelte/icons/mail";
 	import { getAuthenticationOptions, verifyAuthentication } from "$lib/api/authenticate.remote";
+	import { PersistedState } from "runed";
 
 	let { data }: { data: PageData } = $props();
 
 	let isAuthenticating = $state(false);
 	let errorMessage = $state("");
-	let lastUsedMethod = $state<"passkey" | "email" | null>(null);
 
-	// Get localStorage key for this email
-	const getStorageKey = (email: string) => `signInMethod:${email}`;
-
-	// Load last used method from localStorage
-	onMount(() => {
-		if (typeof window !== "undefined") {
-			const stored = localStorage.getItem(getStorageKey(data.email));
-			if (stored === "passkey" || stored === "email") {
-				lastUsedMethod = stored;
-			}
-		}
-	});
-
-	// Save method to localStorage
-	function saveLastUsedMethod(method: "passkey" | "email") {
-		if (typeof window !== "undefined") {
-			localStorage.setItem(getStorageKey(data.email), method);
-		}
-	}
+	// Type-safe persisted state for tracking last used sign-in method per email
+	const lastUsedMethod = new PersistedState<"passkey" | "email" | null>(
+		`signInMethod:${data.email}`,
+		null
+	);
 
 	async function handlePasskeyAuth() {
 		isAuthenticating = true;
@@ -55,7 +40,7 @@
 			await verifyAuthentication(credential);
 
 			// Save this method as last used
-			saveLastUsedMethod("passkey");
+			lastUsedMethod.current = "passkey";
 
 			// Success! Redirect to home page
 			goto(route("/[locale=locale]", { locale: data.email.includes("tietokilta") ? "fi" : "en" }));
@@ -86,7 +71,7 @@
 
 	// Handle email button click - save method before form submission
 	function handleEmailClick() {
-		saveLastUsedMethod("email");
+		lastUsedMethod.current = "email";
 	}
 </script>
 
@@ -116,7 +101,7 @@
 						{$LL.auth.passkey.signInWithPasskey()}
 					{/if}
 				</Button>
-				{#if lastUsedMethod === "passkey"}
+				{#if lastUsedMethod.current === "passkey"}
 					<span class="absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
 						(last used)
 					</span>
@@ -146,11 +131,11 @@
 						<Mail class="mr-2 h-5 w-5" />
 						{$LL.auth.passkey.sendEmailCode()}
 					</Button>
-					{#if lastUsedMethod === "email"}
+					{#if lastUsedMethod.current === "email"}
 						<span class="absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
 							(last used)
 						</span>
-					{:else if lastUsedMethod === null}
+					{:else if lastUsedMethod.current === null}
 						<span class="absolute -top-2 -right-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
 							(suggested)
 						</span>
