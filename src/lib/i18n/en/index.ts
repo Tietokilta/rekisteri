@@ -269,6 +269,18 @@ const en = {
 		delete: "Delete",
 	},
 
+	// Error page
+	error: {
+		title: "Oops! Something went wrong",
+		notFound: "Page not found",
+		notFoundDescription: "The page you're looking for doesn't exist or has been moved.",
+		serverError: "Server error",
+		genericError: "An error occurred",
+		errorCode: "Error code: {code}",
+		backToHome: "Back to home",
+		tryAgain: "Try again",
+	},
+
 	// Documents & Legal
 	documents: {
 		memberRegistryPrivacy: {

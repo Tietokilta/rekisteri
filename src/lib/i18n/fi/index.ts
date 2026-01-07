@@ -269,6 +269,18 @@ const fi = {
 		delete: "Poista",
 	},
 
+	// Error page
+	error: {
+		title: "Hups! Jotain meni pieleen",
+		notFound: "Sivua ei löytynyt",
+		notFoundDescription: "Etsimääsi sivua ei ole olemassa tai se on siirretty.",
+		serverError: "Palvelinvirhe",
+		genericError: "Tapahtui virhe",
+		errorCode: "Virhekoodi: {code}",
+		backToHome: "Palaa etusivulle",
+		tryAgain: "Yritä uudelleen",
+	},
+
 	// Documents & Legal
 	documents: {
 		memberRegistryPrivacy: {
