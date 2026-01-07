@@ -200,6 +200,16 @@
 						<p class="text-sm text-muted-foreground">{$LL.admin.import.description()}</p>
 					</div>
 				</a>
+				<a
+					href={route("/[locale=locale]/admin/users", { locale: $locale })}
+					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
+				>
+					<UserCog class="h-6 w-6" />
+					<div class="flex-1 space-y-1">
+						<p class="text-sm leading-none font-medium">{$LL.admin.users.title()}</p>
+						<p class="text-sm text-muted-foreground">{$LL.admin.users.description()}</p>
+					</div>
+				</a>
 			</div>
 		{/if}
 

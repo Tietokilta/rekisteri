@@ -237,6 +237,29 @@ const en = {
 			importing: "Importing...",
 			importButton: "Import {count} {{member|members}}",
 		},
+
+		users: {
+			title: "Manage users",
+			description: "Manage user accounts and administrators",
+			adminsSection: "Administrators",
+			usersSection: "Users",
+
+			table: {
+				search: "Search users...",
+				id: "ID",
+				email: "Email",
+				name: "Name",
+				role: "Role",
+				lastSession: "Last session",
+				actions: "Actions",
+				active: "Active",
+				sessionExpired: "Expired",
+				promote: "Promote to admin",
+				demote: "Remove admin",
+				noUsers: "No users",
+				noResults: "No search results",
+			},
+		},
 	},
 
 	// Common
