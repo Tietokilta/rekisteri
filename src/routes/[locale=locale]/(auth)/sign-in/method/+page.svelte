@@ -102,7 +102,7 @@
 					<span
 						class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground"
 					>
-						({$LL.auth.passkey.lastUsed()})
+						({$LL.auth.passkey.lastUsedAt()})
 					</span>
 				{/if}
 			</div>
@@ -134,7 +134,7 @@
 						<span
 							class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground"
 						>
-							({$LL.auth.passkey.lastUsed()})
+							({$LL.auth.passkey.lastUsedAt()})
 						</span>
 					{/if}
 				</div>
