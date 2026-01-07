@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## CRITICAL: Before You Start Any Task
+
+**ALWAYS run `pnpm install` first** before any development work. This installs dependencies AND generates all types (via the `prepare` script which runs `svelte-kit sync` and `i18n:generate`).
+
+```bash
+pnpm install  # REQUIRED: Run this first - installs deps AND generates types
+```
+
 ## Project Overview
 
 This is "rekisteri", a membership registry application for Tietokilta. It manages user memberships, payments via Stripe, and authentication via email OTP.
@@ -44,7 +52,7 @@ pnpm db:migrate     # Run migrations
 pnpm db:studio      # Open Drizzle Studio
 
 # Internationalization
-pnpm typesafe-i18n  # Generate i18n types from translations
+pnpm i18n:generate  # Generate i18n types (use this, NOT typesafe-i18n which starts watch mode)
 
 # Building
 pnpm build          # Build for production
@@ -137,9 +145,35 @@ Required for development:
 ## Important Notes
 
 - Node.js version: `^24.5.0` (specified in package.json engines)
-- Package manager: pnpm (`10.16.1`)
+- Package manager: pnpm (`10.26.0`)
 - Using `rolldown-vite` instead of standard Vite (via overrides)
 - Schema changes require `pnpm db:generate` and `pnpm db:migrate`
 - For Stripe webhook testing, run `stripe listen --forward-to localhost:$PORT/api/webhook/stripe` in parallel with dev server
 - All server-side code lives in `src/lib/server/` or route `+page.server.ts`/`+server.ts` files
 - Type safety enforced with Zod schemas (often co-located with routes in `schema.ts` files)
+
+## REQUIRED: Pre-Commit Checklist
+
+Before considering any task complete, **ALWAYS run these commands in order**:
+
+```bash
+pnpm format         # Format code with prettier
+pnpm lint           # Run eslint and prettier checks
+pnpm check          # Type-check the entire project
+```
+
+If any of these fail, fix the issues before committing. Do not skip these steps.
+
+## Svelte Development Workflow (MCP Server)
+
+When writing or modifying Svelte components, follow this workflow:
+
+1. **Discovery first**: Use `list-sections` to discover available Svelte/SvelteKit documentation
+2. **Fetch relevant docs**: Use `get-documentation` to retrieve documentation for the specific features you need
+3. **Validate code**: Use `svelte-autofixer` on ALL Svelte code before delivering to the user - keep calling it until no issues are returned
+4. **Playground links**: Only offer playground links after completing code work and if the user requests it - never for code written to project files
+
+### Common Pitfalls to Avoid
+
+- **DO NOT** run `pnpm typesafe-i18n` or `pnpm i18n:watch` - these start watch mode and block. Use `pnpm i18n:generate` instead (or just run `pnpm install` which triggers the `prepare` script)
+- **DO NOT** skip the format/lint/check cycle before commits
