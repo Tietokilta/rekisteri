@@ -34,6 +34,7 @@ const fi = {
 			regCancelled: "Rekisteröinti peruttiin",
 			regAlreadyRegistered:
 				"Tämä laite on jo rekisteröity. Jos haluat rekisteröidä uudelleen, poista vanha avainkoodi ensin.",
+			lastUsed: "viimeksi käytetty",
 
 			// Banner
 			bannerTitle: "Lisää avainkoodi",

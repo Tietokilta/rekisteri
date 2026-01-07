@@ -85,6 +85,7 @@
 		"node-cron": "^4.2.1",
 		"papaparse": "^5.5.3",
 		"postgres": "^3.4.7",
+		"runed": "^0.37.1",
 		"stripe": "^20.0.0",
 		"svelte": "^5.46.0",
 		"typesafe-i18n": "^5.26.2"
