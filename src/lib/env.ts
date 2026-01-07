@@ -1,5 +1,5 @@
 import { env as publicEnv } from "$env/dynamic/public";
-import * as staticPublicEnv from "$env/static/public";
+import { PUBLIC_GIT_COMMIT_SHA } from "$env/static/public";
 import { z } from "zod";
 
 /**
@@ -16,7 +16,7 @@ const publicEnvSchema = z.object({
 // Validate public environment variables at module load (fail fast)
 const parsed = publicEnvSchema.safeParse({
 	PUBLIC_URL: publicEnv.PUBLIC_URL,
-	PUBLIC_GIT_COMMIT_SHA: staticPublicEnv.PUBLIC_GIT_COMMIT_SHA || undefined,
+	PUBLIC_GIT_COMMIT_SHA: PUBLIC_GIT_COMMIT_SHA || undefined,
 });
 
 if (!parsed.success) {
