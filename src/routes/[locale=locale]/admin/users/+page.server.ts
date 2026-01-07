@@ -2,7 +2,7 @@ import { error, fail } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { asc, desc, eq, max, sql } from "drizzle-orm";
 import { auditLog } from "$lib/server/db/schema";
 import { isNonEmpty } from "$lib/utils";
 
@@ -20,7 +20,7 @@ export const load: PageServerLoad = async (event) => {
 			lastName: table.user.lastName,
 			isAdmin: table.user.isAdmin,
 			createdAt: table.user.createdAt,
-			lastSessionExpiresAt: sql<Date | null>`MAX(${table.session.expiresAt})`.as("last_session_expires_at"),
+			lastSessionExpiresAt: max(table.session.expiresAt).as("last_session_expires_at"),
 		})
 		.from(table.user)
 		.leftJoin(table.session, eq(table.user.id, table.session.userId))
