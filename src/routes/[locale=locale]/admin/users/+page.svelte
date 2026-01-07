@@ -36,12 +36,8 @@
 	const filteredRegularUsers = $derived(regularUsers.filter(matchesSearch));
 
 	// Pagination
-	const paginatedAdmins = $derived(
-		filteredAdmins.slice(adminPage * pageSize, (adminPage + 1) * pageSize)
-	);
-	const paginatedRegularUsers = $derived(
-		filteredRegularUsers.slice(userPage * pageSize, (userPage + 1) * pageSize)
-	);
+	const paginatedAdmins = $derived(filteredAdmins.slice(adminPage * pageSize, (adminPage + 1) * pageSize));
+	const paginatedRegularUsers = $derived(filteredRegularUsers.slice(userPage * pageSize, (userPage + 1) * pageSize));
 
 	const totalAdminPages = $derived(Math.ceil(filteredAdmins.length / pageSize));
 	const totalUserPages = $derived(Math.ceil(filteredRegularUsers.length / pageSize));

@@ -4,6 +4,7 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import { auditLog } from "$lib/server/db/schema";
+import { isNonEmpty } from "$lib/utils";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.session || !event.locals.user?.isAdmin) {
@@ -125,7 +126,7 @@ export const actions: Actions = {
 				.from(table.user)
 				.where(eq(table.user.isAdmin, true));
 
-			if (adminCount[0].count <= 1) {
+			if (!isNonEmpty(adminCount) || adminCount[0].count <= 1) {
 				return fail(400, {
 					success: false,
 					message: "Cannot demote the last admin",
