@@ -20,10 +20,7 @@
 	let errorMessage = $state("");
 
 	// Type-safe persisted state for tracking last used sign-in method per email
-	const lastUsedMethod = new PersistedState<"passkey" | "email" | null>(
-		`signInMethod:${data.email}`,
-		null
-	);
+	const lastUsedMethod = new PersistedState<"passkey" | "email" | null>(`signInMethod:${data.email}`, null);
 
 	async function handlePasskeyAuth() {
 		isAuthenticating = true;
@@ -102,7 +99,9 @@
 					{/if}
 				</Button>
 				{#if lastUsedMethod.current === "passkey"}
-					<span class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+					<span
+						class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground"
+					>
 						(last used)
 					</span>
 				{/if}
@@ -132,11 +131,15 @@
 						{$LL.auth.passkey.sendEmailCode()}
 					</Button>
 					{#if lastUsedMethod.current === "email"}
-						<span class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+						<span
+							class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground"
+						>
 							(last used)
 						</span>
 					{:else if lastUsedMethod.current === null}
-						<span class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+						<span
+							class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+						>
 							(recommended)
 						</span>
 					{/if}
