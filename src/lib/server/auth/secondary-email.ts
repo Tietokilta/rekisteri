@@ -1,4 +1,4 @@
-import { eq, or } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db";
 import * as table from "../db/schema";
@@ -125,9 +125,10 @@ export async function getSecondaryEmailById(emailId: string, userId: string): Pr
  * Validates:
  * - Email format
  * - Not already a primary email (any user)
- * - Not already a secondary email (any user)
+ * - Not already a verified secondary email (other users)
  * - User hasn't exceeded limit (10 emails)
  *
+ * Returns existing email if user already has this email (verified or not)
  * Throws error if validation fails
  */
 export async function createSecondaryEmail(userId: string, email: string): Promise<SecondaryEmail> {
@@ -135,6 +136,18 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
 
 	// Validate email format
 	const domain = extractDomain(normalizedEmail);
+
+	// Check if this user already has this email (verified or not)
+	const existingUserEmail = await db
+		.select()
+		.from(table.secondaryEmail)
+		.where(and(eq(table.secondaryEmail.userId, userId), eq(table.secondaryEmail.email, normalizedEmail)))
+		.limit(1);
+
+	if (existingUserEmail.length > 0) {
+		// User is trying to re-add their own email - return it so we can redirect to verify
+		return existingUserEmail[0];
+	}
 
 	// Check if email already exists as primary email
 	const existingPrimaryUser = await db
@@ -147,14 +160,15 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
 		throw new Error("Email already registered");
 	}
 
-	// Check if email already exists as secondary email
-	const existingSecondaryEmail = await db
+	// Check if email already exists as VERIFIED secondary email for another user
+	// Unverified emails from other users don't block - prevents email squatting
+	const existingVerifiedSecondaryEmail = await db
 		.select()
 		.from(table.secondaryEmail)
 		.where(eq(table.secondaryEmail.email, normalizedEmail))
 		.limit(1);
 
-	if (existingSecondaryEmail.length > 0) {
+	if (existingVerifiedSecondaryEmail.length > 0 && existingVerifiedSecondaryEmail[0].verifiedAt !== null) {
 		throw new Error("Email already registered");
 	}
 
