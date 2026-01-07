@@ -342,7 +342,7 @@ const fi = {
 		serverError: "Palvelinvirhe",
 		genericError: "Tapahtui virhe",
 		errorCode: "Virhekoodi: {code}",
-		backToHome: "Palaa etusivulle",
+		backToHome: "Takaisin etusivulle",
 		tryAgain: "Yritä uudelleen",
 	},
 
