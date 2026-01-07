@@ -43,9 +43,9 @@
 		preferredLanguage: "unspecified" | "finnish" | "english" | null;
 		isAllowedEmails: boolean | null;
 		membershipType: string | null;
+		membershipStripePriceId: string | null;
 		membershipStartTime: Date | null;
 		membershipEndTime: Date | null;
-		membershipPriceCents: number | null;
 		// Grouped membership data
 		allMemberships: Array<{
 			id: string;
@@ -55,9 +55,9 @@
 			createdAt: Date;
 			updatedAt: Date;
 			membershipType: string | null;
+			membershipStripePriceId: string | null;
 			membershipStartTime: Date | null;
 			membershipEndTime: Date | null;
-			membershipPriceCents: number | null;
 		}>;
 		membershipCount: number;
 	};
@@ -717,10 +717,8 @@
 														</div>
 														<div>
 															<dt class="text-muted-foreground">{$LL.admin.members.table.priceLabel()}</dt>
-															<dd>
-																{membership.membershipPriceCents
-																	? `€${(membership.membershipPriceCents / 100).toFixed(2)}`
-																	: "-"}
+															<dd class="font-mono text-xs">
+																{membership.membershipStripePriceId ?? "-"}
 															</dd>
 														</div>
 														<div>
