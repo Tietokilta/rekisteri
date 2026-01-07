@@ -102,7 +102,7 @@
 					<span
 						class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground"
 					>
-						(last used)
+						({$LL.auth.passkey.lastUsed()})
 					</span>
 				{/if}
 			</div>
@@ -134,13 +134,13 @@
 						<span
 							class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground"
 						>
-							(last used)
+							({$LL.auth.passkey.lastUsed()})
 						</span>
 					{:else if lastUsedMethod.current === null}
 						<span
 							class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
 						>
-							(recommended)
+							({$LL.auth.passkey.recommended()})
 						</span>
 					{/if}
 				</div>

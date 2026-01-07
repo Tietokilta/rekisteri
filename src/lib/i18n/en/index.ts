@@ -34,6 +34,8 @@ const en = {
 			regCancelled: "Registration was cancelled",
 			regAlreadyRegistered:
 				"This device is already registered. If you want to re-register, please delete the old passkey first.",
+			lastUsed: "last used",
+			recommended: "recommended",
 
 			// Banner
 			bannerTitle: "Add a passkey",
