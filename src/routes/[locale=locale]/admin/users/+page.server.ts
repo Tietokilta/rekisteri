@@ -119,6 +119,19 @@ export const actions: Actions = {
 				});
 			}
 
+			// Count total admins to prevent removing the last one
+			const adminCount = await db
+				.select({ count: sql<number>`count(*)` })
+				.from(table.user)
+				.where(eq(table.user.isAdmin, true));
+
+			if (adminCount[0].count <= 1) {
+				return fail(400, {
+					success: false,
+					message: "Cannot demote the last admin",
+				});
+			}
+
 			await db.update(table.user).set({ isAdmin: false }).where(eq(table.user.id, userId));
 
 			// Log the action

@@ -258,6 +258,7 @@ const fi = {
 				demote: "Poista ylläpitäjyys",
 				noUsers: "Ei käyttäjiä",
 				noResults: "Ei hakutuloksia",
+				showing: "Näytetään {current} / {total} käyttäjää",
 			},
 		},
 	},

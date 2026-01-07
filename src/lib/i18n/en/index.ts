@@ -258,6 +258,7 @@ const en = {
 				demote: "Remove admin",
 				noUsers: "No users",
 				noResults: "No search results",
+				showing: "Showing {current} of {total} users",
 			},
 		},
 	},
