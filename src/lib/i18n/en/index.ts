@@ -100,7 +100,7 @@ const en = {
 		addEmail: "Add secondary email",
 		adding: "Adding...",
 		emailAddress: "Email address",
-		emailPlaceholder: "student@aalto.fi",
+		emailPlaceholder: "teemu.teekkari@aalto.fi",
 		addAndVerify: "Add and verify email",
 
 		// Verification

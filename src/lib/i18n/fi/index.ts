@@ -100,7 +100,7 @@ const fi = {
 		addEmail: "Lisää toissijainen sähköposti",
 		adding: "Lisätään...",
 		emailAddress: "Sähköpostiosoite",
-		emailPlaceholder: "opiskelija@aalto.fi",
+		emailPlaceholder: "teemu.teekkari@aalto.fi",
 		addAndVerify: "Lisää ja vahvista sähköposti",
 
 		// Verification
