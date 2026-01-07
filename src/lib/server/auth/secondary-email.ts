@@ -70,31 +70,17 @@ export function hasValidDomainEmail(
 export async function getUserByEmail(email: string): Promise<User | null> {
 	const normalizedEmail = email.toLowerCase();
 
-	// First check primary email
-	const [userByPrimary] = await db
-		.select()
+	// Single query: check primary email OR secondary email via LEFT JOIN
+	const [result] = await db
+		.select({
+			user: table.user,
+		})
 		.from(table.user)
-		.where(eq(table.user.email, normalizedEmail));
+		.leftJoin(table.secondaryEmail, eq(table.user.id, table.secondaryEmail.userId))
+		.where(
+			eq(table.user.email, normalizedEmail)
+				.or(eq(table.secondaryEmail.email, normalizedEmail)),
+		);
 
-	if (userByPrimary) {
-		return userByPrimary;
-	}
-
-	// Check secondary emails
-	const [secondaryEmailRecord] = await db
-		.select()
-		.from(table.secondaryEmail)
-		.where(eq(table.secondaryEmail.email, normalizedEmail));
-
-	if (!secondaryEmailRecord) {
-		return null;
-	}
-
-	// Get the user associated with this secondary email
-	const [user] = await db
-		.select()
-		.from(table.user)
-		.where(eq(table.user.id, secondaryEmailRecord.userId));
-
-	return user ?? null;
+	return result?.user ?? null;
 }
