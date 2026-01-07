@@ -108,10 +108,7 @@ export async function getUserSecondaryEmails(userId: string): Promise<SecondaryE
  * Returns null if not found or doesn't belong to user
  */
 export async function getSecondaryEmailById(emailId: string, userId: string): Promise<SecondaryEmail | null> {
-	const [email] = await db
-		.select()
-		.from(table.secondaryEmail)
-		.where(eq(table.secondaryEmail.id, emailId));
+	const [email] = await db.select().from(table.secondaryEmail).where(eq(table.secondaryEmail.id, emailId));
 
 	if (!email || email.userId !== userId) {
 		return null;
@@ -144,17 +141,14 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
 		.where(and(eq(table.secondaryEmail.userId, userId), eq(table.secondaryEmail.email, normalizedEmail)))
 		.limit(1);
 
-	if (existingUserEmail.length > 0) {
+	const existingEmail = existingUserEmail[0];
+	if (existingEmail) {
 		// User is trying to re-add their own email - return it so we can redirect to verify
-		return existingUserEmail[0];
+		return existingEmail;
 	}
 
 	// Check if email already exists as primary email
-	const existingPrimaryUser = await db
-		.select()
-		.from(table.user)
-		.where(eq(table.user.email, normalizedEmail))
-		.limit(1);
+	const existingPrimaryUser = await db.select().from(table.user).where(eq(table.user.email, normalizedEmail)).limit(1);
 
 	if (existingPrimaryUser.length > 0) {
 		throw new Error("Email already registered");
@@ -168,15 +162,13 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
 		.where(eq(table.secondaryEmail.email, normalizedEmail))
 		.limit(1);
 
-	if (existingVerifiedSecondaryEmail.length > 0 && existingVerifiedSecondaryEmail[0].verifiedAt !== null) {
+	const existingVerified = existingVerifiedSecondaryEmail[0];
+	if (existingVerified && existingVerified.verifiedAt !== null) {
 		throw new Error("Email already registered");
 	}
 
 	// Check user hasn't exceeded limit
-	const userEmailCount = await db
-		.select()
-		.from(table.secondaryEmail)
-		.where(eq(table.secondaryEmail.userId, userId));
+	const userEmailCount = await db.select().from(table.secondaryEmail).where(eq(table.secondaryEmail.userId, userId));
 
 	if (userEmailCount.length >= 10) {
 		throw new Error("Maximum 10 secondary emails allowed");
@@ -211,10 +203,7 @@ export async function markSecondaryEmailVerified(emailId: string, userId: string
 	const verifiedAt = new Date();
 	const expiresAt = calculateExpiry(email.domain, verifiedAt);
 
-	await db
-		.update(table.secondaryEmail)
-		.set({ verifiedAt, expiresAt })
-		.where(eq(table.secondaryEmail.id, emailId));
+	await db.update(table.secondaryEmail).set({ verifiedAt, expiresAt }).where(eq(table.secondaryEmail.id, emailId));
 
 	return true;
 }

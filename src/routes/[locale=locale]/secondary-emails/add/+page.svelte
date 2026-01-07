@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { superForm } from "sveltekit-superforms";
-	import { zodClient } from "sveltekit-superforms/adapters";
+	import { zod4Client } from "sveltekit-superforms/adapters";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import { route } from "$lib/ROUTES";
 	import * as Form from "$lib/components/ui/form/index.js";
@@ -13,7 +13,7 @@
 	let { data }: { data: PageData } = $props();
 
 	const form = superForm(data.form, {
-		validators: zodClient(schema),
+		validators: zod4Client(schema),
 	});
 	const { form: formData, enhance, constraints, message } = form;
 </script>
@@ -55,11 +55,7 @@
 			{$LL.secondaryEmail.addAndVerify()}
 		</Form.Button>
 
-		<Button
-			variant="outline"
-			href={route("/[locale=locale]/secondary-emails", { locale: $locale })}
-			class="w-full"
-		>
+		<Button variant="outline" href={route("/[locale=locale]/secondary-emails", { locale: $locale })} class="w-full">
 			{$LL.auth.passkey.cancel()}
 		</Button>
 	</form>

@@ -90,7 +90,7 @@
 								{$LL.secondaryEmail.expiredMessage()}
 								<a
 									href={route("/[locale=locale]/secondary-emails", { locale: $locale })}
-									class="ml-1 underline font-medium"
+									class="ml-1 font-medium underline"
 								>
 									Re-verify now →
 								</a>
@@ -103,7 +103,7 @@
 								{$LL.secondaryEmail.notVerifiedMessage()}
 								<a
 									href={route("/[locale=locale]/secondary-emails", { locale: $locale })}
-									class="ml-1 underline font-medium"
+									class="ml-1 font-medium underline"
 								>
 									Add aalto.fi email →
 								</a>

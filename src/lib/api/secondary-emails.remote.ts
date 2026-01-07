@@ -2,17 +2,8 @@ import { error } from "@sveltejs/kit";
 import { getRequestEvent, query, form } from "$app/server";
 import { z } from "zod";
 import { dev } from "$app/environment";
-import {
-	getUserSecondaryEmails,
-	deleteSecondaryEmail,
-	getSecondaryEmailById,
-} from "$lib/server/auth/secondary-email";
-import {
-	createEmailOTP,
-	sendOTPEmail,
-	emailCookieName,
-	emailOTPCookieName,
-} from "$lib/server/auth/email";
+import { getUserSecondaryEmails, deleteSecondaryEmail, getSecondaryEmailById } from "$lib/server/auth/secondary-email";
+import { createEmailOTP, sendOTPEmail, emailCookieName, emailOTPCookieName } from "$lib/server/auth/email";
 import { encodeBase32LowerCaseNoPadding } from "@oslojs/encoding";
 
 /**

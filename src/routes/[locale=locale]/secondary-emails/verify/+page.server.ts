@@ -31,7 +31,7 @@ export const load: PageServerLoad = async (event) => {
 	return {
 		email: otp.email,
 	};
-}
+};
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
 

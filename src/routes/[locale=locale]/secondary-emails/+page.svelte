@@ -12,10 +12,7 @@
 	import Clock from "@lucide/svelte/icons/clock";
 	import Trash2 from "@lucide/svelte/icons/trash-2";
 
-	import {
-		deleteSecondaryEmailForm,
-		reverifySecondaryEmailForm,
-	} from "$lib/api/secondary-emails.remote";
+	import { deleteSecondaryEmailForm, reverifySecondaryEmailForm } from "$lib/api/secondary-emails.remote";
 	import type { PageData } from "./$types";
 	import type { SecondaryEmail } from "$lib/server/db/schema";
 
@@ -105,14 +102,12 @@
 						{#if status === "expired" || status === "unverified"}
 							<form
 								class="contents"
-								{...reverifyForm.enhance(async ({ submit, result }) => {
+								{...reverifyForm.enhance(async ({ submit }) => {
 									await submit();
-									if (result.type === "success") {
-										// Redirect to verify page
-										window.location.href = route("/[locale=locale]/secondary-emails/verify", {
-											locale: $locale,
-										});
-									}
+									// Redirect to verify page
+									globalThis.location.href = route("/[locale=locale]/secondary-emails/verify", {
+										locale: $locale,
+									});
 								})}
 							>
 								<input type="hidden" name="emailId" value={email.id} />
