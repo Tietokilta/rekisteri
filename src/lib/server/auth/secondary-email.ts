@@ -1,4 +1,5 @@
 import { eq, or } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "../db";
 import * as table from "../db/schema";
 import type { SecondaryEmail, User } from "../db/schema";
@@ -41,13 +42,22 @@ export function isSecondaryEmailValid(secondaryEmail: SecondaryEmail): boolean {
 
 /**
  * Extract domain from email address
+ * Validates email format using Zod before extracting domain
  */
 export function extractDomain(email: string): string {
-	const parts = email.toLowerCase().split("@");
-	if (parts.length !== 2 || !parts[1]) {
+	// Validate email format
+	const validationResult = z.email().safeParse(email);
+	if (!validationResult.success) {
 		throw new Error("Invalid email format");
 	}
-	return parts[1];
+
+	// Extract domain (guaranteed to exist after validation)
+	const domain = validationResult.data.toLowerCase().split("@")[1];
+	if (!domain) {
+		throw new Error("Invalid email format: missing domain");
+	}
+
+	return domain;
 }
 
 /**
