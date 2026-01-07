@@ -79,15 +79,15 @@ export const secondaryEmail = pgTable(
 		expiresAt: timestamp({ withTimezone: true }), // null for domains that never expire
 		...timestamps,
 	},
-	(table) => ({
-		userIdIdx: index("idx_secondary_email_user_id").on(table.userId),
-		domainIdx: index("idx_secondary_email_domain").on(table.domain),
+	(table) => [
+		index("idx_secondary_email_user_id").on(table.userId),
+		index("idx_secondary_email_domain").on(table.domain),
 		// Partial unique index: only verified emails must be globally unique
 		// This prevents email squatting - unverified emails don't block others
-		verifiedEmailUnique: uniqueIndex("unique_verified_secondary_email")
+		uniqueIndex("unique_verified_secondary_email")
 			.on(table.email)
 			.where(sql`${table.verifiedAt} IS NOT NULL`),
-	}),
+	],
 );
 
 export const membership = pgTable("membership", {
