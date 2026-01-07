@@ -4,7 +4,7 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
-		"prepare": "svelte-kit sync && pnpm i18n:generate",
+		"prepare": "[ -n \"$NIX_BUILD_TOP\" ] || (svelte-kit sync && pnpm i18n:generate)",
 		"dev": "concurrently -n vite,i18n -c cyan,magenta \"vite dev\" \"pnpm i18n:watch\"",
 		"build": "pnpm i18n:generate && vite build",
 		"flake:upgrade": "docker run --rm -v $(pwd):/app -w /app nixpkgs/nix-flakes sh -c \"git config --global --add safe.directory /app && nix flake update\"",
