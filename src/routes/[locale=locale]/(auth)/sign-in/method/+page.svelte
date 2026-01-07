@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from "$app/forms";
 	import { goto } from "$app/navigation";
+	import { onMount } from "svelte";
 	import type { PageData } from "./$types";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import * as Card from "$lib/components/ui/card/index.js";
@@ -17,6 +18,27 @@
 
 	let isAuthenticating = $state(false);
 	let errorMessage = $state("");
+	let lastUsedMethod = $state<"passkey" | "email" | null>(null);
+
+	// Get localStorage key for this email
+	const getStorageKey = (email: string) => `signInMethod:${email}`;
+
+	// Load last used method from localStorage
+	onMount(() => {
+		if (typeof window !== "undefined") {
+			const stored = localStorage.getItem(getStorageKey(data.email));
+			if (stored === "passkey" || stored === "email") {
+				lastUsedMethod = stored;
+			}
+		}
+	});
+
+	// Save method to localStorage
+	function saveLastUsedMethod(method: "passkey" | "email") {
+		if (typeof window !== "undefined") {
+			localStorage.setItem(getStorageKey(data.email), method);
+		}
+	}
 
 	async function handlePasskeyAuth() {
 		isAuthenticating = true;
@@ -31,6 +53,9 @@
 
 			// Step 3: Verify authentication with server
 			await verifyAuthentication(credential);
+
+			// Save this method as last used
+			saveLastUsedMethod("passkey");
 
 			// Success! Redirect to home page
 			goto(route("/[locale=locale]", { locale: data.email.includes("tietokilta") ? "fi" : "en" }));
@@ -58,6 +83,11 @@
 			isAuthenticating = false;
 		}
 	}
+
+	// Handle email button click - save method before form submission
+	function handleEmailClick() {
+		saveLastUsedMethod("email");
+	}
 </script>
 
 <main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
@@ -70,21 +100,28 @@
 		</Card.Header>
 		<Card.Content class="space-y-6">
 			<!-- Passkey authentication button -->
-			<Button
-				data-testid="sign-in-with-passkey-button"
-				onclick={handlePasskeyAuth}
-				disabled={isAuthenticating}
-				class="w-full"
-				size="lg"
-				type="button"
-			>
-				<Fingerprint class="mr-2 h-5 w-5" />
-				{#if isAuthenticating}
-					{$LL.auth.passkey.authenticating()}
-				{:else}
-					{$LL.auth.passkey.signInWithPasskey()}
+			<div class="relative">
+				<Button
+					data-testid="sign-in-with-passkey-button"
+					onclick={handlePasskeyAuth}
+					disabled={isAuthenticating}
+					class="w-full"
+					size="lg"
+					type="button"
+				>
+					<Fingerprint class="mr-2 h-5 w-5" />
+					{#if isAuthenticating}
+						{$LL.auth.passkey.authenticating()}
+					{:else}
+						{$LL.auth.passkey.signInWithPasskey()}
+					{/if}
+				</Button>
+				{#if lastUsedMethod === "passkey"}
+					<span class="absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+						(last used)
+					</span>
 				{/if}
-			</Button>
+			</div>
 
 			{#if errorMessage}
 				<Alert.Root variant="destructive">
@@ -104,10 +141,21 @@
 
 			<!-- Email OTP fallback -->
 			<form method="post" action="?/useEmail" use:enhance class="w-full">
-				<Button type="submit" variant="outline" class="w-full" size="lg">
-					<Mail class="mr-2 h-5 w-5" />
-					{$LL.auth.passkey.sendEmailCode()}
-				</Button>
+				<div class="relative">
+					<Button type="submit" variant="outline" class="w-full" size="lg" onclick={handleEmailClick}>
+						<Mail class="mr-2 h-5 w-5" />
+						{$LL.auth.passkey.sendEmailCode()}
+					</Button>
+					{#if lastUsedMethod === "email"}
+						<span class="absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+							(last used)
+						</span>
+					{:else if lastUsedMethod === null}
+						<span class="absolute -top-2 -right-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+							(suggested)
+						</span>
+					{/if}
+				</div>
 			</form>
 
 			<!-- Change email -->
