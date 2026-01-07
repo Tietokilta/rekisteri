@@ -5,6 +5,7 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, desc, gt } from "drizzle-orm";
 import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
+import { getStripePriceMetadataBatch } from "$lib/api/stripe.remote";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
@@ -39,6 +40,11 @@ export const load: PageServerLoad = async (event) => {
 	const hasValidAaltoEmail = isPrimaryAalto || hasValidSecondaryAalto;
 	const hasExpiredAaltoEmail = !isPrimaryAalto && hasExpiredSecondaryAalto;
 
+	// Batch fetch Stripe price metadata for available memberships
+	const priceIds = availableMemberships.map((m) => m.stripePriceId);
+	const priceMetadata = await getStripePriceMetadataBatch(priceIds);
+	const priceMetadataMap = new Map(priceMetadata.map((result) => [result.priceId, result.data]));
+
 	return {
 		user: event.locals.user,
 		memberships,
@@ -46,5 +52,6 @@ export const load: PageServerLoad = async (event) => {
 		hasValidAaltoEmail,
 		hasExpiredAaltoEmail,
 		aaltoEmailExpiry: isPrimaryAalto ? null : aaltoSecondaryEmail?.expiresAt,
+		priceMetadataMap: Object.fromEntries(priceMetadataMap),
 	};
 };

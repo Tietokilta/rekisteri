@@ -20,7 +20,6 @@ export const createMembership = form(createMembershipSchema, async (data) => {
 			stripePriceId: data.stripePriceId,
 			startTime: new Date(data.startTime),
 			endTime: new Date(data.endTime),
-			priceCents: data.priceCents,
 			requiresStudentVerification: data.requiresStudentVerification,
 		})
 		.execute();

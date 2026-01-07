@@ -4,6 +4,7 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { count, desc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
+import { getStripePriceMetadataBatch } from "$lib/api/stripe.remote";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.session || !event.locals.user?.isAdmin) {
@@ -18,13 +19,19 @@ export const load: PageServerLoad = async (event) => {
 			stripePriceId: table.membership.stripePriceId,
 			startTime: table.membership.startTime,
 			endTime: table.membership.endTime,
-			priceCents: table.membership.priceCents,
 			memberCount: count(table.member.userId),
 		})
 		.from(table.membership)
 		.leftJoin(table.member, sql`${table.membership.id} = ${table.member.membershipId}`)
 		.groupBy(table.membership.id)
 		.orderBy(desc(table.membership.startTime));
+
+	// Batch fetch Stripe price metadata for all memberships
+	const priceIds = memberships.map((m) => m.stripePriceId);
+	const priceMetadata = await getStripePriceMetadataBatch(priceIds);
+
+	// Create a map of priceId to metadata for easy lookup
+	const priceMetadataMap = new Map(priceMetadata.map((result) => [result.priceId, result.data]));
 
 	const types = new Set(memberships.map((m) => m.type));
 
@@ -34,13 +41,13 @@ export const load: PageServerLoad = async (event) => {
 
 	return {
 		memberships,
+		priceMetadataMap: Object.fromEntries(priceMetadataMap),
 		types,
 		defaultValues: {
 			type: "",
 			stripePriceId: "",
 			startTime: formatDate(new Date(currentYear, 7, 1, 12)),
 			endTime: formatDate(new Date(currentYear + 1, 6, 31, 12)),
-			priceCents: 0,
 			requiresStudentVerification: false,
 		},
 	};
