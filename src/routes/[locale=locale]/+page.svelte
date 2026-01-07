@@ -146,7 +146,7 @@
 				<Form.Button type="submit">{$LL.common.save()}</Form.Button>
 
 				<a
-					href={`/${$locale}/passkeys`}
+					href={route(`/[locale=locale]/passkeys`, { locale: $locale })}
 					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
 				>
 					<KeyRound class="h-6 w-6" />
