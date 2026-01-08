@@ -135,10 +135,10 @@ const en = {
 		verifySuccess: "Email verified successfully!",
 		verifySuccessExpires: "Email verified! Expires on {date}",
 		deleteSuccess: "Email deleted successfully",
-		expiredMessage: "Your student email verification expired",
-		notVerifiedMessage: "Please verify your student email",
+		expiredMessage: "Your Aalto email verification has expired",
+		notVerifiedMessage: "Aalto email not verified",
 		verifiedDomainEmail: "Aalto email verified",
-		expiresOn: "expires {date}",
+		expiresOn: "expires on {date}",
 		addDomainEmail: "Add {domain} email →",
 		reverifyNow: "Re-verify now →",
 
@@ -151,11 +151,11 @@ const en = {
 
 		// Empty state
 		noEmails: "No secondary emails",
-		noEmailsDescription: "Add a secondary email to verify your student status",
+		noEmailsDescription: "Add a secondary email for signing in or verifying membership",
 
 		// Info
 		infoExpiring: "Aalto.fi emails expire after 6 months and need re-verification",
-		infoGeneral: "Secondary emails can be used to verify your student status",
+		infoGeneral: "Secondary emails can be used for signing in and verifying membership",
 	},
 
 	// Membership

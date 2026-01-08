@@ -135,12 +135,12 @@ const fi = {
 		verifySuccess: "Sähköposti vahvistettu onnistuneesti!",
 		verifySuccessExpires: "Sähköposti vahvistettu! Vanhenee {date}",
 		deleteSuccess: "Sähköposti poistettu onnistuneesti",
-		expiredMessage: "Opiskelijasähköpostisi vahvistus on vanhentunut",
-		notVerifiedMessage: "Vahvista opiskelijasähköpostisi",
+		expiredMessage: "Aalto-sähköpostisi vahvistus on vanhentunut",
+		notVerifiedMessage: "Aalto-sähköpostia ei vahvistettu",
 		verifiedDomainEmail: "Aalto-sähköposti vahvistettu",
 		expiresOn: "vanhenee {date}",
 		addDomainEmail: "Lisää {domain}-sähköposti →",
-		reverifyNow: "Vahvista uudelleen →",
+		reverifyNow: "Vahvista nyt →",
 
 		// Errors
 		invalidEmail: "Virheellinen sähköpostiosoite",
@@ -151,11 +151,11 @@ const fi = {
 
 		// Empty state
 		noEmails: "Ei toissijaisia sähköposteja",
-		noEmailsDescription: "Lisää toissijainen sähköposti vahvistaaksesi opiskelijastatuksesi",
+		noEmailsDescription: "Lisää toissijainen sähköposti kirjautumista tai jäsenyyden vahvistamista varten",
 
 		// Info
 		infoExpiring: "Aalto.fi-sähköpostit vanhenevat 6 kuukauden kuluttua ja vaativat uudelleenvahvistuksen",
-		infoGeneral: "Toissijaisia sähköposteja voidaan käyttää opiskelijastatuksen vahvistamiseen",
+		infoGeneral: "Toissijaisia sähköposteja voidaan käyttää kirjautumiseen ja jäsenyyden vahvistamiseen",
 	},
 
 	// Membership
