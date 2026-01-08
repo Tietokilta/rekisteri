@@ -348,6 +348,9 @@ const en = {
 		errorCode: "Error code: {code}",
 		backToHome: "Back to home",
 		tryAgain: "Try again",
+		traceId: "Trace ID: {traceId}",
+		contactSupport: "If the problem persists, please contact the digital services committee:",
+		contactSupportWithId: "Contact {email} and provide the trace ID for faster troubleshooting.",
 	},
 
 	// Documents & Legal
