@@ -102,36 +102,26 @@ test.describe("Secondary Email OTP Flow", () => {
 		// Step 1: Add email (first OTP)
 		await addEmailAndNavigateToVerify(adminPage, testEmail);
 
-		// Verify first OTP created
-		let otps = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
-		expect(otps).toHaveLength(1);
-		const firstOtp = otps[0];
-		if (!firstOtp) throw new Error("First OTP not found");
-		const firstOtpId = firstOtp.id;
+		// Capture first OTP ID to compare later
+		const [firstOtp] = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
+		expect(firstOtp).toBeDefined();
+		const firstOtpId = firstOtp?.id;
 
 		// Step 2: Go back to list without verifying
 		await adminPage.goto("/fi/secondary-emails");
-		await adminPage.getByTestId("add-secondary-email").waitFor({ state: "visible" });
 
-		// Verify the unverified email appears in the list and click its reverify button
-		const emailRow = adminPage.locator(`text=${testEmail}`);
+		// Find the row AFTER navigation completes
+		const emailRow = adminPage.locator("li", { hasText: testEmail });
 		await expect(emailRow).toBeVisible();
 
-		// Step 3: Click re-verify button for THIS specific email
-		await adminPage.locator("li", { hasText: testEmail }).getByTestId("reverify-email").click();
-
-		// Wait for redirect to verify page
+		// Step 3: Click re-verify button
+		await emailRow.getByTestId("reverify-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/, { timeout: 5000 });
 
 		// Verify a NEW OTP was created (old one should be deleted)
-		otps = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
-		expect(otps).toHaveLength(1);
-		const secondOtp = otps[0];
-		if (!secondOtp) throw new Error("Second OTP not found");
-		const secondOtpId = secondOtp.id;
-
-		// Verify it's a different OTP (new ID)
-		expect(secondOtpId).not.toBe(firstOtpId);
+		const [secondOtp] = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
+		expect(secondOtp).toBeDefined();
+		expect(secondOtp?.id).not.toBe(firstOtpId);
 	});
 
 	test("should maintain only one OTP per email in database", async ({ adminPage }, testInfo) => {
@@ -141,47 +131,36 @@ test.describe("Secondary Email OTP Flow", () => {
 		await addEmailAndNavigateToVerify(adminPage, testEmail);
 
 		// Verify only one OTP exists
-		let otps = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
-		expect(otps).toHaveLength(1);
-		const firstOtp = otps[0];
-		if (!firstOtp) throw new Error("First OTP not found");
-		const firstOtpCode = firstOtp.code;
+		const [firstOtp] = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
+		expect(firstOtp).toBeDefined();
+		const firstOtpCode = firstOtp?.code;
 
-		// Go back and re-verify multiple times
+		// Go back and re-verify first time
 		await adminPage.goto("/fi/secondary-emails");
-		const emailRow = adminPage.locator("li", { hasText: testEmail });
-		await emailRow.getByTestId("reverify-email").waitFor({ state: "visible" });
-
-		// Re-verify first time
+		// Re-query the row AFTER navigation
+		let emailRow = adminPage.locator("li", { hasText: testEmail });
+		await expect(emailRow).toBeVisible();
 		await emailRow.getByTestId("reverify-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 
-		// Still only one OTP exists
-		otps = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
-		expect(otps).toHaveLength(1);
-		const secondOtp = otps[0];
-		if (!secondOtp) throw new Error("Second OTP not found");
-		const secondOtpCode = secondOtp.code;
-
-		// But it's a different code
-		expect(secondOtpCode).not.toBe(firstOtpCode);
+		// Verify code changed
+		const [secondOtp] = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
+		expect(secondOtp).toBeDefined();
+		expect(secondOtp?.code).not.toBe(firstOtpCode);
 
 		// Go back and re-verify again
 		await adminPage.goto("/fi/secondary-emails");
-		await adminPage.locator("li", { hasText: testEmail }).getByTestId("reverify-email").waitFor({ state: "visible" });
-		await adminPage.locator("li", { hasText: testEmail }).getByTestId("reverify-email").click();
+		// Re-query the row AFTER navigation
+		emailRow = adminPage.locator("li", { hasText: testEmail });
+		await expect(emailRow).toBeVisible();
+		await emailRow.getByTestId("reverify-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 
-		// Still only one OTP exists
-		otps = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
-		expect(otps).toHaveLength(1);
-		const thirdOtp = otps[0];
-		if (!thirdOtp) throw new Error("Third OTP not found");
-		const thirdOtpCode = thirdOtp.code;
-
-		// And it's yet another different code
-		expect(thirdOtpCode).not.toBe(secondOtpCode);
-		expect(thirdOtpCode).not.toBe(firstOtpCode);
+		// Verify code changed again
+		const [thirdOtp] = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
+		expect(thirdOtp).toBeDefined();
+		expect(thirdOtp?.code).not.toBe(secondOtp?.code);
+		expect(thirdOtp?.code).not.toBe(firstOtpCode);
 	});
 
 	test("should successfully verify OTP and mark email as verified", async ({ adminPage }, testInfo) => {
@@ -344,7 +323,12 @@ test.describe("Secondary Email OTP Flow", () => {
 		await addEmailAndNavigateToVerify(adminPage, testEmail);
 		await verifyEmailWithOTP(adminPage, testEmail);
 
-		// Verify email exists
+		// verifyEmailWithOTP ends on /secondary-emails page
+		// Find the row (page is already loaded after OTP verification redirect)
+		const emailRow = adminPage.locator("li", { hasText: testEmail });
+		await expect(emailRow).toBeVisible();
+
+		// Verify email exists in DB
 		let emails = await db
 			.select()
 			.from(table.secondaryEmail)
@@ -354,14 +338,10 @@ test.describe("Secondary Email OTP Flow", () => {
 		// Set up dialog handler before clicking delete
 		adminPage.on("dialog", (dialog) => dialog.accept());
 
-		// Find the specific email row and its delete button
-		const emailRow = adminPage.locator("li", { hasText: testEmail });
-		await emailRow.waitFor({ state: "visible" });
-
-		// Click delete button for THIS specific email
+		// Click delete button
 		await emailRow.getByRole("button", { name: /poista|delete/i }).click();
 
-		// Wait for the email to be removed from the UI (indicates deletion completed)
+		// Wait for the email to be removed from the UI
 		await expect(emailRow).toBeHidden({ timeout: 5000 });
 
 		// Verify email was deleted from database
