@@ -58,7 +58,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		const otp = otpsAfterSubmit[0];
 		if (!otp) throw new Error("OTP not found");
 		expect(otp.email).toBe(testEmail.toLowerCase());
-		expect(otp.code).toMatch(/^\d{6}$/); // 6-digit code
+		expect(otp.code).toMatch(/^[A-Z2-7]{8}$/); // 8-character Base32 code
 		expect(otp.expiresAt.getTime()).toBeGreaterThan(Date.now());
 
 		// Clean up
@@ -88,8 +88,8 @@ test.describe("Secondary Email OTP Flow", () => {
 		const emailRow = adminPage.locator(`text=${testEmail}`).first();
 		await expect(emailRow).toBeVisible();
 
-		// Step 3: Click re-verify button
-		await adminPage.getByTestId("reverify-email").click();
+		// Step 3: Click re-verify button (first one in list)
+		await adminPage.getByTestId("reverify-email").first().click();
 
 		// Wait for redirect to verify page
 		await adminPage.waitForURL(/secondary-emails\/verify/, { timeout: 5000 });
@@ -132,7 +132,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		await adminPage.goto("/fi/secondary-emails", { waitUntil: "networkidle" });
 
 		// Re-verify first time
-		await adminPage.getByTestId("reverify-email").click();
+		await adminPage.getByTestId("reverify-email").first().click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 
 		// Still only one OTP exists
@@ -147,7 +147,7 @@ test.describe("Secondary Email OTP Flow", () => {
 
 		// Go back and re-verify again
 		await adminPage.goto("/fi/secondary-emails", { waitUntil: "networkidle" });
-		await adminPage.getByTestId("reverify-email").click();
+		await adminPage.getByTestId("reverify-email").first().click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 
 		// Still only one OTP exists
@@ -182,8 +182,8 @@ test.describe("Secondary Email OTP Flow", () => {
 		if (!otp) throw new Error("OTP not found");
 		const otpCode = otp.code;
 
-		// Enter the correct OTP code
-		await adminPage.fill('input[type="text"]', otpCode);
+		// Enter the correct OTP code (type into the PinInput slots)
+		await adminPage.locator('[data-slot="input-otp"]').pressSequentially(otpCode);
 		await adminPage.getByTestId("verify-otp").click();
 
 		// Wait for redirect to list page
@@ -258,7 +258,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		const otp = otps[0];
 		if (!otp) throw new Error("OTP not found");
 
-		await adminPage.fill('input[type="text"]', otp.code);
+		await adminPage.locator('[data-slot="input-otp"]').pressSequentially(otp.code);
 		await adminPage.getByTestId("verify-otp").click();
 		await adminPage.waitForURL(/^.*\/secondary-emails$/, { timeout: 5000 });
 
@@ -284,7 +284,11 @@ test.describe("Secondary Email OTP Flow", () => {
 		await adminPage.getByTestId("submit-add-email").click();
 
 		// Should show generic error message (to prevent email enumeration) and stay on add page
-		await expect(adminPage.locator("text=Could not add this email")).toBeVisible({ timeout: 5000 });
+		await expect(adminPage.locator("text=Could not add this email. Please try a different email address.")).toBeVisible(
+			{
+				timeout: 5000,
+			},
+		);
 
 		// Verify no secondary email was created
 		const secondaryEmails = await db
@@ -303,8 +307,8 @@ test.describe("Secondary Email OTP Flow", () => {
 		await adminPage.getByTestId("submit-add-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 
-		// Enter wrong OTP code
-		await adminPage.fill('input[type="text"]', "WRONG1");
+		// Enter wrong OTP code (8 characters to match expected format)
+		await adminPage.locator('[data-slot="input-otp"]').pressSequentially("WRONGABC");
 		await adminPage.getByTestId("verify-otp").click();
 
 		// Should show error and stay on verify page
@@ -337,7 +341,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		const otp = otps[0];
 		if (!otp) throw new Error("OTP not found");
 
-		await adminPage.fill('input[type="text"]', otp.code);
+		await adminPage.locator('[data-slot="input-otp"]').pressSequentially(otp.code);
 		await adminPage.getByTestId("verify-otp").click();
 		await adminPage.waitForURL(/^.*\/secondary-emails$/, { timeout: 5000 });
 
