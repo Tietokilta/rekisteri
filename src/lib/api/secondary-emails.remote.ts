@@ -4,7 +4,6 @@ import { z } from "zod";
 import { dev } from "$app/environment";
 import { getUserSecondaryEmails, deleteSecondaryEmail, getSecondaryEmailById } from "$lib/server/auth/secondary-email";
 import { createEmailOTP, sendOTPEmail, emailCookieName, emailOTPCookieName } from "$lib/server/auth/email";
-import { encodeBase32LowerCaseNoPadding } from "@oslojs/encoding";
 
 /**
  * List all secondary emails for the authenticated user
@@ -80,7 +79,8 @@ export const reverifySecondaryEmailForm = form(
 			sameSite: "lax",
 		});
 
-		cookies.set(emailOTPCookieName, encodeBase32LowerCaseNoPadding(new TextEncoder().encode(otp.id)), {
+		// Set OTP cookie (otp.id is already encoded, don't double-encode it)
+		cookies.set(emailOTPCookieName, otp.id, {
 			expires: otp.expiresAt,
 			path: "/",
 			httpOnly: true,
