@@ -8,6 +8,7 @@ import { schema } from "./schema";
 import { superValidate } from "sveltekit-superforms";
 import { zod4 } from "sveltekit-superforms/adapters";
 import { createSession } from "$lib/server/payment/session";
+import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
@@ -34,7 +35,29 @@ export const load: PageServerLoad = async (event) => {
 
 	const availableMemberships = await db.select().from(table.membership).where(gt(table.membership.endTime, new Date()));
 
-	return { user: event.locals.user, form, memberships, availableMemberships };
+	// Check for valid aalto.fi email (primary or secondary)
+	const primaryEmailDomain = event.locals.user.email.split("@")[1]?.toLowerCase();
+	const isPrimaryAalto = primaryEmailDomain === "aalto.fi";
+
+	const secondaryEmails = await getUserSecondaryEmails(event.locals.user.id);
+	const aaltoSecondaryEmail = secondaryEmails.find((e) => e.domain === "aalto.fi");
+	const hasValidSecondaryAalto = aaltoSecondaryEmail ? isSecondaryEmailValid(aaltoSecondaryEmail) : false;
+	const hasExpiredSecondaryAalto = aaltoSecondaryEmail && !isSecondaryEmailValid(aaltoSecondaryEmail);
+
+	// Primary email is always considered valid (no expiration tracking for primary)
+	// TODO: Consider adding expiration tracking for primary emails with expiring domains
+	const hasValidAaltoEmail = isPrimaryAalto || hasValidSecondaryAalto;
+	const hasExpiredAaltoEmail = !isPrimaryAalto && hasExpiredSecondaryAalto;
+
+	return {
+		user: event.locals.user,
+		form,
+		memberships,
+		availableMemberships,
+		hasValidAaltoEmail,
+		hasExpiredAaltoEmail,
+		aaltoEmailExpiry: isPrimaryAalto ? null : aaltoSecondaryEmail?.expiresAt,
+	};
 };
 
 export const actions: Actions = {
@@ -52,6 +75,31 @@ async function payMembership(event: RequestEvent) {
 	const form = await superValidate(formData, zod4(schema));
 
 	const membershipId = form.data.membershipId;
+
+	// Check if membership requires student verification
+	const [membership] = await db.select().from(table.membership).where(eq(table.membership.id, membershipId));
+
+	if (membership?.requiresStudentVerification) {
+		// Check primary email domain
+		const primaryEmailDomain = event.locals.user.email.split("@")[1]?.toLowerCase();
+		const isPrimaryAalto = primaryEmailDomain === "aalto.fi";
+
+		// Check secondary emails
+		const secondaryEmails = await getUserSecondaryEmails(event.locals.user.id);
+		const aaltoEmail = secondaryEmails.find((e) => e.domain === "aalto.fi");
+		const hasValidSecondaryAalto = aaltoEmail ? isSecondaryEmailValid(aaltoEmail) : false;
+
+		// Primary email is always valid, secondary needs verification check
+		const hasValidAaltoEmail = isPrimaryAalto || hasValidSecondaryAalto;
+
+		if (!hasValidAaltoEmail) {
+			return fail(400, {
+				form,
+				message: "Student verification required. Please add and verify your Aalto email address.",
+			});
+		}
+	}
+
 	const paymentSession = await createSession(event.locals.user.id, membershipId, event.locals.locale);
 	if (!paymentSession?.url) {
 		return fail(400, {

@@ -37,15 +37,19 @@ export async function getEmailOTP(id: string): Promise<EmailOTP | null> {
 }
 
 export async function createEmailOTP(email: string): Promise<EmailOTP> {
+	// Normalize email to lowercase for consistent storage and lookup
+	const normalizedEmail = email.toLowerCase();
+
+	// Delete any existing OTPs for this email to prevent accumulation
+	// This ensures only one valid OTP exists at a time
+	await db.delete(table.emailOTP).where(eq(table.emailOTP.email, normalizedEmail));
+
 	const idBytes = new Uint8Array(20);
 	crypto.getRandomValues(idBytes);
 	const id = encodeBase32LowerCaseNoPadding(idBytes);
 
 	const code = generateRandomOTP();
 	const expiresAt = new Date(Date.now() + 1000 * 60 * 10);
-
-	// Normalize email to lowercase for consistent storage and lookup
-	const normalizedEmail = email.toLowerCase();
 
 	const otp: EmailOTP = {
 		id,

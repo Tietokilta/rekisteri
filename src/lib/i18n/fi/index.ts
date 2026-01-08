@@ -90,6 +90,74 @@ const fi = {
 		saveError: "Tietojen tallentaminen epäonnistui",
 	},
 
+	// Secondary Emails
+	secondaryEmail: {
+		// Page titles
+		title: "Toissijaiset sähköpostit",
+		manageDescription: "Hallinnoi toissijaisia sähköposteja kirjautumista ja jäsenyyden vahvistamista varten",
+
+		// Add email
+		addEmail: "Lisää toissijainen sähköposti",
+		adding: "Lisätään...",
+		emailAddress: "Sähköpostiosoite",
+		emailPlaceholder: "teemu.teekkari@aalto.fi",
+		addAndVerify: "Lisää ja vahvista sähköposti",
+
+		// Verification
+		verifyTitle: "Vahvista sähköpostisi",
+		verifyDescription: "Lähetimme 8-numeroisen koodin osoitteeseen {email}",
+		code: "Vahvistuskoodi",
+		verify: "Vahvista",
+		resendCode: "Lähetä uusi koodi",
+		changeEmail: "Vaihda sähköpostiosoite",
+
+		// Status
+		status: {
+			verified: "Vahvistettu",
+			unverified: "Vahvistamaton",
+			expired: "Vanhentunut",
+		},
+
+		// Details
+		verifiedAt: "Vahvistettu",
+		expiresAt: "Vanhenee",
+		neverExpires: "Ei vanhene",
+		domain: "Verkkotunnus",
+
+		// Actions
+		delete: "Poista sähköposti",
+		deleteConfirm: "Haluatko varmasti poistaa tämän sähköpostin?",
+		reverify: "Vahvista uudelleen",
+		verifyNow: "Vahvista nyt",
+
+		// Messages
+		addSuccess: "Vahvistuskoodi lähetetty osoitteeseen {email}",
+		verifySuccess: "Sähköposti vahvistettu onnistuneesti!",
+		verifySuccessExpires: "Sähköposti vahvistettu! Vanhenee {date}",
+		deleteSuccess: "Sähköposti poistettu onnistuneesti",
+		expiredMessage: "Aalto-sähköpostisi vahvistus on vanhentunut",
+		notVerifiedMessage: "Aalto-sähköpostia ei vahvistettu",
+		verifiedDomainEmail: "Aalto-sähköposti vahvistettu",
+		expiresOn: "vanhenee {date}",
+		addDomainEmail: "Lisää {domain}-sähköposti →",
+		reverifyNow: "Vahvista nyt →",
+
+		// Errors
+		invalidEmail: "Virheellinen sähköpostiosoite",
+		emailExists: "Tämä sähköpostiosoite on jo rekisteröity",
+		limitReached: "Enintään 10 toissijaista sähköpostia sallittu",
+		verificationFailed: "Virheellinen vahvistuskoodi",
+		rateLimited: "Liian monta pyyntöä. Yritä myöhemmin uudelleen",
+
+		// Empty state
+		noEmails: "Ei toissijaisia sähköposteja",
+		noEmailsDescription: "Lisää toissijainen sähköposti kirjautumista tai jäsenyyden vahvistamista varten",
+
+		// Info
+		infoExpiring: "Aalto.fi-sähköpostit vanhenevat 6 kuukauden kuluttua ja vaativat uudelleenvahvistuksen",
+		infoGeneral: "Toissijaisia sähköposteja voidaan käyttää kirjautumiseen ja jäsenyyden vahvistamiseen",
+	},
+
 	// Membership
 	membership: {
 		title: "Jäsenyydet",
@@ -278,7 +346,7 @@ const fi = {
 		serverError: "Palvelinvirhe",
 		genericError: "Tapahtui virhe",
 		errorCode: "Virhekoodi: {code}",
-		backToHome: "Palaa etusivulle",
+		backToHome: "Takaisin etusivulle",
 		tryAgain: "Yritä uudelleen",
 	},
 
@@ -289,7 +357,7 @@ const fi = {
 			intro: `Tämä on EU:n yleisen tietosuoja-asetuksen (GDPR) sekä yhdistyslain (503/1989)
 				mukainen rekisteri- ja tietosuojaseloste.`,
 			createdDate: "Laatimispäivämäärä: 22.5.2018",
-			lastUpdated: "Viimeisin muutos: 15.12.2025",
+			lastUpdated: "Viimeisin muutos: 8.1.2026",
 
 			section1Title: "1. Rekisterinpitäjä",
 			section1Content: `
@@ -358,6 +426,16 @@ const fi = {
 					<li>Viimeisimmän käyttökerran ajankohta</li>
 				</ul><br/>
 
+				<strong>Toissijaiset sähköpostiosoitteet (valinnainen):</strong><br/>
+				<ul>
+					<li>Lisäsähköpostiosoitteet vaihtoehtoiseen kirjautumiseen</li>
+					<li>Sähköpostin verkkotunnus (esim. aalto.fi)</li>
+					<li>Vahvistuksen tila ja ajankohta</li>
+					<li>Vanhenemispäivä verkkotunnusvarmennetuille sähköposteille</li>
+				</ul>
+				<em>Huom: Toissijaiset sähköpostit ovat täysin vapaaehtoisia, lukuun ottamatta aalto.fi-sähköpostin
+				vahvistusta, joka vaaditaan tietyille jäsenyystyypeille (esim. opiskelijajäsenyys).</em><br/><br/>
+
 				<strong>Tekniset tiedot:</strong><br/>
 				<ul>
 					<li>Istuntotunnisteet, kirjautumiskoodit</li>
@@ -395,6 +473,8 @@ const fi = {
 					<li>Kirjautumiskoodit: 10 minuuttia</li>
 					<li>Istuntotunnisteet: 30 päivää</li>
 					<li>Avainkoodit: kunnes käyttäjä poistaa tai tili poistetaan</li>
+					<li>Toissijaiset sähköpostit: kunnes käyttäjä poistaa tai tili poistetaan</li>
+					<li>Aalto.fi-sähköpostin vahvistus: voimassa 6 kuukautta, jonka jälkeen vaaditaan uudelleenvahvistus</li>
 					<li>IP-osoitteet, selaintiedot, tarkastusloki: 90 päivää</li>
 					<li>Kuormituksenrajoitustiedot: vain muistissa</li>
 				</ul><br/>

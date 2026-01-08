@@ -90,6 +90,74 @@ const en = {
 		saveError: "Failed to save information",
 	},
 
+	// Secondary Emails
+	secondaryEmail: {
+		// Page titles
+		title: "Secondary Emails",
+		manageDescription: "Manage secondary emails for signing in and verifying membership",
+
+		// Add email
+		addEmail: "Add secondary email",
+		adding: "Adding...",
+		emailAddress: "Email address",
+		emailPlaceholder: "teemu.teekkari@aalto.fi",
+		addAndVerify: "Add and verify email",
+
+		// Verification
+		verifyTitle: "Verify your email",
+		verifyDescription: "We sent an 8-digit code to {email}",
+		code: "Verification code",
+		verify: "Verify",
+		resendCode: "Resend code",
+		changeEmail: "Change email",
+
+		// Status
+		status: {
+			verified: "Verified",
+			unverified: "Unverified",
+			expired: "Expired",
+		},
+
+		// Details
+		verifiedAt: "Verified",
+		expiresAt: "Expires",
+		neverExpires: "Never expires",
+		domain: "Domain",
+
+		// Actions
+		delete: "Delete email",
+		deleteConfirm: "Are you sure you want to delete this email?",
+		reverify: "Re-verify",
+		verifyNow: "Verify now",
+
+		// Messages
+		addSuccess: "Verification code sent to {email}",
+		verifySuccess: "Email verified successfully!",
+		verifySuccessExpires: "Email verified! Expires on {date}",
+		deleteSuccess: "Email deleted successfully",
+		expiredMessage: "Your Aalto email verification has expired",
+		notVerifiedMessage: "Aalto email not verified",
+		verifiedDomainEmail: "Aalto email verified",
+		expiresOn: "expires on {date}",
+		addDomainEmail: "Add {domain} email →",
+		reverifyNow: "Re-verify now →",
+
+		// Errors
+		invalidEmail: "Invalid email address",
+		emailExists: "This email is already registered",
+		limitReached: "Maximum 10 secondary emails allowed",
+		verificationFailed: "Invalid verification code",
+		rateLimited: "Too many requests. Please try again later",
+
+		// Empty state
+		noEmails: "No secondary emails",
+		noEmailsDescription: "Add a secondary email for signing in or verifying membership",
+
+		// Info
+		infoExpiring: "Aalto.fi emails expire after 6 months and need re-verification",
+		infoGeneral: "Secondary emails can be used for signing in and verifying membership",
+	},
+
 	// Membership
 	membership: {
 		title: "Memberships",
@@ -291,7 +359,7 @@ const en = {
 				<em>Note: The legally binding version of this document is in Finnish. This English translation
 				is provided for convenience only.</em>`,
 			createdDate: "Created: May 22, 2018",
-			lastUpdated: "Last updated: December 15, 2025",
+			lastUpdated: "Last updated: January 8, 2026",
 
 			section1Title: "1. Data Controller",
 			section1Content: `
@@ -360,6 +428,16 @@ const en = {
 					<li>Last usage timestamp</li>
 				</ul><br/>
 
+				<strong>Secondary email addresses (optional):</strong><br/>
+				<ul>
+					<li>Additional email addresses for alternative sign-in</li>
+					<li>Email domain (e.g., aalto.fi)</li>
+					<li>Verification status and timestamp</li>
+					<li>Expiration date for domain-verified emails</li>
+				</ul>
+				<em>Note: Secondary emails are entirely optional, except for aalto.fi email verification
+				which is required for certain membership types (e.g., student membership).</em><br/><br/>
+
 				<strong>Technical data:</strong><br/>
 				<ul>
 					<li>Session tokens, login codes</li>
@@ -397,6 +475,8 @@ const en = {
 					<li>Login codes: 10 minutes</li>
 					<li>Session tokens: 30 days</li>
 					<li>Passkeys: until deleted by user or account is removed</li>
+					<li>Secondary emails: until deleted by user or account is removed</li>
+					<li>Aalto.fi email verification: valid for 6 months, then requires re-verification</li>
 					<li>IP addresses, browser info, audit logs: 90 days</li>
 					<li>Rate limiting data: in memory only</li>
 				</ul><br/>

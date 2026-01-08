@@ -1,0 +1,2 @@
+ALTER TABLE "secondary_email" DROP CONSTRAINT "secondary_email_email_unique";--> statement-breakpoint
+CREATE UNIQUE INDEX "unique_verified_secondary_email" ON "secondary_email" USING btree ("email") WHERE "secondary_email"."verified_at" IS NOT NULL;

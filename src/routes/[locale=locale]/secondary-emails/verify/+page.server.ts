@@ -1,5 +1,5 @@
 import { fail, redirect } from "@sveltejs/kit";
-import type { Actions, RequestEvent } from "./$types";
+import type { Actions, PageServerLoad, RequestEvent } from "./$types";
 import {
 	createEmailOTP,
 	deleteEmailCookie,
@@ -12,19 +12,14 @@ import {
 	setEmailOTPCookie,
 } from "$lib/server/auth/email";
 import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
-import { createSession, generateSessionToken, setSessionTokenCookie } from "$lib/server/auth/session";
-import { getUserByEmail, deleteUnverifiedSecondaryEmailClaims } from "$lib/server/auth/secondary-email";
-import { generateUserId } from "$lib/server/auth/utils";
-import * as table from "$lib/server/db/schema";
-import { db } from "$lib/server/db";
 import { route } from "$lib/ROUTES";
-import { auditLogin, auditLoginFailed } from "$lib/server/audit";
 import { timingSafeEqual } from "node:crypto";
+import { getUserSecondaryEmails, markSecondaryEmailVerified } from "$lib/server/auth/secondary-email";
 
-export async function load(event: RequestEvent) {
+export const load: PageServerLoad = async (event) => {
 	const email = event.cookies.get(emailCookieName);
 	if (typeof email !== "string") {
-		return redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
+		return redirect(302, route("/[locale=locale]/secondary-emails", { locale: event.locals.locale }));
 	}
 
 	let otp = await getEmailOTPFromRequest(event);
@@ -36,14 +31,14 @@ export async function load(event: RequestEvent) {
 	return {
 		email: otp.email,
 	};
-}
+};
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
 
 export const actions: Actions = {
 	verify: verifyCode,
 	resend: resendEmail,
-	changeEmail: changeEmail,
+	cancel: cancelVerification,
 };
 
 async function verifyCode(event: RequestEvent) {
@@ -104,13 +99,10 @@ async function verifyCode(event: RequestEvent) {
 	const capitalizedCode = code.toLocaleUpperCase("en");
 
 	// Use constant-time comparison to prevent timing attacks
-	// Pad both strings to the expected OTP length
 	const expectedBuffer = Buffer.from(otp.code, "utf8");
 	const providedBuffer = Buffer.from(capitalizedCode.padEnd(otp.code.length, "\0"), "utf8");
 	const isValid = expectedBuffer.length === providedBuffer.length && timingSafeEqual(expectedBuffer, providedBuffer);
 	if (!isValid) {
-		await auditLoginFailed(event, otp.email);
-
 		return fail(400, {
 			verify: {
 				message: "Incorrect code.",
@@ -118,34 +110,34 @@ async function verifyCode(event: RequestEvent) {
 		});
 	}
 
-	// Check both primary and VERIFIED secondary emails
-	// SECURITY: Only verified secondary emails can be used for authentication
-	const existingUser = await getUserByEmail(otp.email);
-
-	const userId = existingUser?.id ?? generateUserId();
-	if (!existingUser) {
-		// SECURITY: Delete any unverified secondary email claims for this email
-		// This prevents email squatting attacks where an attacker adds someone else's
-		// email as a secondary email to hijack their account when they sign up
-		await deleteUnverifiedSecondaryEmailClaims(otp.email);
-
-		await db.insert(table.user).values({
-			id: userId,
-			email: otp.email,
+	// Find the secondary email record for this user
+	if (!event.locals.user) {
+		return fail(401, {
+			verify: {
+				message: "Not authenticated",
+			},
 		});
 	}
 
-	const token = generateSessionToken();
-	await createSession(token, userId);
-	setSessionTokenCookie(event, token, new Date(Date.now() + 1000 * 60 * 60 * 24 * 30));
+	const secondaryEmails = await getUserSecondaryEmails(event.locals.user.id);
+	const emailToVerify = secondaryEmails.find((e) => e.email === otp.email);
 
-	await auditLogin(event, userId);
+	if (!emailToVerify) {
+		return fail(404, {
+			verify: {
+				message: "Email not found",
+			},
+		});
+	}
+
+	// Mark as verified
+	await markSecondaryEmailVerified(emailToVerify.id, event.locals.user.id);
 
 	deleteEmailCookie(event);
 	deleteEmailOTP(otp.id);
 	deleteEmailOTPCookie(event);
 
-	redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
+	redirect(302, route("/[locale=locale]/secondary-emails", { locale: event.locals.locale }));
 }
 
 async function resendEmail(event: RequestEvent) {
@@ -198,7 +190,7 @@ async function resendEmail(event: RequestEvent) {
 	};
 }
 
-async function changeEmail(event: RequestEvent) {
+async function cancelVerification(event: RequestEvent) {
 	// Get the OTP to delete it if it exists
 	const otp = await getEmailOTPFromRequest(event);
 	if (otp !== null) {
@@ -209,6 +201,6 @@ async function changeEmail(event: RequestEvent) {
 	deleteEmailCookie(event);
 	deleteEmailOTPCookie(event);
 
-	// Redirect back to sign-in page
-	redirect(303, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
+	// Redirect back to management page
+	redirect(303, route("/[locale=locale]/secondary-emails", { locale: event.locals.locale }));
 }

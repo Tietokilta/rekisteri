@@ -1,4 +1,4 @@
-import { eq, or } from "drizzle-orm";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db";
 import * as table from "../db/schema";
@@ -70,21 +70,186 @@ export function hasValidDomainEmail(secondaryEmails: SecondaryEmail[], domain: s
 }
 
 /**
- * Find a user by email address, checking both primary and secondary emails
+ * Find a user by email address, checking both primary and VERIFIED secondary emails
  * Email lookup is case-insensitive
  * Returns null if no user found with that email
+ *
+ * SECURITY: Only verified secondary emails are considered to prevent account takeover
+ * attacks where an attacker adds someone else's email as unverified secondary email
  */
 export async function getUserByEmail(email: string): Promise<User | null> {
 	const normalizedEmail = email.toLowerCase();
 
-	// Single query: check primary email OR secondary email via LEFT JOIN
-	const [result] = await db
+	// First check primary email
+	const [primaryResult] = await db.select().from(table.user).where(eq(table.user.email, normalizedEmail)).limit(1);
+
+	if (primaryResult) {
+		return primaryResult;
+	}
+
+	// Then check VERIFIED secondary emails only
+	// SECURITY: Unverified secondary emails MUST NOT be used for authentication
+	// to prevent account takeover attacks
+	const [secondaryResult] = await db
 		.select({
 			user: table.user,
 		})
-		.from(table.user)
-		.leftJoin(table.secondaryEmail, eq(table.user.id, table.secondaryEmail.userId))
-		.where(or(eq(table.user.email, normalizedEmail), eq(table.secondaryEmail.email, normalizedEmail)));
+		.from(table.secondaryEmail)
+		.innerJoin(table.user, eq(table.user.id, table.secondaryEmail.userId))
+		.where(and(eq(table.secondaryEmail.email, normalizedEmail), isNotNull(table.secondaryEmail.verifiedAt)));
 
-	return result?.user ?? null;
+	return secondaryResult?.user ?? null;
+}
+
+/**
+ * Delete all unverified secondary email claims for a given email address
+ * This should be called when someone legitimately signs up/in with an email
+ * to prevent email squatting attacks
+ *
+ * Returns the number of deleted claims
+ */
+export async function deleteUnverifiedSecondaryEmailClaims(email: string): Promise<number> {
+	const normalizedEmail = email.toLowerCase();
+
+	const result = await db
+		.delete(table.secondaryEmail)
+		.where(and(eq(table.secondaryEmail.email, normalizedEmail), isNull(table.secondaryEmail.verifiedAt)))
+		.returning();
+
+	return result.length;
+}
+
+/**
+ * Get all secondary emails for a user
+ * Returns emails sorted by creation date (newest first)
+ */
+export async function getUserSecondaryEmails(userId: string): Promise<SecondaryEmail[]> {
+	const emails = await db
+		.select()
+		.from(table.secondaryEmail)
+		.where(eq(table.secondaryEmail.userId, userId))
+		.orderBy(table.secondaryEmail.createdAt);
+
+	return emails;
+}
+
+/**
+ * Get a secondary email by ID, ensuring it belongs to the user
+ * Returns null if not found or doesn't belong to user
+ */
+export async function getSecondaryEmailById(emailId: string, userId: string): Promise<SecondaryEmail | null> {
+	const [email] = await db
+		.select()
+		.from(table.secondaryEmail)
+		.where(and(eq(table.secondaryEmail.id, emailId), eq(table.secondaryEmail.userId, userId)));
+
+	return email ?? null;
+}
+
+/**
+ * Create a new unverified secondary email
+ * Validates:
+ * - Email format
+ * - Not already a primary email (any user)
+ * - Not already a verified secondary email (other users)
+ * - User hasn't exceeded limit (10 emails)
+ *
+ * Returns existing email if user already has this email (verified or not)
+ * Throws error if validation fails
+ */
+export async function createSecondaryEmail(userId: string, email: string): Promise<SecondaryEmail> {
+	const normalizedEmail = email.toLowerCase();
+
+	// Validate email format
+	const domain = extractDomain(normalizedEmail);
+
+	// Check if this user already has this email (verified or not)
+	const existingUserEmail = await db
+		.select()
+		.from(table.secondaryEmail)
+		.where(and(eq(table.secondaryEmail.userId, userId), eq(table.secondaryEmail.email, normalizedEmail)))
+		.limit(1);
+
+	const existingEmail = existingUserEmail[0];
+	if (existingEmail) {
+		// User is trying to re-add their own email - return it so we can redirect to verify
+		return existingEmail;
+	}
+
+	// Check if email already exists as primary email
+	// SECURITY: Use generic error message to prevent email enumeration
+	const existingPrimaryUser = await db.select().from(table.user).where(eq(table.user.email, normalizedEmail)).limit(1);
+
+	if (existingPrimaryUser.length > 0) {
+		throw new Error("Could not add this email. Please try a different email address.");
+	}
+
+	// Check if email already exists as VERIFIED secondary email for another user
+	// Unverified emails from other users don't block - prevents email squatting
+	// SECURITY: Use generic error message to prevent email enumeration
+	const existingVerifiedSecondaryEmail = await db
+		.select()
+		.from(table.secondaryEmail)
+		.where(eq(table.secondaryEmail.email, normalizedEmail))
+		.limit(1);
+
+	const existingVerified = existingVerifiedSecondaryEmail[0];
+	if (existingVerified && existingVerified.verifiedAt !== null) {
+		throw new Error("Could not add this email. Please try a different email address.");
+	}
+
+	// Check user hasn't exceeded limit
+	const userEmailCount = await db.select().from(table.secondaryEmail).where(eq(table.secondaryEmail.userId, userId));
+
+	if (userEmailCount.length >= 10) {
+		throw new Error("Maximum 10 secondary emails allowed");
+	}
+
+	// Create unverified secondary email
+	const newEmail: SecondaryEmail = {
+		id: crypto.randomUUID(),
+		userId,
+		email: normalizedEmail,
+		domain,
+		verifiedAt: null,
+		expiresAt: null,
+		createdAt: new Date(),
+		updatedAt: new Date(),
+	};
+
+	await db.insert(table.secondaryEmail).values(newEmail);
+
+	return newEmail;
+}
+
+/**
+ * Mark a secondary email as verified and calculate expiry
+ */
+export async function markSecondaryEmailVerified(emailId: string, userId: string): Promise<boolean> {
+	const email = await getSecondaryEmailById(emailId, userId);
+	if (!email) {
+		return false;
+	}
+
+	const verifiedAt = new Date();
+	const expiresAt = calculateExpiry(email.domain, verifiedAt);
+
+	await db.update(table.secondaryEmail).set({ verifiedAt, expiresAt }).where(eq(table.secondaryEmail.id, emailId));
+
+	return true;
+}
+
+/**
+ * Delete a secondary email
+ * Returns true if deleted, false if not found or doesn't belong to user
+ */
+export async function deleteSecondaryEmail(emailId: string, userId: string): Promise<boolean> {
+	const email = await getSecondaryEmailById(emailId, userId);
+	if (!email) {
+		return false;
+	}
+
+	await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.id, emailId));
+
+	return true;
 }

@@ -1,5 +1,5 @@
-import { relations } from "drizzle-orm";
-import { boolean, index, integer, json, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import { boolean, index, integer, json, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import * as z from "zod";
 import { MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
@@ -73,7 +73,7 @@ export const secondaryEmail = pgTable(
 		userId: text()
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
-		email: text().notNull().unique(), // Must be unique across all secondary emails
+		email: text().notNull(), // Uniqueness enforced via partial index on verified emails only
 		domain: text().notNull(), // Extracted domain (e.g., "aalto.fi") for filtering
 		verifiedAt: timestamp({ withTimezone: true }), // null if not yet verified
 		expiresAt: timestamp({ withTimezone: true }), // null for domains that never expire
@@ -82,6 +82,11 @@ export const secondaryEmail = pgTable(
 	(table) => [
 		index("idx_secondary_email_user_id").on(table.userId),
 		index("idx_secondary_email_domain").on(table.domain),
+		// Partial unique index: only verified emails must be globally unique
+		// This prevents email squatting - unverified emails don't block others
+		uniqueIndex("unique_verified_secondary_email")
+			.on(table.email)
+			.where(sql`${table.verifiedAt} IS NOT NULL`),
 	],
 );
 
