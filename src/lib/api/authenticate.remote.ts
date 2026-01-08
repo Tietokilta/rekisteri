@@ -7,7 +7,7 @@ import { emailCookieName as signInEmailCookieName } from "$lib/server/auth/email
 import { RefillingTokenBucket } from "$lib/server/auth/rate-limit";
 import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/server";
 import { dev } from "$app/environment";
-import { z } from "zod";
+import * as v from "valibot";
 
 // Rate limit: 10 authentication attempts per hour per email
 const authBucket = new RefillingTokenBucket<string>(10, 60 * 60);
@@ -19,7 +19,7 @@ const emailCookieName = "passkey_auth_email";
  * Generate passkey authentication options
  */
 export const getAuthenticationOptions = command(
-	z.email(),
+	v.pipe(v.string(), v.email()),
 	async (email): Promise<{ options: PublicKeyCredentialRequestOptionsJSON }> => {
 		const { cookies } = getRequestEvent();
 
@@ -60,7 +60,7 @@ export const getAuthenticationOptions = command(
  * Verify passkey authentication and create session
  */
 export const verifyAuthentication = command(
-	z.any(), // AuthenticationResponseJSON from SimpleWebAuthn
+	v.any(), // AuthenticationResponseJSON from SimpleWebAuthn
 	async (response): Promise<{ success: boolean; user: { id: string; email: string; isAdmin: boolean } }> => {
 		const { cookies, request, getClientAddress } = getRequestEvent();
 

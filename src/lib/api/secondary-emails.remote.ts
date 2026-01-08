@@ -1,6 +1,6 @@
 import { error, redirect } from "@sveltejs/kit";
 import { getRequestEvent, query, form } from "$app/server";
-import { z } from "zod";
+import * as v from "valibot";
 import { dev } from "$app/environment";
 import {
 	getUserSecondaryEmails,
@@ -39,8 +39,8 @@ export const listSecondaryEmails = query(async () => {
  * Delete a secondary email via form submission
  */
 export const deleteSecondaryEmailForm = form(
-	z.object({
-		emailId: z.string().min(1, "Email ID is required"),
+	v.object({
+		emailId: v.pipe(v.string(), v.minLength(1)),
 	}),
 	async ({ emailId }) => {
 		const { locals } = getRequestEvent();
@@ -66,8 +66,8 @@ export const deleteSecondaryEmailForm = form(
  * Re-verify an expired or unverified email
  */
 export const reverifySecondaryEmailForm = form(
-	z.object({
-		emailId: z.string().min(1, "Email ID is required"),
+	v.object({
+		emailId: v.pipe(v.string(), v.minLength(1)),
 	}),
 	async ({ emailId }) => {
 		const { locals, cookies } = getRequestEvent();

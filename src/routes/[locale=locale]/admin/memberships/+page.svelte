@@ -1,18 +1,22 @@
 <script lang="ts">
-	import { invalidateAll } from "$app/navigation";
 	import { Separator } from "$lib/components/ui/separator";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
+	import { route } from "$lib/ROUTES";
+	import { superForm } from "sveltekit-superforms";
 	import type { PageProps } from "./$types";
-	import { createMembership, deleteMembership } from "./data.remote";
-	import { createMembershipSchema } from "./schema";
+	import { valibot } from "sveltekit-superforms/adapters";
+	import { createSchema } from "./schema";
+	import * as Form from "$lib/components/ui/form/index.js";
 	import { Input } from "$lib/components/ui/input";
 	import { Button } from "$lib/components/ui/button";
-	import { Label } from "$lib/components/ui/label";
+	import { enhance as defaultEnhance } from "$app/forms";
 
 	const { data }: PageProps = $props();
 
-	// Initialize form with default values from server
-	createMembership.fields.set(data.defaultValues);
+	const form = superForm(data.form, {
+		validators: valibot(createSchema),
+	});
+	const { form: formData, enhance, constraints } = form;
 </script>
 
 <main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
@@ -23,7 +27,6 @@
 			<h2 class="font-mono text-lg">{$LL.membership.title()}</h2>
 			<ul class="space-y-4">
 				{#each data.memberships as membership (membership.id)}
-					{@const deleteForm = deleteMembership.for(membership.id)}
 					<li class="flex items-center justify-between space-x-4 rounded-md border p-4">
 						<div class="text-sm">
 							<p class="font-medium">{membership.type}</p>
@@ -44,15 +47,12 @@
 							{#if membership.memberCount === 0}
 								<form
 									class="contents"
-									{...deleteForm.enhance(async ({ submit }) => {
-										await submit();
-										await invalidateAll();
-									})}
+									method="post"
+									action={route("deleteMembership /[locale=locale]/admin/memberships", { locale: $locale })}
+									use:defaultEnhance
 								>
-									<input {...deleteForm.fields.id.as("hidden", membership.id)} />
-									<Button type="submit" variant="destructive" disabled={!!deleteForm.pending}>
-										{$LL.common.delete()}
-									</Button>
+									<input type="hidden" name="id" value={membership.id} />
+									<Button type="submit" variant="destructive">{$LL.common.delete()}</Button>
 								</form>
 							{/if}
 						</div>
@@ -64,70 +64,88 @@
 		<div class="w-full max-w-xs">
 			<h2 class="font-mono text-lg">{$LL.membership.createNew()}</h2>
 			<form
-				{...createMembership.preflight(createMembershipSchema).enhance(async ({ submit }) => {
-					await submit();
-					createMembership.fields.set(data.defaultValues);
-					await invalidateAll();
-				})}
+				method="post"
+				action={route("createMembership /[locale=locale]/admin/memberships", { locale: $locale })}
+				use:enhance
 				class="flex w-full max-w-xs flex-col gap-4"
 			>
-				<div class="space-y-2">
-					<Label for="type">{$LL.membership.type()}</Label>
-					<Input {...createMembership.fields.type.as("text")} id="type" list="types" />
-					<p class="text-sm text-muted-foreground">{$LL.membership.continuityNote()}</p>
-					<datalist id="types">
-						{#each data.types as type (type)}
-							<option value={type}></option>
-						{/each}
-					</datalist>
-					{#each createMembership.fields.type.issues() as issue, i (i)}
-						<p class="text-sm text-destructive">{issue.message}</p>
-					{/each}
-				</div>
+				<Form.Field {form} name="type">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>{$LL.membership.type()}</Form.Label>
+							<Input {...props} {...$constraints.type} list="types" bind:value={$formData.type} />
+							<Form.Description>{$LL.membership.continuityNote()}</Form.Description>
+							<datalist id="types">
+								{#each data.types as type (type)}
+									<option value={type}></option>
+								{/each}
+							</datalist>
+						{/snippet}
+					</Form.Control>
+					<Form.FieldErrors />
+				</Form.Field>
 
-				<div class="space-y-2">
-					<Label for="stripePriceId">{$LL.admin.memberships.stripePriceId()}</Label>
-					<Input {...createMembership.fields.stripePriceId.as("text")} id="stripePriceId" placeholder="price_xxx" />
-					<p class="text-sm text-muted-foreground">{$LL.admin.memberships.stripePriceIdDescription()}</p>
-					{#each createMembership.fields.stripePriceId.issues() as issue, i (i)}
-						<p class="text-sm text-destructive">{issue.message}</p>
-					{/each}
-				</div>
+				<Form.Field {form} name="stripePriceId">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>{$LL.admin.memberships.stripePriceId()}</Form.Label>
+							<Input
+								{...props}
+								{...$constraints.stripePriceId}
+								bind:value={$formData.stripePriceId}
+								placeholder="price_xxx"
+							/>
+							<Form.Description>{$LL.admin.memberships.stripePriceIdDescription()}</Form.Description>
+						{/snippet}
+					</Form.Control>
+					<Form.FieldErrors />
+				</Form.Field>
 
-				<div class="space-y-2">
-					<Label for="startTime">{$LL.membership.startTime()}</Label>
-					<Input {...createMembership.fields.startTime.as("date")} id="startTime" />
-					{#each createMembership.fields.startTime.issues() as issue, i (i)}
-						<p class="text-sm text-destructive">{issue.message}</p>
-					{/each}
-				</div>
+				<Form.Field {form} name="startTime">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>{$LL.membership.startTime()}</Form.Label>
+							<Input {...props} {...$constraints.startTime} type="date" bind:value={$formData.startTime} />
+						{/snippet}
+					</Form.Control>
+					<Form.FieldErrors />
+				</Form.Field>
 
-				<div class="space-y-2">
-					<Label for="endTime">{$LL.membership.endTime()}</Label>
-					<Input {...createMembership.fields.endTime.as("date")} id="endTime" />
-					{#each createMembership.fields.endTime.issues() as issue, i (i)}
-						<p class="text-sm text-destructive">{issue.message}</p>
-					{/each}
-				</div>
+				<Form.Field {form} name="endTime">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>{$LL.membership.endTime()}</Form.Label>
+							<Input {...props} {...$constraints.endTime} type="date" bind:value={$formData.endTime} />
+						{/snippet}
+					</Form.Control>
+					<Form.FieldErrors />
+				</Form.Field>
 
-				<div class="space-y-2">
-					<Label for="priceCents">{$LL.membership.priceCents()}</Label>
-					<Input {...createMembership.fields.priceCents.as("number")} id="priceCents" inputmode="numeric" />
-					{#each createMembership.fields.priceCents.issues() as issue, i (i)}
-						<p class="text-sm text-destructive">{issue.message}</p>
-					{/each}
-				</div>
+				<Form.Field {form} name="priceCents">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>{$LL.membership.priceCents()}</Form.Label>
+							<Input {...props} {...$constraints.priceCents} inputmode="numeric" bind:value={$formData.priceCents} />
+						{/snippet}
+					</Form.Control>
+					<Form.FieldErrors />
+				</Form.Field>
 
-				<div class="flex items-center gap-2">
-					<Input
-						{...createMembership.fields.requiresStudentVerification.as("checkbox")}
-						id="requiresStudentVerification"
-						class="w-auto"
-					/>
-					<Label for="requiresStudentVerification">{$LL.membership.requiresStudentVerification()}</Label>
-				</div>
+				<Form.Field {form} name="requiresStudentVerification">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>{$LL.membership.requiresStudentVerification()}</Form.Label>
+							<Input
+								{...props}
+								{...$constraints.requiresStudentVerification}
+								type="checkbox"
+								bind:checked={$formData.requiresStudentVerification}
+							/>
+						{/snippet}
+					</Form.Control>
+				</Form.Field>
 
-				<Button type="submit">{$LL.membership.add()}</Button>
+				<Form.Button type="submit">{$LL.membership.add()}</Form.Button>
 			</form>
 		</div>
 	</div>

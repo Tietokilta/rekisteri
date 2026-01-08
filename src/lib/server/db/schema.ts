@@ -1,6 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import { boolean, index, integer, json, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
-import * as z from "zod";
+import * as v from "valibot";
 import { MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 
@@ -14,11 +14,11 @@ const timestamps = {
 
 export const preferredLanguageEnum = pgEnum("preferred_language", PREFERRED_LANGUAGE_VALUES);
 
-export const preferredLanguageEnumSchema = z.enum(PREFERRED_LANGUAGE_VALUES);
+export const preferredLanguageEnumSchema = v.picklist(PREFERRED_LANGUAGE_VALUES);
 
 export const memberStatusEnum = pgEnum("member_status", MEMBER_STATUS_VALUES);
 
-export const memberStatusEnumSchema = z.enum(MEMBER_STATUS_VALUES);
+export const memberStatusEnumSchema = v.picklist(MEMBER_STATUS_VALUES);
 
 export const user = pgTable("user", {
 	id: text().primaryKey(),
@@ -138,9 +138,9 @@ export const auditLog = pgTable("audit_log", {
 
 export type Member = typeof member.$inferSelect;
 
-export type MemberStatus = z.infer<typeof memberStatusEnumSchema>;
+export type MemberStatus = v.InferOutput<typeof memberStatusEnumSchema>;
 
-export type PreferredLanguage = z.infer<typeof preferredLanguageEnumSchema>;
+export type PreferredLanguage = v.InferOutput<typeof preferredLanguageEnumSchema>;
 
 export type Membership = typeof membership.$inferSelect;
 

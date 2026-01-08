@@ -1,9 +1,9 @@
-import * as z from "zod";
+import * as v from "valibot";
 
-export const promoteToAdminSchema = z.object({
-	userId: z.string().min(1),
+export const promoteToAdminSchema = v.object({
+	userId: v.pipe(v.string(), v.minLength(1)),
 });
 
-export const demoteFromAdminSchema = z.object({
-	userId: z.string().min(1),
+export const demoteFromAdminSchema = v.object({
+	userId: v.pipe(v.string(), v.minLength(1)),
 });

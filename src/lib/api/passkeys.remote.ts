@@ -10,32 +10,32 @@ import {
 import { auditPasskeyRegistered, auditPasskeyDeleted } from "$lib/server/audit";
 import type { PublicKeyCredentialCreationOptionsJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
 import { dev } from "$app/environment";
-import { z } from "zod";
+import * as v from "valibot";
 
-// Zod schema for AuthenticatorTransportFuture
-const authenticatorTransportSchema = z.enum(["ble", "cable", "hybrid", "internal", "nfc", "smart-card", "usb"]);
+// Valibot schema for AuthenticatorTransportFuture
+const authenticatorTransportSchema = v.picklist(["ble", "cable", "hybrid", "internal", "nfc", "smart-card", "usb"]);
 
-// Zod schema for AuthenticatorAttestationResponseJSON
+// Valibot schema for AuthenticatorAttestationResponseJSON
 // https://w3c.github.io/webauthn/#dictdef-authenticatorattestationresponsejson
-const authenticatorAttestationResponseSchema = z.object({
-	clientDataJSON: z.string(), // Base64URLString
-	attestationObject: z.string(), // Base64URLString
-	authenticatorData: z.string().optional(), // Base64URLString
-	transports: z.array(authenticatorTransportSchema).optional(), // AuthenticatorTransportFuture[]
-	publicKeyAlgorithm: z.number().optional(), // COSEAlgorithmIdentifier
-	publicKey: z.string().optional(), // Base64URLString
+const authenticatorAttestationResponseSchema = v.object({
+	clientDataJSON: v.string(), // Base64URLString
+	attestationObject: v.string(), // Base64URLString
+	authenticatorData: v.optional(v.string()), // Base64URLString
+	transports: v.optional(v.array(authenticatorTransportSchema)), // AuthenticatorTransportFuture[]
+	publicKeyAlgorithm: v.optional(v.number()), // COSEAlgorithmIdentifier
+	publicKey: v.optional(v.string()), // Base64URLString
 });
 
-// Zod schema for RegistrationResponseJSON
+// Valibot schema for RegistrationResponseJSON
 // https://w3c.github.io/webauthn/#dictdef-registrationresponsejson
-const registrationResponseSchema: z.ZodType<RegistrationResponseJSON> = z.object({
-	id: z.string(), // Base64URLString
-	rawId: z.string(), // Base64URLString
+const registrationResponseSchema: v.GenericSchema<RegistrationResponseJSON> = v.looseObject({
+	id: v.string(), // Base64URLString
+	rawId: v.string(), // Base64URLString
 	response: authenticatorAttestationResponseSchema,
-	authenticatorAttachment: z.enum(["platform", "cross-platform"]).optional(), // AuthenticatorAttachment
-	clientExtensionResults: z.object({}).loose(), // AuthenticationExtensionsClientOutputs - allow any properties
-	type: z.literal("public-key"), // PublicKeyCredentialType
-}) as z.ZodType<RegistrationResponseJSON>;
+	authenticatorAttachment: v.optional(v.picklist(["platform", "cross-platform"])), // AuthenticatorAttachment
+	clientExtensionResults: v.looseObject({}), // AuthenticationExtensionsClientOutputs - allow any properties
+	type: v.literal("public-key"), // PublicKeyCredentialType
+}) as v.GenericSchema<RegistrationResponseJSON>;
 
 const challengeCookieName = "passkey_register_challenge";
 
@@ -43,7 +43,7 @@ const challengeCookieName = "passkey_register_challenge";
  * Generate passkey registration options
  */
 export const getRegistrationOptions = command(
-	z.string(),
+	v.string(),
 	async (deviceName): Promise<{ options: PublicKeyCredentialCreationOptionsJSON; deviceName: string }> => {
 		const { locals, cookies } = getRequestEvent();
 
@@ -75,9 +75,9 @@ export const getRegistrationOptions = command(
  * Verify and store a passkey registration
  */
 export const verifyRegistration = command(
-	z.object({
+	v.object({
 		response: registrationResponseSchema,
-		deviceName: z.string(),
+		deviceName: v.string(),
 	}),
 	async ({ response, deviceName }): Promise<{ success: boolean }> => {
 		const { locals, cookies, request, getClientAddress } = getRequestEvent();
@@ -148,8 +148,8 @@ export const listPasskeys = query(async () => {
  * Uses the form() API for progressive enhancement
  */
 export const deletePasskeyForm = form(
-	z.object({
-		passkeyId: z.string().min(1, "Passkey ID is required"),
+	v.object({
+		passkeyId: v.pipe(v.string(), v.minLength(1, "Passkey ID is required")),
 	}),
 	async ({ passkeyId }) => {
 		const { locals, request, getClientAddress } = getRequestEvent();
@@ -181,9 +181,9 @@ export const deletePasskeyForm = form(
  * Uses the form() API for progressive enhancement
  */
 export const renamePasskeyForm = form(
-	z.object({
-		passkeyId: z.string().min(1, "Passkey ID is required"),
-		deviceName: z.string().min(1, "Device name is required").max(100, "Device name too long"),
+	v.object({
+		passkeyId: v.pipe(v.string(), v.minLength(1, "Passkey ID is required")),
+		deviceName: v.pipe(v.string(), v.minLength(1, "Device name is required"), v.maxLength(100, "Device name too long")),
 	}),
 	async ({ passkeyId, deviceName }) => {
 		const { locals } = getRequestEvent();

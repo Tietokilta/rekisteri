@@ -1,5 +1,5 @@
-import * as z from "zod";
+import * as v from "valibot";
 
-export const verifyCodeSchema = z.object({
-	code: z.string().min(1),
+export const verifyCodeSchema = v.object({
+	code: v.pipe(v.string(), v.minLength(1)),
 });

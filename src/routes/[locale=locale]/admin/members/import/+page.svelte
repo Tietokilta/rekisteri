@@ -8,6 +8,7 @@
 	import type { PageData } from "./$types";
 	import { SvelteSet } from "svelte/reactivity";
 	import { LL } from "$lib/i18n/i18n-svelte";
+	import * as v from "valibot";
 
 	let { data }: { data: PageData } = $props();
 
@@ -52,13 +53,16 @@
 
 			for (let i = 0; i < csv.data.length; i++) {
 				const rowData = csv.data[i];
-				const validation = csvRowSchema.safeParse(rowData);
+				const validation = v.safeParse(csvRowSchema, rowData);
 
 				if (validation.success) {
-					validatedRows.push(validation.data);
+					validatedRows.push(validation.output);
 				} else {
-					const errorMessages = validation.error.issues
-						.map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+					const errorMessages = validation.issues
+						.map((issue) => {
+							const path = issue.path?.map((p) => p.key).join(".") || "unknown";
+							return `${path}: ${issue.message}`;
+						})
 						.join(", ");
 					parseErrors.push(`Row ${i + 1}: ${errorMessages}`);
 				}

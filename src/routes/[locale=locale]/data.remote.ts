@@ -5,8 +5,6 @@ import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import * as auth from "$lib/server/auth/session";
 import { route } from "$lib/ROUTES";
-import * as z from "zod";
-import { fi, en } from "zod/locales";
 import { userInfoSchema } from "./schema";
 
 export const saveUserInfo = form(userInfoSchema, async (data) => {
@@ -15,9 +13,6 @@ export const saveUserInfo = form(userInfoSchema, async (data) => {
 	if (!event.locals.user) {
 		error(401, "Unauthorized");
 	}
-
-	// Configure Zod locale based on user's language preference
-	z.config(event.locals.locale === "fi" ? fi() : en());
 
 	try {
 		await db
