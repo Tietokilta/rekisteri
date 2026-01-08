@@ -1,4 +1,4 @@
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db";
 import * as table from "../db/schema";
@@ -70,23 +70,53 @@ export function hasValidDomainEmail(secondaryEmails: SecondaryEmail[], domain: s
 }
 
 /**
- * Find a user by email address, checking both primary and secondary emails
+ * Find a user by email address, checking both primary and VERIFIED secondary emails
  * Email lookup is case-insensitive
  * Returns null if no user found with that email
+ *
+ * SECURITY: Only verified secondary emails are considered to prevent account takeover
+ * attacks where an attacker adds someone else's email as unverified secondary email
  */
 export async function getUserByEmail(email: string): Promise<User | null> {
 	const normalizedEmail = email.toLowerCase();
 
-	// Single query: check primary email OR secondary email via LEFT JOIN
-	const [result] = await db
+	// First check primary email
+	const [primaryResult] = await db.select().from(table.user).where(eq(table.user.email, normalizedEmail)).limit(1);
+
+	if (primaryResult) {
+		return primaryResult;
+	}
+
+	// Then check VERIFIED secondary emails only
+	// SECURITY: Unverified secondary emails MUST NOT be used for authentication
+	// to prevent account takeover attacks
+	const [secondaryResult] = await db
 		.select({
 			user: table.user,
 		})
-		.from(table.user)
-		.leftJoin(table.secondaryEmail, eq(table.user.id, table.secondaryEmail.userId))
-		.where(or(eq(table.user.email, normalizedEmail), eq(table.secondaryEmail.email, normalizedEmail)));
+		.from(table.secondaryEmail)
+		.innerJoin(table.user, eq(table.user.id, table.secondaryEmail.userId))
+		.where(and(eq(table.secondaryEmail.email, normalizedEmail), isNotNull(table.secondaryEmail.verifiedAt)));
 
-	return result?.user ?? null;
+	return secondaryResult?.user ?? null;
+}
+
+/**
+ * Delete all unverified secondary email claims for a given email address
+ * This should be called when someone legitimately signs up/in with an email
+ * to prevent email squatting attacks
+ *
+ * Returns the number of deleted claims
+ */
+export async function deleteUnverifiedSecondaryEmailClaims(email: string): Promise<number> {
+	const normalizedEmail = email.toLowerCase();
+
+	const result = await db
+		.delete(table.secondaryEmail)
+		.where(and(eq(table.secondaryEmail.email, normalizedEmail), isNull(table.secondaryEmail.verifiedAt)))
+		.returning();
+
+	return result.length;
 }
 
 /**

@@ -13,7 +13,7 @@ import {
 } from "$lib/server/auth/email";
 import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
 import { createSession, generateSessionToken, setSessionTokenCookie } from "$lib/server/auth/session";
-import { getUserByEmail } from "$lib/server/auth/secondary-email";
+import { getUserByEmail, deleteUnverifiedSecondaryEmailClaims } from "$lib/server/auth/secondary-email";
 import { generateUserId } from "$lib/server/auth/utils";
 import * as table from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
@@ -118,11 +118,17 @@ async function verifyCode(event: RequestEvent) {
 		});
 	}
 
-	// Check both primary and secondary emails
+	// Check both primary and VERIFIED secondary emails
+	// SECURITY: Only verified secondary emails can be used for authentication
 	const existingUser = await getUserByEmail(otp.email);
 
 	const userId = existingUser?.id ?? generateUserId();
 	if (!existingUser) {
+		// SECURITY: Delete any unverified secondary email claims for this email
+		// This prevents email squatting attacks where an attacker adds someone else's
+		// email as a secondary email to hijack their account when they sign up
+		await deleteUnverifiedSecondaryEmailClaims(otp.email);
+
 		await db.insert(table.user).values({
 			id: userId,
 			email: otp.email,
