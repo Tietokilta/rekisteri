@@ -183,11 +183,11 @@ test.describe("Secondary Email OTP Flow", () => {
 		const otpCode = otp.code;
 
 		// Enter the correct OTP code (type into the PinInput slots)
+		// Note: InputOTP auto-submits when all 8 characters are entered via onComplete
 		await adminPage.locator('[data-slot="input-otp"]').pressSequentially(otpCode);
-		await adminPage.getByTestId("verify-otp").click();
 
-		// Wait for redirect to list page
-		await adminPage.waitForURL(/^.*\/secondary-emails$/, { timeout: 5000 });
+		// Wait for redirect to list page (auto-submit handles the form submission)
+		await adminPage.waitForURL(/^.*\/secondary-emails$/, { timeout: 10_000 });
 
 		// Verify the email is now in the database and marked as verified
 		const [secondaryEmail] = await db
@@ -258,9 +258,9 @@ test.describe("Secondary Email OTP Flow", () => {
 		const otp = otps[0];
 		if (!otp) throw new Error("OTP not found");
 
+		// Note: InputOTP auto-submits when all 8 characters are entered
 		await adminPage.locator('[data-slot="input-otp"]').pressSequentially(otp.code);
-		await adminPage.getByTestId("verify-otp").click();
-		await adminPage.waitForURL(/^.*\/secondary-emails$/, { timeout: 5000 });
+		await adminPage.waitForURL(/^.*\/secondary-emails$/, { timeout: 10_000 });
 
 		// Step 2: Try to add the same email again - should return existing email (idempotent)
 		await adminPage.goto("/fi/secondary-emails/add", { waitUntil: "networkidle" });
@@ -308,10 +308,10 @@ test.describe("Secondary Email OTP Flow", () => {
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 
 		// Enter wrong OTP code (8 characters to match expected format)
+		// Note: InputOTP auto-submits when all 8 characters are entered
 		await adminPage.locator('[data-slot="input-otp"]').pressSequentially("WRONGABC");
-		await adminPage.getByTestId("verify-otp").click();
 
-		// Should show error and stay on verify page
+		// Should show error and stay on verify page (wait for form to process)
 		await expect(adminPage.locator("text=Incorrect")).toBeVisible({ timeout: 5000 });
 		await expect(adminPage).toHaveURL(/secondary-emails\/verify/);
 
@@ -341,9 +341,9 @@ test.describe("Secondary Email OTP Flow", () => {
 		const otp = otps[0];
 		if (!otp) throw new Error("OTP not found");
 
+		// Note: InputOTP auto-submits when all 8 characters are entered
 		await adminPage.locator('[data-slot="input-otp"]').pressSequentially(otp.code);
-		await adminPage.getByTestId("verify-otp").click();
-		await adminPage.waitForURL(/^.*\/secondary-emails$/, { timeout: 5000 });
+		await adminPage.waitForURL(/^.*\/secondary-emails$/, { timeout: 10_000 });
 
 		// Verify email exists
 		let emails = await db

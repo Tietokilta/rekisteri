@@ -107,16 +107,7 @@
 					</Item.Content>
 					<Item.Actions>
 						{#if status === "expired" || status === "unverified"}
-							<form
-								class="contents"
-								{...reverifyForm.enhance(async ({ submit }) => {
-									await submit();
-									// Redirect to verify page
-									globalThis.location.href = route("/[locale=locale]/secondary-emails/verify", {
-										locale: $locale,
-									});
-								})}
-							>
+							<form class="contents" {...reverifyForm}>
 								<input type="hidden" name="emailId" value={email.id} />
 								<Button
 									type="submit"
