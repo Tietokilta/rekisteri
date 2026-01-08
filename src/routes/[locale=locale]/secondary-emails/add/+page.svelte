@@ -40,6 +40,7 @@
 					<Input
 						{...props}
 						type="email"
+						pattern={undefined}
 						placeholder={$LL.secondaryEmail.emailPlaceholder()}
 						autocomplete="email"
 						autocapitalize="none"
