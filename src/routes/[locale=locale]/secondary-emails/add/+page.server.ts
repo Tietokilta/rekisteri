@@ -1,5 +1,5 @@
 import { fail, isRedirect, redirect } from "@sveltejs/kit";
-import { superValidate } from "sveltekit-superforms";
+import { message, superValidate } from "sveltekit-superforms";
 import { zod4 } from "sveltekit-superforms/adapters";
 import { schema } from "./schema";
 import { createSecondaryEmail } from "$lib/server/auth/secondary-email";
@@ -28,7 +28,7 @@ export const actions: Actions = {
 
 		if (!locals.user) {
 			const form = await superValidate(request, zod4(schema));
-			return fail(401, { form, message: "Not authenticated" });
+			return message(form, "Not authenticated", { status: 401 });
 		}
 
 		const form = await superValidate(request, zod4(schema));
@@ -39,7 +39,7 @@ export const actions: Actions = {
 
 		// Rate limit by user ID to prevent enumeration
 		if (!addEmailBucket.consume(locals.user.id, 1)) {
-			return fail(429, { form, message: "Too many attempts. Please try again later." });
+			return message(form, "Too many attempts. Please try again later.", { status: 429 });
 		}
 
 		try {
@@ -74,9 +74,9 @@ export const actions: Actions = {
 				throw error;
 			}
 			if (error instanceof Error) {
-				return fail(400, { form, message: error.message });
+				return message(form, error.message, { status: 400 });
 			}
-			return fail(400, { form, message: "An error occurred" });
+			return message(form, "An error occurred", { status: 400 });
 		}
 	},
 };
