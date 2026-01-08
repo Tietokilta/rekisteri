@@ -27,7 +27,7 @@
 	</Alert.Root>
 
 	{#if $message}
-		<Alert.Root variant="destructive" class="mb-4">
+		<Alert.Root variant="destructive" class="mb-4" data-testid="add-email-error">
 			<Alert.Description>{$message}</Alert.Description>
 		</Alert.Root>
 	{/if}

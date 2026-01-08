@@ -2,11 +2,14 @@ import { test, expect } from "./fixtures/auth";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as table from "../src/lib/server/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, like } from "drizzle-orm";
 
 test.describe("Secondary Email OTP Flow", () => {
 	let client: ReturnType<typeof postgres>;
 	let db: ReturnType<typeof drizzle>;
+
+	// Helper to generate unique test email per worker
+	const getTestEmail = (prefix: string, workerIndex: number) => `${prefix}-w${workerIndex}-${Date.now()}@example.com`;
 
 	test.beforeAll(() => {
 		const dbUrl = process.env.DATABASE_URL_TEST;
@@ -21,11 +24,20 @@ test.describe("Secondary Email OTP Flow", () => {
 		await client.end();
 	});
 
-	test("should send exactly one OTP email when adding secondary email", async ({ adminPage }) => {
-		const testEmail = `test-${Date.now()}@example.com`;
+	// Clean up any leftover test data from this worker before each test
+	// eslint-disable-next-line no-empty-pattern -- required for playwright fixture
+	test.beforeEach(async ({}, testInfo) => {
+		const workerPattern = `%-w${testInfo.workerIndex}-%`;
+		await db.delete(table.emailOTP).where(like(table.emailOTP.email, workerPattern));
+		await db.delete(table.secondaryEmail).where(like(table.secondaryEmail.email, workerPattern));
+	});
 
-		// Navigate to secondary emails page
-		await adminPage.goto("/fi/secondary-emails", { waitUntil: "networkidle" });
+	test("should send exactly one OTP email when adding secondary email", async ({ adminPage }, testInfo) => {
+		const testEmail = getTestEmail("test", testInfo.workerIndex);
+
+		// Navigate to secondary emails page and wait for content to load
+		await adminPage.goto("/fi/secondary-emails");
+		await adminPage.getByTestId("add-secondary-email").waitFor({ state: "visible" });
 
 		// Click add email button
 		await adminPage.getByTestId("add-secondary-email").click();
@@ -60,16 +72,14 @@ test.describe("Secondary Email OTP Flow", () => {
 		expect(otp.email).toBe(testEmail.toLowerCase());
 		expect(otp.code).toMatch(/^[A-Z2-7]{8}$/); // 8-character Base32 code
 		expect(otp.expiresAt.getTime()).toBeGreaterThan(Date.now());
-
-		// Clean up
-		await db.delete(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
 	});
 
-	test("should send exactly two OTP emails for add → back → re-verify flow", async ({ adminPage }) => {
-		const testEmail = `test-reverify-${Date.now()}@example.com`;
+	test("should send exactly two OTP emails for add → back → re-verify flow", async ({ adminPage }, testInfo) => {
+		const testEmail = getTestEmail("reverify", testInfo.workerIndex);
 
 		// Step 1: Add email (first OTP)
-		await adminPage.goto("/fi/secondary-emails/add", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/secondary-emails/add");
+		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
 		await adminPage.fill('input[type="email"]', testEmail);
 		await adminPage.getByTestId("submit-add-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
@@ -82,7 +92,8 @@ test.describe("Secondary Email OTP Flow", () => {
 		const firstOtpId = firstOtp.id;
 
 		// Step 2: Go back to list without verifying
-		await adminPage.goto("/fi/secondary-emails", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/secondary-emails");
+		await adminPage.getByTestId("add-secondary-email").waitFor({ state: "visible" });
 
 		// Verify the unverified email appears in the list
 		const emailRow = adminPage.locator(`text=${testEmail}`).first();
@@ -103,20 +114,14 @@ test.describe("Secondary Email OTP Flow", () => {
 
 		// Verify it's a different OTP (new ID)
 		expect(secondOtpId).not.toBe(firstOtpId);
-
-		// Total: 2 OTPs were created (one deleted, one current)
-		// But only 1 exists in DB at any time
-
-		// Clean up
-		await db.delete(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
-		await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.email, testEmail.toLowerCase()));
 	});
 
-	test("should maintain only one OTP per email in database", async ({ adminPage }) => {
-		const testEmail = `test-single-otp-${Date.now()}@example.com`;
+	test("should maintain only one OTP per email in database", async ({ adminPage }, testInfo) => {
+		const testEmail = getTestEmail("single-otp", testInfo.workerIndex);
 
 		// Add email first time
-		await adminPage.goto("/fi/secondary-emails/add", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/secondary-emails/add");
+		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
 		await adminPage.fill('input[type="email"]', testEmail);
 		await adminPage.getByTestId("submit-add-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
@@ -129,7 +134,8 @@ test.describe("Secondary Email OTP Flow", () => {
 		const firstOtpCode = firstOtp.code;
 
 		// Go back and re-verify multiple times
-		await adminPage.goto("/fi/secondary-emails", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/secondary-emails");
+		await adminPage.getByTestId("reverify-email").first().waitFor({ state: "visible" });
 
 		// Re-verify first time
 		await adminPage.getByTestId("reverify-email").first().click();
@@ -146,7 +152,8 @@ test.describe("Secondary Email OTP Flow", () => {
 		expect(secondOtpCode).not.toBe(firstOtpCode);
 
 		// Go back and re-verify again
-		await adminPage.goto("/fi/secondary-emails", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/secondary-emails");
+		await adminPage.getByTestId("reverify-email").first().waitFor({ state: "visible" });
 		await adminPage.getByTestId("reverify-email").first().click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 
@@ -160,17 +167,14 @@ test.describe("Secondary Email OTP Flow", () => {
 		// And it's yet another different code
 		expect(thirdOtpCode).not.toBe(secondOtpCode);
 		expect(thirdOtpCode).not.toBe(firstOtpCode);
-
-		// Clean up
-		await db.delete(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
-		await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.email, testEmail.toLowerCase()));
 	});
 
-	test("should successfully verify OTP and mark email as verified", async ({ adminPage }) => {
-		const testEmail = `test-verify-${Date.now()}@example.com`;
+	test("should successfully verify OTP and mark email as verified", async ({ adminPage }, testInfo) => {
+		const testEmail = getTestEmail("verify", testInfo.workerIndex);
 
 		// Add email
-		await adminPage.goto("/fi/secondary-emails/add", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/secondary-emails/add");
+		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
 		await adminPage.fill('input[type="email"]', testEmail);
 		await adminPage.getByTestId("submit-add-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
@@ -204,26 +208,25 @@ test.describe("Secondary Email OTP Flow", () => {
 			.from(table.emailOTP)
 			.where(eq(table.emailOTP.email, testEmail.toLowerCase()));
 		expect(remainingOtps).toHaveLength(0);
-
-		// Clean up
-		await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.email, testEmail.toLowerCase()));
 	});
 
-	test("should not allow login via unverified secondary email (negative test)", async ({ adminPage }) => {
+	test("should not allow login via unverified secondary email (negative test)", async ({ adminPage }, testInfo) => {
 		// This test verifies the security fix for CVE-like vulnerability:
 		// An attacker should NOT be able to hijack accounts by adding unverified secondary emails
 
-		const targetEmail = `victim-${Date.now()}@example.com`;
+		const targetEmail = getTestEmail("victim", testInfo.workerIndex);
 
 		// Step 1: Admin (attacker) adds victim's email as unverified secondary email
-		await adminPage.goto("/fi/secondary-emails/add", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/secondary-emails/add");
+		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
 		await adminPage.fill('input[type="email"]', targetEmail);
 		await adminPage.getByTestId("submit-add-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 
 		// Don't verify it - leave it unverified (simulating attack setup)
 		// Go back without verifying
-		await adminPage.goto("/fi/secondary-emails", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/secondary-emails");
+		await adminPage.getByTestId("add-secondary-email").waitFor({ state: "visible" });
 
 		// Verify the unverified email is in the database
 		const unverifiedEmails = await db
@@ -239,15 +242,14 @@ test.describe("Secondary Email OTP Flow", () => {
 		// Clean up - the actual security test happens in the sign-in flow
 		// which we can't easily test in e2e without another browser context
 		// But we verify the database state is correct
-		await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.email, targetEmail.toLowerCase()));
-		await db.delete(table.emailOTP).where(eq(table.emailOTP.email, targetEmail.toLowerCase()));
 	});
 
-	test("should reject adding email that is already a verified secondary email", async ({ adminPage }) => {
-		const testEmail = `already-verified-${Date.now()}@example.com`;
+	test("should reject adding email that is already a verified secondary email", async ({ adminPage }, testInfo) => {
+		const testEmail = getTestEmail("already-verified", testInfo.workerIndex);
 
 		// Step 1: Add and verify an email
-		await adminPage.goto("/fi/secondary-emails/add", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/secondary-emails/add");
+		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
 		await adminPage.fill('input[type="email"]', testEmail);
 		await adminPage.getByTestId("submit-add-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
@@ -263,32 +265,28 @@ test.describe("Secondary Email OTP Flow", () => {
 		await adminPage.waitForURL(/^.*\/secondary-emails$/, { timeout: 10_000 });
 
 		// Step 2: Try to add the same email again - should return existing email (idempotent)
-		await adminPage.goto("/fi/secondary-emails/add", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/secondary-emails/add");
+		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
 		await adminPage.fill('input[type="email"]', testEmail);
 		await adminPage.getByTestId("submit-add-email").click();
 
 		// Should redirect to verify page (returns existing email for re-verification)
 		await adminPage.waitForURL(/secondary-emails\/verify/, { timeout: 5000 });
-
-		// Clean up
-		await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.email, testEmail.toLowerCase()));
-		await db.delete(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
 	});
 
 	test("should reject adding email that is already a primary email", async ({ adminPage }) => {
 		// Try to add the admin's own primary email as secondary (should fail)
 		const primaryEmail = "root@tietokilta.fi";
 
-		await adminPage.goto("/fi/secondary-emails/add", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/secondary-emails/add");
+		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
 		await adminPage.fill('input[type="email"]', primaryEmail);
 		await adminPage.getByTestId("submit-add-email").click();
 
 		// Should show generic error message (to prevent email enumeration) and stay on add page
-		await expect(adminPage.locator("text=Could not add this email. Please try a different email address.")).toBeVisible(
-			{
-				timeout: 5000,
-			},
-		);
+		// Wait for the form to be re-enabled (indicates submission completed)
+		await expect(adminPage.getByTestId("submit-add-email")).toBeEnabled({ timeout: 10_000 });
+		await expect(adminPage.getByTestId("add-email-error")).toBeVisible({ timeout: 5000 });
 
 		// Verify no secondary email was created
 		const secondaryEmails = await db
@@ -298,11 +296,12 @@ test.describe("Secondary Email OTP Flow", () => {
 		expect(secondaryEmails).toHaveLength(0);
 	});
 
-	test("should reject invalid OTP code", async ({ adminPage }) => {
-		const testEmail = `invalid-otp-${Date.now()}@example.com`;
+	test("should reject invalid OTP code", async ({ adminPage }, testInfo) => {
+		const testEmail = getTestEmail("invalid-otp", testInfo.workerIndex);
 
 		// Add email
-		await adminPage.goto("/fi/secondary-emails/add", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/secondary-emails/add");
+		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
 		await adminPage.fill('input[type="email"]', testEmail);
 		await adminPage.getByTestId("submit-add-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
@@ -312,7 +311,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		await adminPage.locator('[data-slot="input-otp"]').pressSequentially("WRONGABC");
 
 		// Should show error and stay on verify page (wait for form to process)
-		await expect(adminPage.locator("text=Incorrect")).toBeVisible({ timeout: 5000 });
+		await expect(adminPage.getByText("Incorrect")).toBeVisible({ timeout: 5000 });
 		await expect(adminPage).toHaveURL(/secondary-emails\/verify/);
 
 		// Email should still be unverified
@@ -322,17 +321,14 @@ test.describe("Secondary Email OTP Flow", () => {
 			.where(eq(table.secondaryEmail.email, testEmail.toLowerCase()));
 		expect(emails).toHaveLength(1);
 		expect(emails[0]?.verifiedAt).toBeNull();
-
-		// Clean up
-		await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.email, testEmail.toLowerCase()));
-		await db.delete(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
 	});
 
-	test("should delete secondary email successfully", async ({ adminPage }) => {
-		const testEmail = `delete-test-${Date.now()}@example.com`;
+	test("should delete secondary email successfully", async ({ adminPage }, testInfo) => {
+		const testEmail = getTestEmail("delete-test", testInfo.workerIndex);
 
 		// Add and verify email
-		await adminPage.goto("/fi/secondary-emails/add", { waitUntil: "networkidle" });
+		await adminPage.goto("/fi/secondary-emails/add");
+		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
 		await adminPage.fill('input[type="email"]', testEmail);
 		await adminPage.getByTestId("submit-add-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
@@ -355,15 +351,18 @@ test.describe("Secondary Email OTP Flow", () => {
 		// Set up dialog handler before clicking delete
 		adminPage.on("dialog", (dialog) => dialog.accept());
 
-		// Delete the email
-		await adminPage.locator(`text=${testEmail}`).first().waitFor({ state: "visible" });
+		// Delete the email - wait for it to be visible first
+		const emailLocator = adminPage.locator(`text=${testEmail}`).first();
+		await emailLocator.waitFor({ state: "visible" });
+
+		// Click delete button and wait for the email to disappear from the UI
 		await adminPage
 			.getByRole("button", { name: /poista|delete/i })
 			.first()
 			.click();
 
-		// Wait for deletion to complete
-		await adminPage.waitForTimeout(1000);
+		// Wait for the email to be removed from the UI (indicates deletion completed)
+		await expect(emailLocator).toBeHidden({ timeout: 5000 });
 
 		// Verify email was deleted from database
 		emails = await db
