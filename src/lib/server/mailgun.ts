@@ -1,6 +1,7 @@
 import Mailgun from "mailgun.js";
 import type { MessagesSendResult } from "mailgun.js/definitions";
 import { env } from "$lib/server/env";
+import { logger } from "$lib/server/telemetry";
 
 interface SendEmailOptions {
 	to: string;
@@ -55,7 +56,7 @@ export const checkMailgunHealth = async (): Promise<"ok" | "not_configured" | "e
 
 		return "ok";
 	} catch (error) {
-		console.error("[Health] Mailgun health check failed:", error);
+		logger.error("mailgun.health_check_failed", error);
 		return "error";
 	}
 };

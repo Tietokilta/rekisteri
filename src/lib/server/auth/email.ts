@@ -9,6 +9,7 @@ import { sendEmail } from "$lib/server/mailgun";
 import { i18nObject } from "$lib/i18n/i18n-util";
 import { loadLocale } from "$lib/i18n/i18n-util.sync";
 import { env } from "$lib/server/env";
+import { logger } from "$lib/server/telemetry";
 
 import type { EmailOTP } from "$lib/server/db/schema";
 import type { RequestEvent } from "@sveltejs/kit";
@@ -79,12 +80,19 @@ export function sendOTPEmail(email: string, code: string, locale: "fi" | "en" = 
 
 	if (dev || env.TEST) {
 		const mode = dev ? "dev" : "test";
-		console.log(`[Email] OTP email (${mode} mode):`, emailOptions);
+		logger.info("auth.email.otp_sent_dev", {
+			mode,
+			to: email,
+			subject: emailOptions.subject,
+		});
 	} else {
 		sendEmail(emailOptions).catch((err) => {
 			// Critical: OTP emails are essential for authentication
 			// Log with high severity and consider alerting in production monitoring
-			console.error("[Email] CRITICAL: Failed to send OTP email to", email, ":", err);
+			logger.error("auth.email.otp_send_failed", err, {
+				// Don't log the full email for privacy, just a hint
+				"email.domain": email.split("@")[1],
+			});
 		});
 	}
 }

@@ -16,6 +16,7 @@ import type { User, Passkey } from "$lib/server/db/schema";
 import { encodeBase64url, decodeBase64url } from "@oslojs/encoding";
 import { env } from "$lib/server/env";
 import { getUserSecondaryEmails, isSecondaryEmailValid } from "./secondary-email";
+import { logger } from "$lib/server/telemetry";
 
 /**
  * Generate registration options for creating a new passkey
@@ -154,7 +155,12 @@ export async function verifyAuthenticationAndGetUser(
 		}
 
 		if (!matchesPrimary && !matchesSecondary) {
-			console.warn("Passkey email mismatch detected");
+			logger.warn("auth.passkey.email_mismatch", {
+				"user.id": user.id,
+				// Don't log full emails for privacy
+				"expected.email.domain": expectedEmail.split("@")[1],
+				"user.email.domain": user.email.split("@")[1],
+			});
 			return null;
 		}
 	}
@@ -189,7 +195,9 @@ export async function verifyAuthenticationAndGetUser(
 
 		return { user, passkey };
 	} catch (error) {
-		console.error("Passkey verification error:", error);
+		logger.error("auth.passkey.verification_failed", error, {
+			"credential.id": credentialId,
+		});
 		return null;
 	}
 }
