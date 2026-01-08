@@ -35,11 +35,19 @@ export const load: PageServerLoad = async (event) => {
 
 	const availableMemberships = await db.select().from(table.membership).where(gt(table.membership.endTime, new Date()));
 
-	// Check for valid aalto.fi secondary email
+	// Check for valid aalto.fi email (primary or secondary)
+	const primaryEmailDomain = event.locals.user.email.split("@")[1]?.toLowerCase();
+	const isPrimaryAalto = primaryEmailDomain === "aalto.fi";
+
 	const secondaryEmails = await getUserSecondaryEmails(event.locals.user.id);
-	const aaltoEmail = secondaryEmails.find((e) => e.domain === "aalto.fi");
-	const hasValidAaltoEmail = aaltoEmail ? isSecondaryEmailValid(aaltoEmail) : false;
-	const hasExpiredAaltoEmail = aaltoEmail && !isSecondaryEmailValid(aaltoEmail);
+	const aaltoSecondaryEmail = secondaryEmails.find((e) => e.domain === "aalto.fi");
+	const hasValidSecondaryAalto = aaltoSecondaryEmail ? isSecondaryEmailValid(aaltoSecondaryEmail) : false;
+	const hasExpiredSecondaryAalto = aaltoSecondaryEmail && !isSecondaryEmailValid(aaltoSecondaryEmail);
+
+	// Primary email is always considered valid (no expiration tracking for primary)
+	// TODO: Consider adding expiration tracking for primary emails with expiring domains
+	const hasValidAaltoEmail = isPrimaryAalto || hasValidSecondaryAalto;
+	const hasExpiredAaltoEmail = !isPrimaryAalto && hasExpiredSecondaryAalto;
 
 	return {
 		user: event.locals.user,
@@ -48,7 +56,7 @@ export const load: PageServerLoad = async (event) => {
 		availableMemberships,
 		hasValidAaltoEmail,
 		hasExpiredAaltoEmail,
-		aaltoEmailExpiry: aaltoEmail?.expiresAt,
+		aaltoEmailExpiry: isPrimaryAalto ? null : aaltoSecondaryEmail?.expiresAt,
 	};
 };
 
@@ -72,9 +80,17 @@ async function payMembership(event: RequestEvent) {
 	const [membership] = await db.select().from(table.membership).where(eq(table.membership.id, membershipId));
 
 	if (membership?.requiresStudentVerification) {
+		// Check primary email domain
+		const primaryEmailDomain = event.locals.user.email.split("@")[1]?.toLowerCase();
+		const isPrimaryAalto = primaryEmailDomain === "aalto.fi";
+
+		// Check secondary emails
 		const secondaryEmails = await getUserSecondaryEmails(event.locals.user.id);
 		const aaltoEmail = secondaryEmails.find((e) => e.domain === "aalto.fi");
-		const hasValidAaltoEmail = aaltoEmail ? isSecondaryEmailValid(aaltoEmail) : false;
+		const hasValidSecondaryAalto = aaltoEmail ? isSecondaryEmailValid(aaltoEmail) : false;
+
+		// Primary email is always valid, secondary needs verification check
+		const hasValidAaltoEmail = isPrimaryAalto || hasValidSecondaryAalto;
 
 		if (!hasValidAaltoEmail) {
 			return fail(400, {

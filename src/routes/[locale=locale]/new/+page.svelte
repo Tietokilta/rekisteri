@@ -77,9 +77,11 @@
 						<Alert.Root variant="default" class="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950">
 							<CircleCheck class="h-4 w-4 text-green-600 dark:text-green-400" />
 							<Alert.Description class="text-green-800 dark:text-green-200">
-								Verified as aalto.fi student
+								{$LL.secondaryEmail.verifiedAsStudent()}
 								{#if data.aaltoEmailExpiry}
-									(expires {new Date(data.aaltoEmailExpiry).toLocaleDateString(`${$locale}-FI`)})
+									({$LL.secondaryEmail.expiresOn({
+										date: new Date(data.aaltoEmailExpiry).toLocaleDateString(`${$locale}-FI`),
+									})})
 								{/if}
 							</Alert.Description>
 						</Alert.Root>
@@ -92,7 +94,7 @@
 									href={route("/[locale=locale]/secondary-emails", { locale: $locale })}
 									class="ml-1 font-medium underline"
 								>
-									Re-verify now →
+									{$LL.secondaryEmail.reverifyNow()}
 								</a>
 							</Alert.Description>
 						</Alert.Root>
@@ -105,7 +107,7 @@
 									href={route("/[locale=locale]/secondary-emails", { locale: $locale })}
 									class="ml-1 font-medium underline"
 								>
-									Add aalto.fi email →
+									{$LL.secondaryEmail.addDomainEmail({ domain: "aalto.fi" })}
 								</a>
 							</Alert.Description>
 						</Alert.Root>
