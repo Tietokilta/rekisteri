@@ -283,8 +283,8 @@ test.describe("Secondary Email OTP Flow", () => {
 		await adminPage.fill('input[type="email"]', primaryEmail);
 		await adminPage.getByTestId("submit-add-email").click();
 
-		// Should show error message and stay on add page
-		await expect(adminPage.locator("text=already registered")).toBeVisible({ timeout: 5000 });
+		// Should show generic error message (to prevent email enumeration) and stay on add page
+		await expect(adminPage.locator("text=Could not add this email")).toBeVisible({ timeout: 5000 });
 
 		// Verify no secondary email was created
 		const secondaryEmails = await db

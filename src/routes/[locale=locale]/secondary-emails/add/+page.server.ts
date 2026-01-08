@@ -4,12 +4,17 @@ import { zod4 } from "sveltekit-superforms/adapters";
 import { schema } from "./schema";
 import { createSecondaryEmail } from "$lib/server/auth/secondary-email";
 import { createEmailOTP, sendOTPEmail } from "$lib/server/auth/email";
+import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
 import { route } from "$lib/ROUTES";
 import { dev } from "$app/environment";
 import type { Actions, PageServerLoad } from "./$types";
 
 const emailCookieName = "email";
 const emailOTPCookieName = "email_otp";
+
+// Rate limit: 10 add attempts per user per hour
+// SECURITY: Prevents email enumeration attacks
+const addEmailBucket = new ExpiringTokenBucket<string>(10, 60 * 60);
 
 export const load: PageServerLoad = async () => {
 	const form = await superValidate(zod4(schema));
@@ -18,6 +23,9 @@ export const load: PageServerLoad = async () => {
 
 export const actions: Actions = {
 	default: async ({ request, locals, cookies }) => {
+		// Lazy cleanup to prevent memory leaks
+		addEmailBucket.cleanup();
+
 		if (!locals.user) {
 			const form = await superValidate(request, zod4(schema));
 			return fail(401, { form, message: "Not authenticated" });
@@ -27,6 +35,11 @@ export const actions: Actions = {
 
 		if (!form.valid) {
 			return fail(400, { form });
+		}
+
+		// Rate limit by user ID to prevent enumeration
+		if (!addEmailBucket.consume(locals.user.id, 1)) {
+			return fail(429, { form, message: "Too many attempts. Please try again later." });
 		}
 
 		try {

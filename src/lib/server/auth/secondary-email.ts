@@ -178,14 +178,16 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
 	}
 
 	// Check if email already exists as primary email
+	// SECURITY: Use generic error message to prevent email enumeration
 	const existingPrimaryUser = await db.select().from(table.user).where(eq(table.user.email, normalizedEmail)).limit(1);
 
 	if (existingPrimaryUser.length > 0) {
-		throw new Error("Email already registered");
+		throw new Error("Could not add this email. Please try a different email address.");
 	}
 
 	// Check if email already exists as VERIFIED secondary email for another user
 	// Unverified emails from other users don't block - prevents email squatting
+	// SECURITY: Use generic error message to prevent email enumeration
 	const existingVerifiedSecondaryEmail = await db
 		.select()
 		.from(table.secondaryEmail)
@@ -194,7 +196,7 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
 
 	const existingVerified = existingVerifiedSecondaryEmail[0];
 	if (existingVerified && existingVerified.verifiedAt !== null) {
-		throw new Error("Email already registered");
+		throw new Error("Could not add this email. Please try a different email address.");
 	}
 
 	// Check user hasn't exceeded limit
