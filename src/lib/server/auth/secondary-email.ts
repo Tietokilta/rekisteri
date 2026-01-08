@@ -138,13 +138,12 @@ export async function getUserSecondaryEmails(userId: string): Promise<SecondaryE
  * Returns null if not found or doesn't belong to user
  */
 export async function getSecondaryEmailById(emailId: string, userId: string): Promise<SecondaryEmail | null> {
-	const [email] = await db.select().from(table.secondaryEmail).where(eq(table.secondaryEmail.id, emailId));
+	const [email] = await db
+		.select()
+		.from(table.secondaryEmail)
+		.where(and(eq(table.secondaryEmail.id, emailId), eq(table.secondaryEmail.userId, userId)));
 
-	if (!email || email.userId !== userId) {
-		return null;
-	}
-
-	return email;
+	return email ?? null;
 }
 
 /**
