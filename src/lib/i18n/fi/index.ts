@@ -499,6 +499,9 @@ const fi = {
 		errorCode: "Virhekoodi: {code}",
 		backToHome: "Takaisin etusivulle",
 		tryAgain: "Yritä uudelleen",
+		traceId: "Seurantatunnus: {traceId}",
+		contactSupport: "Jos ongelma jatkuu, ota yhteyttä digitaalisten palveluiden valiokuntaan:",
+		contactSupportWithId: "Ota yhteyttä sähköpostilla {email} ja kerro seurantatunnus nopeampaa selvitystä varten.",
 	},
 
 	// Documents & Legal

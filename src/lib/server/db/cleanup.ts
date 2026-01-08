@@ -1,6 +1,7 @@
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { lt } from "drizzle-orm";
+import { logger } from "$lib/server/telemetry";
 
 /**
  * Clean up expired sessions and OTP codes from the database.
@@ -23,11 +24,12 @@ export async function cleanupExpiredTokens(): Promise<void> {
 			.where(lt(table.session.expiresAt, now))
 			.returning({ id: table.session.id });
 
-		console.log(
-			`[DB Cleanup] Removed ${deletedOTPs.length} expired OTP codes and ${deletedSessions.length} expired sessions`,
-		);
+		logger.info("db.cleanup.tokens_completed", {
+			"deleted.otps": deletedOTPs.length,
+			"deleted.sessions": deletedSessions.length,
+		});
 	} catch (error) {
-		console.error("[DB Cleanup] Error during cleanup:", error);
+		logger.error("db.cleanup.tokens_failed", error);
 		throw error;
 	}
 }
@@ -49,9 +51,12 @@ export async function cleanupOldAuditLogs(retentionDays: number = 90): Promise<v
 			.where(lt(table.auditLog.createdAt, cutoffDate))
 			.returning({ id: table.auditLog.id });
 
-		console.log(`[DB Cleanup] Removed ${deletedLogs.length} audit logs older than ${retentionDays} days`);
+		logger.info("db.cleanup.audit_logs_completed", {
+			"deleted.logs": deletedLogs.length,
+			"retention.days": retentionDays,
+		});
 	} catch (error) {
-		console.error("[DB Cleanup] Error during audit log cleanup:", error);
+		logger.error("db.cleanup.audit_logs_failed", error);
 		throw error;
 	}
 }
