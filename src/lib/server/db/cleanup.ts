@@ -1,6 +1,7 @@
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { and, inArray, isNull, like, lt, or } from "drizzle-orm";
+import { logger } from "$lib/server/telemetry";
 
 /**
  * Clean up expired sessions and OTP codes from the database.
@@ -32,11 +33,13 @@ export async function cleanupExpiredTokens(): Promise<void> {
       .where(and(isNull(table.secondaryEmail.verifiedAt), lt(table.secondaryEmail.updatedAt, oneDayAgo)))
       .returning({ id: table.secondaryEmail.id });
 
-    console.log(
-      `[DB Cleanup] Removed ${deletedOTPs.length} expired OTP codes, ${deletedSessions.length} expired sessions, and ${deletedUnverifiedEmails.length} unverified secondary emails`,
-    );
+    logger.info("db.cleanup.tokens_completed", {
+      "deleted.otps": deletedOTPs.length,
+      "deleted.sessions": deletedSessions.length,
+      "deleted.unverified_emails": deletedUnverifiedEmails.length,
+    });
   } catch (error) {
-    console.error("[DB Cleanup] Error during cleanup:", error);
+    logger.error("db.cleanup.tokens_failed", error);
     throw error;
   }
 }
@@ -101,15 +104,19 @@ export async function cleanupOldAuditLogs(): Promise<void> {
 
       totalDeleted += deletedLogs.length;
 
-      console.log(
-        `[DB Cleanup] Removed ${deletedLogs.length} ${policy.description} ` +
-          `older than ${policy.days} days (${policy.pattern}*)`,
-      );
+      logger.info("db.cleanup.audit_logs_policy_completed", {
+        "deleted.logs": deletedLogs.length,
+        "policy.pattern": policy.pattern,
+        "policy.days": policy.days,
+        "policy.description": policy.description,
+      });
     }
 
-    console.log(`[DB Cleanup] Total audit logs removed: ${totalDeleted}`);
+    logger.info("db.cleanup.audit_logs_completed", {
+      "deleted.logs.total": totalDeleted,
+    });
   } catch (error) {
-    console.error("[DB Cleanup] Error during audit log cleanup:", error);
+    logger.error("db.cleanup.audit_logs_failed", error);
     throw error;
   }
 }
@@ -148,7 +155,9 @@ export async function cleanupInactiveUsers(retentionYears: number = 7): Promise<
       );
 
     if (inactiveUsers.length === 0) {
-      console.log("[GDPR Cleanup] No inactive users to clean up");
+      logger.info("db.cleanup.inactive_users_none", {
+        "retention.years": retentionYears,
+      });
       return;
     }
 
@@ -166,9 +175,12 @@ export async function cleanupInactiveUsers(retentionYears: number = 7): Promise<
       await tx.delete(table.user).where(inArray(table.user.id, userIds));
     });
 
-    console.log(`[GDPR Cleanup] Removed ${userIds.length} users inactive for ${retentionYears}+ years`);
+    logger.info("db.cleanup.inactive_users_completed", {
+      "deleted.users": userIds.length,
+      "retention.years": retentionYears,
+    });
   } catch (error) {
-    console.error("[GDPR Cleanup] Error during inactive user cleanup:", error);
+    logger.error("db.cleanup.inactive_users_failed", error);
     throw error;
   }
 }
