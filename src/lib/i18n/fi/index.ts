@@ -357,7 +357,7 @@ const fi = {
 			intro: `Tämä on EU:n yleisen tietosuoja-asetuksen (GDPR) sekä yhdistyslain (503/1989)
 				mukainen rekisteri- ja tietosuojaseloste.`,
 			createdDate: "Laatimispäivämäärä: 22.5.2018",
-			lastUpdated: "Viimeisin muutos: 15.12.2025",
+			lastUpdated: "Viimeisin muutos: 8.1.2026",
 
 			section1Title: "1. Rekisterinpitäjä",
 			section1Content: `
@@ -426,6 +426,16 @@ const fi = {
 					<li>Viimeisimmän käyttökerran ajankohta</li>
 				</ul><br/>
 
+				<strong>Toissijaiset sähköpostiosoitteet (valinnainen):</strong><br/>
+				<ul>
+					<li>Lisäsähköpostiosoitteet vaihtoehtoiseen kirjautumiseen</li>
+					<li>Sähköpostin verkkotunnus (esim. aalto.fi)</li>
+					<li>Vahvistuksen tila ja ajankohta</li>
+					<li>Vanhenemispäivä verkkotunnusvarmennetuille sähköposteille</li>
+				</ul>
+				<em>Huom: Toissijaiset sähköpostit ovat täysin vapaaehtoisia, lukuun ottamatta aalto.fi-sähköpostin
+				vahvistusta, joka vaaditaan tietyille jäsenyystyypeille (esim. opiskelijajäsenyys).</em><br/><br/>
+
 				<strong>Tekniset tiedot:</strong><br/>
 				<ul>
 					<li>Istuntotunnisteet, kirjautumiskoodit</li>
@@ -463,6 +473,8 @@ const fi = {
 					<li>Kirjautumiskoodit: 10 minuuttia</li>
 					<li>Istuntotunnisteet: 30 päivää</li>
 					<li>Avainkoodit: kunnes käyttäjä poistaa tai tili poistetaan</li>
+					<li>Toissijaiset sähköpostit: kunnes käyttäjä poistaa tai tili poistetaan</li>
+					<li>Aalto.fi-sähköpostin vahvistus: voimassa 6 kuukautta, jonka jälkeen vaaditaan uudelleenvahvistus</li>
 					<li>IP-osoitteet, selaintiedot, tarkastusloki: 90 päivää</li>
 					<li>Kuormituksenrajoitustiedot: vain muistissa</li>
 				</ul><br/>
