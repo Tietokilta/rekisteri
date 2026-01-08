@@ -353,6 +353,22 @@ Tietokilta`,
     },
   },
 
+  // Error page
+  error: {
+    title: "Hups! Jotain meni pieleen",
+    notFound: "Sivua ei löytynyt",
+    notFoundDescription: "Etsimääsi sivua ei ole olemassa tai se on siirretty.",
+    serverError: "Palvelinvirhe",
+    genericError: "Tapahtui virhe",
+    errorCode: "Virhekoodi: {code}",
+    backToHome: "Takaisin etusivulle",
+    tryAgain: "Yritä uudelleen",
+    traceId: "Seurantatunnus: {traceId}",
+    contactSupport: "Jos ongelma jatkuu, ota yhteyttä digitaalisten palveluiden valiokuntaan:",
+    contactSupportWithId:
+      "Ota yhteyttä sähköpostilla {email} ja kerro seurantatunnus nopeampaa selvitystä varten.",
+  },
+
   // Admin
   admin: {
     title: "Hallintapaneeli",

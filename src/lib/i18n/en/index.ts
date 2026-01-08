@@ -351,6 +351,21 @@ Computer Science Guild`,
     },
   },
 
+  // Error page
+  error: {
+    title: "Oops! Something went wrong",
+    notFound: "Page not found",
+    notFoundDescription: "The page you're looking for doesn't exist or has been moved.",
+    serverError: "Server error",
+    genericError: "An error occurred",
+    errorCode: "Error code: {code}",
+    backToHome: "Back to home",
+    tryAgain: "Try again",
+    traceId: "Trace ID: {traceId}",
+    contactSupport: "If the problem persists, please contact the digital services committee:",
+    contactSupportWithId: "Contact {email} and provide the trace ID for faster troubleshooting.",
+  },
+
   // Admin
   admin: {
     title: "Admin panel",

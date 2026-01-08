@@ -2,6 +2,7 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import type { RequestEvent } from "@sveltejs/kit";
 import { encodeBase32LowerCase } from "@oslojs/encoding";
+import { logger } from "$lib/server/telemetry";
 
 export type AuditAction =
   | "auth.login"
@@ -58,7 +59,10 @@ export async function createAuditLog(params: AuditLogParams): Promise<void> {
     });
   } catch (error) {
     // Don't fail the operation if audit logging fails, but log the error
-    console.error("[Audit] Failed to create audit log:", error);
+    logger.error("audit.create_failed", error, {
+      action: params.action,
+      "user.id": params.userId,
+    });
   }
 }
 

@@ -1,5 +1,5 @@
 import { sequence } from "@sveltejs/kit/hooks";
-import type { Handle, ServerInit } from "@sveltejs/kit";
+import type { Handle, ServerInit, HandleServerError } from "@sveltejs/kit";
 import { redirect } from "@sveltejs/kit";
 import * as auth from "$lib/server/auth/session.js";
 import { baseLocale, locales, preferredLanguageToLocale, type Locale } from "$lib/i18n/routing";
@@ -7,8 +7,23 @@ import { dev } from "$app/environment";
 import cron from "node-cron";
 import { cleanupExpiredTokens, cleanupInactiveUsers, cleanupOldAuditLogs } from "$lib/server/db/cleanup";
 import { createInitialModeExpression } from "mode-watcher";
+import { logger } from "$lib/server/telemetry";
 
 const handleAuth: Handle = async ({ event, resolve }) => {
+  // Augment the root span with request context
+  const requestId = crypto.randomUUID();
+  event.locals.requestId = requestId;
+
+  if (event.tracing?.root) {
+    const spanContext = event.tracing.root.spanContext();
+    event.locals.traceId = spanContext.traceId;
+
+    event.tracing.root.setAttribute("request.id", requestId);
+    event.tracing.root.setAttribute("http.method", event.request.method);
+    event.tracing.root.setAttribute("http.route", event.route.id || "unknown");
+    event.tracing.root.setAttribute("http.url", event.url.pathname);
+  }
+
   const sessionToken = event.cookies.get(auth.sessionCookieName);
   if (!sessionToken) {
     event.locals.user = null;
@@ -25,6 +40,12 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 
   event.locals.user = user;
   event.locals.session = session;
+
+  // Add user context to trace
+  if (user && event.tracing?.root) {
+    event.tracing.root.setAttribute("user.id", user.id);
+    event.tracing.root.setAttribute("user.is_admin", user.isAdmin);
+  }
 
   return resolve(event);
 };
@@ -121,27 +142,48 @@ export const handle: Handle = sequence(
   handleI18n,
 );
 
+export const handleError: HandleServerError = ({ error, event, status, message }) => {
+  const traceId = event.locals.traceId || event.locals.requestId;
+
+  logger.error("request.error", error instanceof Error ? error : new Error(String(error)), {
+    "error.status": status,
+    "error.message": message,
+    "request.id": event.locals.requestId,
+    "trace.id": traceId,
+    "http.method": event.request.method,
+    "http.url": event.url.pathname,
+    "user.id": event.locals.user?.id,
+  });
+
+  return {
+    message: status === 404 ? message : "An unexpected error occurred",
+    traceId,
+  };
+};
+
 export const init: ServerInit = () => {
   // Schedule cleanup tasks
   // Run database cleanup daily at 3 AM (when traffic is typically lowest)
   cron.schedule("0 3 * * *", async () => {
-    console.log("[Cron] Running daily database cleanup...");
+    logger.info("cron.cleanup.started");
     try {
       await cleanupExpiredTokens();
       await cleanupOldAuditLogs(); // 90 day retention (default)
+      logger.info("cron.cleanup.completed");
     } catch (error) {
-      console.error("[Cron] Database cleanup failed:", error);
+      logger.error("cron.cleanup.failed", error);
     }
   });
 
   // Run GDPR cleanup weekly on Sundays at 4 AM
   // Removes users inactive for 6+ years per GDPR data minimization requirements
   cron.schedule("0 4 * * 0", async () => {
-    console.log("[Cron] Running weekly GDPR cleanup...");
+    logger.info("cron.gdpr_cleanup.started");
     try {
       await cleanupInactiveUsers(); // 6 year retention (default)
+      logger.info("cron.gdpr_cleanup.completed");
     } catch (error) {
-      console.error("[Cron] GDPR cleanup failed:", error);
+      logger.error("cron.gdpr_cleanup.failed", error);
     }
   });
 };
