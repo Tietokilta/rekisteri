@@ -6,7 +6,6 @@ import { createSecondaryEmail } from "$lib/server/auth/secondary-email";
 import { createEmailOTP, sendOTPEmail } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
 import { dev } from "$app/environment";
-import { encodeBase32LowerCaseNoPadding } from "@oslojs/encoding";
 import type { Actions, PageServerLoad } from "./$types";
 
 const emailCookieName = "email";
@@ -47,7 +46,8 @@ export const actions: Actions = {
 				sameSite: "lax",
 			});
 
-			cookies.set(emailOTPCookieName, encodeBase32LowerCaseNoPadding(new TextEncoder().encode(otp.id)), {
+			// Set OTP cookie (otp.id is already encoded, don't double-encode it)
+			cookies.set(emailOTPCookieName, otp.id, {
 				expires: otp.expiresAt,
 				path: "/",
 				httpOnly: true,
