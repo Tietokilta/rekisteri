@@ -39,7 +39,7 @@
 			{#if form?.verify?.message}
 				<p class="text-red-500">{form.verify.message}</p>
 			{/if}
-			<Button type="submit">{$LL.auth.verify()}</Button>
+			<Button type="submit" data-testid="verify-otp">{$LL.auth.verify()}</Button>
 		</form>
 		<form method="post" use:enhance action="?/resend" class="contents">
 			<Button type="submit" variant="outline">{$LL.auth.resendCode()}</Button>

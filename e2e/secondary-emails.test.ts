@@ -27,8 +27,8 @@ test.describe("Secondary Email OTP Flow", () => {
 		// Navigate to secondary emails page
 		await adminPage.goto("/fi/secondary-emails", { waitUntil: "networkidle" });
 
-		// Click "Lisää toinen sähköposti" button
-		await adminPage.getByRole("link", { name: /lisää.*sähköposti/i }).click();
+		// Click add email button
+		await adminPage.getByTestId("add-secondary-email").click();
 		await adminPage.waitForURL(/secondary-emails\/add/);
 
 		// Fill in the email form
@@ -42,7 +42,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		expect(otpsBeforeSubmit).toHaveLength(0);
 
 		// Submit the form
-		await adminPage.getByRole("button", { name: /lähetä|send/i }).click();
+		await adminPage.getByTestId("submit-add-email").click();
 
 		// Wait for redirect to verify page
 		await adminPage.waitForURL(/secondary-emails\/verify/, { timeout: 5000 });
@@ -71,7 +71,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		// Step 1: Add email (first OTP)
 		await adminPage.goto("/fi/secondary-emails/add", { waitUntil: "networkidle" });
 		await adminPage.fill('input[type="email"]', testEmail);
-		await adminPage.getByRole("button", { name: /lähetä|send/i }).click();
+		await adminPage.getByTestId("submit-add-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 
 		// Verify first OTP created
@@ -88,12 +88,8 @@ test.describe("Secondary Email OTP Flow", () => {
 		const emailRow = adminPage.locator(`text=${testEmail}`).first();
 		await expect(emailRow).toBeVisible();
 
-		// Step 3: Click "Vahvista uudelleen" (re-verify)
-		const reverifyButton = adminPage
-			.locator(`text=${testEmail}`)
-			.locator("..")
-			.getByRole("button", { name: /vahvista/i });
-		await reverifyButton.click();
+		// Step 3: Click re-verify button
+		await adminPage.getByTestId("reverify-email").click();
 
 		// Wait for redirect to verify page
 		await adminPage.waitForURL(/secondary-emails\/verify/, { timeout: 5000 });
@@ -122,7 +118,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		// Add email first time
 		await adminPage.goto("/fi/secondary-emails/add", { waitUntil: "networkidle" });
 		await adminPage.fill('input[type="email"]', testEmail);
-		await adminPage.getByRole("button", { name: /lähetä|send/i }).click();
+		await adminPage.getByTestId("submit-add-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 
 		// Verify only one OTP exists
@@ -136,11 +132,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		await adminPage.goto("/fi/secondary-emails", { waitUntil: "networkidle" });
 
 		// Re-verify first time
-		const reverifyButton = adminPage
-			.locator(`text=${testEmail}`)
-			.locator("..")
-			.getByRole("button", { name: /vahvista/i });
-		await reverifyButton.click();
+		await adminPage.getByTestId("reverify-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 
 		// Still only one OTP exists
@@ -155,11 +147,7 @@ test.describe("Secondary Email OTP Flow", () => {
 
 		// Go back and re-verify again
 		await adminPage.goto("/fi/secondary-emails", { waitUntil: "networkidle" });
-		const reverifyButton2 = adminPage
-			.locator(`text=${testEmail}`)
-			.locator("..")
-			.getByRole("button", { name: /vahvista/i });
-		await reverifyButton2.click();
+		await adminPage.getByTestId("reverify-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 
 		// Still only one OTP exists
@@ -184,7 +172,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		// Add email
 		await adminPage.goto("/fi/secondary-emails/add", { waitUntil: "networkidle" });
 		await adminPage.fill('input[type="email"]', testEmail);
-		await adminPage.getByRole("button", { name: /lähetä|send/i }).click();
+		await adminPage.getByTestId("submit-add-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 
 		// Get the OTP code from database
@@ -196,7 +184,7 @@ test.describe("Secondary Email OTP Flow", () => {
 
 		// Enter the correct OTP code
 		await adminPage.fill('input[type="text"]', otpCode);
-		await adminPage.getByRole("button", { name: /vahvista|verify/i }).click();
+		await adminPage.getByTestId("verify-otp").click();
 
 		// Wait for redirect to list page
 		await adminPage.waitForURL(/^.*\/secondary-emails$/, { timeout: 5000 });

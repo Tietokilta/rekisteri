@@ -36,7 +36,10 @@
 			<h1 class="text-3xl font-bold">{$LL.secondaryEmail.title()}</h1>
 			<p class="mt-1 text-muted-foreground">{$LL.secondaryEmail.manageDescription()}</p>
 		</div>
-		<Button href={route("/[locale=locale]/secondary-emails/add", { locale: $locale })}>
+		<Button
+			href={route("/[locale=locale]/secondary-emails/add", { locale: $locale })}
+			data-testid="add-secondary-email"
+		>
 			+ {$LL.secondaryEmail.addEmail()}
 		</Button>
 	</div>
@@ -51,7 +54,11 @@
 			<Empty.Title>{$LL.secondaryEmail.noEmails()}</Empty.Title>
 			<Empty.Content>
 				<p class="text-muted-foreground">{$LL.secondaryEmail.noEmailsDescription()}</p>
-				<Button href={route("/[locale=locale]/secondary-emails/add", { locale: $locale })} class="mt-4">
+				<Button
+					href={route("/[locale=locale]/secondary-emails/add", { locale: $locale })}
+					class="mt-4"
+					data-testid="add-secondary-email-empty"
+				>
 					{$LL.secondaryEmail.addEmail()}
 				</Button>
 			</Empty.Content>
@@ -111,7 +118,13 @@
 								})}
 							>
 								<input type="hidden" name="emailId" value={email.id} />
-								<Button type="submit" variant="default" size="sm" disabled={!!reverifyForm.pending}>
+								<Button
+									type="submit"
+									variant="default"
+									size="sm"
+									disabled={!!reverifyForm.pending}
+									data-testid="reverify-email"
+								>
 									{$LL.secondaryEmail.reverify()}
 								</Button>
 							</form>

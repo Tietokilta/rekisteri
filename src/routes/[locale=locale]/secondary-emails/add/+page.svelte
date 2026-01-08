@@ -52,7 +52,7 @@
 			<Form.FieldErrors />
 		</Form.Field>
 
-		<Form.Button type="submit" class="w-full">
+		<Form.Button type="submit" class="w-full" data-testid="submit-add-email">
 			{$LL.secondaryEmail.addAndVerify()}
 		</Form.Button>
 
