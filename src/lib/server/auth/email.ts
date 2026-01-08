@@ -6,6 +6,7 @@ import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { dev } from "$app/environment";
 import { sendMemberEmail } from "$lib/server/emails";
+import { logger } from "$lib/server/telemetry";
 
 import type { EmailOTP } from "$lib/server/db/schema";
 import type { RequestEvent } from "@sveltejs/kit";
@@ -79,7 +80,10 @@ export function sendOTPEmail(email: string, code: string, locale: "fi" | "en" = 
   }).catch((err) => {
     // Critical: OTP emails are essential for authentication
     // Log with high severity and consider alerting in production monitoring
-    console.error("[Email] CRITICAL: Failed to send OTP email to", email, ":", err);
+    logger.error("auth.email.otp_send_failed", err, {
+      // Don't log the full email for privacy, just a hint
+      "email.domain": email.split("@")[1],
+    });
   });
 }
 
@@ -110,9 +114,9 @@ export async function getEmailOTPFromRequest(event: RequestEvent): Promise<Email
   }
   const otp = await getEmailOTP(id);
   if (otp === null) {
-    deleteEmailOTPCookie(event);
+    return null;
   }
   return otp;
 }
 
-export const sendOTPBucket = new ExpiringTokenBucket<string>(3, 60 * 10);
+export const sendOTPBucket = new ExpiringTokenBucket(5, 60 * 60);
