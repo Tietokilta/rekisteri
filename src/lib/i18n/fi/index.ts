@@ -94,7 +94,7 @@ const fi = {
 	secondaryEmail: {
 		// Page titles
 		title: "Toissijaiset sähköpostit",
-		manageDescription: "Hallinnoi vahvistettuja sähköposteja opiskelijajäsenyyttä varten",
+		manageDescription: "Hallinnoi toissijaisia sähköposteja kirjautumista ja jäsenyyden vahvistamista varten",
 
 		// Add email
 		addEmail: "Lisää toissijainen sähköposti",

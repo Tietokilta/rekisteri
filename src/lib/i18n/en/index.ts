@@ -94,7 +94,7 @@ const en = {
 	secondaryEmail: {
 		// Page titles
 		title: "Secondary Emails",
-		manageDescription: "Manage verified emails for student membership",
+		manageDescription: "Manage secondary emails for signing in and verifying membership",
 
 		// Add email
 		addEmail: "Add secondary email",
