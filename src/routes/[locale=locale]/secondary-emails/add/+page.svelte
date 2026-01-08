@@ -16,7 +16,7 @@
 		validators: zod4Client(schema),
 		resetForm: false,
 	});
-	const { form: formData, enhance, constraints, message } = form;
+	const { form: formData, enhance, message } = form;
 </script>
 
 <main class="container mx-auto my-8 max-w-md p-4">
@@ -39,7 +39,6 @@
 					<Form.Label>{$LL.secondaryEmail.emailAddress()}</Form.Label>
 					<Input
 						{...props}
-						{...$constraints.email}
 						type="email"
 						placeholder={$LL.secondaryEmail.emailPlaceholder()}
 						autocomplete="email"
