@@ -1,4 +1,5 @@
 import { test, expect } from "./fixtures/auth";
+import type { Page } from "@playwright/test";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as table from "../src/lib/server/db/schema";
@@ -10,6 +11,27 @@ test.describe("Secondary Email OTP Flow", () => {
 
 	// Helper to generate unique test email per worker
 	const getTestEmail = (prefix: string, workerIndex: number) => `${prefix}-w${workerIndex}-${Date.now()}@example.com`;
+
+	// Helper to add an email and navigate to the verify page (DRY pattern)
+	const addEmailAndNavigateToVerify = async (page: Page, email: string) => {
+		await page.goto("/fi/secondary-emails/add");
+		await page.getByTestId("submit-add-email").waitFor({ state: "visible" });
+		await page.fill('input[type="email"]', email);
+		await page.getByTestId("submit-add-email").click();
+		await page.waitForURL(/secondary-emails\/verify/);
+	};
+
+	// Helper to verify an email using the OTP from the database
+	const verifyEmailWithOTP = async (page: Page, email: string) => {
+		const otps = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, email.toLowerCase()));
+		expect(otps).toHaveLength(1);
+		const otp = otps[0];
+		if (!otp) throw new Error("OTP not found");
+
+		// InputOTP auto-submits when all 8 characters are entered
+		await page.locator('[data-slot="input-otp"]').pressSequentially(otp.code);
+		await page.waitForURL(/^.*\/secondary-emails$/, { timeout: 10_000 });
+	};
 
 	test.beforeAll(() => {
 		const dbUrl = process.env.DATABASE_URL_TEST;
@@ -78,11 +100,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		const testEmail = getTestEmail("reverify", testInfo.workerIndex);
 
 		// Step 1: Add email (first OTP)
-		await adminPage.goto("/fi/secondary-emails/add");
-		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
-		await adminPage.fill('input[type="email"]', testEmail);
-		await adminPage.getByTestId("submit-add-email").click();
-		await adminPage.waitForURL(/secondary-emails\/verify/);
+		await addEmailAndNavigateToVerify(adminPage, testEmail);
 
 		// Verify first OTP created
 		let otps = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
@@ -95,12 +113,12 @@ test.describe("Secondary Email OTP Flow", () => {
 		await adminPage.goto("/fi/secondary-emails");
 		await adminPage.getByTestId("add-secondary-email").waitFor({ state: "visible" });
 
-		// Verify the unverified email appears in the list
-		const emailRow = adminPage.locator(`text=${testEmail}`).first();
+		// Verify the unverified email appears in the list and click its reverify button
+		const emailRow = adminPage.locator(`text=${testEmail}`);
 		await expect(emailRow).toBeVisible();
 
-		// Step 3: Click re-verify button (first one in list)
-		await adminPage.getByTestId("reverify-email").first().click();
+		// Step 3: Click re-verify button for THIS specific email
+		await adminPage.locator("li", { hasText: testEmail }).getByTestId("reverify-email").click();
 
 		// Wait for redirect to verify page
 		await adminPage.waitForURL(/secondary-emails\/verify/, { timeout: 5000 });
@@ -120,11 +138,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		const testEmail = getTestEmail("single-otp", testInfo.workerIndex);
 
 		// Add email first time
-		await adminPage.goto("/fi/secondary-emails/add");
-		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
-		await adminPage.fill('input[type="email"]', testEmail);
-		await adminPage.getByTestId("submit-add-email").click();
-		await adminPage.waitForURL(/secondary-emails\/verify/);
+		await addEmailAndNavigateToVerify(adminPage, testEmail);
 
 		// Verify only one OTP exists
 		let otps = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
@@ -135,10 +149,11 @@ test.describe("Secondary Email OTP Flow", () => {
 
 		// Go back and re-verify multiple times
 		await adminPage.goto("/fi/secondary-emails");
-		await adminPage.getByTestId("reverify-email").first().waitFor({ state: "visible" });
+		const emailRow = adminPage.locator("li", { hasText: testEmail });
+		await emailRow.getByTestId("reverify-email").waitFor({ state: "visible" });
 
 		// Re-verify first time
-		await adminPage.getByTestId("reverify-email").first().click();
+		await emailRow.getByTestId("reverify-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 
 		// Still only one OTP exists
@@ -153,8 +168,8 @@ test.describe("Secondary Email OTP Flow", () => {
 
 		// Go back and re-verify again
 		await adminPage.goto("/fi/secondary-emails");
-		await adminPage.getByTestId("reverify-email").first().waitFor({ state: "visible" });
-		await adminPage.getByTestId("reverify-email").first().click();
+		await adminPage.locator("li", { hasText: testEmail }).getByTestId("reverify-email").waitFor({ state: "visible" });
+		await adminPage.locator("li", { hasText: testEmail }).getByTestId("reverify-email").click();
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 
 		// Still only one OTP exists
@@ -173,25 +188,10 @@ test.describe("Secondary Email OTP Flow", () => {
 		const testEmail = getTestEmail("verify", testInfo.workerIndex);
 
 		// Add email
-		await adminPage.goto("/fi/secondary-emails/add");
-		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
-		await adminPage.fill('input[type="email"]', testEmail);
-		await adminPage.getByTestId("submit-add-email").click();
-		await adminPage.waitForURL(/secondary-emails\/verify/);
+		await addEmailAndNavigateToVerify(adminPage, testEmail);
 
-		// Get the OTP code from database
-		const otps = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
-		expect(otps).toHaveLength(1);
-		const otp = otps[0];
-		if (!otp) throw new Error("OTP not found");
-		const otpCode = otp.code;
-
-		// Enter the correct OTP code (type into the PinInput slots)
-		// Note: InputOTP auto-submits when all 8 characters are entered via onComplete
-		await adminPage.locator('[data-slot="input-otp"]').pressSequentially(otpCode);
-
-		// Wait for redirect to list page (auto-submit handles the form submission)
-		await adminPage.waitForURL(/^.*\/secondary-emails$/, { timeout: 10_000 });
+		// Verify the email using the OTP from the database
+		await verifyEmailWithOTP(adminPage, testEmail);
 
 		// Verify the email is now in the database and marked as verified
 		const [secondaryEmail] = await db
@@ -210,18 +210,17 @@ test.describe("Secondary Email OTP Flow", () => {
 		expect(remainingOtps).toHaveLength(0);
 	});
 
-	test("should not allow login via unverified secondary email (negative test)", async ({ adminPage }, testInfo) => {
+	test("should not allow login via unverified secondary email (negative test)", async ({
+		adminPage,
+		browser,
+	}, testInfo) => {
 		// This test verifies the security fix for CVE-like vulnerability:
 		// An attacker should NOT be able to hijack accounts by adding unverified secondary emails
 
 		const targetEmail = getTestEmail("victim", testInfo.workerIndex);
 
 		// Step 1: Admin (attacker) adds victim's email as unverified secondary email
-		await adminPage.goto("/fi/secondary-emails/add");
-		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
-		await adminPage.fill('input[type="email"]', targetEmail);
-		await adminPage.getByTestId("submit-add-email").click();
-		await adminPage.waitForURL(/secondary-emails\/verify/);
+		await addEmailAndNavigateToVerify(adminPage, targetEmail);
 
 		// Don't verify it - leave it unverified (simulating attack setup)
 		// Go back without verifying
@@ -239,30 +238,43 @@ test.describe("Secondary Email OTP Flow", () => {
 		const attackerUserId = unverifiedEmails[0]?.userId;
 		expect(attackerUserId).toBeDefined();
 
-		// Clean up - the actual security test happens in the sign-in flow
-		// which we can't easily test in e2e without another browser context
-		// But we verify the database state is correct
+		// Step 2: Create a NEW, incognito context to simulate victim trying to login
+		const loginContext = await browser.newContext();
+		const loginPage = await loginContext.newPage();
+
+		try {
+			// Navigate to sign-in page
+			await loginPage.goto("/fi/sign-in");
+			await loginPage.waitForURL(/sign-in/);
+
+			// Try to login with the unverified secondary email
+			await loginPage.fill('input[type="email"]', targetEmail);
+			await loginPage.getByRole("button", { name: /jatka|continue/i }).click();
+
+			// The login should fail because the email is unverified as secondary
+			// Wait for either an error message or staying on sign-in page
+			// The system should NOT send a magic link or allow login
+			await expect(loginPage.getByRole("alert")).toBeVisible({ timeout: 10_000 });
+
+			// Verify no magic link OTP was created for this email (for sign-in purposes)
+			// The only OTP that should exist is the secondary email verification OTP
+			const loginOtps = await db
+				.select()
+				.from(table.emailOTP)
+				.where(eq(table.emailOTP.email, targetEmail.toLowerCase()));
+			// Should have exactly 1 OTP (the secondary email verification one, not a sign-in one)
+			expect(loginOtps).toHaveLength(1);
+		} finally {
+			await loginContext.close();
+		}
 	});
 
 	test("should reject adding email that is already a verified secondary email", async ({ adminPage }, testInfo) => {
 		const testEmail = getTestEmail("already-verified", testInfo.workerIndex);
 
 		// Step 1: Add and verify an email
-		await adminPage.goto("/fi/secondary-emails/add");
-		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
-		await adminPage.fill('input[type="email"]', testEmail);
-		await adminPage.getByTestId("submit-add-email").click();
-		await adminPage.waitForURL(/secondary-emails\/verify/);
-
-		// Get OTP from database and verify
-		const otps = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
-		expect(otps).toHaveLength(1);
-		const otp = otps[0];
-		if (!otp) throw new Error("OTP not found");
-
-		// Note: InputOTP auto-submits when all 8 characters are entered
-		await adminPage.locator('[data-slot="input-otp"]').pressSequentially(otp.code);
-		await adminPage.waitForURL(/^.*\/secondary-emails$/, { timeout: 10_000 });
+		await addEmailAndNavigateToVerify(adminPage, testEmail);
+		await verifyEmailWithOTP(adminPage, testEmail);
 
 		// Step 2: Try to add the same email again - should return existing email (idempotent)
 		await adminPage.goto("/fi/secondary-emails/add");
@@ -274,19 +286,25 @@ test.describe("Secondary Email OTP Flow", () => {
 		await adminPage.waitForURL(/secondary-emails\/verify/, { timeout: 5000 });
 	});
 
-	test("should reject adding email that is already a primary email", async ({ adminPage }) => {
-		// Try to add the admin's own primary email as secondary (should fail)
-		const primaryEmail = "root@tietokilta.fi";
+	test("should reject adding email that is already a primary email", async ({ adminPage, adminUser }) => {
+		// Use the actual logged-in user's primary email (from fixture)
+		const primaryEmail = adminUser.email;
+
+		// Clean up any leftover secondary email entries for this email from previous test runs
+		await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.email, primaryEmail.toLowerCase()));
+		await db.delete(table.emailOTP).where(eq(table.emailOTP.email, primaryEmail.toLowerCase()));
 
 		await adminPage.goto("/fi/secondary-emails/add");
 		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
 		await adminPage.fill('input[type="email"]', primaryEmail);
 		await adminPage.getByTestId("submit-add-email").click();
 
-		// Should show generic error message (to prevent email enumeration) and stay on add page
-		// Wait for the form to be re-enabled (indicates submission completed)
-		await expect(adminPage.getByTestId("submit-add-email")).toBeEnabled({ timeout: 10_000 });
-		await expect(adminPage.getByTestId("add-email-error")).toBeVisible({ timeout: 5000 });
+		// Should stay on add page and show error (not redirect to verify)
+		// Wait for error alert to appear - this indicates the form submission completed with an error
+		await expect(adminPage.getByTestId("add-email-error")).toBeVisible({ timeout: 10_000 });
+
+		// Verify we stayed on the add page
+		await expect(adminPage).toHaveURL(/secondary-emails\/add/);
 
 		// Verify no secondary email was created
 		const secondaryEmails = await db
@@ -300,11 +318,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		const testEmail = getTestEmail("invalid-otp", testInfo.workerIndex);
 
 		// Add email
-		await adminPage.goto("/fi/secondary-emails/add");
-		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
-		await adminPage.fill('input[type="email"]', testEmail);
-		await adminPage.getByTestId("submit-add-email").click();
-		await adminPage.waitForURL(/secondary-emails\/verify/);
+		await addEmailAndNavigateToVerify(adminPage, testEmail);
 
 		// Enter wrong OTP code (8 characters to match expected format)
 		// Note: InputOTP auto-submits when all 8 characters are entered
@@ -327,19 +341,8 @@ test.describe("Secondary Email OTP Flow", () => {
 		const testEmail = getTestEmail("delete-test", testInfo.workerIndex);
 
 		// Add and verify email
-		await adminPage.goto("/fi/secondary-emails/add");
-		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
-		await adminPage.fill('input[type="email"]', testEmail);
-		await adminPage.getByTestId("submit-add-email").click();
-		await adminPage.waitForURL(/secondary-emails\/verify/);
-
-		const otps = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
-		const otp = otps[0];
-		if (!otp) throw new Error("OTP not found");
-
-		// Note: InputOTP auto-submits when all 8 characters are entered
-		await adminPage.locator('[data-slot="input-otp"]').pressSequentially(otp.code);
-		await adminPage.waitForURL(/^.*\/secondary-emails$/, { timeout: 10_000 });
+		await addEmailAndNavigateToVerify(adminPage, testEmail);
+		await verifyEmailWithOTP(adminPage, testEmail);
 
 		// Verify email exists
 		let emails = await db
@@ -351,18 +354,15 @@ test.describe("Secondary Email OTP Flow", () => {
 		// Set up dialog handler before clicking delete
 		adminPage.on("dialog", (dialog) => dialog.accept());
 
-		// Delete the email - wait for it to be visible first
-		const emailLocator = adminPage.locator(`text=${testEmail}`).first();
-		await emailLocator.waitFor({ state: "visible" });
+		// Find the specific email row and its delete button
+		const emailRow = adminPage.locator("li", { hasText: testEmail });
+		await emailRow.waitFor({ state: "visible" });
 
-		// Click delete button and wait for the email to disappear from the UI
-		await adminPage
-			.getByRole("button", { name: /poista|delete/i })
-			.first()
-			.click();
+		// Click delete button for THIS specific email
+		await emailRow.getByRole("button", { name: /poista|delete/i }).click();
 
 		// Wait for the email to be removed from the UI (indicates deletion completed)
-		await expect(emailLocator).toBeHidden({ timeout: 5000 });
+		await expect(emailRow).toBeHidden({ timeout: 5000 });
 
 		// Verify email was deleted from database
 		emails = await db

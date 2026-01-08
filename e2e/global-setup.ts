@@ -79,6 +79,16 @@ async function globalSetup(_config: FullConfig) {
 	]);
 
 	await context.storageState({ path: "e2e/.auth/admin.json" });
+
+	// Write admin user info to a file for the auth fixture to read
+	const userInfo = {
+		id: adminUser.id,
+		email: adminUser.email,
+		isAdmin: adminUser.isAdmin,
+	};
+	const fs = await import("node:fs");
+	fs.writeFileSync("e2e/.auth/admin-user.json", JSON.stringify(userInfo, null, 2));
+
 	await browser.close();
 	await client.end();
 
