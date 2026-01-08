@@ -137,7 +137,7 @@ const fi = {
 		deleteSuccess: "Sähköposti poistettu onnistuneesti",
 		expiredMessage: "Opiskelijasähköpostisi vahvistus on vanhentunut",
 		notVerifiedMessage: "Vahvista opiskelijasähköpostisi",
-		verifiedAsStudent: "Vahvistettu opiskelijaksi",
+		verifiedDomainEmail: "Aalto-sähköposti vahvistettu",
 		expiresOn: "vanhenee {date}",
 		addDomainEmail: "Lisää {domain}-sähköposti →",
 		reverifyNow: "Vahvista uudelleen →",

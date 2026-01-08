@@ -137,7 +137,7 @@ const en = {
 		deleteSuccess: "Email deleted successfully",
 		expiredMessage: "Your student email verification expired",
 		notVerifiedMessage: "Please verify your student email",
-		verifiedAsStudent: "Verified as student",
+		verifiedDomainEmail: "Aalto email verified",
 		expiresOn: "expires {date}",
 		addDomainEmail: "Add {domain} email →",
 		reverifyNow: "Re-verify now →",
