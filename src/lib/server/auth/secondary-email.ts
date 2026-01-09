@@ -3,6 +3,7 @@ import * as v from "valibot";
 import { db } from "../db";
 import * as table from "../db/schema";
 import type { SecondaryEmail, User } from "../db/schema";
+import { logger } from "../telemetry";
 
 /**
  * Domains that require periodic re-verification
@@ -160,6 +161,13 @@ export async function deleteUnverifiedSecondaryEmailClaims(email: string): Promi
 		.where(and(eq(table.secondaryEmail.email, normalizedEmail), isNull(table.secondaryEmail.verifiedAt)))
 		.returning();
 
+	if (result.length > 0) {
+		logger.info("auth.secondary_email.claims_cleaned", {
+			"email.domain": normalizedEmail.split("@")[1],
+			"claims.deleted": result.length,
+		});
+	}
+
 	return result.length;
 }
 
@@ -217,6 +225,11 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
 	const existingEmail = existingUserEmail[0];
 	if (existingEmail) {
 		// User is trying to re-add their own email - return it so we can redirect to verify
+		logger.info("auth.secondary_email.re_add", {
+			"user.id": userId,
+			"email.domain": domain,
+			"email.verified": String(!!existingEmail.verifiedAt),
+		});
 		return existingEmail;
 	}
 
@@ -225,6 +238,10 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
 	const existingPrimaryUser = await db.select().from(table.user).where(eq(table.user.email, normalizedEmail)).limit(1);
 
 	if (existingPrimaryUser.length > 0) {
+		logger.warn("auth.secondary_email.create_rejected_primary", {
+			"user.id": userId,
+			"email.domain": domain,
+		});
 		throw new Error("Could not add this email. Please try a different email address.");
 	}
 
@@ -239,6 +256,10 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
 
 	const existingVerified = existingVerifiedSecondaryEmail[0];
 	if (existingVerified && existingVerified.verifiedAt !== null) {
+		logger.warn("auth.secondary_email.create_rejected_verified", {
+			"user.id": userId,
+			"email.domain": domain,
+		});
 		throw new Error("Could not add this email. Please try a different email address.");
 	}
 
@@ -246,6 +267,10 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
 	const userEmailCount = await db.select().from(table.secondaryEmail).where(eq(table.secondaryEmail.userId, userId));
 
 	if (userEmailCount.length >= 10) {
+		logger.warn("auth.secondary_email.create_rejected_limit", {
+			"user.id": userId,
+			"email.count": userEmailCount.length,
+		});
 		throw new Error("Maximum 10 secondary emails allowed");
 	}
 
@@ -263,6 +288,12 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
 
 	await db.insert(table.secondaryEmail).values(newEmail);
 
+	logger.info("auth.secondary_email.created", {
+		"user.id": userId,
+		"secondary_email.id": newEmail.id,
+		"email.domain": domain,
+	});
+
 	return newEmail;
 }
 
@@ -272,6 +303,10 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
 export async function markSecondaryEmailVerified(emailId: string, userId: string): Promise<boolean> {
 	const email = await getSecondaryEmailById(emailId, userId);
 	if (!email) {
+		logger.warn("auth.secondary_email.verify_not_found", {
+			"user.id": userId,
+			"secondary_email.id": emailId,
+		});
 		return false;
 	}
 
@@ -279,6 +314,13 @@ export async function markSecondaryEmailVerified(emailId: string, userId: string
 	const expiresAt = calculateExpiry(email.domain, verifiedAt);
 
 	await db.update(table.secondaryEmail).set({ verifiedAt, expiresAt }).where(eq(table.secondaryEmail.id, emailId));
+
+	logger.info("auth.secondary_email.verified", {
+		"user.id": userId,
+		"secondary_email.id": emailId,
+		"email.domain": email.domain,
+		"email.expires": String(!!expiresAt),
+	});
 
 	return true;
 }
@@ -290,10 +332,21 @@ export async function markSecondaryEmailVerified(emailId: string, userId: string
 export async function deleteSecondaryEmail(emailId: string, userId: string): Promise<boolean> {
 	const email = await getSecondaryEmailById(emailId, userId);
 	if (!email) {
+		logger.warn("auth.secondary_email.delete_not_found", {
+			"user.id": userId,
+			"secondary_email.id": emailId,
+		});
 		return false;
 	}
 
 	await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.id, emailId));
+
+	logger.info("auth.secondary_email.deleted", {
+		"user.id": userId,
+		"secondary_email.id": emailId,
+		"email.domain": email.domain,
+		"email.was_verified": String(!!email.verifiedAt),
+	});
 
 	return true;
 }

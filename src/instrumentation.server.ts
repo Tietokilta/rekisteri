@@ -97,6 +97,7 @@ const sdk = new NodeSDK({
 
 // Initialize log provider
 const loggerProvider = new LoggerProvider();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (loggerProvider as any).addLogRecordProcessor(new SimpleLogRecordProcessor(new PrettyConsoleLogRecordExporter()));
 logs.setGlobalLoggerProvider(loggerProvider);
 

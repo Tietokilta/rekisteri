@@ -14,6 +14,7 @@ import { route } from "$lib/ROUTES";
 import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
 import { addSecondaryEmailSchema } from "./secondary-emails.schema";
 import { env } from "$lib/server/env";
+import { logger } from "$lib/server/telemetry";
 
 // Rate limit: 10 add attempts per user per hour in production, 1000 in test mode
 // SECURITY: Prevents email enumeration attacks
@@ -146,6 +147,9 @@ export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ emai
 
 	// Rate limit by user ID to prevent enumeration
 	if (!addEmailBucket.consume(locals.user.id, 1)) {
+		logger.warn("auth.secondary_email.rate_limited", {
+			"user.id": locals.user.id,
+		});
 		throw error(429, "Too many attempts. Please try again later.");
 	}
 
