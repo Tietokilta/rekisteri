@@ -16,6 +16,7 @@ import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
 import { route } from "$lib/ROUTES";
 import { getUserSecondaryEmails, markSecondaryEmailVerified } from "$lib/server/auth/secondary-email";
 import { verifyCodeSchema } from "./schema";
+import { logger } from "$lib/server/telemetry";
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
 
@@ -31,6 +32,9 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
 	}
 
 	if (!otpVerifyBucket.check(otp.email, 1)) {
+		logger.warn("auth.secondary_email.verify_rate_limited", {
+			"email.domain": otp.email.split("@")[1],
+		});
 		error(429, "Too many requests");
 	}
 
@@ -53,6 +57,9 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
 	const providedBuffer = Buffer.from(capitalizedCode.padEnd(otp.code.length, "\0"), "utf8");
 	const isValid = expectedBuffer.length === providedBuffer.length && timingSafeEqual(expectedBuffer, providedBuffer);
 	if (!isValid) {
+		logger.warn("auth.secondary_email.verify_incorrect_code", {
+			"email.domain": otp.email.split("@")[1],
+		});
 		error(400, "Incorrect code.");
 	}
 
