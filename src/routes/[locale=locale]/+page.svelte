@@ -21,6 +21,7 @@
 	import KeyRound from "@lucide/svelte/icons/key-round";
 	import Mail from "@lucide/svelte/icons/mail";
 	import PasskeyRegistrationBanner from "$lib/components/PasskeyRegistrationBanner.svelte";
+	import { invalidateAll } from "$app/navigation";
 
 	let { data }: { data: PageServerData } = $props();
 
@@ -32,9 +33,10 @@
 	const form = superForm(data.form, {
 		validators: zod4Client(schema),
 		validationMethod: "oninput",
-		onResult({ result }) {
+		async onResult({ result }) {
 			if (result.type === "success" && result.data?.success) {
 				toast.success($LL.user.saveSuccess());
+				await invalidateAll();
 			} else if (result.type === "failure") {
 				toast.error($LL.user.saveError());
 			}
