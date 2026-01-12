@@ -137,13 +137,11 @@
 							<p class="text-sm text-muted-foreground">{$LL.secondaryEmail.manageDescription()}</p>
 						</div>
 					</a>
-				</form>
 
-				<form {...signOutForm}>
 					<button
+						{...signOutForm.buttonProps}
 						data-testid="sign-out-button"
-						type="submit"
-						class="inline-flex h-10 w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium whitespace-nowrap ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+						class="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium whitespace-nowrap ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
 					>
 						{$LL.auth.signOut()}
 					</button>

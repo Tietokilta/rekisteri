@@ -6,7 +6,7 @@ import { eq, desc } from "drizzle-orm";
 import { schema } from "./schema";
 import * as z from "zod";
 import { fi, en } from "zod/locales";
-import { form, query, command, getRequestEvent } from "$app/server";
+import { form, query, getRequestEvent } from "$app/server";
 import * as auth from "$lib/server/auth/session";
 
 // Query function to get user data
@@ -84,8 +84,8 @@ export const saveUserInfo = form(schema, async (data) => {
 	}
 });
 
-// Command function for signing out
-export const signOut = command(async () => {
+// Form function for signing out
+export const signOut = form(z.object({}), async () => {
 	const event = getRequestEvent();
 
 	if (!event.locals.session) {
