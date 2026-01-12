@@ -11,6 +11,7 @@ import {
 import { createEmailOTP, sendOTPEmail, emailCookieName, emailOTPCookieName } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
 import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
+import { addSecondaryEmailSchema } from "./secondary-emails.schema";
 
 // Rate limit: 10 add attempts per user per hour
 // SECURITY: Prevents email enumeration attacks
@@ -103,10 +104,6 @@ export const reverifySecondaryEmailForm = form(
 		redirect(303, route("/[locale=locale]/secondary-emails/verify", { locale: locals.locale }));
 	},
 );
-
-export const addSecondaryEmailSchema = z.object({
-	email: z.email(),
-});
 
 /**
  * Add a new secondary email via form submission

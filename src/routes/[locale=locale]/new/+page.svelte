@@ -7,7 +7,8 @@
 	import { Label } from "$lib/components/ui/label";
 	import CircleCheck from "@lucide/svelte/icons/circle-check";
 	import CircleAlert from "@lucide/svelte/icons/circle-alert";
-	import { payMembership, payMembershipSchema } from "./data.remote";
+	import { payMembership } from "./data.remote";
+	import { payMembershipSchema } from "./schema";
 
 	const { data }: PageProps = $props();
 

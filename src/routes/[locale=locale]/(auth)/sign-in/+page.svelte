@@ -3,7 +3,8 @@
 	import { Label } from "$lib/components/ui/label/index.js";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import { LL } from "$lib/i18n/i18n-svelte";
-	import { signIn, signInSchema } from "./data.remote";
+	import { signIn } from "./data.remote";
+	import { signInSchema } from "./schema";
 </script>
 
 <main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">

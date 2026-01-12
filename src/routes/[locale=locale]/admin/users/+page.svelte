@@ -7,7 +7,8 @@
 	import { Badge } from "$lib/components/ui/badge";
 	import ChevronUp from "@lucide/svelte/icons/chevron-up";
 	import ChevronDown from "@lucide/svelte/icons/chevron-down";
-	import { promoteToAdmin, promoteToAdminSchema, demoteFromAdmin, demoteFromAdminSchema } from "./data.remote";
+	import { promoteToAdmin, demoteFromAdmin } from "./data.remote";
+	import { promoteToAdminSchema, demoteFromAdminSchema } from "./schema";
 
 	const { data }: PageProps = $props();
 

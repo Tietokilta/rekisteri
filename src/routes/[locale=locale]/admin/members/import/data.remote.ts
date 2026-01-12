@@ -6,21 +6,7 @@ import * as table from "$lib/server/db/schema";
 import { eq, and } from "drizzle-orm";
 import { generateUserId } from "$lib/server/auth/utils";
 import { isNonEmpty } from "$lib/utils";
-
-export const csvRowSchema = z.object({
-	firstNames: z.string().min(1, "First names are required"),
-	lastName: z.string().min(1, "Last name is required"),
-	homeMunicipality: z.string().min(1, "Home municipality is required"),
-	email: z.email("Invalid email format"),
-	membershipType: z.string().min(1, "Membership type is required"),
-	membershipStartDate: z.string().min(1, "Membership start date is required"),
-});
-
-export const importMembersSchema = z.object({
-	rows: z.string().min(1),
-});
-
-export type CsvRow = z.infer<typeof csvRowSchema>;
+import { csvRowSchema, importMembersSchema, type CsvRow } from "./schema";
 
 export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }) => {
 	const event = getRequestEvent();

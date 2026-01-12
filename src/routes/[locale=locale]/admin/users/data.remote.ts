@@ -1,15 +1,11 @@
 import { error } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
-import * as z from "zod";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { auditLog } from "$lib/server/db/schema";
 import { isNonEmpty } from "$lib/utils";
-
-export const promoteToAdminSchema = z.object({
-	userId: z.string().min(1),
-});
+import { promoteToAdminSchema, demoteFromAdminSchema } from "./schema";
 
 export const promoteToAdmin = form(promoteToAdminSchema, async ({ userId }) => {
 	const event = getRequestEvent();
@@ -47,10 +43,6 @@ export const promoteToAdmin = form(promoteToAdminSchema, async ({ userId }) => {
 	});
 
 	return { success: true, message: "User promoted to admin successfully" };
-});
-
-export const demoteFromAdminSchema = z.object({
-	userId: z.string().min(1),
 });
 
 export const demoteFromAdmin = form(demoteFromAdminSchema, async ({ userId }) => {

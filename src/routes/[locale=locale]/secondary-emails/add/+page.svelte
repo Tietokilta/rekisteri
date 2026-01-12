@@ -5,7 +5,8 @@
 	import { Button } from "$lib/components/ui/button";
 	import { Label } from "$lib/components/ui/label";
 	import * as Alert from "$lib/components/ui/alert/index.js";
-	import { addSecondaryEmailForm, addSecondaryEmailSchema } from "$lib/api/secondary-emails.remote";
+	import { addSecondaryEmailForm } from "$lib/api/secondary-emails.remote";
+	import { addSecondaryEmailSchema } from "$lib/api/secondary-emails.schema";
 </script>
 
 <main class="container mx-auto my-8 max-w-md p-4">

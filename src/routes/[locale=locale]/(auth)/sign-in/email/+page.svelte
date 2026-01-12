@@ -4,7 +4,8 @@
 	import { LL } from "$lib/i18n/i18n-svelte";
 	import * as InputOTP from "$lib/components/ui/input-otp/index.js";
 	import type { PageData } from "./$types";
-	import { verifyCode, verifyCodeSchema, resendEmail, changeEmail } from "./data.remote";
+	import { verifyCode, resendEmail, changeEmail } from "./data.remote";
+	import { verifyCodeSchema } from "./schema";
 
 	let { data }: { data: PageData } = $props();
 

@@ -1,14 +1,10 @@
 import { error } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
-import * as z from "zod";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { auditMemberAction } from "$lib/server/audit";
-
-export const memberIdSchema = z.object({
-	memberId: z.string().min(1),
-});
+import { memberIdSchema } from "./schema";
 
 export const approveMember = form(memberIdSchema, async ({ memberId }) => {
 	const event = getRequestEvent();

@@ -3,7 +3,8 @@
 	import { Label } from "$lib/components/ui/label/index.js";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import Papa from "papaparse";
-	import { csvRowSchema, type CsvRow, importMembers, importMembersSchema } from "./data.remote";
+	import { importMembers } from "./data.remote";
+	import { csvRowSchema, importMembersSchema, type CsvRow } from "./schema";
 	import type { PageData } from "./$types";
 	import { SvelteSet } from "svelte/reactivity";
 	import { LL } from "$lib/i18n/i18n-svelte";

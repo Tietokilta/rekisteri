@@ -1,18 +1,14 @@
 import { error, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
-import * as z from "zod";
 import { RefillingTokenBucket } from "$lib/server/auth/rate-limit";
 import { setEmailCookie } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
+import { signInSchema } from "./schema";
 
 // Rate limit: 100 sign-in attempts per minute per IP (generous for shared networks)
 const ipBucket = new RefillingTokenBucket<string>(100, 60);
 // Rate limit: 10 sign-in attempts per hour per email (strict per-account protection)
 const emailBucket = new RefillingTokenBucket<string>(10, 60 * 60);
-
-export const signInSchema = z.object({
-	email: z.email(),
-});
 
 export const signIn = form(signInSchema, async ({ email: rawEmail }) => {
 	const event = getRequestEvent();

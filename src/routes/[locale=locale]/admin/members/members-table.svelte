@@ -25,14 +25,8 @@
 	import { SvelteURLSearchParams } from "svelte/reactivity";
 	import { LL } from "$lib/i18n/i18n-svelte";
 	import { isNonEmpty } from "$lib/utils";
-	import {
-		approveMember,
-		rejectMember,
-		markMemberExpired,
-		cancelMember,
-		reactivateMember,
-		memberIdSchema,
-	} from "./data.remote";
+	import { approveMember, rejectMember, markMemberExpired, cancelMember, reactivateMember } from "./data.remote";
+	import { memberIdSchema } from "./schema";
 
 	type MemberRow = {
 		id: string;

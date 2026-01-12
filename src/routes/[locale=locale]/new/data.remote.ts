@@ -3,13 +3,9 @@ import { form, getRequestEvent } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
-import * as z from "zod";
 import { createSession } from "$lib/server/payment/session";
 import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
-
-export const payMembershipSchema = z.object({
-	membershipId: z.string().min(1),
-});
+import { payMembershipSchema } from "./schema";
 
 export const payMembership = form(payMembershipSchema, async ({ membershipId }) => {
 	const event = getRequestEvent();

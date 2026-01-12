@@ -1,6 +1,5 @@
 import { error, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
-import * as z from "zod";
 import { timingSafeEqual } from "node:crypto";
 import {
 	createEmailOTP,
@@ -16,12 +15,9 @@ import {
 import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
 import { route } from "$lib/ROUTES";
 import { getUserSecondaryEmails, markSecondaryEmailVerified } from "$lib/server/auth/secondary-email";
+import { verifyCodeSchema } from "./schema";
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
-
-export const verifyCodeSchema = z.object({
-	code: z.string().min(1),
-});
 
 export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
 	const event = getRequestEvent();
