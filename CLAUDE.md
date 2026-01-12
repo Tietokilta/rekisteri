@@ -129,7 +129,7 @@ Route type safety via `vite-plugin-kit-routes` generates `$lib/ROUTES.ts`.
 Shadcn-svelte components in `src/lib/components/ui/`:
 
 - Built on bits-ui primitives
-- Form handling via sveltekit-superforms and formsnap
+- Form handling via SvelteKit native remote functions (see `*.remote.ts` files)
 - Styling with Tailwind CSS and tailwind-variants
 
 ### Environment Variables
@@ -149,8 +149,8 @@ Required for development:
 - Using `rolldown-vite` instead of standard Vite (via overrides)
 - Schema changes require `pnpm db:generate` and `pnpm db:migrate`
 - For Stripe webhook testing, run `stripe listen --forward-to localhost:$PORT/api/webhook/stripe` in parallel with dev server
-- All server-side code lives in `src/lib/server/` or route `+page.server.ts`/`+server.ts` files
-- Type safety enforced with Zod schemas (often co-located with routes in `schema.ts` files)
+- All server-side code lives in `src/lib/server/` or route `+page.server.ts`/`+server.ts`/`*.remote.ts` files
+- Type safety enforced with Zod schemas (often co-located with routes in `*.remote.ts` or `schema.ts` files)
 
 ## REQUIRED: Pre-Commit Checklist
 
