@@ -1,12 +1,7 @@
 <script lang="ts">
 	import { Input } from "$lib/components/ui/input/index.js";
-	import type { PageServerData } from "./$types";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import { Switch } from "$lib/components/ui/switch";
-	import { zod4Client } from "sveltekit-superforms/adapters";
-	import { superForm } from "sveltekit-superforms";
-	import { schema } from "./schema";
-	import * as Form from "$lib/components/ui/form/index.js";
 	import { route } from "$lib/ROUTES";
 	import { Separator } from "$lib/components/ui/separator";
 	import UserCog from "@lucide/svelte/icons/user-cog";
@@ -21,256 +16,239 @@
 	import KeyRound from "@lucide/svelte/icons/key-round";
 	import Mail from "@lucide/svelte/icons/mail";
 	import PasskeyRegistrationBanner from "$lib/components/PasskeyRegistrationBanner.svelte";
-	import { invalidateAll } from "$app/navigation";
+	import { getUser, getMemberships, saveUserInfo } from "./data.remote";
 
-	let { data }: { data: PageServerData } = $props();
+	// Use remote functions for data fetching and form handling
+	const user = getUser();
+	const memberships = getMemberships();
+	const form = saveUserInfo;
 
 	// Configure Zod locale based on current language
 	$effect(() => {
 		z.config($locale === "fi" ? fi() : en());
 	});
 
-	const form = superForm(data.form, {
-		validators: zod4Client(schema),
-		validationMethod: "oninput",
-		async onResult({ result }) {
-			if (result.type === "success" && result.data?.success) {
-				toast.success($LL.user.saveSuccess());
-				await invalidateAll();
-			} else if (result.type === "failure") {
-				toast.error($LL.user.saveError());
-			}
-		},
+	// Show toast on form submission
+	$effect(() => {
+		if (form.result && "success" in form.result && form.result.success) {
+			toast.success($LL.user.saveSuccess());
+		} else if (form.result && "success" in form.result && !form.result.success) {
+			toast.error($LL.user.saveError());
+		}
 	});
-	const { form: formData, enhance } = form;
 </script>
 
 <main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
-	<h1 class="font-mono text-lg">
-		{$LL.user.welcome({ firstNames: data.user.firstNames ?? "", lastName: data.user.lastName ?? "" })}
-	</h1>
+	{#await user}
+		<p>Loading...</p>
+	{:then userData}
+		<h1 class="font-mono text-lg">
+			{$LL.user.welcome({ firstNames: userData.firstNames ?? "", lastName: userData.lastName ?? "" })}
+		</h1>
 
-	<PasskeyRegistrationBanner user={data.user} />
+		<PasskeyRegistrationBanner user={userData} />
 
-	<div class="flex w-full max-w-2xl flex-col items-center gap-4 md:flex-row md:items-stretch">
-		<div class="w-full max-w-xs">
-			<h2 class="font-mono text-lg">{$LL.user.editInfo()}</h2>
+		<div class="flex w-full max-w-2xl flex-col items-center gap-4 md:flex-row md:items-stretch">
+			<div class="w-full max-w-xs">
+				<h2 class="font-mono text-lg">{$LL.user.editInfo()}</h2>
 
-			<form
-				method="post"
-				action={route("saveInfo /[locale=locale]", { locale: $locale })}
-				use:enhance
-				class="flex w-full max-w-xs flex-col gap-4"
-			>
-				<Form.Field {form} name="email">
-					<Form.Control>
-						{#snippet children({ props })}
-							<Form.Label>{$LL.user.email()}</Form.Label>
-							<Input
-								{...props}
-								type="email"
-								autocomplete="email"
-								autocapitalize="none"
-								autocorrect="off"
-								readonly
-								bind:value={$formData.email}
-							/>
-						{/snippet}
-					</Form.Control>
-					<Form.FieldErrors />
-				</Form.Field>
-
-				<Form.Field {form} name="firstNames">
-					<Form.Control>
-						{#snippet children({ props })}
-							<Form.Label>{$LL.user.firstNames()}</Form.Label>
-							<Input {...props} autocomplete="given-name" bind:value={$formData.firstNames} />
-						{/snippet}
-					</Form.Control>
-					<Form.FieldErrors />
-				</Form.Field>
-
-				<Form.Field {form} name="lastName">
-					<Form.Control>
-						{#snippet children({ props })}
-							<Form.Label>{$LL.user.lastName()}</Form.Label>
-							<Input {...props} autocomplete="family-name" bind:value={$formData.lastName} />
-						{/snippet}
-					</Form.Control>
-					<Form.FieldErrors />
-				</Form.Field>
-
-				<Form.Field {form} name="homeMunicipality">
-					<Form.Control>
-						{#snippet children({ props })}
-							<Form.Label>{$LL.user.homeMunicipality()}</Form.Label>
-							<Input {...props} autocomplete="address-level2" bind:value={$formData.homeMunicipality} />
-						{/snippet}
-					</Form.Control>
-					<Form.FieldErrors />
-				</Form.Field>
-
-				<Form.Field {form} name="preferredLanguage">
-					<Form.Control>
-						{#snippet children({ props })}
-							<Form.Label>{$LL.user.preferredLanguage()}</Form.Label>
-							<Form.Description>{$LL.user.preferredLanguageDescription()}</Form.Description>
-							<select
-								{...props}
-								bind:value={$formData.preferredLanguage}
-								autocomplete="language"
-								class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-							>
-								<option value="unspecified">{$LL.user.preferredLanguageOptions.unspecified()}</option>
-								<option value="finnish">{$LL.user.preferredLanguageOptions.finnish()}</option>
-								<option value="english">{$LL.user.preferredLanguageOptions.english()}</option>
-							</select>
-						{/snippet}
-					</Form.Control>
-					<Form.FieldErrors />
-				</Form.Field>
-
-				<Form.Field
-					{form}
-					name="isAllowedEmails"
-					class="space-y flex flex-row items-center justify-between rounded-lg border p-4"
-				>
-					<Form.Control>
-						{#snippet children({ props })}
-							<div class="space-y-0.5">
-								<Form.Label>{$LL.user.allowEmails()}</Form.Label>
-								<Form.Description>{$LL.user.allowEmailsDescription()}</Form.Description>
-							</div>
-							<Switch {...props} bind:checked={$formData.isAllowedEmails} />
-						{/snippet}
-					</Form.Control>
-				</Form.Field>
-
-				<Form.Button type="submit">{$LL.common.save()}</Form.Button>
-
-				<a
-					href={route(`/[locale=locale]/passkeys`, { locale: $locale })}
-					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
-				>
-					<KeyRound class="h-6 w-6" />
-					<div class="flex-1 space-y-1">
-						<p class="text-sm leading-none font-medium">{$LL.auth.passkey.title()}</p>
-						<p class="text-sm text-muted-foreground">{$LL.auth.passkey.manageDescription()}</p>
+				<form method="post" class="flex w-full max-w-xs flex-col gap-4">
+					<div>
+						<label for="email" class="text-sm leading-none font-medium">{$LL.user.email()}</label>
+						<Input
+							id="email"
+							type="email"
+							autocomplete="email"
+							autocapitalize="none"
+							autocorrect="off"
+							readonly
+							value={userData.email}
+						/>
 					</div>
-				</a>
 
-				<a
-					href={route(`/[locale=locale]/secondary-emails`, { locale: $locale })}
-					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
-				>
-					<Mail class="h-6 w-6" />
-					<div class="flex-1 space-y-1">
-						<p class="text-sm leading-none font-medium">{$LL.secondaryEmail.title()}</p>
-						<p class="text-sm text-muted-foreground">{$LL.secondaryEmail.manageDescription()}</p>
+					<div>
+						<label for="firstNames" class="text-sm leading-none font-medium">{$LL.user.firstNames()}</label>
+						<Input {...form.fields.firstNames.as("text")} autocomplete="given-name" />
 					</div>
-				</a>
 
-				<Form.Button
-					data-testid="sign-out-button"
-					formnovalidate
-					formmethod="post"
-					formaction={route("signOut /[locale=locale]", { locale: $locale })}
-					variant="outline">{$LL.auth.signOut()}</Form.Button
-				>
-			</form>
-		</div>
+					<div>
+						<label for="lastName" class="text-sm leading-none font-medium">{$LL.user.lastName()}</label>
+						<Input {...form.fields.lastName.as("text")} autocomplete="family-name" />
+					</div>
 
-		{#if data.user.isAdmin}
+					<div>
+						<label for="homeMunicipality" class="text-sm leading-none font-medium">{$LL.user.homeMunicipality()}</label>
+						<Input {...form.fields.homeMunicipality.as("text")} autocomplete="address-level2" />
+					</div>
+
+					<div>
+						<label for="preferredLanguage" class="text-sm leading-none font-medium"
+							>{$LL.user.preferredLanguage()}</label
+						>
+						<p class="text-sm text-muted-foreground">{$LL.user.preferredLanguageDescription()}</p>
+						<select
+							{...form.fields.preferredLanguage.as("select")}
+							autocomplete="language"
+							class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+						>
+							<option value="unspecified">{$LL.user.preferredLanguageOptions.unspecified()}</option>
+							<option value="finnish">{$LL.user.preferredLanguageOptions.finnish()}</option>
+							<option value="english">{$LL.user.preferredLanguageOptions.english()}</option>
+						</select>
+					</div>
+
+					<div class="flex flex-row items-center justify-between rounded-lg border p-4">
+						<div class="space-y-0.5">
+							<label for="isAllowedEmails" class="text-sm leading-none font-medium">{$LL.user.allowEmails()}</label>
+							<p class="text-sm text-muted-foreground">{$LL.user.allowEmailsDescription()}</p>
+						</div>
+						<Switch
+							name={form.fields.isAllowedEmails.as("checkbox").name}
+							checked={form.fields.isAllowedEmails.as("checkbox").checked}
+						/>
+					</div>
+
+					<button
+						type="submit"
+						class="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium whitespace-nowrap text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+					>
+						{$LL.common.save()}
+					</button>
+
+					<a
+						href={route(`/[locale=locale]/passkeys`, { locale: $locale })}
+						class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
+					>
+						<KeyRound class="h-6 w-6" />
+						<div class="flex-1 space-y-1">
+							<p class="text-sm leading-none font-medium">{$LL.auth.passkey.title()}</p>
+							<p class="text-sm text-muted-foreground">{$LL.auth.passkey.manageDescription()}</p>
+						</div>
+					</a>
+
+					<a
+						href={route(`/[locale=locale]/secondary-emails`, { locale: $locale })}
+						class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
+					>
+						<Mail class="h-6 w-6" />
+						<div class="flex-1 space-y-1">
+							<p class="text-sm leading-none font-medium">{$LL.secondaryEmail.title()}</p>
+							<p class="text-sm text-muted-foreground">{$LL.secondaryEmail.manageDescription()}</p>
+						</div>
+					</a>
+
+					<button
+						data-testid="sign-out-button"
+						type="submit"
+						formnovalidate
+						formmethod="post"
+						formaction={route("signOut /[locale=locale]", { locale: $locale })}
+						class="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium whitespace-nowrap ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+					>
+						{$LL.auth.signOut()}
+					</button>
+				</form>
+			</div>
+
+			{#if userData.isAdmin}
+				<Separator class="hidden md:block" orientation="vertical" />
+				<div class="flex w-full max-w-xs flex-col gap-4">
+					<h2 class="font-mono text-lg">{$LL.admin.title()}</h2>
+					<a
+						href={route("/[locale=locale]/admin/memberships", { locale: $locale })}
+						class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
+					>
+						<UserCog class="h-6 w-6" />
+						<div class="flex-1 space-y-1">
+							<p class="text-sm leading-none font-medium">{$LL.admin.memberships.title()}</p>
+							<p class="text-sm text-muted-foreground">{$LL.admin.memberships.description()}</p>
+						</div>
+					</a>
+					<a
+						href={route("/[locale=locale]/admin/members", { locale: $locale })}
+						class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
+					>
+						<UserCog class="h-6 w-6" />
+						<div class="flex-1 space-y-1">
+							<p class="text-sm leading-none font-medium">{$LL.admin.members.title()}</p>
+							<p class="text-sm text-muted-foreground">{$LL.admin.members.description()}</p>
+						</div>
+					</a>
+					<a
+						href={route("/[locale=locale]/admin/members/import", { locale: $locale })}
+						class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
+					>
+						<UserCog class="h-6 w-6" />
+						<div class="flex-1 space-y-1">
+							<p class="text-sm leading-none font-medium">{$LL.admin.import.title()}</p>
+							<p class="text-sm text-muted-foreground">{$LL.admin.import.description()}</p>
+						</div>
+					</a>
+					<a
+						href={route("/[locale=locale]/admin/users", { locale: $locale })}
+						class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
+					>
+						<UserCog class="h-6 w-6" />
+						<div class="flex-1 space-y-1">
+							<p class="text-sm leading-none font-medium">{$LL.admin.users.title()}</p>
+							<p class="text-sm text-muted-foreground">{$LL.admin.users.description()}</p>
+						</div>
+					</a>
+				</div>
+			{/if}
+
 			<Separator class="hidden md:block" orientation="vertical" />
 			<div class="flex w-full max-w-xs flex-col gap-4">
-				<h2 class="font-mono text-lg">{$LL.admin.title()}</h2>
+				<h2 class="font-mono text-lg">{$LL.membership.title()}</h2>
 				<a
-					href={route("/[locale=locale]/admin/memberships", { locale: $locale })}
-					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
+					href={route("/[locale=locale]/new", { locale: $locale })}
+					class="inline-flex h-10 w-full max-w-xs items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium whitespace-nowrap text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
 				>
-					<UserCog class="h-6 w-6" />
-					<div class="flex-1 space-y-1">
-						<p class="text-sm leading-none font-medium">{$LL.admin.memberships.title()}</p>
-						<p class="text-sm text-muted-foreground">{$LL.admin.memberships.description()}</p>
-					</div>
+					{$LL.membership.buy()}
 				</a>
-				<a
-					href={route("/[locale=locale]/admin/members", { locale: $locale })}
-					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
-				>
-					<UserCog class="h-6 w-6" />
-					<div class="flex-1 space-y-1">
-						<p class="text-sm leading-none font-medium">{$LL.admin.members.title()}</p>
-						<p class="text-sm text-muted-foreground">{$LL.admin.members.description()}</p>
-					</div>
-				</a>
-				<a
-					href={route("/[locale=locale]/admin/members/import", { locale: $locale })}
-					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
-				>
-					<UserCog class="h-6 w-6" />
-					<div class="flex-1 space-y-1">
-						<p class="text-sm leading-none font-medium">{$LL.admin.import.title()}</p>
-						<p class="text-sm text-muted-foreground">{$LL.admin.import.description()}</p>
-					</div>
-				</a>
-				<a
-					href={route("/[locale=locale]/admin/users", { locale: $locale })}
-					class="flex items-center space-x-4 rounded-md border p-4 hover:bg-card-foreground/10"
-				>
-					<UserCog class="h-6 w-6" />
-					<div class="flex-1 space-y-1">
-						<p class="text-sm leading-none font-medium">{$LL.admin.users.title()}</p>
-						<p class="text-sm text-muted-foreground">{$LL.admin.users.description()}</p>
-					</div>
-				</a>
+				{#await memberships}
+					<p class="text-sm text-muted-foreground">Loading...</p>
+				{:then membershipsList}
+					{#if membershipsList.length === 0}
+						<p class="text-sm text-muted-foreground">{$LL.membership.noMembership()}</p>
+					{:else}
+						{#each membershipsList as membership (membership.unique_id)}
+							<li class="flex items-start space-x-4 rounded-md border p-4">
+								<div class="flex min-w-0 flex-1 flex-col gap-2">
+									<div class="flex items-center gap-2">
+										{#if membership.status === "active"}
+											<CircleCheck class="h-5 w-5 flex-shrink-0" />
+											<span class="text-sm font-medium">{$LL.membership.status.active()}</span>
+										{:else if membership.status === "expired"}
+											<Trash class="h-5 w-5 flex-shrink-0" />
+											<span class="text-sm font-medium">{$LL.membership.status.expired()}</span>
+										{:else if membership.status === "awaiting_payment"}
+											<Banknote class="h-5 w-5 flex-shrink-0" />
+											<span class="text-sm font-medium">{$LL.membership.status.awaitingPayment()}</span>
+										{:else if membership.status === "awaiting_approval"}
+											<Hourglass class="h-5 w-5 flex-shrink-0" />
+											<span class="text-sm font-medium">{$LL.membership.status.awaitingApproval()}</span>
+										{:else}
+											<CircleAlert class="h-5 w-5 flex-shrink-0" />
+											<span class="text-sm font-medium">{$LL.membership.status.unknown()}</span>
+										{/if}
+									</div>
+									<div class="text-sm">
+										<p class="font-medium">{membership.type}</p>
+										<p>
+											<time datetime={membership.startTime.toISOString()}
+												>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time
+											>–<time datetime={membership.endTime.toISOString()}
+												>{membership.endTime.toLocaleDateString(`${$locale}-FI`)}</time
+											>
+										</p>
+									</div>
+								</div>
+							</li>
+						{/each}
+					{/if}
+				{/await}
 			</div>
-		{/if}
-
-		<Separator class="hidden md:block" orientation="vertical" />
-		<div class="flex w-full max-w-xs flex-col gap-4">
-			<h2 class="font-mono text-lg">{$LL.membership.title()}</h2>
-			<a href={route("/[locale=locale]/new", { locale: $locale })} class="flex w-full max-w-xs flex-col">
-				<Form.Button variant="default">{$LL.membership.buy()}</Form.Button>
-			</a>
-			{#if data.memberships.length === 0}
-				<p class="text-sm text-muted-foreground">{$LL.membership.noMembership()}</p>
-			{:else}
-				{#each data.memberships as membership (membership.unique_id)}
-					<li class="flex items-start space-x-4 rounded-md border p-4">
-						<div class="flex min-w-0 flex-1 flex-col gap-2">
-							<div class="flex items-center gap-2">
-								{#if membership.status === "active"}
-									<CircleCheck class="h-5 w-5 flex-shrink-0" />
-									<span class="text-sm font-medium">{$LL.membership.status.active()}</span>
-								{:else if membership.status === "expired"}
-									<Trash class="h-5 w-5 flex-shrink-0" />
-									<span class="text-sm font-medium">{$LL.membership.status.expired()}</span>
-								{:else if membership.status === "awaiting_payment"}
-									<Banknote class="h-5 w-5 flex-shrink-0" />
-									<span class="text-sm font-medium">{$LL.membership.status.awaitingPayment()}</span>
-								{:else if membership.status === "awaiting_approval"}
-									<Hourglass class="h-5 w-5 flex-shrink-0" />
-									<span class="text-sm font-medium">{$LL.membership.status.awaitingApproval()}</span>
-								{:else}
-									<CircleAlert class="h-5 w-5 flex-shrink-0" />
-									<span class="text-sm font-medium">{$LL.membership.status.unknown()}</span>
-								{/if}
-							</div>
-							<div class="text-sm">
-								<p class="font-medium">{membership.type}</p>
-								<p>
-									<time datetime={membership.startTime.toISOString()}
-										>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time
-									>–<time datetime={membership.endTime.toISOString()}
-										>{membership.endTime.toLocaleDateString(`${$locale}-FI`)}</time
-									>
-								</p>
-							</div>
-						</div>
-					</li>
-				{/each}
-			{/if}
 		</div>
-	</div>
+	{/await}
 </main>
