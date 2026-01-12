@@ -6,7 +6,8 @@ import { eq, desc } from "drizzle-orm";
 import { schema } from "./schema";
 import * as z from "zod";
 import { fi, en } from "zod/locales";
-import { form, query, getRequestEvent } from "$app/server";
+import { form, query, command, getRequestEvent } from "$app/server";
+import * as auth from "$lib/server/auth/session";
 
 // Query function to get user data
 export const getUser = query(async () => {
@@ -81,4 +82,20 @@ export const saveUserInfo = form(schema, async (data) => {
 	} catch {
 		return fail(500, { success: false, message: "Failed to save information" });
 	}
+});
+
+// Command function for signing out
+export const signOut = command(async () => {
+	const event = getRequestEvent();
+
+	if (!event.locals.session) {
+		return fail(401, {
+			message: "Not authenticated",
+		});
+	}
+
+	await auth.invalidateSession(event.locals.session.id);
+	auth.deleteSessionTokenCookie(event);
+
+	return redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
 });

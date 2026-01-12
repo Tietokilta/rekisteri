@@ -16,12 +16,13 @@
 	import KeyRound from "@lucide/svelte/icons/key-round";
 	import Mail from "@lucide/svelte/icons/mail";
 	import PasskeyRegistrationBanner from "$lib/components/PasskeyRegistrationBanner.svelte";
-	import { getUser, getMemberships, saveUserInfo } from "./data.remote";
+	import { getUser, getMemberships, saveUserInfo, signOut } from "./data.remote";
 
 	// Use remote functions for data fetching and form handling
 	const user = getUser();
 	const memberships = getMemberships();
 	const form = saveUserInfo;
+	const signOutForm = signOut;
 
 	// Configure Zod locale based on current language
 	$effect(() => {
@@ -52,7 +53,7 @@
 			<div class="w-full max-w-xs">
 				<h2 class="font-mono text-lg">{$LL.user.editInfo()}</h2>
 
-				<form method="post" class="flex w-full max-w-xs flex-col gap-4">
+				<form {...form} class="flex w-full max-w-xs flex-col gap-4">
 					<div>
 						<label for="email" class="text-sm leading-none font-medium">{$LL.user.email()}</label>
 						<Input
@@ -139,10 +140,8 @@
 
 					<button
 						data-testid="sign-out-button"
-						type="submit"
-						formnovalidate
-						formmethod="post"
-						formaction={route("signOut /[locale=locale]", { locale: $locale })}
+						type="button"
+						onclick={async () => await signOutForm.call(new FormData())}
 						class="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium whitespace-nowrap ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
 					>
 						{$LL.auth.signOut()}
