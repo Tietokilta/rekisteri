@@ -16,14 +16,24 @@ export const load: PageServerLoad = async (event) => {
 		return redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
 	}
 
+	// Fetch fresh user data from database for display purposes
+	// event.locals.user comes from session validation (for auth), but we want
+	// the absolute latest data when the page loads/reloads (e.g., after form save)
+	const [freshUser] = await db.select().from(table.user).where(eq(table.user.id, event.locals.user.id)).limit(1);
+
+	if (!freshUser) {
+		// User was deleted
+		return redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
+	}
+
 	const form = await superValidate(zod4(schema), {
 		defaults: {
-			email: event.locals.user.email,
-			firstNames: event.locals.user.firstNames ?? "",
-			lastName: event.locals.user.lastName ?? "",
-			homeMunicipality: event.locals.user.homeMunicipality ?? "",
-			preferredLanguage: event.locals.user.preferredLanguage,
-			isAllowedEmails: event.locals.user.isAllowedEmails,
+			email: freshUser.email,
+			firstNames: freshUser.firstNames ?? "",
+			lastName: freshUser.lastName ?? "",
+			homeMunicipality: freshUser.homeMunicipality ?? "",
+			preferredLanguage: freshUser.preferredLanguage,
+			isAllowedEmails: freshUser.isAllowedEmails,
 		},
 	});
 
@@ -31,7 +41,7 @@ export const load: PageServerLoad = async (event) => {
 		.select()
 		.from(table.member)
 		.innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
-		.where(eq(table.member.userId, event.locals.user.id))
+		.where(eq(table.member.userId, freshUser.id))
 		.orderBy(desc(table.membership.startTime));
 
 	const memberships = result.map((m) => ({
@@ -40,7 +50,7 @@ export const load: PageServerLoad = async (event) => {
 		unique_id: m.member.id,
 	}));
 
-	return { user: event.locals.user, form, memberships };
+	return { user: freshUser, form, memberships };
 };
 
 export const actions: Actions = {
