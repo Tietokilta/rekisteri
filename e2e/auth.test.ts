@@ -22,4 +22,54 @@ test.describe("Authentication", () => {
 		await expect(emailInput).toBeVisible();
 		await expect(emailInput).toHaveValue("root@tietokilta.fi");
 	});
+
+	test("user info form refreshes displayed data after save", async ({ adminPage }) => {
+		await adminPage.goto("/fi/", { waitUntil: "networkidle" });
+
+		// Get current values from the welcome message
+		const welcomeHeading = adminPage.locator("h1").first();
+		const originalWelcomeText = (await welcomeHeading.textContent()) ?? "";
+
+		// Find the form inputs
+		const firstNamesInput = adminPage.locator('input[autocomplete="given-name"]');
+		const lastNameInput = adminPage.locator('input[autocomplete="family-name"]');
+
+		// Get original values
+		const originalFirstNames = await firstNamesInput.inputValue();
+		const originalLastName = await lastNameInput.inputValue();
+
+		// Change the name
+		const newFirstNames = "TestFirst";
+		const newLastName = "TestLast";
+		await firstNamesInput.fill(newFirstNames);
+		await lastNameInput.fill(newLastName);
+
+		// Submit the form
+		const saveButton = adminPage.locator('button[type="submit"]', { hasText: /Tallenna|Save/i });
+		await saveButton.click();
+
+		// Wait for success toast
+		await expect(adminPage.locator("text=/Tallennettu|Saved/i")).toBeVisible({ timeout: 5000 });
+
+		// Verify the welcome message updates immediately (without page refresh)
+		await expect(welcomeHeading).toContainText(newFirstNames);
+		await expect(welcomeHeading).toContainText(newLastName);
+		await expect(welcomeHeading).not.toHaveText(originalWelcomeText);
+
+		// Verify form inputs still have the new values
+		await expect(firstNamesInput).toHaveValue(newFirstNames);
+		await expect(lastNameInput).toHaveValue(newLastName);
+
+		// Restore original values
+		await firstNamesInput.fill(originalFirstNames);
+		await lastNameInput.fill(originalLastName);
+		await saveButton.click();
+
+		// Wait for success toast
+		await expect(adminPage.locator("text=/Tallennettu|Saved/i")).toBeVisible({ timeout: 5000 });
+
+		// Verify values are restored
+		await expect(welcomeHeading).toContainText(originalFirstNames);
+		await expect(welcomeHeading).toContainText(originalLastName);
+	});
 });
