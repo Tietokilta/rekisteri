@@ -155,10 +155,10 @@ export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ emai
 		if (err && typeof err === "object" && "status" in err) {
 			throw err;
 		}
-		// Use invalid() for business logic errors - shows up in allIssues()
+		// Use invalid.email() to attach error to the email field
 		if (err instanceof Error) {
-			return invalid(err.message);
+			return invalid(invalid.email(err.message));
 		}
-		return invalid("An error occurred");
+		return invalid(invalid.email("An error occurred"));
 	}
 });

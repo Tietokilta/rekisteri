@@ -37,6 +37,22 @@
 		preferredLanguage: data.user.preferredLanguage ?? "unspecified",
 		isAllowedEmails: data.user.isAllowedEmails,
 	});
+
+	// Track if form has been validated (after first blur or submit attempt)
+	// "Reward early, validate late" pattern
+	let hasValidated = $state(false);
+
+	function handleBlur() {
+		hasValidated = true;
+		saveUserInfo.validate();
+	}
+
+	function handleInput() {
+		// Only validate on input after initial validation
+		if (hasValidated) {
+			saveUserInfo.validate();
+		}
+	}
 </script>
 
 <main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
@@ -59,7 +75,6 @@
 						toast.error($LL.user.saveError());
 					}
 				})}
-				oninput={() => saveUserInfo.validate()}
 				class="flex w-full max-w-xs flex-col gap-4"
 			>
 				<div class="space-y-2">
@@ -79,17 +94,31 @@
 
 				<div class="space-y-2">
 					<Label for="firstNames">{$LL.user.firstNames()}</Label>
-					<Input {...saveUserInfo.fields.firstNames.as("text")} id="firstNames" autocomplete="given-name" />
+					<Input
+						{...saveUserInfo.fields.firstNames.as("text")}
+						id="firstNames"
+						autocomplete="given-name"
+						onblur={handleBlur}
+						oninput={handleInput}
+						data-testid="firstNames-input"
+					/>
 					{#each saveUserInfo.fields.firstNames.issues() as issue, i (i)}
-						<p class="text-sm text-destructive">{issue.message}</p>
+						<p class="text-sm text-destructive" data-testid="firstNames-error">{issue.message}</p>
 					{/each}
 				</div>
 
 				<div class="space-y-2">
 					<Label for="lastName">{$LL.user.lastName()}</Label>
-					<Input {...saveUserInfo.fields.lastName.as("text")} id="lastName" autocomplete="family-name" />
+					<Input
+						{...saveUserInfo.fields.lastName.as("text")}
+						id="lastName"
+						autocomplete="family-name"
+						onblur={handleBlur}
+						oninput={handleInput}
+						data-testid="lastName-input"
+					/>
 					{#each saveUserInfo.fields.lastName.issues() as issue, i (i)}
-						<p class="text-sm text-destructive">{issue.message}</p>
+						<p class="text-sm text-destructive" data-testid="lastName-error">{issue.message}</p>
 					{/each}
 				</div>
 
@@ -99,9 +128,12 @@
 						{...saveUserInfo.fields.homeMunicipality.as("text")}
 						id="homeMunicipality"
 						autocomplete="address-level2"
+						onblur={handleBlur}
+						oninput={handleInput}
+						data-testid="homeMunicipality-input"
 					/>
 					{#each saveUserInfo.fields.homeMunicipality.issues() as issue, i (i)}
-						<p class="text-sm text-destructive">{issue.message}</p>
+						<p class="text-sm text-destructive" data-testid="homeMunicipality-error">{issue.message}</p>
 					{/each}
 				</div>
 

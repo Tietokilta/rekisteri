@@ -7,6 +7,21 @@
 	import * as Alert from "$lib/components/ui/alert/index.js";
 	import { addSecondaryEmailForm } from "$lib/api/secondary-emails.remote";
 	import { addSecondaryEmailSchema } from "$lib/api/secondary-emails.schema";
+
+	// Track if form has been validated (after first blur or submit attempt)
+	let hasValidated = $state(false);
+
+	function handleBlur() {
+		hasValidated = true;
+		addSecondaryEmailForm.validate();
+	}
+
+	function handleInput() {
+		// Only validate on input after initial validation (reward early, validate late)
+		if (hasValidated) {
+			addSecondaryEmailForm.validate();
+		}
+	}
 </script>
 
 <main class="container mx-auto my-8 max-w-md p-4">
@@ -16,17 +31,7 @@
 		<Alert.Description>{$LL.secondaryEmail.infoExpiring()}</Alert.Description>
 	</Alert.Root>
 
-	{#each addSecondaryEmailForm.fields.allIssues() as issue, i (i)}
-		<Alert.Root variant="destructive" class="mb-4" data-testid="add-email-error">
-			<Alert.Description>{issue.message}</Alert.Description>
-		</Alert.Root>
-	{/each}
-
-	<form
-		{...addSecondaryEmailForm.preflight(addSecondaryEmailSchema)}
-		oninput={() => addSecondaryEmailForm.validate()}
-		class="space-y-4"
-	>
+	<form {...addSecondaryEmailForm.preflight(addSecondaryEmailSchema)} class="space-y-4">
 		<div class="space-y-2">
 			<Label for="email">{$LL.secondaryEmail.emailAddress()}</Label>
 			<Input
@@ -36,9 +41,11 @@
 				autocomplete="email"
 				autocapitalize="none"
 				autocorrect="off"
+				onblur={handleBlur}
+				oninput={handleInput}
 			/>
 			{#each addSecondaryEmailForm.fields.email.issues() as issue, i (i)}
-				<p class="text-sm text-destructive">{issue.message}</p>
+				<p class="text-sm text-destructive" data-testid="add-email-error">{issue.message}</p>
 			{/each}
 		</div>
 

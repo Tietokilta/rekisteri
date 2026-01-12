@@ -69,7 +69,6 @@
 					createMembership.fields.set(data.defaultValues);
 					await invalidateAll();
 				})}
-				oninput={() => createMembership.validate()}
 				class="flex w-full max-w-xs flex-col gap-4"
 			>
 				<div class="space-y-2">
