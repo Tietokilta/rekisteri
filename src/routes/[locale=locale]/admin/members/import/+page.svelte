@@ -3,13 +3,12 @@
 	import { Label } from "$lib/components/ui/label/index.js";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import Papa from "papaparse";
-	import { csvRowSchema, type CsvRow } from "./schema";
-	import type { PageData, ActionData } from "./$types";
-	import { enhance } from "$app/forms";
+	import { csvRowSchema, type CsvRow, importMembers, importMembersSchema } from "./data.remote";
+	import type { PageData } from "./$types";
 	import { SvelteSet } from "svelte/reactivity";
 	import { LL } from "$lib/i18n/i18n-svelte";
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	let { data }: { data: PageData } = $props();
 
 	let files = $state<FileList>();
 	let csvFile = $derived(files?.item(0));
@@ -180,32 +179,31 @@
 					</div>
 				{/if}
 
-				{#if form?.success}
-					{@const successCount = form.successCount ?? 0}
-					{@const totalRows = form.totalRows ?? 0}
+				{#if importMembers.result?.success}
+					{@const successCount = importMembers.result.successCount ?? 0}
+					{@const totalRows = importMembers.result.totalRows ?? 0}
 					<div class="mb-4 rounded-md border border-green-600 bg-green-600/10 p-4">
 						<p class="font-medium text-green-600">{$LL.admin.import.success()}</p>
 						<p class="text-sm text-green-600">
 							{$LL.admin.import.successCount({ successCount, totalRows })}
 						</p>
-						{#if form.errors && form.errors.length > 0}
-							{@const errorCount = form.errors.length}
+						{#if importMembers.result.errors && importMembers.result.errors.length > 0}
+							{@const errorCount = importMembers.result.errors.length}
 							<details class="mt-2">
 								<summary class="cursor-pointer text-sm text-green-600">
 									{$LL.admin.import.viewErrors({ errorCount })}
 								</summary>
 								<ul class="mt-2 list-inside list-disc space-y-1 text-sm">
-									{#each form.errors as error, i (i)}
+									{#each importMembers.result.errors as error, i (i)}
 										<li>Row {error.row} ({error.email}): {error.error}</li>
 									{/each}
 								</ul>
 							</details>
 						{/if}
 					</div>
-				{:else if form?.success === false}
+				{:else if importMembers.result?.success === false}
 					<div class="mb-4 rounded-md border border-destructive bg-destructive/10 p-4">
 						<p class="font-medium text-destructive">{$LL.admin.import.failed()}</p>
-						<p class="text-sm text-destructive">{form.message}</p>
 					</div>
 				{/if}
 
@@ -274,17 +272,12 @@
 					</div>
 
 					<form
-						method="post"
-						action="?/import"
-						use:enhance={() => {
+						{...importMembers.preflight(importMembersSchema)}
+						onsubmit={() => {
 							isImporting = true;
-							return async ({ update }) => {
-								await update();
-								isImporting = false;
-							};
 						}}
 					>
-						<input type="hidden" name="rows" value={JSON.stringify(rows)} />
+						<input {...importMembers.fields.rows.as("hidden", JSON.stringify(rows))} />
 						<Button type="submit" disabled={!canImport} class="w-full">
 							{isImporting ? $LL.admin.import.importing() : $LL.admin.import.importButton({ count: rows.length })}
 						</Button>

@@ -5,9 +5,9 @@
 	import { Button } from "$lib/components/ui/button";
 	import { Input } from "$lib/components/ui/input";
 	import { Badge } from "$lib/components/ui/badge";
-	import { enhance } from "$app/forms";
 	import ChevronUp from "@lucide/svelte/icons/chevron-up";
 	import ChevronDown from "@lucide/svelte/icons/chevron-down";
+	import { promoteToAdmin, promoteToAdminSchema, demoteFromAdmin, demoteFromAdminSchema } from "./data.remote";
 
 	const { data }: PageProps = $props();
 
@@ -121,8 +121,8 @@
 									{/if}
 								</Table.Cell>
 								<Table.Cell class="w-[180px] text-right">
-									<form method="POST" action="?/demoteFromAdmin" use:enhance>
-										<input type="hidden" name="userId" value={user.id} />
+									<form {...demoteFromAdmin.for(user.id).preflight(demoteFromAdminSchema)}>
+										<input {...demoteFromAdmin.for(user.id).fields.userId.as("hidden", user.id)} />
 										<Button type="submit" size="sm" variant="outline" disabled={isLastAdmin}>
 											<ChevronDown class="mr-2 size-4" />
 											{$LL.admin.users.table.demote()}
@@ -205,8 +205,8 @@
 									{/if}
 								</Table.Cell>
 								<Table.Cell class="w-[180px] text-right">
-									<form method="POST" action="?/promoteToAdmin" use:enhance>
-										<input type="hidden" name="userId" value={user.id} />
+									<form {...promoteToAdmin.for(user.id).preflight(promoteToAdminSchema)}>
+										<input {...promoteToAdmin.for(user.id).fields.userId.as("hidden", user.id)} />
 										<Button type="submit" size="sm" variant="default">
 											<ChevronUp class="mr-2 size-4" />
 											{$LL.admin.users.table.promote()}

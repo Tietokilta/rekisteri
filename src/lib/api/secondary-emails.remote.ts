@@ -111,7 +111,7 @@ export const addSecondaryEmailSchema = z.object({
 /**
  * Add a new secondary email via form submission
  */
-export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ email }, issue) => {
+export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ email }) => {
 	const { locals, cookies } = getRequestEvent();
 
 	// Lazy cleanup to prevent memory leaks

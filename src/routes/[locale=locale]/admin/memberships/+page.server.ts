@@ -29,6 +29,8 @@ export const load: PageServerLoad = async (event) => {
 	const types = new Set(memberships.map((m) => m.type));
 
 	const currentYear = new Date().getFullYear();
+	// Format dates to YYYY-MM-DD for date inputs
+	const formatDate = (date: Date) => date.toISOString().slice(0, 10);
 
 	return {
 		memberships,
@@ -36,8 +38,8 @@ export const load: PageServerLoad = async (event) => {
 		defaultValues: {
 			type: "",
 			stripePriceId: "",
-			startTime: new Date(currentYear, 7, 1, 12).toISOString().split("T")[0],
-			endTime: new Date(currentYear + 1, 6, 31, 12).toISOString().split("T")[0],
+			startTime: formatDate(new Date(currentYear, 7, 1, 12)),
+			endTime: formatDate(new Date(currentYear + 1, 6, 31, 12)),
 			priceCents: 0,
 			requiresStudentVerification: false,
 		},
