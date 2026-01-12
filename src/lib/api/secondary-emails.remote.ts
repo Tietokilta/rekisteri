@@ -108,7 +108,7 @@ export const reverifySecondaryEmailForm = form(
 /**
  * Add a new secondary email via form submission
  */
-export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ email }) => {
+export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ email }, invalid) => {
 	const { locals, cookies } = getRequestEvent();
 
 	// Lazy cleanup to prevent memory leaks
@@ -155,9 +155,10 @@ export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ emai
 		if (err && typeof err === "object" && "status" in err) {
 			throw err;
 		}
+		// Use invalid() for business logic errors - shows up in allIssues()
 		if (err instanceof Error) {
-			throw error(400, err.message);
+			invalid(err.message);
 		}
-		throw error(400, "An error occurred");
+		invalid("An error occurred");
 	}
 });
