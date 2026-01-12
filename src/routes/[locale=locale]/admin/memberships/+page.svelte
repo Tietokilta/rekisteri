@@ -49,7 +49,7 @@
 										await invalidateAll();
 									})}
 								>
-									<input type="hidden" name="id" value={membership.id} />
+									<input {...deleteForm.fields.id.as("hidden", membership.id)} />
 									<Button type="submit" variant="destructive" disabled={!!deleteForm.pending}>
 										{$LL.common.delete()}
 									</Button>

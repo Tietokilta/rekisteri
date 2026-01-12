@@ -157,8 +157,8 @@ export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ emai
 		}
 		// Use invalid() for business logic errors - shows up in allIssues()
 		if (err instanceof Error) {
-			invalid(err.message);
+			return invalid(err.message);
 		}
-		invalid("An error occurred");
+		return invalid("An error occurred");
 	}
 });

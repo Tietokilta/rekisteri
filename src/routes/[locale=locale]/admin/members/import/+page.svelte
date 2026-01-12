@@ -273,10 +273,11 @@
 					</div>
 
 					<form
-						{...importMembers.preflight(importMembersSchema)}
-						onsubmit={() => {
+						{...importMembers.preflight(importMembersSchema).enhance(async ({ submit }) => {
 							isImporting = true;
-						}}
+							await submit();
+							isImporting = false;
+						})}
 					>
 						<input {...importMembers.fields.rows.as("hidden", JSON.stringify(rows))} />
 						<Button type="submit" disabled={!canImport} class="w-full">
