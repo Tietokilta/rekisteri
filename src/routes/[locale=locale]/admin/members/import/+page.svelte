@@ -59,10 +59,7 @@
 					validatedRows.push(validation.output);
 				} else {
 					const errorMessages = validation.issues
-						.map((issue) => {
-							const path = issue.path?.map((p) => p.key).join(".") || "unknown";
-							return `${path}: ${issue.message}`;
-						})
+						.map((issue) => `${issue.path?.map((p) => p.key).join(".") || "field"}: ${issue.message}`)
 						.join(", ");
 					parseErrors.push(`Row ${i + 1}: ${errorMessages}`);
 				}

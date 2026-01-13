@@ -3,10 +3,10 @@
 	import type { PageServerData } from "./$types";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import { Switch } from "$lib/components/ui/switch";
-	import { valibot } from "sveltekit-superforms/adapters";
-	import { superForm } from "sveltekit-superforms";
-	import { createSchema } from "./schema";
-	import * as Form from "$lib/components/ui/form/index.js";
+	import { saveUserInfo, signOut } from "./data.remote";
+	import { userInfoSchema } from "./schema";
+	import { Button } from "$lib/components/ui/button";
+	import { Label } from "$lib/components/ui/label";
 	import { route } from "$lib/ROUTES";
 	import { Separator } from "$lib/components/ui/separator";
 	import UserCog from "@lucide/svelte/icons/user-cog";
@@ -22,20 +22,30 @@
 
 	let { data }: { data: PageServerData } = $props();
 
-	const schema = $derived(createSchema($locale));
-
-	const form = superForm(data.form, {
-		validators: valibot(schema),
-		validationMethod: "oninput",
-		onResult({ result }) {
-			if (result.type === "success" && result.data?.success) {
-				toast.success($LL.user.saveSuccess());
-			} else if (result.type === "failure") {
-				toast.error($LL.user.saveError());
-			}
-		},
+	saveUserInfo.fields.set({
+		email: data.user.email,
+		firstNames: data.user.firstNames ?? "",
+		lastName: data.user.lastName ?? "",
+		homeMunicipality: data.user.homeMunicipality ?? "",
+		preferredLanguage: data.user.preferredLanguage ?? "unspecified",
+		isAllowedEmails: data.user.isAllowedEmails,
 	});
-	const { form: formData, enhance } = form;
+
+	// Track if form has been validated (after first blur or submit attempt)
+	// "Reward early, validate late" pattern
+	let hasValidated = $state(false);
+
+	function handleBlur() {
+		hasValidated = true;
+		saveUserInfo.validate();
+	}
+
+	function handleInput() {
+		// Only validate on input after initial validation
+		if (hasValidated) {
+			saveUserInfo.validate();
+		}
+	}
 </script>
 
 <main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
@@ -50,96 +60,103 @@
 			<h2 class="font-mono text-lg">{$LL.user.editInfo()}</h2>
 
 			<form
-				method="post"
-				action={route("saveInfo /[locale=locale]", { locale: $locale })}
-				use:enhance
+				{...saveUserInfo.preflight(userInfoSchema).enhance(async ({ submit }) => {
+					try {
+						await submit();
+						toast.success($LL.user.saveSuccess());
+					} catch {
+						toast.error($LL.user.saveError());
+					}
+				})}
 				class="flex w-full max-w-xs flex-col gap-4"
 			>
-				<Form.Field {form} name="email">
-					<Form.Control>
-						{#snippet children({ props })}
-							<Form.Label>{$LL.user.email()}</Form.Label>
-							<Input
-								{...props}
-								type="email"
-								autocomplete="email"
-								autocapitalize="none"
-								autocorrect="off"
-								readonly
-								bind:value={$formData.email}
-							/>
-						{/snippet}
-					</Form.Control>
-					<Form.FieldErrors />
-				</Form.Field>
+				<div class="space-y-2">
+					<Label for="email">{$LL.user.email()}</Label>
+					<Input
+						{...saveUserInfo.fields.email.as("email")}
+						id="email"
+						autocomplete="email"
+						autocapitalize="none"
+						autocorrect="off"
+						readonly
+					/>
+					{#each saveUserInfo.fields.email.issues() as issue, i (i)}
+						<p class="text-sm text-destructive">{issue.message}</p>
+					{/each}
+				</div>
 
-				<Form.Field {form} name="firstNames">
-					<Form.Control>
-						{#snippet children({ props })}
-							<Form.Label>{$LL.user.firstNames()}</Form.Label>
-							<Input {...props} autocomplete="given-name" bind:value={$formData.firstNames} />
-						{/snippet}
-					</Form.Control>
-					<Form.FieldErrors />
-				</Form.Field>
+				<div class="space-y-2">
+					<Label for="firstNames">{$LL.user.firstNames()}</Label>
+					<Input
+						{...saveUserInfo.fields.firstNames.as("text")}
+						id="firstNames"
+						autocomplete="given-name"
+						onblur={handleBlur}
+						oninput={handleInput}
+						data-testid="firstNames-input"
+					/>
+					{#each saveUserInfo.fields.firstNames.issues() as issue, i (i)}
+						<p class="text-sm text-destructive" data-testid="firstNames-error">{issue.message}</p>
+					{/each}
+				</div>
 
-				<Form.Field {form} name="lastName">
-					<Form.Control>
-						{#snippet children({ props })}
-							<Form.Label>{$LL.user.lastName()}</Form.Label>
-							<Input {...props} autocomplete="family-name" bind:value={$formData.lastName} />
-						{/snippet}
-					</Form.Control>
-					<Form.FieldErrors />
-				</Form.Field>
+				<div class="space-y-2">
+					<Label for="lastName">{$LL.user.lastName()}</Label>
+					<Input
+						{...saveUserInfo.fields.lastName.as("text")}
+						id="lastName"
+						autocomplete="family-name"
+						onblur={handleBlur}
+						oninput={handleInput}
+						data-testid="lastName-input"
+					/>
+					{#each saveUserInfo.fields.lastName.issues() as issue, i (i)}
+						<p class="text-sm text-destructive" data-testid="lastName-error">{issue.message}</p>
+					{/each}
+				</div>
 
-				<Form.Field {form} name="homeMunicipality">
-					<Form.Control>
-						{#snippet children({ props })}
-							<Form.Label>{$LL.user.homeMunicipality()}</Form.Label>
-							<Input {...props} autocomplete="address-level2" bind:value={$formData.homeMunicipality} />
-						{/snippet}
-					</Form.Control>
-					<Form.FieldErrors />
-				</Form.Field>
+				<div class="space-y-2">
+					<Label for="homeMunicipality">{$LL.user.homeMunicipality()}</Label>
+					<Input
+						{...saveUserInfo.fields.homeMunicipality.as("text")}
+						id="homeMunicipality"
+						autocomplete="address-level2"
+						onblur={handleBlur}
+						oninput={handleInput}
+						data-testid="homeMunicipality-input"
+					/>
+					{#each saveUserInfo.fields.homeMunicipality.issues() as issue, i (i)}
+						<p class="text-sm text-destructive" data-testid="homeMunicipality-error">{issue.message}</p>
+					{/each}
+				</div>
 
-				<Form.Field {form} name="preferredLanguage">
-					<Form.Control>
-						{#snippet children({ props })}
-							<Form.Label>{$LL.user.preferredLanguage()}</Form.Label>
-							<Form.Description>{$LL.user.preferredLanguageDescription()}</Form.Description>
-							<select
-								{...props}
-								bind:value={$formData.preferredLanguage}
-								autocomplete="language"
-								class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-							>
-								<option value="unspecified">{$LL.user.preferredLanguageOptions.unspecified()}</option>
-								<option value="finnish">{$LL.user.preferredLanguageOptions.finnish()}</option>
-								<option value="english">{$LL.user.preferredLanguageOptions.english()}</option>
-							</select>
-						{/snippet}
-					</Form.Control>
-					<Form.FieldErrors />
-				</Form.Field>
+				<div class="space-y-2">
+					<Label for="preferredLanguage">{$LL.user.preferredLanguage()}</Label>
+					<p class="text-sm text-muted-foreground">{$LL.user.preferredLanguageDescription()}</p>
+					<select
+						{...saveUserInfo.fields.preferredLanguage.as("select")}
+						id="preferredLanguage"
+						autocomplete="language"
+						class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						<option value="unspecified">{$LL.user.preferredLanguageOptions.unspecified()}</option>
+						<option value="finnish">{$LL.user.preferredLanguageOptions.finnish()}</option>
+						<option value="english">{$LL.user.preferredLanguageOptions.english()}</option>
+					</select>
+					{#each saveUserInfo.fields.preferredLanguage.issues() as issue, i (i)}
+						<p class="text-sm text-destructive">{issue.message}</p>
+					{/each}
+				</div>
 
-				<Form.Field
-					{form}
-					name="isAllowedEmails"
-					class="space-y flex flex-row items-center justify-between rounded-lg border p-4"
-				>
-					<Form.Control>
-						{#snippet children({ props })}
-							<div class="space-y-0.5">
-								<Form.Label>{$LL.user.allowEmails()}</Form.Label>
-								<Form.Description>{$LL.user.allowEmailsDescription()}</Form.Description>
-							</div>
-							<Switch {...props} bind:checked={$formData.isAllowedEmails} />
-						{/snippet}
-					</Form.Control>
-				</Form.Field>
+				<div class="space-y flex flex-row items-center justify-between rounded-lg border p-4">
+					<div class="space-y-0.5">
+						<Label for="isAllowedEmails">{$LL.user.allowEmails()}</Label>
+						<p class="text-sm text-muted-foreground">{$LL.user.allowEmailsDescription()}</p>
+					</div>
+					<Switch {...saveUserInfo.fields.isAllowedEmails.as("checkbox")} id="isAllowedEmails" />
+				</div>
 
-				<Form.Button type="submit">{$LL.common.save()}</Form.Button>
+				<Button type="submit">{$LL.common.save()}</Button>
 
 				<a
 					href={route(`/[locale=locale]/passkeys`, { locale: $locale })}
@@ -163,13 +180,9 @@
 					</div>
 				</a>
 
-				<Form.Button
-					data-testid="sign-out-button"
-					formnovalidate
-					formmethod="post"
-					formaction={route("signOut /[locale=locale]", { locale: $locale })}
-					variant="outline">{$LL.auth.signOut()}</Form.Button
-				>
+				<Button data-testid="sign-out-button" variant="outline" {...signOut.buttonProps}>
+					{$LL.auth.signOut()}
+				</Button>
 			</form>
 		</div>
 
@@ -224,7 +237,7 @@
 		<div class="flex w-full max-w-xs flex-col gap-4">
 			<h2 class="font-mono text-lg">{$LL.membership.title()}</h2>
 			<a href={route("/[locale=locale]/new", { locale: $locale })} class="flex w-full max-w-xs flex-col">
-				<Form.Button variant="default">{$LL.membership.buy()}</Form.Button>
+				<Button variant="default">{$LL.membership.buy()}</Button>
 			</a>
 			{#if data.memberships.length === 0}
 				<p class="text-sm text-muted-foreground">{$LL.membership.noMembership()}</p>
@@ -234,19 +247,19 @@
 						<div class="flex min-w-0 flex-1 flex-col gap-2">
 							<div class="flex items-center gap-2">
 								{#if membership.status === "active"}
-									<CircleCheck class="h-5 w-5 flex-shrink-0" />
+									<CircleCheck class="h-5 w-5 shrink-0" />
 									<span class="text-sm font-medium">{$LL.membership.status.active()}</span>
 								{:else if membership.status === "expired"}
-									<Trash class="h-5 w-5 flex-shrink-0" />
+									<Trash class="h-5 w-5 shrink-0" />
 									<span class="text-sm font-medium">{$LL.membership.status.expired()}</span>
 								{:else if membership.status === "awaiting_payment"}
-									<Banknote class="h-5 w-5 flex-shrink-0" />
+									<Banknote class="h-5 w-5 shrink-0" />
 									<span class="text-sm font-medium">{$LL.membership.status.awaitingPayment()}</span>
 								{:else if membership.status === "awaiting_approval"}
-									<Hourglass class="h-5 w-5 flex-shrink-0" />
+									<Hourglass class="h-5 w-5 shrink-0" />
 									<span class="text-sm font-medium">{$LL.membership.status.awaitingApproval()}</span>
 								{:else}
-									<CircleAlert class="h-5 w-5 flex-shrink-0" />
+									<CircleAlert class="h-5 w-5 shrink-0" />
 									<span class="text-sm font-medium">{$LL.membership.status.unknown()}</span>
 								{/if}
 							</div>

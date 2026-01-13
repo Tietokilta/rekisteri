@@ -1,30 +1,14 @@
 import { error } from "@sveltejs/kit";
-import type { Actions, PageServerLoad, RequestEvent } from "./$types";
+import type { PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { count, desc } from "drizzle-orm";
-import { fail, superValidate } from "sveltekit-superforms";
-import { valibot } from "sveltekit-superforms/adapters";
-import { createSchema, deleteSchema } from "./schema";
-import { sql, eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.session || !event.locals.user?.isAdmin) {
 		return error(404, "Not found");
 	}
-
-	const currentYear = new Date().getFullYear();
-
-	const form = await superValidate(valibot(createSchema), {
-		defaults: {
-			type: "",
-			stripePriceId: "",
-			startTime: new Date(currentYear, 7, 1, 12).toISOString().split("T")[0],
-			endTime: new Date(currentYear + 1, 6, 31, 12).toISOString().split("T")[0],
-			priceCents: 0,
-			requiresStudentVerification: false,
-		},
-	});
 
 	// add information member count to db query
 	const memberships = await db
@@ -44,66 +28,20 @@ export const load: PageServerLoad = async (event) => {
 
 	const types = new Set(memberships.map((m) => m.type));
 
+	const currentYear = new Date().getFullYear();
+	// Format dates to YYYY-MM-DD for date inputs
+	const formatDate = (date: Date) => date.toISOString().slice(0, 10);
+
 	return {
 		memberships,
 		types,
-		form,
+		defaultValues: {
+			type: "",
+			stripePriceId: "",
+			startTime: formatDate(new Date(currentYear, 7, 1, 12)),
+			endTime: formatDate(new Date(currentYear + 1, 6, 31, 12)),
+			priceCents: 0,
+			requiresStudentVerification: false,
+		},
 	};
 };
-
-export const actions: Actions = {
-	createMembership,
-	deleteMembership,
-};
-
-async function createMembership(event: RequestEvent) {
-	if (!event.locals.session || !event.locals.user?.isAdmin) {
-		return error(404, "Not found");
-	}
-
-	const formData = await event.request.formData();
-	const form = await superValidate(formData, valibot(createSchema));
-
-	await db
-		.insert(table.membership)
-		.values({
-			id: crypto.randomUUID(),
-			type: form.data.type,
-			stripePriceId: form.data.stripePriceId,
-			startTime: new Date(form.data.startTime),
-			endTime: new Date(form.data.endTime),
-			priceCents: form.data.priceCents,
-			requiresStudentVerification: form.data.requiresStudentVerification,
-		})
-		.execute();
-
-	return {
-		form,
-	};
-}
-
-async function deleteMembership(event: RequestEvent) {
-	if (!event.locals.session || !event.locals.user?.isAdmin) {
-		return error(404, "Not found");
-	}
-
-	const formData = await event.request.formData();
-	const form = await superValidate(formData, valibot(deleteSchema));
-
-	const memberCount = await db
-		.select({ count: count() })
-		.from(table.member)
-		.where(eq(table.member.membershipId, form.data.id))
-		.then((result) => result[0]?.count ?? 0);
-
-	if (memberCount > 0) {
-		return fail(400, {
-			form,
-			message: "Cannot delete membership with active members",
-		});
-	}
-
-	await db.delete(table.membership).where(eq(table.membership.id, form.data.id)).execute();
-
-	return { form };
-}
