@@ -164,8 +164,8 @@ export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ emai
 		}
 		// Use invalid.email() to attach error to the email field
 		if (err instanceof Error) {
-			return invalid(invalid.email(err.message));
+			return invalid.email(err.message);
 		}
-		return invalid(invalid.email("An error occurred"));
+		return invalid.email("An error occurred");
 	}
 });
