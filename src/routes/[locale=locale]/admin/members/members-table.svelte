@@ -20,12 +20,13 @@
 	import Copy from "@lucide/svelte/icons/copy";
 	import Check from "@lucide/svelte/icons/check";
 	import Download from "@lucide/svelte/icons/download";
-	import { enhance } from "$app/forms";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/state";
 	import { SvelteURLSearchParams } from "svelte/reactivity";
 	import { LL } from "$lib/i18n/i18n-svelte";
 	import { isNonEmpty } from "$lib/utils";
+	import { approveMember, rejectMember, markMemberExpired, cancelMember, reactivateMember } from "./data.remote";
+	import { memberIdSchema } from "./schema";
 
 	type MemberRow = {
 		id: string;
@@ -745,14 +746,18 @@
 													<!-- Admin Actions per membership -->
 													{#if membership.status === "awaiting_approval"}
 														<div class="flex gap-2 border-t pt-3">
-															<form method="POST" action="?/approve" use:enhance>
-																<input type="hidden" name="memberId" value={membership.id} />
+															<form {...approveMember.for(membership.id).preflight(memberIdSchema)}>
+																<input
+																	{...approveMember.for(membership.id).fields.memberId.as("hidden", membership.id)}
+																/>
 																<Button type="submit" size="sm" variant="default"
 																	>{$LL.admin.members.table.approve()}</Button
 																>
 															</form>
-															<form method="POST" action="?/reject" use:enhance>
-																<input type="hidden" name="memberId" value={membership.id} />
+															<form {...rejectMember.for(membership.id).preflight(memberIdSchema)}>
+																<input
+																	{...rejectMember.for(membership.id).fields.memberId.as("hidden", membership.id)}
+																/>
 																<Button type="submit" size="sm" variant="destructive"
 																	>{$LL.admin.members.table.reject()}</Button
 																>
@@ -760,8 +765,10 @@
 														</div>
 													{:else if membership.status === "expired" || membership.status === "cancelled"}
 														<div class="flex gap-2 border-t pt-3">
-															<form method="POST" action="?/reactivate" use:enhance>
-																<input type="hidden" name="memberId" value={membership.id} />
+															<form {...reactivateMember.for(membership.id).preflight(memberIdSchema)}>
+																<input
+																	{...reactivateMember.for(membership.id).fields.memberId.as("hidden", membership.id)}
+																/>
 																<Button type="submit" size="sm" variant="default"
 																	>{$LL.admin.members.table.reactivate()}</Button
 																>
@@ -769,14 +776,18 @@
 														</div>
 													{:else if membership.status === "active" || membership.status === "awaiting_payment"}
 														<div class="flex gap-2 border-t pt-3">
-															<form method="POST" action="?/markExpired" use:enhance>
-																<input type="hidden" name="memberId" value={membership.id} />
+															<form {...markMemberExpired.for(membership.id).preflight(memberIdSchema)}>
+																<input
+																	{...markMemberExpired.for(membership.id).fields.memberId.as("hidden", membership.id)}
+																/>
 																<Button type="submit" size="sm" variant="outline"
 																	>{$LL.admin.members.table.markExpired()}</Button
 																>
 															</form>
-															<form method="POST" action="?/cancel" use:enhance>
-																<input type="hidden" name="memberId" value={membership.id} />
+															<form {...cancelMember.for(membership.id).preflight(memberIdSchema)}>
+																<input
+																	{...cancelMember.for(membership.id).fields.memberId.as("hidden", membership.id)}
+																/>
 																<Button type="submit" size="sm" variant="destructive"
 																	>{$LL.admin.members.table.cancelMembership()}</Button
 																>

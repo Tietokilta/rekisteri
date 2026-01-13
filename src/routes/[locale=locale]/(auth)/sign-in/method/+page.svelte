@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { enhance } from "$app/forms";
 	import { goto } from "$app/navigation";
 	import type { PageData } from "./$types";
 	import { Button } from "$lib/components/ui/button/index.js";
@@ -13,6 +12,7 @@
 	import Mail from "@lucide/svelte/icons/mail";
 	import { getAuthenticationOptions, verifyAuthentication } from "$lib/api/authenticate.remote";
 	import { PersistedState } from "runed";
+	import { useEmail, changeEmail } from "./data.remote";
 
 	let { data }: { data: PageData } = $props();
 
@@ -124,7 +124,7 @@
 			</div>
 
 			<!-- Email OTP fallback -->
-			<form method="post" action="?/useEmail" use:enhance class="w-full">
+			<form {...useEmail} class="w-full">
 				<div class="relative">
 					<Button type="submit" variant="outline" class="w-full" size="lg" onclick={handleEmailClick}>
 						<Mail class="mr-2 h-5 w-5" />
@@ -141,7 +141,7 @@
 			</form>
 
 			<!-- Change email -->
-			<form method="post" action="?/changeEmail" use:enhance class="w-full">
+			<form {...changeEmail} class="w-full">
 				<Button type="submit" variant="ghost" class="w-full">{$LL.auth.passkey.useDifferentEmail()}</Button>
 			</form>
 		</Card.Content>

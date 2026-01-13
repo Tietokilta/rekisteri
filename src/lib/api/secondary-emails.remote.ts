@@ -2,9 +2,23 @@ import { error, redirect } from "@sveltejs/kit";
 import { getRequestEvent, query, form } from "$app/server";
 import { z } from "zod";
 import { dev } from "$app/environment";
-import { getUserSecondaryEmails, deleteSecondaryEmail, getSecondaryEmailById } from "$lib/server/auth/secondary-email";
+import {
+	getUserSecondaryEmails,
+	deleteSecondaryEmail,
+	getSecondaryEmailById,
+	createSecondaryEmail,
+} from "$lib/server/auth/secondary-email";
 import { createEmailOTP, sendOTPEmail, emailCookieName, emailOTPCookieName } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
+import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
+import { addSecondaryEmailSchema } from "./secondary-emails.schema";
+import { env } from "$lib/server/env";
+
+// Rate limit: 10 add attempts per user per hour in production, 1000 in test mode
+// SECURITY: Prevents email enumeration attacks
+// Higher limit when UNSAFE_DISABLE_RATE_LIMITS is set (for e2e tests)
+const isRateLimitDisabled = dev || env.UNSAFE_DISABLE_RATE_LIMITS;
+const addEmailBucket = new ExpiringTokenBucket<string>(isRateLimitDisabled ? 1000 : 10, 60 * 60);
 
 /**
  * List all secondary emails for the authenticated user
@@ -93,3 +107,61 @@ export const reverifySecondaryEmailForm = form(
 		redirect(303, route("/[locale=locale]/secondary-emails/verify", { locale: locals.locale }));
 	},
 );
+
+/**
+ * Add a new secondary email via form submission
+ */
+export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ email }, invalid) => {
+	const { locals, cookies } = getRequestEvent();
+
+	// Lazy cleanup to prevent memory leaks
+	addEmailBucket.cleanup();
+
+	if (!locals.user) {
+		throw error(401, "Not authenticated");
+	}
+
+	// Rate limit by user ID to prevent enumeration
+	if (!addEmailBucket.consume(locals.user.id, 1)) {
+		throw error(429, "Too many attempts. Please try again later.");
+	}
+
+	try {
+		// Create unverified secondary email
+		await createSecondaryEmail(locals.user.id, email);
+
+		// Create OTP and send
+		const otp = await createEmailOTP(email);
+		sendOTPEmail(email, otp.code, locals.locale);
+
+		// Set cookies for verification (matching email.ts pattern)
+		cookies.set(emailCookieName, email, {
+			expires: otp.expiresAt,
+			path: "/",
+			httpOnly: true,
+			secure: !dev,
+			sameSite: "lax",
+		});
+
+		// Set OTP cookie (otp.id is already encoded, don't double-encode it)
+		cookies.set(emailOTPCookieName, otp.id, {
+			expires: otp.expiresAt,
+			path: "/",
+			httpOnly: true,
+			secure: !dev,
+			sameSite: "lax",
+		});
+
+		redirect(303, route("/[locale=locale]/secondary-emails/verify", { locale: locals.locale }));
+	} catch (err) {
+		// Re-throw SvelteKit errors (redirect, error, etc.)
+		if (err && typeof err === "object" && "status" in err) {
+			throw err;
+		}
+		// Use invalid.email() to attach error to the email field
+		if (err instanceof Error) {
+			return invalid(invalid.email(err.message));
+		}
+		return invalid(invalid.email("An error occurred"));
+	}
+});

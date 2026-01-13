@@ -9,9 +9,8 @@ export const csvRowSchema = z.object({
 	membershipStartDate: z.string().min(1, "Membership start date is required"),
 });
 
-export const importSchema = z.object({
-	rows: z.array(csvRowSchema),
+export const importMembersSchema = z.object({
+	rows: z.string().min(1),
 });
 
 export type CsvRow = z.infer<typeof csvRowSchema>;
-export type ImportData = z.infer<typeof importSchema>;

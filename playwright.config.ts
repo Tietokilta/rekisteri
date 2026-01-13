@@ -10,6 +10,7 @@ export default defineConfig({
 		port: 4173,
 		env: {
 			DATABASE_URL: testDbUrl || "",
+			UNSAFE_DISABLE_RATE_LIMITS: "true",
 		},
 	},
 
@@ -21,5 +22,10 @@ export default defineConfig({
 		baseURL: "http://localhost:4173",
 		locale: "fi-FI",
 		timezoneId: "Europe/Helsinki",
+		trace: "on-first-retry",
+		screenshot: "only-on-failure",
 	},
+
+	retries: process.env.CI ? 2 : 0,
+	reporter: process.env.CI ? "html" : "list",
 });
