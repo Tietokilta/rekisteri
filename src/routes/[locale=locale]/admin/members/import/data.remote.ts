@@ -24,7 +24,11 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 
 	const rowsValidation = z.array(csvRowSchema).safeParse(rows);
 	if (!rowsValidation.success) {
-		error(400, "Validation failed");
+		const issues = rowsValidation.error.issues
+			.slice(0, 5) // Limit to first 5 issues
+			.map((issue) => `Row ${String(issue.path[0])}: ${issue.message}`)
+			.join("; ");
+		error(400, `Validation failed: ${issues}`);
 	}
 
 	// Fetch all memberships
