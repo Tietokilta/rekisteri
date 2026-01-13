@@ -43,6 +43,13 @@
       "when": 1767811306880,
       "tag": "0005_chemical_killmonger",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1768326371209,
+      "tag": "0006_married_warhawk",
+      "breakpoints": true
     }
   ]
 }
