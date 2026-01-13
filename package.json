@@ -54,6 +54,7 @@
 		"eslint-plugin-svelte": "^3.14.0",
 		"eslint-plugin-unicorn": "^62.0.0",
 		"globals": "^17.0.0",
+		"mdsvex": "^0.12.6",
 		"prettier": "^3.7.4",
 		"prettier-plugin-svelte": "^3.4.1",
 		"prettier-plugin-tailwindcss": "^0.7.2",
