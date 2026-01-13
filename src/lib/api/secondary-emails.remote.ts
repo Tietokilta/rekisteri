@@ -1,5 +1,6 @@
 import { error, redirect } from "@sveltejs/kit";
 import { getRequestEvent, query, form } from "$app/server";
+import { z } from "zod";
 import { dev } from "$app/environment";
 import {
 	getUserSecondaryEmails,
