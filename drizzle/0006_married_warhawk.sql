@@ -1,0 +1,1 @@
+ALTER TABLE "membership" DROP COLUMN "price_cents";
