@@ -10,6 +10,7 @@ export default defineConfig({
 		port: 4173,
 		env: {
 			DATABASE_URL: testDbUrl || "",
+			UNSAFE_DISABLE_RATE_LIMITS: "true",
 		},
 	},
 

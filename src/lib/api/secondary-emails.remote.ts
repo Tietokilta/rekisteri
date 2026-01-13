@@ -1,6 +1,5 @@
 import { error, redirect } from "@sveltejs/kit";
 import { getRequestEvent, query, form } from "$app/server";
-import { z } from "zod";
 import { dev } from "$app/environment";
 import {
 	getUserSecondaryEmails,
@@ -12,10 +11,13 @@ import { createEmailOTP, sendOTPEmail, emailCookieName, emailOTPCookieName } fro
 import { route } from "$lib/ROUTES";
 import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
 import { addSecondaryEmailSchema } from "./secondary-emails.schema";
+import { env } from "$lib/server/env";
 
-// Rate limit: 10 add attempts per user per hour
+// Rate limit: 10 add attempts per user per hour in production, 1000 in test mode
 // SECURITY: Prevents email enumeration attacks
-const addEmailBucket = new ExpiringTokenBucket<string>(10, 60 * 60);
+// Higher limit when UNSAFE_DISABLE_RATE_LIMITS is set (for e2e tests)
+const isRateLimitDisabled = dev || env.UNSAFE_DISABLE_RATE_LIMITS;
+const addEmailBucket = new ExpiringTokenBucket<string>(isRateLimitDisabled ? 1000 : 10, 60 * 60);
 
 /**
  * List all secondary emails for the authenticated user

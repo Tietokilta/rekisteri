@@ -14,6 +14,8 @@ const privateEnvSchema = z
 		NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 		// CI environment (automatically set by most CI systems like GitHub Actions)
 		CI: z.stringbool().optional().default(false),
+		// UNSAFE: Disable rate limits for e2e tests (never set in production!)
+		UNSAFE_DISABLE_RATE_LIMITS: z.stringbool().optional().default(false),
 
 		// Database
 		DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
@@ -103,6 +105,7 @@ const privateEnvSchema = z
 const parsed = privateEnvSchema.safeParse({
 	NODE_ENV: privateEnv.NODE_ENV,
 	CI: privateEnv.CI,
+	UNSAFE_DISABLE_RATE_LIMITS: privateEnv.UNSAFE_DISABLE_RATE_LIMITS,
 	DATABASE_URL: privateEnv.DATABASE_URL,
 	STRIPE_API_KEY: privateEnv.STRIPE_API_KEY,
 	STRIPE_WEBHOOK_SECRET: privateEnv.STRIPE_WEBHOOK_SECRET,
