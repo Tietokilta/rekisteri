@@ -9,8 +9,11 @@ import type { Page, CDPSession } from "@playwright/test";
 export class WebAuthnHelper {
 	private cdpSession: CDPSession | null = null;
 	private authenticatorId: string | null = null;
+	private page: Page;
 
-	constructor(private page: Page) {}
+	constructor(page: Page) {
+		this.page = page;
+	}
 
 	/**
 	 * Enable virtual authenticator with passkey-compatible defaults
