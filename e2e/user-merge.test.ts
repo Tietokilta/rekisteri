@@ -46,12 +46,11 @@ test.describe("User Merge Feature", () => {
 		test("merge button is visible for admin users", async ({ adminPage }) => {
 			await adminPage.goto("/fi/admin/users");
 
-			// Wait for table to load by checking for heading
+			// Wait for page to load by checking for heading
 			await expect(adminPage.getByRole("heading", { name: "Käyttäjät" })).toBeVisible();
-			await expect(adminPage.locator("table")).toBeVisible();
 
-			// Find merge button - should exist for any user
-			const mergeButton = adminPage.getByRole("button", { name: "Yhdistä" }).first();
+			// Find merge button in any table row - should exist for any user
+			const mergeButton = adminPage.getByRole("row").first().getByRole("button", { name: "Yhdistä" });
 			await expect(mergeButton).toBeVisible();
 		});
 
@@ -65,8 +64,8 @@ test.describe("User Merge Feature", () => {
 			const searchInput = adminPage.getByPlaceholder("Hae käyttäjiä");
 			await searchInput.fill(testUser.email);
 
-			// Wait for the specific user to appear in the table
-			await expect(adminPage.getByText(testUser.email)).toBeVisible();
+			// Wait for the specific user to appear in a table row
+			await expect(adminPage.getByRole("row").filter({ hasText: testUser.email })).toBeVisible();
 
 			// Click the merge button for this user
 			await adminPage
@@ -75,9 +74,11 @@ test.describe("User Merge Feature", () => {
 				.getByRole("button", { name: "Yhdistä" })
 				.click();
 
-			// Verify the merge modal/card appears
-			await expect(adminPage.getByRole("heading", { name: "Yhdistä käyttäjät" })).toBeVisible();
-			await expect(adminPage.getByText("Vaihe 1: Valitse yhdistettävä käyttäjä")).toBeVisible();
+			// Verify the merge wizard appears using testid
+			const mergeWizard = adminPage.getByTestId("merge-wizard");
+			await expect(mergeWizard).toBeVisible();
+			await expect(mergeWizard.getByRole("heading", { name: "Yhdistä käyttäjät" })).toBeVisible();
+			await expect(mergeWizard.getByText("Vaihe 1: Valitse yhdistettävä käyttäjä")).toBeVisible();
 		});
 	});
 
@@ -160,8 +161,8 @@ test.describe("User Merge Feature", () => {
 			const searchInput = adminPage.getByPlaceholder("Hae käyttäjiä");
 			await searchInput.fill(primaryUser.email);
 
-			// Wait for the user to appear
-			await expect(adminPage.getByText(primaryUser.email)).toBeVisible();
+			// Wait for the user to appear in a table row
+			await expect(adminPage.getByRole("row").filter({ hasText: primaryUser.email })).toBeVisible();
 
 			// Click merge button for primary user
 			await adminPage
@@ -171,33 +172,34 @@ test.describe("User Merge Feature", () => {
 				.click();
 
 			// Wait for merge wizard to open
-			await expect(adminPage.getByText("Vaihe 1: Valitse yhdistettävä käyttäjä")).toBeVisible();
+			const mergeWizard = adminPage.getByTestId("merge-wizard");
+			await expect(mergeWizard.getByText("Vaihe 1: Valitse yhdistettävä käyttäjä")).toBeVisible();
 
-			// Search for secondary user
-			const secondarySearchInput = adminPage.getByPlaceholder("Hae käyttäjiä sähköpostilla");
+			// Search for secondary user within wizard
+			const secondarySearchInput = mergeWizard.getByPlaceholder("Hae käyttäjiä sähköpostilla");
 			await secondarySearchInput.fill(secondaryUser.email);
 
 			// Wait for and click on secondary user to select
-			const secondaryUserButton = adminPage.getByRole("button", { name: secondaryUser.email });
+			const secondaryUserButton = mergeWizard.getByRole("button", { name: secondaryUser.email });
 			await expect(secondaryUserButton).toBeVisible();
 			await secondaryUserButton.click();
 
 			// Should move to step 2
-			await expect(adminPage.getByText("Vaihe 2: Tarkista yhdistettävät tiedot")).toBeVisible();
+			await expect(mergeWizard.getByText("Vaihe 2: Tarkista yhdistettävät tiedot")).toBeVisible();
 
 			// Click next to go to step 3
-			await adminPage.getByRole("button", { name: "Seuraava" }).click();
+			await mergeWizard.getByRole("button", { name: "Seuraava" }).click();
 
 			// Should be on step 3
-			await expect(adminPage.getByText("Vaihe 3: Vahvista yhdistäminen")).toBeVisible();
+			await expect(mergeWizard.getByText("Vaihe 3: Vahvista yhdistäminen")).toBeVisible();
 
 			// Fill in email confirmations - emails are now shown above inputs, not as placeholders
-			const emailInputs = adminPage.locator('input[type="email"]');
+			const emailInputs = mergeWizard.locator('input[type="email"]');
 			await emailInputs.first().fill(primaryUser.email);
 			await emailInputs.last().fill(secondaryUser.email);
 
-			// Click merge button
-			await adminPage.getByRole("button", { name: "Yhdistä käyttäjät" }).click();
+			// Click merge button using testid
+			await adminPage.getByTestId("merge-submit-button").click();
 
 			// Should show error about overlapping memberships
 			await expect(adminPage.getByText(/molemmilla käyttäjillä on jäsenyys samalle ajanjaksolle/i)).toBeVisible();
@@ -221,8 +223,8 @@ test.describe("User Merge Feature", () => {
 			const searchInput = adminPage.getByPlaceholder("Hae käyttäjiä");
 			await searchInput.fill(primaryUser.email);
 
-			// Wait for the user to appear
-			await expect(adminPage.getByText(primaryUser.email)).toBeVisible();
+			// Wait for the user to appear in a table row
+			await expect(adminPage.getByRole("row").filter({ hasText: primaryUser.email })).toBeVisible();
 
 			// Click merge button
 			await adminPage
@@ -231,27 +233,30 @@ test.describe("User Merge Feature", () => {
 				.getByRole("button", { name: "Yhdistä" })
 				.click();
 
-			// Search for secondary user
-			const secondarySearchInput = adminPage.getByPlaceholder("Hae käyttäjiä sähköpostilla");
+			// Get the merge wizard
+			const mergeWizard = adminPage.getByTestId("merge-wizard");
+
+			// Search for secondary user within wizard
+			const secondarySearchInput = mergeWizard.getByPlaceholder("Hae käyttäjiä sähköpostilla");
 			await secondarySearchInput.fill(secondaryUser.email);
 
 			// Select secondary user
-			const secondaryUserButton = adminPage.getByRole("button", { name: secondaryUser.email });
+			const secondaryUserButton = mergeWizard.getByRole("button", { name: secondaryUser.email });
 			await expect(secondaryUserButton).toBeVisible();
 			await secondaryUserButton.click();
 
 			// Go to step 3
-			await adminPage.getByRole("button", { name: "Seuraava" }).click();
+			await mergeWizard.getByRole("button", { name: "Seuraava" }).click();
 
-			// Get the email inputs
-			const emailInputs = adminPage.locator('input[type="email"]');
+			// Get the email inputs within wizard
+			const emailInputs = mergeWizard.locator('input[type="email"]');
 
 			// Try with incorrect emails
 			await emailInputs.first().fill("wrong@email.com");
 			await emailInputs.last().fill("also-wrong@email.com");
 
-			// Merge button should be disabled
-			const mergeButton = adminPage.getByRole("button", { name: "Yhdistä käyttäjät" });
+			// Merge button should be disabled - use testid
+			const mergeButton = adminPage.getByTestId("merge-submit-button");
 			await expect(mergeButton).toBeDisabled();
 
 			// Fill with correct primary email but wrong secondary
@@ -358,8 +363,8 @@ test.describe("User Merge Feature", () => {
 			const searchInput = adminPage.getByPlaceholder("Hae käyttäjiä");
 			await searchInput.fill(primaryUser.email);
 
-			// Wait for the user to appear in results
-			await expect(adminPage.getByText(primaryUser.email)).toBeVisible();
+			// Wait for the user to appear in a table row
+			await expect(adminPage.getByRole("row").filter({ hasText: primaryUser.email })).toBeVisible();
 
 			// Click merge button for this specific user
 			await adminPage
@@ -369,37 +374,38 @@ test.describe("User Merge Feature", () => {
 				.click();
 
 			// Wait for wizard
-			await expect(adminPage.getByText("Vaihe 1: Valitse yhdistettävä käyttäjä")).toBeVisible();
+			const mergeWizard = adminPage.getByTestId("merge-wizard");
+			await expect(mergeWizard.getByText("Vaihe 1: Valitse yhdistettävä käyttäjä")).toBeVisible();
 
 			// Verify primary user is shown in the card
-			await expect(adminPage.locator(".bg-muted").getByText(primaryUser.email)).toBeVisible();
+			await expect(mergeWizard.locator(".bg-muted").getByText(primaryUser.email)).toBeVisible();
 
-			// Search for secondary user
-			const secondarySearchInput = adminPage.getByPlaceholder("Hae käyttäjiä sähköpostilla");
+			// Search for secondary user within wizard
+			const secondarySearchInput = mergeWizard.getByPlaceholder("Hae käyttäjiä sähköpostilla");
 			await secondarySearchInput.fill(secondaryUser.email);
 
 			// Wait for and select secondary user
-			const secondaryUserButton = adminPage.getByRole("button", { name: secondaryUser.email });
+			const secondaryUserButton = mergeWizard.getByRole("button", { name: secondaryUser.email });
 			await expect(secondaryUserButton).toBeVisible();
 			await secondaryUserButton.click();
 
 			// Should be on step 2
-			await expect(adminPage.getByText("Vaihe 2: Tarkista yhdistettävät tiedot")).toBeVisible();
+			await expect(mergeWizard.getByText("Vaihe 2: Tarkista yhdistettävät tiedot")).toBeVisible();
 
-			// Verify both users are shown in the review
-			await expect(adminPage.getByText(primaryUser.email)).toBeVisible();
-			await expect(adminPage.getByText(secondaryUser.email)).toBeVisible();
+			// Verify both users are shown in the review (scoped to wizard)
+			await expect(mergeWizard.getByText(primaryUser.email).first()).toBeVisible();
+			await expect(mergeWizard.getByText(secondaryUser.email).first()).toBeVisible();
 
 			// Go to confirmation step
-			await adminPage.getByRole("button", { name: "Seuraava" }).click();
+			await mergeWizard.getByRole("button", { name: "Seuraava" }).click();
 
 			// Fill in confirmations - emails are displayed above the inputs
-			const emailInputs = adminPage.locator('input[type="email"]');
+			const emailInputs = mergeWizard.locator('input[type="email"]');
 			await emailInputs.first().fill(primaryUser.email);
 			await emailInputs.last().fill(secondaryUser.email);
 
-			// Click merge
-			await adminPage.getByRole("button", { name: "Yhdistä käyttäjät" }).click();
+			// Click merge using testid
+			await adminPage.getByTestId("merge-submit-button").click();
 
 			// Wait for success message
 			await expect(adminPage.getByText(/yhdistetty onnistuneesti/i)).toBeVisible();
@@ -517,7 +523,7 @@ test.describe("User Merge Feature", () => {
 			// Search for our test user
 			const searchInput = adminPage.getByPlaceholder("Hae käyttäjiä");
 			await searchInput.fill(testUser.email);
-			await expect(adminPage.getByText(testUser.email)).toBeVisible();
+			await expect(adminPage.getByRole("row").filter({ hasText: testUser.email })).toBeVisible();
 
 			// Open wizard
 			await adminPage
@@ -526,16 +532,17 @@ test.describe("User Merge Feature", () => {
 				.getByRole("button", { name: "Yhdistä" })
 				.click();
 
-			await expect(adminPage.getByRole("heading", { name: "Yhdistä käyttäjät" })).toBeVisible();
+			const mergeWizard = adminPage.getByTestId("merge-wizard");
+			await expect(mergeWizard.getByRole("heading", { name: "Yhdistä käyttäjät" })).toBeVisible();
 
 			// Close wizard with X button (the close button in the card header)
-			await adminPage
+			await mergeWizard
 				.locator("button")
 				.filter({ has: adminPage.locator("svg.lucide-x") })
 				.click();
 
 			// Wizard should be gone
-			await expect(adminPage.getByText("Vaihe 1: Valitse yhdistettävä käyttäjä")).not.toBeVisible();
+			await expect(adminPage.getByTestId("merge-wizard")).not.toBeVisible();
 
 			// Should be able to open it again
 			await adminPage
@@ -544,7 +551,9 @@ test.describe("User Merge Feature", () => {
 				.getByRole("button", { name: "Yhdistä" })
 				.click();
 
-			await expect(adminPage.getByText("Vaihe 1: Valitse yhdistettävä käyttäjä")).toBeVisible();
+			await expect(
+				adminPage.getByTestId("merge-wizard").getByText("Vaihe 1: Valitse yhdistettävä käyttäjä"),
+			).toBeVisible();
 		});
 
 		test("can navigate back through wizard steps", async ({ adminPage }) => {
@@ -556,7 +565,7 @@ test.describe("User Merge Feature", () => {
 			// Search for our test user
 			const searchInput = adminPage.getByPlaceholder("Hae käyttäjiä");
 			await searchInput.fill(testUser.email);
-			await expect(adminPage.getByText(testUser.email)).toBeVisible();
+			await expect(adminPage.getByRole("row").filter({ hasText: testUser.email })).toBeVisible();
 
 			// Open wizard
 			await adminPage
@@ -565,23 +574,26 @@ test.describe("User Merge Feature", () => {
 				.getByRole("button", { name: "Yhdistä" })
 				.click();
 
-			// Search for second test user
-			const secondarySearchInput = adminPage.getByPlaceholder("Hae käyttäjiä sähköpostilla");
+			// Get the merge wizard
+			const mergeWizard = adminPage.getByTestId("merge-wizard");
+
+			// Search for second test user within wizard
+			const secondarySearchInput = mergeWizard.getByPlaceholder("Hae käyttäjiä sähköpostilla");
 			await secondarySearchInput.fill(testUser2.email);
 
 			// Wait for and click the user button
-			const userButton = adminPage.getByRole("button", { name: testUser2.email });
+			const userButton = mergeWizard.getByRole("button", { name: testUser2.email });
 			await expect(userButton).toBeVisible();
 			await userButton.click();
 
 			// Should be on step 2
-			await expect(adminPage.getByText("Vaihe 2: Tarkista yhdistettävät tiedot")).toBeVisible();
+			await expect(mergeWizard.getByText("Vaihe 2: Tarkista yhdistettävät tiedot")).toBeVisible();
 
 			// Click previous
-			await adminPage.getByRole("button", { name: "Edellinen" }).click();
+			await mergeWizard.getByRole("button", { name: "Edellinen" }).click();
 
 			// Should be back on step 1
-			await expect(adminPage.getByText("Vaihe 1: Valitse yhdistettävä käyttäjä")).toBeVisible();
+			await expect(mergeWizard.getByText("Vaihe 1: Valitse yhdistettävä käyttäjä")).toBeVisible();
 		});
 	});
 });

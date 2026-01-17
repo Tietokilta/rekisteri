@@ -162,7 +162,7 @@
 
 	<!-- Merge Users Modal/Card -->
 	{#if mergeModalOpen && primaryUser}
-		<Card.Root class="mb-6 border-2 border-primary">
+		<Card.Root class="mb-6 border-2 border-primary" data-testid="merge-wizard">
 			<Card.Header>
 				<div class="flex items-start justify-between">
 					<div>
@@ -350,6 +350,7 @@
 								disabled={mergeInProgress ||
 									confirmPrimaryEmail.toLowerCase() !== primaryUser.email.toLowerCase() ||
 									confirmSecondaryEmail.toLowerCase() !== secondaryUser.email.toLowerCase()}
+								data-testid="merge-submit-button"
 							>
 								{mergeInProgress ? $LL.admin.users.merge.merging() : $LL.admin.users.merge.mergeUsers()}
 							</Button>
