@@ -273,4 +273,78 @@ test.describe("Secondary Email OTP Flow", () => {
 			.where(eq(table.secondaryEmail.email, testEmail.toLowerCase()));
 		expect(emails).toHaveLength(0);
 	});
+
+	test("should change primary email successfully", async ({ adminPage, adminUser }, testInfo) => {
+		const testEmail = getTestEmail("make-primary", testInfo.workerIndex);
+		const originalPrimaryEmail = adminUser.email;
+
+		// Add and verify a secondary email
+		await addEmailAndNavigateToVerify(adminPage, testEmail);
+		await verifyEmailWithOTP(adminPage, testEmail);
+
+		// Navigate to secondary emails page
+		await adminPage.goto("/fi/secondary-emails");
+		await adminPage.getByTestId("add-secondary-email").waitFor({ state: "visible" });
+
+		// Find the new verified email row and click "Make Primary"
+		const emailRow = getEmailRow(adminPage, testEmail);
+		await expect(emailRow).toBeVisible();
+
+		// Set up dialog handler before clicking
+		adminPage.on("dialog", (dialog) => dialog.accept());
+
+		await emailRow.getByTestId("make-primary-email").click();
+
+		// Wait for the page to update
+		await adminPage.waitForTimeout(500);
+
+		// Verify the new primary email is shown as primary
+		const primarySection = adminPage.locator('[data-slot="item"]').first();
+		await expect(primarySection).toContainText(testEmail);
+
+		// Verify the old primary email is now a secondary email
+		const oldPrimaryRow = getEmailRow(adminPage, originalPrimaryEmail);
+		await expect(oldPrimaryRow).toBeVisible();
+
+		// Verify database state
+		const [user] = await db.select().from(table.user).where(eq(table.user.id, adminUser.id));
+		expect(user?.email.toLowerCase()).toBe(testEmail.toLowerCase());
+
+		// The old primary should now be a secondary email
+		const secondaryEmails = await db
+			.select()
+			.from(table.secondaryEmail)
+			.where(eq(table.secondaryEmail.userId, adminUser.id));
+		const oldPrimaryAsSecondary = secondaryEmails.find(
+			(e) => e.email.toLowerCase() === originalPrimaryEmail.toLowerCase(),
+		);
+		expect(oldPrimaryAsSecondary).toBeDefined();
+		expect(oldPrimaryAsSecondary?.verifiedAt).not.toBeNull();
+
+		// The new primary should no longer be a secondary email
+		const newPrimaryAsSecondary = secondaryEmails.find((e) => e.email.toLowerCase() === testEmail.toLowerCase());
+		expect(newPrimaryAsSecondary).toBeUndefined();
+
+		// Clean up: Restore original primary email for other tests
+		await db.update(table.user).set({ email: originalPrimaryEmail }).where(eq(table.user.id, adminUser.id));
+		await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.userId, adminUser.id));
+	});
+
+	test("should not show make primary button for unverified emails", async ({ adminPage }, testInfo) => {
+		const testEmail = getTestEmail("unverified-no-primary", testInfo.workerIndex);
+
+		// Add email but don't verify
+		await addEmailAndNavigateToVerify(adminPage, testEmail);
+
+		// Go back to secondary emails page without verifying
+		await adminPage.goto("/fi/secondary-emails");
+		await adminPage.getByTestId("add-secondary-email").waitFor({ state: "visible" });
+
+		const emailRow = getEmailRow(adminPage, testEmail);
+		await expect(emailRow).toBeVisible();
+
+		// "Make Primary" button should not exist for unverified emails
+		const makePrimaryButton = emailRow.getByTestId("make-primary-email");
+		await expect(makePrimaryButton).toBeHidden();
+	});
 });

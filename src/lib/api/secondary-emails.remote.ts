@@ -7,6 +7,7 @@ import {
 	deleteSecondaryEmail,
 	getSecondaryEmailById,
 	createSecondaryEmail,
+	changePrimaryEmail,
 } from "$lib/server/auth/secondary-email";
 import { createEmailOTP, sendOTPEmail, emailCookieName, emailOTPCookieName } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
@@ -105,6 +106,28 @@ export const reverifySecondaryEmailForm = form(
 
 		// Server-side redirect ensures cookies are properly set before navigation
 		redirect(303, route("/[locale=locale]/secondary-emails/verify", { locale: locals.locale }));
+	},
+);
+
+/**
+ * Change primary email via form submission
+ */
+export const changePrimaryEmailForm = form(
+	v.object({
+		emailId: v.pipe(v.string(), v.minLength(1, "Email ID is required")),
+	}),
+	async ({ emailId }) => {
+		const { locals } = getRequestEvent();
+
+		if (!locals.user) {
+			throw error(401, "Not authenticated");
+		}
+
+		const success = await changePrimaryEmail(emailId, locals.user.id);
+
+		if (!success) {
+			throw error(400, "Could not change primary email. Email must be verified and not expired.");
+		}
 	},
 );
 

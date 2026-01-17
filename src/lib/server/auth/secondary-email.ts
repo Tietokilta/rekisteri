@@ -253,3 +253,80 @@ export async function deleteSecondaryEmail(emailId: string, userId: string): Pro
 
 	return true;
 }
+
+/**
+ * Change user's primary email to a secondary email
+ * The current primary email becomes a secondary email
+ *
+ * Validates:
+ * - Secondary email exists and belongs to user
+ * - Secondary email is verified
+ * - Not expired (if expiry is set)
+ *
+ * Process:
+ * 1. Validates secondary email
+ * 2. Gets current primary email from user record
+ * 3. In a transaction:
+ *    a. Updates user's primary email
+ *    b. Deletes the promoted secondary email record
+ *    c. Creates new secondary email from old primary
+ *
+ * Returns true if successful, false if validation fails
+ */
+export async function changePrimaryEmail(emailId: string, userId: string): Promise<boolean> {
+	// Get and validate the secondary email
+	const secondaryEmail = await getSecondaryEmailById(emailId, userId);
+	if (!secondaryEmail) {
+		return false;
+	}
+
+	// Must be verified
+	if (!secondaryEmail.verifiedAt) {
+		return false;
+	}
+
+	// Must not be expired
+	if (!isSecondaryEmailValid(secondaryEmail)) {
+		return false;
+	}
+
+	// Get current user record
+	const [user] = await db.select().from(table.user).where(eq(table.user.id, userId));
+	if (!user) {
+		return false;
+	}
+
+	const oldPrimaryEmail = user.email;
+	const newPrimaryEmail = secondaryEmail.email;
+
+	// Don't do anything if they're already the same
+	if (oldPrimaryEmail.toLowerCase() === newPrimaryEmail.toLowerCase()) {
+		return false;
+	}
+
+	// Perform the swap in a transaction to ensure atomicity
+	await db.transaction(async (tx) => {
+		// 1. Update user's primary email
+		await tx.update(table.user).set({ email: newPrimaryEmail }).where(eq(table.user.id, userId));
+
+		// 2. Delete the promoted secondary email
+		await tx.delete(table.secondaryEmail).where(eq(table.secondaryEmail.id, emailId));
+
+		// 3. Create new secondary email from old primary
+		const oldPrimaryDomain = extractDomain(oldPrimaryEmail);
+		const newSecondaryEmail: SecondaryEmail = {
+			id: crypto.randomUUID(),
+			userId,
+			email: oldPrimaryEmail.toLowerCase(),
+			domain: oldPrimaryDomain,
+			verifiedAt: new Date(), // Old primary is already verified
+			expiresAt: calculateExpiry(oldPrimaryDomain, new Date()),
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		};
+
+		await tx.insert(table.secondaryEmail).values(newSecondaryEmail);
+	});
+
+	return true;
+}

@@ -11,5 +11,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	return {
 		emails,
+		primaryEmail: locals.user.email,
 	};
 };
