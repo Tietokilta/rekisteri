@@ -10,6 +10,7 @@
 	import CircleAlert from "@lucide/svelte/icons/circle-alert";
 	import { payMembership } from "./data.remote";
 	import { payMembershipSchema } from "./schema";
+	import { getStripePriceMetadata } from "$lib/api/stripe.remote";
 
 	const { data }: PageProps = $props();
 
@@ -47,7 +48,14 @@
 								<input {...payMembership.fields.membershipId.as("radio", membership.id)} required class="mt-1" />
 								<div class="flex flex-col">
 									<span class="font-medium">
-										{membership.type} ({membership.priceCents / 100} €)
+										{membership.type}
+										{#await getStripePriceMetadata(membership.stripePriceId)}
+											(...)
+										{:then priceMetadata}
+											({priceMetadata.priceCents / 100} {priceMetadata.currency.toUpperCase()})
+										{:catch}
+											(-)
+										{/await}
 									</span>
 									<span class="text-sm text-muted-foreground">
 										{new Date(membership.startTime).toLocaleDateString(`${$locale}-FI`)}
@@ -115,8 +123,18 @@
 					<Button type="submit" disabled={disableForm} class={disableForm ? "cursor-not-allowed opacity-50" : ""}>
 						{$LL.membership.buy()}
 						{#if payMembership.fields.membershipId.value()}
-							({(availableMemberships.find((x) => x.id === payMembership.fields.membershipId.value())?.priceCents ??
-								0) / 100} €)
+							{@const selectedMembership = availableMemberships.find(
+								(x) => x.id === payMembership.fields.membershipId.value(),
+							)}
+							{#if selectedMembership}
+								{#await getStripePriceMetadata(selectedMembership.stripePriceId)}
+									(...)
+								{:then priceMetadata}
+									({priceMetadata.priceCents / 100} {priceMetadata.currency.toUpperCase()})
+								{:catch}
+									(-)
+								{/await}
+							{/if}
 						{/if}
 					</Button>
 				</form>

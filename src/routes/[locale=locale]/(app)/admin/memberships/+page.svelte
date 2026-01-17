@@ -69,24 +69,25 @@
 			<ul class="space-y-4">
 				{#each data.memberships as membership (membership.id)}
 					{@const deleteForm = deleteMembership.for(membership.id)}
-					{@const priceMetadata = data.priceMetadataMap[membership.stripePriceId]}
 					<li class="flex items-center justify-between space-x-4 rounded-md border p-4">
 						<div class="text-sm">
 							<p class="font-medium">{membership.type}</p>
-							{#if priceMetadata?.productName}
-								<p class="text-xs text-muted-foreground">{priceMetadata.productName}</p>
-							{/if}
-							<p>
-								<time datetime={membership.startTime.toISOString()}
-									>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time
-								>–<time datetime={membership.endTime.toISOString()}
-									>{membership.endTime.toLocaleDateString(`${$locale}-FI`)}</time
-								>
-							</p>
-							<p class="text-muted-foreground">
-								{$LL.admin.memberships.stripePriceIdLabel({ stripePriceId: membership.stripePriceId })}
-							</p>
-							{#if priceMetadata}
+							{#await getStripePriceMetadata(membership.stripePriceId)}
+								<p class="text-xs text-muted-foreground">{$LL.admin.memberships.fetchingStripeMetadata()}...</p>
+							{:then priceMetadata}
+								{#if priceMetadata.productName}
+									<p class="text-xs text-muted-foreground">{priceMetadata.productName}</p>
+								{/if}
+								<p>
+									<time datetime={membership.startTime.toISOString()}
+										>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time
+									>–<time datetime={membership.endTime.toISOString()}
+										>{membership.endTime.toLocaleDateString(`${$locale}-FI`)}</time
+									>
+								</p>
+								<p class="text-muted-foreground">
+									{$LL.admin.memberships.stripePriceIdLabel({ stripePriceId: membership.stripePriceId })}
+								</p>
 								<p class="text-muted-foreground">
 									{$LL.membership.price({ price: priceMetadata.priceCents / 100 })}
 									{priceMetadata.currency.toUpperCase()}
@@ -94,10 +95,21 @@
 								{#if !priceMetadata.active}
 									<p class="text-xs text-destructive">{$LL.admin.memberships.priceInactive()}</p>
 								{/if}
-							{:else}
-								<p class="text-xs text-muted-foreground">{$LL.admin.memberships.fetchingStripeMetadata()}...</p>
-							{/if}
-							<p class="text-muted-foreground">{$LL.admin.members.count({ count: membership.memberCount })}</p>
+								<p class="text-muted-foreground">{$LL.admin.members.count({ count: membership.memberCount })}</p>
+							{:catch}
+								<p>
+									<time datetime={membership.startTime.toISOString()}
+										>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time
+									>–<time datetime={membership.endTime.toISOString()}
+										>{membership.endTime.toLocaleDateString(`${$locale}-FI`)}</time
+									>
+								</p>
+								<p class="text-muted-foreground">
+									{$LL.admin.memberships.stripePriceIdLabel({ stripePriceId: membership.stripePriceId })}
+								</p>
+								<p class="text-xs text-destructive">Failed to load price</p>
+								<p class="text-muted-foreground">{$LL.admin.members.count({ count: membership.memberCount })}</p>
+							{/await}
 						</div>
 						<div>
 							{#if membership.memberCount === 0}
