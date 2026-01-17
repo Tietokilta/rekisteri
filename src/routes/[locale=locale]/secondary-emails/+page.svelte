@@ -4,7 +4,6 @@
 	import { route } from "$lib/ROUTES";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import * as Item from "$lib/components/ui/item/index.js";
-	import * as Empty from "$lib/components/ui/empty/index.js";
 	import { Badge } from "$lib/components/ui/badge/index.js";
 	import Mail from "@lucide/svelte/icons/mail";
 	import CircleCheck from "@lucide/svelte/icons/circle-check";
@@ -49,27 +48,28 @@
 		</Button>
 	</div>
 
-	{#if data.emails.length === 0}
-		<Empty.Root class="border">
-			<Empty.Header>
-				<Empty.Media variant="icon">
-					<Mail />
-				</Empty.Media>
-			</Empty.Header>
-			<Empty.Title>{$LL.secondaryEmail.noEmails()}</Empty.Title>
-			<Empty.Content>
-				<p class="text-muted-foreground">{$LL.secondaryEmail.noEmailsDescription()}</p>
-				<Button
-					href={route("/[locale=locale]/secondary-emails/add", { locale: $locale })}
-					class="mt-4"
-					data-testid="add-secondary-email-empty"
-				>
-					{$LL.secondaryEmail.addEmail()}
-				</Button>
-			</Empty.Content>
-		</Empty.Root>
-	{:else}
-		<div class="space-y-4">
+	<div class="space-y-4">
+		<!-- Primary Email -->
+		<Item.Root variant="outline">
+			<Item.Media variant="icon">
+				<Mail />
+			</Item.Media>
+			<Item.Content>
+				<Item.Title>
+					<span>{data.primaryEmail}</span>
+					<Badge variant="default" class="gap-1">
+						<Star class="h-3 w-3 fill-current" />
+						{$LL.secondaryEmail.primary()}
+					</Badge>
+				</Item.Title>
+				<Item.Description>
+					<span class="text-muted-foreground">{$LL.secondaryEmail.primaryDescription()}</span>
+				</Item.Description>
+			</Item.Content>
+		</Item.Root>
+
+		<!-- Secondary Emails -->
+		{#if data.emails.length > 0}
 			{#each data.emails as email (email.id)}
 				{@const deleteForm = deleteSecondaryEmailForm.for(email.id)}
 				{@const reverifyForm = reverifySecondaryEmailForm.for(email.id)}
@@ -178,6 +178,6 @@
 					</Item.Actions>
 				</Item.Root>
 			{/each}
-		</div>
-	{/if}
+		{/if}
+	</div>
 </main>

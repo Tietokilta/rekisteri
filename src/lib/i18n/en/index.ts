@@ -93,8 +93,12 @@ const en = {
 	// Secondary Emails
 	secondaryEmail: {
 		// Page titles
-		title: "Secondary Emails",
-		manageDescription: "Manage secondary emails for signing in and verifying membership",
+		title: "Emails",
+		manageDescription: "Manage emails for signing in and verifying membership",
+
+		// Primary email
+		primary: "Primary",
+		primaryDescription: "This is your primary email address",
 
 		// Add email
 		addEmail: "Add secondary email",
