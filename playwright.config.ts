@@ -17,6 +17,10 @@ export default defineConfig({
 			DATABASE_URL: testDbUrl,
 			UNSAFE_DISABLE_RATE_LIMITS: "true",
 			TEST: "true",
+			// WebAuthn/Passkey configuration for test environment
+			RP_ORIGIN: "http://localhost:4173",
+			RP_ID: "localhost",
+			RP_NAME: "Tietokilta Rekisteri",
 		},
 	},
 
