@@ -113,8 +113,8 @@ export const reverifySecondaryEmailForm = form(
  * Change primary email via form submission
  */
 export const changePrimaryEmailForm = form(
-	z.object({
-		emailId: z.string().min(1, "Email ID is required"),
+	v.object({
+		emailId: v.pipe(v.string(), v.minLength(1, "Email ID is required")),
 	}),
 	async ({ emailId }) => {
 		const { locals } = getRequestEvent();
