@@ -243,8 +243,10 @@
 
 						<div class="grid gap-4 md:grid-cols-2">
 							<div>
-								<p class="mb-2 text-sm font-medium text-green-600">{$LL.admin.users.merge.primaryUser()}</p>
-								<div class="rounded-md border bg-green-50 p-3">
+								<p class="mb-2 text-sm font-medium text-primary">
+									{$LL.admin.users.merge.primaryUser()}
+								</p>
+								<div class="rounded-md border border-primary/20 bg-primary/5 p-3">
 									<p class="font-mono text-sm">{primaryUser.email}</p>
 									{#if primaryUser.firstNames || primaryUser.lastName}
 										<p class="text-sm text-muted-foreground">
@@ -259,8 +261,10 @@
 							</div>
 
 							<div>
-								<p class="mb-2 text-sm font-medium text-orange-600">{$LL.admin.users.merge.secondaryUser()}</p>
-								<div class="rounded-md border bg-orange-50 p-3">
+								<p class="mb-2 text-sm font-medium text-destructive">
+									{$LL.admin.users.merge.secondaryUser()}
+								</p>
+								<div class="rounded-md border border-destructive/20 bg-destructive/5 p-3">
 									<p class="font-mono text-sm">{secondaryUser.email}</p>
 									{#if secondaryUser.firstNames || secondaryUser.lastName}
 										<p class="text-sm text-muted-foreground">
@@ -320,27 +324,19 @@
 
 						<div class="space-y-4">
 							<div>
-								<label for="confirmPrimaryEmail" class="mb-2 block text-sm font-medium">
+								<label for="confirmPrimaryEmail" class="mb-1 block text-sm font-medium">
 									{$LL.admin.users.merge.typePrimaryEmail()}
 								</label>
-								<Input
-									id="confirmPrimaryEmail"
-									type="email"
-									placeholder={primaryUser.email}
-									bind:value={confirmPrimaryEmail}
-								/>
+								<p class="mb-2 font-mono text-sm text-primary">{primaryUser.email}</p>
+								<Input id="confirmPrimaryEmail" type="email" bind:value={confirmPrimaryEmail} />
 							</div>
 
 							<div>
-								<label for="confirmSecondaryEmail" class="mb-2 block text-sm font-medium">
+								<label for="confirmSecondaryEmail" class="mb-1 block text-sm font-medium">
 									{$LL.admin.users.merge.typeSecondaryEmail()}
 								</label>
-								<Input
-									id="confirmSecondaryEmail"
-									type="email"
-									placeholder={secondaryUser.email}
-									bind:value={confirmSecondaryEmail}
-								/>
+								<p class="mb-2 font-mono text-sm text-destructive">{secondaryUser.email}</p>
+								<Input id="confirmSecondaryEmail" type="email" bind:value={confirmSecondaryEmail} />
 							</div>
 						</div>
 
