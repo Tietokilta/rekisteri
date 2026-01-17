@@ -16,18 +16,11 @@
 	import Hourglass from "@lucide/svelte/icons/hourglass";
 	import Banknote from "@lucide/svelte/icons/banknote";
 	import { toast } from "svelte-sonner";
-	import * as z from "zod";
-	import { fi, en } from "zod/locales";
 	import KeyRound from "@lucide/svelte/icons/key-round";
 	import Mail from "@lucide/svelte/icons/mail";
 	import PasskeyRegistrationBanner from "$lib/components/PasskeyRegistrationBanner.svelte";
 
 	let { data }: { data: PageServerData } = $props();
-
-	// Configure Zod locale based on current language
-	$effect(() => {
-		z.config($locale === "fi" ? fi() : en());
-	});
 
 	saveUserInfo.fields.set({
 		email: data.user.email,

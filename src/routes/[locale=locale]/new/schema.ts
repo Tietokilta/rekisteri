@@ -1,5 +1,5 @@
-import * as z from "zod";
+import * as v from "valibot";
 
-export const payMembershipSchema = z.object({
-	membershipId: z.string().min(1),
+export const payMembershipSchema = v.object({
+	membershipId: v.pipe(v.string(), v.minLength(1)),
 });

@@ -4,7 +4,13 @@
 			"type": "stdio",
 			"command": "pnpx",
 			"env": {},
-			"args": ["-y", "@sveltejs/mcp"]
+			"args": ["@sveltejs/mcp@latest"]
+		},
+		"playwright": {
+			"type": "stdio",
+			"command": "pnpx",
+			"env": {},
+			"args": ["@playwright/mcp@latest"]
 		}
 	}
 }

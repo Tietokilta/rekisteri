@@ -1,5 +1,5 @@
-import { z } from "zod";
+import * as v from "valibot";
 
-export const addSecondaryEmailSchema = z.object({
-	email: z.email(),
+export const addSecondaryEmailSchema = v.object({
+	email: v.pipe(v.string(), v.email()),
 });

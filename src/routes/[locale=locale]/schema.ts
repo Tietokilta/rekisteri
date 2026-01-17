@@ -1,15 +1,15 @@
-import * as z from "zod";
+import * as v from "valibot";
 import { PREFERRED_LANGUAGE_VALUES } from "$lib/shared/enums";
 
-export const userInfoSchema = z.object({
-	email: z.email(),
-	firstNames: z.string().min(1),
-	lastName: z.string().min(1),
-	homeMunicipality: z.string().min(1),
-	preferredLanguage: z.enum(PREFERRED_LANGUAGE_VALUES),
+export const userInfoSchema = v.object({
+	email: v.pipe(v.string(), v.email()),
+	firstNames: v.pipe(v.string(), v.minLength(1)),
+	lastName: v.pipe(v.string(), v.minLength(1)),
+	homeMunicipality: v.pipe(v.string(), v.minLength(1)),
+	preferredLanguage: v.picklist(PREFERRED_LANGUAGE_VALUES),
 	// For checkbox inputs in remote forms, use optional boolean with default
 	// since unchecked checkboxes don't submit values
-	isAllowedEmails: z.optional(z.boolean()).default(false),
+	isAllowedEmails: v.optional(v.boolean(), false),
 });
 
-export type UserInfo = z.infer<typeof userInfoSchema>;
+export type UserInfo = v.InferOutput<typeof userInfoSchema>;

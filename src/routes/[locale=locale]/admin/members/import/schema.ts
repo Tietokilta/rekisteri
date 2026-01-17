@@ -1,16 +1,16 @@
-import * as z from "zod";
+import * as v from "valibot";
 
-export const csvRowSchema = z.object({
-	firstNames: z.string().min(1, "First names are required"),
-	lastName: z.string().min(1, "Last name is required"),
-	homeMunicipality: z.string().min(1, "Home municipality is required"),
-	email: z.email("Invalid email format"),
-	membershipType: z.string().min(1, "Membership type is required"),
-	membershipStartDate: z.string().min(1, "Membership start date is required"),
+export const csvRowSchema = v.object({
+	firstNames: v.pipe(v.string(), v.minLength(1)),
+	lastName: v.pipe(v.string(), v.minLength(1)),
+	homeMunicipality: v.pipe(v.string(), v.minLength(1)),
+	email: v.pipe(v.string(), v.email()),
+	membershipType: v.pipe(v.string(), v.minLength(1)),
+	membershipStartDate: v.pipe(v.string(), v.minLength(1)),
 });
 
-export const importMembersSchema = z.object({
-	rows: z.string().min(1),
+export const importMembersSchema = v.object({
+	rows: v.pipe(v.string(), v.minLength(1)),
 });
 
-export type CsvRow = z.infer<typeof csvRowSchema>;
+export type CsvRow = v.InferOutput<typeof csvRowSchema>;

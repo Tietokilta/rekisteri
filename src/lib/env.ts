@@ -1,27 +1,26 @@
 import { env as publicEnv } from "$env/dynamic/public";
-import { PUBLIC_GIT_COMMIT_SHA } from "$env/static/public";
-import { z } from "zod";
+import * as v from "valibot";
 
 /**
  * Public environment variable validation schema.
  * These variables are available on both client and server.
  */
-const publicEnvSchema = z.object({
+const publicEnvSchema = v.object({
 	// Public URL (required for Stripe redirects and other use cases)
-	PUBLIC_URL: z.url({ protocol: /^https?$/ }),
+	PUBLIC_URL: v.pipe(v.string(), v.url(), v.regex(/^https?:\/\/.+/, "PUBLIC_URL must use http or https protocol")),
 	// Git commit SHA for version display (optional, baked in at build time)
-	PUBLIC_GIT_COMMIT_SHA: z.string().optional(),
+	PUBLIC_GIT_COMMIT_SHA: v.optional(v.string()),
 });
 
 // Validate public environment variables at module load (fail fast)
-const parsed = publicEnvSchema.safeParse({
+const parsed = v.safeParse(publicEnvSchema, {
 	PUBLIC_URL: publicEnv.PUBLIC_URL,
-	PUBLIC_GIT_COMMIT_SHA: PUBLIC_GIT_COMMIT_SHA || undefined,
+	PUBLIC_GIT_COMMIT_SHA: publicEnv.PUBLIC_GIT_COMMIT_SHA || undefined,
 });
 
 if (!parsed.success) {
 	console.error("❌ Invalid public environment variables:");
-	console.error(JSON.stringify(z.treeifyError(parsed.error), null, 2));
+	console.error(JSON.stringify(v.flatten(parsed.issues), null, 2));
 	throw new Error("Public environment validation failed. Check the errors above.");
 }
 
@@ -34,9 +33,9 @@ if (!parsed.success) {
  * import { env } from "$lib/env";
  * const redirectUrl = `${env.PUBLIC_URL}/callback`;
  */
-export const env = parsed.data;
+export const env = parsed.output;
 
 /**
  * Type definition for validated public environment variables
  */
-export type PublicEnv = z.infer<typeof publicEnvSchema>;
+export type PublicEnv = v.InferOutput<typeof publicEnvSchema>;

@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
-import * as z from "zod";
+import * as v from "valibot";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -22,11 +22,14 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 		error(400, "Invalid data format");
 	}
 
-	const rowsValidation = z.array(csvRowSchema).safeParse(rows);
+	const rowsValidation = v.safeParse(v.array(csvRowSchema), rows);
 	if (!rowsValidation.success) {
-		const issues = rowsValidation.error.issues
+		const issues = rowsValidation.issues
 			.slice(0, 5) // Limit to first 5 issues
-			.map((issue) => `Row ${String(issue.path[0])}: ${issue.message}`)
+			.map((issue) => {
+				const path = issue.path?.map((p) => p.key).join(".") || "unknown";
+				return `Row ${path}: ${issue.message}`;
+			})
 			.join("; ");
 		error(400, `Validation failed: ${issues}`);
 	}

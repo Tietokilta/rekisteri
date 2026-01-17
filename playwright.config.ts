@@ -4,12 +4,17 @@ import { loadEnvFile } from "./e2e/utils";
 loadEnvFile();
 const testDbUrl = process.env.DATABASE_URL_TEST;
 
+if (!testDbUrl) {
+	throw new Error("DATABASE_URL_TEST not found in environment. Make sure .env file exists.");
+}
+
 export default defineConfig({
 	webServer: {
 		command: "pnpm build && pnpm preview",
 		port: 4173,
+		reuseExistingServer: !process.env.CI,
 		env: {
-			DATABASE_URL: testDbUrl || "",
+			DATABASE_URL: testDbUrl,
 			UNSAFE_DISABLE_RATE_LIMITS: "true",
 		},
 	},
