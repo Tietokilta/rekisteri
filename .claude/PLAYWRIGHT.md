@@ -277,17 +277,29 @@ await page.getByText("Tervetuloa takaisin!").waitFor();
 await page.getByText("Poista").click();  // Better to use getByRole
 ```
 
-### 4. CSS Selectors (Last Resort)
+### 4. Stable Attribute Selectors
 
-Only when no better option exists:
+Use standard HTML attributes when semantic roles aren't specific enough:
 
 ```typescript
-// Only when necessary
+// ✅ Good: Stable HTML attributes (type, name, autocomplete)
 await page.locator('input[type="email"]').fill(email);
 await page.locator('input[autocomplete="given-name"]').fill("John");
+await page.locator('input[name="homeMunicipality"]').fill("Helsinki");
 ```
 
-### ❌ Avoid These Selectors
+**Why these are better than generic CSS:** Standard HTML attributes like `type`, `name`, and `autocomplete` are stable and meaningful. They're better than class names but not as robust as semantic roles.
+
+### 5. Generic CSS Selectors (Last Resort)
+
+Avoid when possible:
+
+```typescript
+// ⚠️ Use only when absolutely necessary
+await page.locator("form > div:nth-child(3) input").fill(value);
+```
+
+### ❌ Never Use These Selectors
 
 ```typescript
 // DON'T use brittle selectors
@@ -382,7 +394,8 @@ await page.getByTestId("sign-in-button").click();
 1. **`getByRole` / `getByLabel`** (with locked locale) - Best for accessibility and functionality
 2. **`getByTestId`** - Use when text is dynamic or you test multiple locales
 3. **`getByText`** - Only for stable, unique text
-4. **CSS selectors** - Last resort
+4. **Stable attribute selectors** - `type`, `name`, `autocomplete` when semantic roles aren't specific enough
+5. **Generic CSS selectors** - Last resort
 
 **Don't downgrade semantic selectors.** Standardize the environment (locked locale) so text is predictable.
 
@@ -794,7 +807,45 @@ test("should submit form", async ({ adminPage }) => {
 });
 ```
 
-### Pattern 2: Handle OTP Flow
+### Pattern 2: Validate Complex Forms with Soft Assertions
+
+When validating multiple fields in a form, use **soft assertions** so the test doesn't stop at the first failure. This shows all validation errors at once.
+
+```typescript
+test("should validate all form fields", async ({ adminPage }) => {
+	await adminPage.goto("/fi/profile");
+
+	// Fill and submit form
+	await adminPage.getByLabel("Etunimi").fill("John");
+	await adminPage.getByLabel("Sukunimi").fill("Doe");
+	await adminPage.getByLabel("Sähköposti").fill("john@example.com");
+	await adminPage.getByLabel("Kotikunta").fill("Helsinki");
+	await adminPage.getByRole("button", { name: "Tallenna" }).click();
+
+	await adminPage.waitForURL(/success/);
+
+	// Verify all fields with soft assertions
+	// If any fail, test continues and reports ALL failures
+	await expect.soft(adminPage.getByLabel("Etunimi")).toHaveValue("John");
+	await expect.soft(adminPage.getByLabel("Sukunimi")).toHaveValue("Doe");
+	await expect.soft(adminPage.getByLabel("Sähköposti")).toHaveValue("john@example.com");
+	await expect.soft(adminPage.getByLabel("Kotikunta")).toHaveValue("Helsinki");
+
+	// Regular assertion at the end to fail the test if any soft assertion failed
+	// (Playwright tracks soft assertion failures automatically)
+});
+```
+
+**When to use soft assertions:**
+- Validating multiple form fields after submission
+- Checking multiple items in a list or table
+- Verifying multiple UI elements in a complex dashboard
+
+**When NOT to use:**
+- Navigation assertions (use regular `expect` - if URL is wrong, nothing else matters)
+- Critical preconditions (if login fails, don't continue)
+
+### Pattern 3: Handle OTP Flow
 
 ```typescript
 test("should verify OTP", async ({ adminPage }) => {
@@ -822,7 +873,7 @@ test("should verify OTP", async ({ adminPage }) => {
 });
 ```
 
-### Pattern 3: Handle Dialogs
+### Pattern 4: Handle Dialogs
 
 ```typescript
 test("should handle confirmation dialog", async ({ adminPage }) => {
@@ -841,7 +892,7 @@ test("should handle confirmation dialog", async ({ adminPage }) => {
 
 **Important:** Without a dialog listener, Playwright **automatically dismisses** dialogs. The listener is required if you want to **accept** (click OK) or verify the message.
 
-### Pattern 4: Multi-User Scenarios
+### Pattern 5: Multi-User Scenarios
 
 ```typescript
 test("should handle multi-user interaction", async ({ adminPage, browser }) => {
@@ -865,7 +916,7 @@ test("should handle multi-user interaction", async ({ adminPage, browser }) => {
 });
 ```
 
-### Pattern 5: Testing Internationalization
+### Pattern 6: Testing Internationalization
 
 ```typescript
 test("should work in Finnish", async ({ adminPage }) => {
@@ -981,9 +1032,11 @@ test("should login with OTP", async ({ page }) => {
 
 ### Advanced: Fixtures with Page Objects
 
+**Important:** Chain your fixtures to combine auth and page objects in one test context.
+
 ```typescript
 // e2e/fixtures/pages.ts
-import { test as base } from "@playwright/test";
+import { test as authTest } from "./auth";  // Extend auth fixtures, not base
 import { LoginPage } from "../pages/login-page";
 import { AdminMembersPage } from "../pages/admin-members-page";
 
@@ -992,7 +1045,8 @@ type PageFixtures = {
 	adminMembersPage: AdminMembersPage;
 };
 
-export const test = base.extend<PageFixtures>({
+// Extend authTest to get adminPage, adminUser, etc. + page objects
+export const test = authTest.extend<PageFixtures>({
 	loginPage: async ({ page }, use) => {
 		await use(new LoginPage(page));
 	},
@@ -1000,20 +1054,28 @@ export const test = base.extend<PageFixtures>({
 		await use(new AdminMembersPage(page));
 	},
 });
+
+export { expect } from "@playwright/test";
 ```
 
-Usage:
+Usage - now you have access to both auth fixtures AND page objects:
 
 ```typescript
 import { test, expect } from "./fixtures/pages";
 
-test("should manage members", async ({ adminMembersPage }) => {
+test("should manage members as admin", async ({ adminPage, adminMembersPage, adminUser }) => {
+	// You have access to adminPage (from auth fixture)
+	// AND adminMembersPage (from pages fixture)
+	// AND adminUser (from auth fixture)
+
 	await adminMembersPage.goto();
 	await adminMembersPage.addMember("Test", "User", "test@example.com");
 
 	await expect(adminMembersPage.membersList).toContainText("Test User");
 });
 ```
+
+**Why chain fixtures?** This prevents import conflicts. If you extend `base` in multiple fixture files, you can't import both `test` objects. By chaining (`authTest` → `pages`), you get one unified `test` object with all fixtures.
 
 ---
 
@@ -1267,9 +1329,10 @@ code --install-extension ms-playwright.playwright
 2. ✅ **Prioritize accessibility** - Use `getByRole` and `getByLabel` with locked locale
 3. ✅ **Avoid white-box testing** - Test via UI, not database (except for secrets/setup)
 4. ✅ **Wait explicitly** - Use `waitForURL`, `waitFor`, `expect`
-5. ✅ **Leverage fixtures** - Use `adminPage` for authenticated tests (read-only)
+5. ✅ **Leverage fixtures** - Chain auth + page fixtures; use `adminPage` read-only
 6. ✅ **Use Page Objects** - Encapsulate selectors and actions for maintainability
-7. ✅ **Write parallel-safe** - Use cryptographically unique identifiers
-8. ✅ **Debug effectively** - Use UI mode, traces, and inspector
+7. ✅ **Use soft assertions** - Validate complex forms without stopping at first failure
+8. ✅ **Write parallel-safe** - Use cryptographically unique identifiers
+9. ✅ **Debug effectively** - Use UI mode, traces, and inspector
 
 Following these practices ensures your Playwright tests are **reliable, maintainable, accessible, and fast**.
