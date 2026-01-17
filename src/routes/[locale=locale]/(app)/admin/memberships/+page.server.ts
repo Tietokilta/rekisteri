@@ -10,15 +10,22 @@ export const load: PageServerLoad = async (event) => {
 		return error(404, "Not found");
 	}
 
-	// add information member count to db query
+	// Load membership types
+	const membershipTypes = await db
+		.select()
+		.from(table.membershipType)
+		.orderBy(sql`${table.membershipType.name}->>'fi'`);
+
+	// Load memberships with member count
 	const memberships = await db
 		.select({
 			id: table.membership.id,
-			type: table.membership.type,
+			membershipTypeId: table.membership.membershipTypeId,
 			stripePriceId: table.membership.stripePriceId,
 			startTime: table.membership.startTime,
 			endTime: table.membership.endTime,
 			priceCents: table.membership.priceCents,
+			requiresStudentVerification: table.membership.requiresStudentVerification,
 			memberCount: count(table.member.userId),
 		})
 		.from(table.membership)
@@ -26,17 +33,14 @@ export const load: PageServerLoad = async (event) => {
 		.groupBy(table.membership.id)
 		.orderBy(desc(table.membership.startTime));
 
-	const types = new Set(memberships.map((m) => m.type));
-
 	const currentYear = new Date().getFullYear();
-	// Format dates to YYYY-MM-DD for date inputs
 	const formatDate = (date: Date) => date.toISOString().slice(0, 10);
 
 	return {
 		memberships,
-		types,
+		membershipTypes,
 		defaultValues: {
-			type: "",
+			membershipTypeId: "",
 			stripePriceId: "",
 			startTime: formatDate(new Date(currentYear, 7, 1, 12)),
 			endTime: formatDate(new Date(currentYear + 1, 6, 31, 12)),
