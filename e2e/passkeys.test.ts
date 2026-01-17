@@ -7,18 +7,25 @@ import { WebAuthnHelper } from "./fixtures/webauthn";
  * Tests passkey registration, management, and authentication flows.
  * Uses virtual WebAuthn authenticator for testing.
  *
- * Note: Tests run serially to avoid CDP session conflicts between parallel workers.
+ * CRITICAL: CDP-based virtual authenticators cannot run in parallel.
+ * This file is configured for serial execution with a single worker.
  */
 
+// Force serial execution across entire file
 test.describe.configure({ mode: "serial" });
 
 test.describe("Passkey Management", () => {
+	// Serial mode for this suite
+	test.describe.configure({ mode: "serial" });
+
 	let webauthn: WebAuthnHelper;
 
 	test.beforeEach(async ({ adminPage }) => {
 		webauthn = new WebAuthnHelper(adminPage);
 		await webauthn.enable();
 		await adminPage.goto("/fi/passkeys");
+		// Wait for page to be fully loaded and interactive
+		await adminPage.waitForLoadState("networkidle");
 	});
 
 	test.afterEach(async () => {
@@ -89,6 +96,9 @@ test.describe("Passkey Management", () => {
 });
 
 test.describe("Passkey Authentication", () => {
+	// CRITICAL: Serial mode prevents CDP session conflicts
+	test.describe.configure({ mode: "serial" });
+
 	let webauthn: WebAuthnHelper;
 
 	test.beforeEach(async ({ adminPage }) => {
@@ -97,6 +107,7 @@ test.describe("Passkey Authentication", () => {
 
 		// Register passkey for admin user
 		await adminPage.goto("/fi/passkeys");
+		await adminPage.waitForLoadState("networkidle");
 		await adminPage.getByTestId("add-passkey-button-empty").click();
 		await adminPage.getByPlaceholder(/passkey/i).fill("Testilaitteen");
 		await adminPage.getByRole("button", { name: /tallenna/i }).click();
