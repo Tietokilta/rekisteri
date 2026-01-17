@@ -62,6 +62,35 @@ pnpm flake:build    # Build Docker image with Nix
 
 **Test account:** Login with `root@tietokilta.fi` to access admin view.
 
+## Testing
+
+End-to-end tests are written with Playwright. **For comprehensive guidance on writing Playwright tests, see [.claude/PLAYWRIGHT.md](.claude/PLAYWRIGHT.md)**.
+
+Key testing resources:
+
+- **Test directory**: `e2e/`
+- **Test files**: `e2e/*.test.ts`
+- **Auth fixtures**: `e2e/fixtures/auth.ts` (provides `adminPage`, `authenticatedPage`, `adminUser`)
+- **Global setup**: `e2e/global-setup.ts` (creates test DB, seeds data, sets up auth)
+
+Quick reference:
+
+```bash
+pnpm test                    # Run all tests
+pnpm exec playwright test --ui  # Interactive UI mode
+pnpm exec playwright test --debug  # Debug with inspector
+```
+
+**Important testing principles:**
+
+- Tests run in **parallel** by default - ensure test isolation
+- Use `data-testid` attributes for reliable selectors
+- Access database directly for setup/verification when needed
+- Clean up worker-scoped test data in `beforeEach` hooks
+- Use authenticated fixtures (`adminPage`) for tests requiring auth
+
+See [.claude/PLAYWRIGHT.md](.claude/PLAYWRIGHT.md) for best practices, patterns, selectors strategy, parallel execution, debugging, and MCP integration.
+
 ## Architecture
 
 ### Authentication System
