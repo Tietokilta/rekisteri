@@ -169,7 +169,7 @@
 						<Card.Title>{$LL.admin.users.merge.title()}</Card.Title>
 						<Card.Description>{$LL.admin.users.merge.description()}</Card.Description>
 					</div>
-					<Button variant="ghost" size="icon" onclick={closeMergeModal}>
+					<Button variant="ghost" size="icon" onclick={closeMergeModal} data-testid="merge-wizard-close">
 						<X class="size-4" />
 					</Button>
 				</div>
