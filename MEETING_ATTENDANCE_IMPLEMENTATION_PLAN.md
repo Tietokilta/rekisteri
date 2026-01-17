@@ -14,6 +14,7 @@ This document outlines the implementation plan for adding a meeting attendance t
 6. **Manual Override**: Manual check-in/out in case of QR failure
 7. **Confirmation UI**: Show name and action after QR scan for verification
 8. **CSV Export**: Export full attendance log with meeting events
+9. **Shared View Link**: Shareable link for view-only access (requires authentication, not admin)
 
 ---
 
@@ -53,6 +54,7 @@ export const meeting = pgTable("meeting", {
   status: meetingStatusEnum().notNull().default("upcoming"),
   startedAt: timestamp({ withTimezone: true }), // Actual start time
   finishedAt: timestamp({ withTimezone: true }), // Actual finish time
+  shareToken: text().unique(), // For shareable view-only link
   ...timestamps, // createdAt, updatedAt
 });
 ```
@@ -334,6 +336,63 @@ pnpm add html5-qrcode
 <div id="qr-reader" class="rounded-lg overflow-hidden"></div>
 ```
 
+### 2.4 Share Token for View-Only Access
+
+**File**: `src/lib/server/attendance/share-token.ts`
+
+```typescript
+import { encodeBase64url } from "@oslojs/encoding";
+import { db } from "$lib/server/db";
+import * as table from "$lib/server/db/schema";
+import { eq } from "drizzle-orm";
+
+export function generateShareToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return encodeBase64url(bytes);
+}
+
+export async function ensureMeetingHasShareToken(meetingId: string): Promise<string> {
+  const meeting = await db.query.meeting.findFirst({
+    where: eq(table.meeting.id, meetingId),
+  });
+
+  if (!meeting) {
+    throw new Error("Meeting not found");
+  }
+
+  if (meeting.shareToken) {
+    return meeting.shareToken;
+  }
+
+  // Generate new token
+  const token = generateShareToken();
+  await db
+    .update(table.meeting)
+    .set({ shareToken: token })
+    .where(eq(table.meeting.id, meetingId));
+
+  return token;
+}
+
+export async function regenerateShareToken(meetingId: string): Promise<string> {
+  const token = generateShareToken();
+  await db
+    .update(table.meeting)
+    .set({ shareToken: token })
+    .where(eq(table.meeting.id, meetingId));
+
+  return token;
+}
+
+export async function verifyShareToken(token: string): Promise<string | null> {
+  const meeting = await db.query.meeting.findFirst({
+    where: eq(table.meeting.shareToken, token),
+  });
+
+  return meeting?.id ?? null;
+}
+```
+
 ---
 
 ## 3. Route Structure
@@ -372,7 +431,19 @@ src/routes/[locale=locale]/attendance/
     └── +page.server.ts             # Load user's attendance records
 ```
 
-### 3.3 API Routes
+### 3.3 Shared View Routes
+
+```
+src/routes/[locale=locale]/meetings/
+└── shared/
+    └── [shareToken]/
+        ├── +page.svelte            # View-only meeting attendance log
+        └── +page.server.ts         # Load meeting data via share token
+```
+
+**Note**: This route is outside `/admin/` so non-admin authenticated users can access it.
+
+### 3.4 API Routes
 
 ```
 src/routes/api/attendance/
@@ -400,6 +471,11 @@ src/routes/api/attendance/
 - Current attendee count by membership type
 - Timeline of meeting events (visual timeline)
 - Quick actions: "Open Scanner", "View Attendees", "Export CSV"
+- **Share Link Section**:
+  - Display shareable link (generate if doesn't exist)
+  - "Copy Link" button with visual feedback
+  - "Regenerate Link" button (invalidates old link)
+  - Description: "Share this link with meeting secretary/chair for view-only access (authentication required)"
 
 ### 4.2 Admin - QR Scanner Interface
 
@@ -447,6 +523,53 @@ src/routes/api/attendance/
 - For each meeting: name, date, check-in/out times, duration
 - Filter by date range
 - Export personal attendance CSV
+
+### 4.6 Shared View - Meeting Attendance Log (View-Only)
+
+**File**: `src/routes/[locale=locale]/meetings/shared/[shareToken]/+page.svelte`
+
+**Access Control**: Requires authentication (any signed-in user), but **NOT** admin privileges
+
+**Features**:
+- **Read-only banner**: Clear indication this is a view-only page
+- **Meeting header**: Name, description, status, date/time range
+- **Meeting timeline**: Visual timeline of all meeting events (start, recess, resume, finish)
+- **Attendee statistics**:
+  - Total unique attendees
+  - Current attendees (if meeting ongoing)
+  - Breakdown by membership type (pie chart or bar chart)
+- **Attendance table**: Similar to admin view but read-only
+  - Columns: Name, Membership Type, Check In Time, Check Out Time, Duration
+  - Sortable and searchable
+  - Filter by membership type
+  - Show check-in/out pairs (handle multiple pairs per user if recess occurred)
+- **Event log**: Chronological list of all meeting events with timestamps
+- **Export CSV**: Button to download CSV (same format as admin export)
+- **No admin actions**: No buttons for scanning, manual check-in/out, or state transitions
+- **Refresh data**: Auto-refresh every 30 seconds if meeting is ongoing (optional)
+
+**Server-side validation** (`+page.server.ts`):
+```typescript
+export async function load({ params, locals }) {
+  const { user } = locals;
+
+  // Require authentication
+  if (!user) {
+    throw redirect(302, `/sign-in?redirect=/meetings/shared/${params.shareToken}`);
+  }
+
+  // Verify share token
+  const meetingId = await verifyShareToken(params.shareToken);
+  if (!meetingId) {
+    throw error(404, "Meeting not found or link is invalid");
+  }
+
+  // Load meeting data (no admin check needed!)
+  const meeting = await loadMeetingData(meetingId);
+
+  return { meeting };
+}
+```
 
 ---
 
@@ -555,19 +678,33 @@ For a better user experience, consider implementing real-time updates on the att
    - Store tokens securely (consider hashing if needed)
    - Tokens should be unique per user
 
-2. **Authorization**:
+2. **Share Token Security**:
+   - Share tokens should be long (32 bytes) and random
+   - Tokens should be unique per meeting
+   - Store tokens in plaintext (needed for URL lookup, similar to session tokens)
+   - Tokens can be regenerated to invalidate old links
+   - Shared links require authentication (prevents anonymous access)
+   - Shared links are view-only (no write operations possible)
+   - Consider logging access to shared views for audit trail
+
+3. **Authorization**:
    - Only admins can access meeting control panel
    - Only admins can scan QR codes
+   - Only admins can generate/regenerate share links
    - Users can only view their own QR code and history
+   - Any authenticated user can access shared view (with valid token)
 
-3. **Rate Limiting**:
+4. **Rate Limiting**:
    - Limit QR scans per user per minute (prevent spam)
    - Use existing `ExpiringTokenBucket` pattern
+   - Consider rate limiting share link regeneration
 
-4. **Audit Logging**:
+5. **Audit Logging**:
    - Log all meeting state changes (use existing `auditLog` table)
    - Log all attendance events
    - Track who performed each action
+   - Log share link generation/regeneration
+   - Optionally log access to shared views
 
 ---
 
@@ -607,6 +744,25 @@ attendance: {
       openScanner: "Avaa skanneri",
       viewAttendees: "Näytä osallistujat",
       exportCsv: "Vie CSV",
+    },
+
+    share: {
+      title: "Jaa näkymä",
+      description: "Jaa tämä linkki kokouksen sihteerille tai puheenjohtajalle katseluoikeutta varten (vaatii kirjautumisen)",
+      copyLink: "Kopioi linkki",
+      regenerateLink: "Luo uusi linkki",
+      linkCopied: "Linkki kopioitu!",
+      linkRegenerated: "Uusi linkki luotu (vanha linkki ei enää toimi)",
+      confirmRegenerate: "Haluatko varmasti luoda uuden linkin? Vanha linkki lakkaa toimimasta.",
+    },
+
+    sharedView: {
+      title: "Jaettu näkymä - Katseluoikeus",
+      readOnlyBanner: "Tämä on vain katselua varten. Et voi muokata tietoja.",
+      statistics: "Tilastot",
+      eventLog: "Tapahtumaloki",
+      refreshing: "Päivitetään...",
+      lastUpdated: "Viimeksi päivitetty: {time}",
     },
   },
 
@@ -676,6 +832,8 @@ Add to `src/lib/i18n/en/index.ts` (similar structure in English).
    - Test state transitions
    - Test CSV export
    - Test manual check-in/out
+   - Test share link generation and access
+   - Test share link regeneration (invalidate old)
 
 ---
 
@@ -715,7 +873,14 @@ Add to `src/lib/i18n/en/index.ts` (similar structure in English).
 2. Create export endpoint
 3. Test various scenarios
 
-### Phase 7: Polish & Testing
+### Phase 7: Shared View Link
+1. Create share token utilities
+2. Add share link UI to admin control panel
+3. Create shared view page
+4. Test authentication flow
+5. Test share link regeneration
+
+### Phase 8: Polish & Testing
 1. Add error handling
 2. Add loading states
 3. Add success/error toasts
@@ -734,6 +899,7 @@ Add to `src/lib/i18n/en/index.ts` (similar structure in English).
 
 #### Server Logic
 - [ ] `src/lib/server/attendance/qr-token.ts`
+- [ ] `src/lib/server/attendance/share-token.ts` (share link tokens)
 - [ ] `src/lib/server/attendance/index.ts` (core logic)
 - [ ] `src/lib/server/attendance/export.ts` (CSV generation)
 
@@ -749,6 +915,10 @@ Add to `src/lib/i18n/en/index.ts` (similar structure in English).
 - [ ] `src/routes/[locale=locale]/attendance/+page.server.ts`
 - [ ] `src/routes/[locale=locale]/attendance/history/+page.svelte`
 - [ ] `src/routes/[locale=locale]/attendance/history/+page.server.ts`
+
+#### Shared View Routes
+- [ ] `src/routes/[locale=locale]/meetings/shared/[shareToken]/+page.svelte`
+- [ ] `src/routes/[locale=locale]/meetings/shared/[shareToken]/+page.server.ts`
 
 #### Admin Routes - Meetings
 - [ ] `src/routes/[locale=locale]/admin/meetings/+page.svelte`
@@ -789,9 +959,10 @@ Add to `src/lib/i18n/en/index.ts` (similar structure in English).
 - **QR Scanner**: 4-6 hours
 - **Attendee Management**: 4-6 hours
 - **CSV Export**: 3-4 hours
+- **Shared View Link**: 3-4 hours
 - **Testing & Polish**: 4-6 hours
 
-**Total**: 25-37 hours
+**Total**: 28-41 hours
 
 ---
 
@@ -812,6 +983,7 @@ Add to `src/lib/i18n/en/index.ts` (similar structure in English).
 
 ### Unit Tests
 - QR token generation/verification
+- Share token generation/verification
 - CSV export formatting
 - Attendance calculation logic
 
@@ -819,15 +991,22 @@ Add to `src/lib/i18n/en/index.ts` (similar structure in English).
 - Meeting state transitions
 - Attendance recording
 - CSV export with real data
+- Share link access control
+- Share link regeneration
 
 ### E2E Tests (Playwright)
 1. User views their QR code
 2. Admin creates meeting
-3. Admin starts meeting
-4. Admin scans user QR code (mock camera)
-5. Verify attendance recorded
-6. Admin exports CSV
-7. Verify CSV contents
+3. Admin generates share link
+4. Admin starts meeting
+5. Admin scans user QR code (mock camera)
+6. Verify attendance recorded
+7. Non-admin user accesses shared view via link
+8. Verify shared view is read-only
+9. Admin exports CSV
+10. Verify CSV contents
+11. Admin regenerates share link
+12. Verify old link no longer works
 
 ---
 
@@ -840,3 +1019,6 @@ Add to `src/lib/i18n/en/index.ts` (similar structure in English).
 - CSV export should handle large meetings (1000+ attendees)
 - Meeting events (start, recess, finish) should be clearly visible in CSV
 - Manual check-in/out should require confirmation to prevent accidents
+- Share links require authentication for audit purposes (know who viewed the data)
+- Share links should be regenerated if compromised or when secretary/chair changes
+- Consider adding expiration dates to share links for additional security (optional enhancement)
