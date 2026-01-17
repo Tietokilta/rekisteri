@@ -5,7 +5,7 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, and } from "drizzle-orm";
 import { generateUserId } from "$lib/server/auth/utils";
-import { isNonEmpty } from "$lib/utils";
+import { getUserByEmail } from "$lib/server/auth/secondary-email";
 import { csvRowSchema, importMembersSchema, type CsvRow } from "./schema";
 
 export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }) => {
@@ -95,14 +95,14 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 				continue;
 			}
 
-			// Upsert user
-			const existingUser = await db.select().from(table.user).where(eq(table.user.email, row.email)).limit(1);
+			// Upsert user - check both primary email AND verified secondary emails
+			const existingUser = await getUserByEmail(row.email);
 
 			let userId: string;
 
-			if (isNonEmpty(existingUser)) {
+			if (existingUser) {
 				// Update existing user
-				userId = existingUser[0].id;
+				userId = existingUser.id;
 				await db
 					.update(table.user)
 					.set({
