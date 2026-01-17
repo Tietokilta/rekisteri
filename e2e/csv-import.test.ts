@@ -190,7 +190,7 @@ Test,User,Helsinki,${secondaryEmail},varsinainen jäsen,2025-08-01`;
 		await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
 
 		// 5. Execute the import
-		const importButton = adminPage.getByRole("button", { name: /tuo jäsenet|import members/i });
+		const importButton = adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i });
 		await importButton.click();
 
 		// Wait for success message
@@ -260,7 +260,7 @@ New,Person,Espoo,${unverifiedEmail},varsinainen jäsen,2025-08-01`;
 		await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
 
 		// 5. Execute the import
-		const importButton = adminPage.getByRole("button", { name: /tuo jäsenet|import members/i });
+		const importButton = adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i });
 		await importButton.click();
 
 		// Wait for success message
