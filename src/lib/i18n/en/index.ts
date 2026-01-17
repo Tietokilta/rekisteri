@@ -435,6 +435,7 @@ const en = {
 	common: {
 		save: "Save",
 		delete: "Delete",
+		select: "Select",
 	},
 
 	// Error page

@@ -5,6 +5,7 @@
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import { route } from "$lib/ROUTES";
 	import type { MemberStatus } from "$lib/shared/enums";
+	import type { LocalizedString } from "$lib/server/db/schema";
 
 	// Icons
 	import CircleCheck from "@lucide/svelte/icons/circle-check";
@@ -14,7 +15,11 @@
 	import CreditCard from "@lucide/svelte/icons/credit-card";
 
 	interface Membership {
-		type: string;
+		membershipType: {
+			id: string;
+			name: LocalizedString;
+			description: LocalizedString | null;
+		};
 		startTime: Date;
 		endTime: Date;
 		status: MemberStatus;
@@ -113,7 +118,9 @@
 	<Card.Content class="space-y-4">
 		{#if currentMembership}
 			<div class="space-y-1">
-				<p class="text-2xl font-semibold">{currentMembership.type}</p>
+				<p class="text-2xl font-semibold">
+					{$locale === "fi" ? currentMembership.membershipType.name.fi : currentMembership.membershipType.name.en}
+				</p>
 				<p class="text-sm text-muted-foreground">
 					<time datetime={currentMembership.startTime.toISOString()}>
 						{currentMembership.startTime.toLocaleDateString(`${$locale}-FI`)}

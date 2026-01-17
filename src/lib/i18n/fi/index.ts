@@ -436,6 +436,7 @@ const fi = {
 	common: {
 		save: "Tallenna",
 		delete: "Poista",
+		select: "Valitse",
 	},
 
 	// Error page

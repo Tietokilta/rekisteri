@@ -23,10 +23,11 @@
 	import { goto } from "$app/navigation";
 	import { page } from "$app/state";
 	import { SvelteURLSearchParams } from "svelte/reactivity";
-	import { LL } from "$lib/i18n/i18n-svelte";
+	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import { isNonEmpty } from "$lib/utils";
 	import { approveMember, rejectMember, markMemberExpired, cancelMember, reactivateMember } from "./data.remote";
 	import { memberIdSchema } from "./schema";
+	import type { LocalizedString } from "$lib/server/db/schema";
 
 	type MemberRow = {
 		id: string;
@@ -42,7 +43,9 @@
 		homeMunicipality: string | null;
 		preferredLanguage: "unspecified" | "finnish" | "english" | null;
 		isAllowedEmails: boolean | null;
-		membershipType: string | null;
+		membershipTypeId: string | null;
+		membershipTypeName: string | null;
+		membershipTypeNameEn: string | null;
 		membershipStartTime: Date | null;
 		membershipEndTime: Date | null;
 		membershipPriceCents: number | null;
@@ -54,7 +57,9 @@
 			stripeSessionId: string | null;
 			createdAt: Date;
 			updatedAt: Date;
-			membershipType: string | null;
+			membershipTypeId: string | null;
+			membershipTypeName: string | null;
+			membershipTypeNameEn: string | null;
 			membershipStartTime: Date | null;
 			membershipEndTime: Date | null;
 			membershipPriceCents: number | null;
@@ -64,7 +69,11 @@
 
 	type Props = {
 		data: MemberRow[];
-		membershipTypes: string[];
+		membershipTypes: Array<{
+			id: string;
+			name: LocalizedString;
+			description: LocalizedString | null;
+		}>;
 		years: number[];
 	};
 
@@ -169,7 +178,8 @@
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const grouped = new Map<string, MemberRow[]>();
 		for (const row of filteredRows) {
-			const type = row.original.membershipType ?? "Unknown";
+			const typeName = $locale === "fi" ? row.original.membershipTypeName : row.original.membershipTypeNameEn;
+			const type = typeName ?? "Unknown";
 			if (!grouped.has(type)) {
 				grouped.set(type, []);
 			}
@@ -268,7 +278,7 @@
 			}
 
 			// Type filter
-			if (selectedType !== "all" && membership.membershipType !== selectedType) return false;
+			if (selectedType !== "all" && membership.membershipTypeId !== selectedType) return false;
 
 			// Status filter
 			if (selectedStatus !== "all" && membership.status !== selectedStatus) return false;
@@ -335,9 +345,12 @@
 			enableSorting: true,
 		},
 		{
-			accessorKey: "membershipType",
+			accessorKey: "membershipTypeId",
 			header: $LL.admin.members.table.membershipType(),
-			cell: ({ row }) => row.original.membershipType ?? "-",
+			cell: ({ row }) => {
+				const name = $locale === "fi" ? row.original.membershipTypeName : row.original.membershipTypeNameEn;
+				return name ?? "-";
+			},
 			enableSorting: true,
 		},
 		{
@@ -371,7 +384,7 @@
 		// Type filter
 		if (selectedType !== "all") {
 			filters.push({
-				id: "membershipType",
+				id: "membershipTypeId",
 				value: selectedType,
 			});
 		}
@@ -511,13 +524,13 @@
 				>
 					{$LL.admin.members.table.all()}
 				</Button>
-				{#each membershipTypes as type (type)}
+				{#each membershipTypes as type (type.id)}
 					<Button
-						variant={selectedType === type ? "default" : "outline"}
+						variant={selectedType === type.id ? "default" : "outline"}
 						size="sm"
-						onclick={() => (selectedType = type)}
+						onclick={() => (selectedType = type.id)}
 					>
-						{type}
+						{$locale === "fi" ? type.name.fi : type.name.en}
 					</Button>
 				{/each}
 			</div>
@@ -630,10 +643,12 @@
 									<Badge variant={getStatusColor(row.original.status)}>
 										{formatStatus(row.original.status)}
 									</Badge>
-								{:else if cell.column.id === "membershipType"}
+								{:else if cell.column.id === "membershipTypeId"}
 									{@const filteredMemberships = getFilteredMemberships(row.original.allMemberships)}
+									{@const typeName =
+										$locale === "fi" ? row.original.membershipTypeName : row.original.membershipTypeNameEn}
 									<div class="flex items-center gap-2">
-										<span>{row.original.membershipType ?? "-"}</span>
+										<span>{typeName ?? "-"}</span>
 										{#if filteredMemberships.length > 1}
 											<Badge variant="secondary" class="text-xs">
 												{$LL.admin.members.table.membershipsCount({ count: filteredMemberships.length })}
@@ -702,11 +717,13 @@
 										</h4>
 										<div class="space-y-3">
 											{#each filteredMemberships as membership (membership.id)}
+												{@const membershipTypeName =
+													$locale === "fi" ? membership.membershipTypeName : membership.membershipTypeNameEn}
 												<div class="rounded-md border p-4">
 													<div class="mb-3 grid gap-2 text-sm md:grid-cols-3">
 														<div>
 															<dt class="text-muted-foreground">{$LL.admin.members.table.typeLabel()}</dt>
-															<dd class="font-medium">{membership.membershipType ?? "-"}</dd>
+															<dd class="font-medium">{membershipTypeName ?? "-"}</dd>
 														</div>
 														<div>
 															<dt class="text-muted-foreground">{$LL.admin.members.table.periodLabel()}</dt>
