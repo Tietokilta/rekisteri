@@ -11,17 +11,14 @@ export const createMembershipSchema = v.pipeAsync(
 		// since unchecked checkboxes don't submit values
 		requiresStudentVerification: v.optional(v.boolean(), false),
 	}),
-	v.checkAsync(
-		async (input) => {
-			try {
-				await getStripePriceMetadata(input.stripePriceId);
-				return true;
-			} catch {
-				return false;
-			}
-		},
-		"Invalid Stripe price ID or price not found",
-	),
+	v.checkAsync(async (input) => {
+		try {
+			await getStripePriceMetadata(input.stripePriceId);
+			return true;
+		} catch {
+			return false;
+		}
+	}, "Invalid Stripe price ID or price not found"),
 );
 
 export const deleteMembershipSchema = v.object({
