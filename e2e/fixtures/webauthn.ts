@@ -39,18 +39,38 @@ export class WebAuthnHelper {
 
 	/**
 	 * Disable authenticator and clean up resources
+	 * Handles cleanup gracefully even if page/context is already closing
 	 */
 	async disable(): Promise<void> {
-		if (this.cdpSession && this.authenticatorId) {
-			await this.cdpSession.send("WebAuthn.removeVirtualAuthenticator", {
-				authenticatorId: this.authenticatorId,
-			});
-			this.authenticatorId = null;
+		try {
+			if (this.cdpSession && this.authenticatorId) {
+				await this.cdpSession.send("WebAuthn.removeVirtualAuthenticator", {
+					authenticatorId: this.authenticatorId,
+				});
+				this.authenticatorId = null;
+			}
+		} catch (error) {
+			// Ignore errors during cleanup - context might be closing
+			console.warn("WebAuthn cleanup warning (removeVirtualAuthenticator):", error);
 		}
-		if (this.cdpSession) {
-			await this.cdpSession.send("WebAuthn.disable");
-			await this.cdpSession.detach();
-			this.cdpSession = null;
+
+		try {
+			if (this.cdpSession) {
+				await this.cdpSession.send("WebAuthn.disable");
+			}
+		} catch (error) {
+			// Ignore errors during cleanup
+			console.warn("WebAuthn cleanup warning (disable):", error);
+		}
+
+		try {
+			if (this.cdpSession) {
+				await this.cdpSession.detach();
+				this.cdpSession = null;
+			}
+		} catch (error) {
+			// Ignore errors during cleanup
+			console.warn("WebAuthn cleanup warning (detach):", error);
 		}
 	}
 }

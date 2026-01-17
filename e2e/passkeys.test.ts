@@ -6,7 +6,11 @@ import { WebAuthnHelper } from "./fixtures/webauthn";
  *
  * Tests passkey registration, management, and authentication flows.
  * Uses virtual WebAuthn authenticator for testing.
+ *
+ * Note: Tests run serially to avoid CDP session conflicts between parallel workers.
  */
+
+test.describe.configure({ mode: "serial" });
 
 test.describe("Passkey Management", () => {
 	let webauthn: WebAuthnHelper;
