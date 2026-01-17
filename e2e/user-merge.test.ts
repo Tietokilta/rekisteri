@@ -49,8 +49,12 @@ test.describe("User Merge Feature", () => {
 			// Wait for page to load by checking for heading
 			await expect(adminPage.getByRole("heading", { name: "Käyttäjät" })).toBeVisible();
 
-			// Find merge button in any table row - should exist for any user
-			const mergeButton = adminPage.getByRole("row").first().getByRole("button", { name: "Yhdistä" });
+			// Find merge button in table body (skip header row)
+			const mergeButton = adminPage
+				.locator("tbody")
+				.getByRole("row")
+				.first()
+				.getByRole("button", { name: "Yhdistä käyttäjät" });
 			await expect(mergeButton).toBeVisible();
 		});
 
@@ -71,7 +75,7 @@ test.describe("User Merge Feature", () => {
 			await adminPage
 				.getByRole("row")
 				.filter({ hasText: testUser.email })
-				.getByRole("button", { name: "Yhdistä" })
+				.getByRole("button", { name: "Yhdistä käyttäjät" })
 				.click();
 
 			// Verify the merge wizard appears using testid
@@ -168,7 +172,7 @@ test.describe("User Merge Feature", () => {
 			await adminPage
 				.getByRole("row")
 				.filter({ hasText: primaryUser.email })
-				.getByRole("button", { name: "Yhdistä" })
+				.getByRole("button", { name: "Yhdistä käyttäjät" })
 				.click();
 
 			// Wait for merge wizard to open
@@ -201,8 +205,8 @@ test.describe("User Merge Feature", () => {
 			// Click merge button using testid
 			await adminPage.getByTestId("merge-submit-button").click();
 
-			// Should show error about overlapping memberships
-			await expect(adminPage.getByText(/molemmilla käyttäjillä on jäsenyys samalle ajanjaksolle/i)).toBeVisible();
+			// Should show error about overlapping memberships (error message is in English from the server)
+			await expect(adminPage.getByText(/Cannot merge.*Both users have membership/i)).toBeVisible();
 
 			// Clean up the memberships for next tests
 			await db
@@ -230,7 +234,7 @@ test.describe("User Merge Feature", () => {
 			await adminPage
 				.getByRole("row")
 				.filter({ hasText: primaryUser.email })
-				.getByRole("button", { name: "Yhdistä" })
+				.getByRole("button", { name: "Yhdistä käyttäjät" })
 				.click();
 
 			// Get the merge wizard
@@ -370,7 +374,7 @@ test.describe("User Merge Feature", () => {
 			await adminPage
 				.getByRole("row")
 				.filter({ hasText: primaryUser.email })
-				.getByRole("button", { name: "Yhdistä" })
+				.getByRole("button", { name: "Yhdistä käyttäjät" })
 				.click();
 
 			// Wait for wizard
@@ -529,7 +533,7 @@ test.describe("User Merge Feature", () => {
 			await adminPage
 				.getByRole("row")
 				.filter({ hasText: testUser.email })
-				.getByRole("button", { name: "Yhdistä" })
+				.getByRole("button", { name: "Yhdistä käyttäjät" })
 				.click();
 
 			const mergeWizard = adminPage.getByTestId("merge-wizard");
@@ -548,7 +552,7 @@ test.describe("User Merge Feature", () => {
 			await adminPage
 				.getByRole("row")
 				.filter({ hasText: testUser.email })
-				.getByRole("button", { name: "Yhdistä" })
+				.getByRole("button", { name: "Yhdistä käyttäjät" })
 				.click();
 
 			await expect(
@@ -571,7 +575,7 @@ test.describe("User Merge Feature", () => {
 			await adminPage
 				.getByRole("row")
 				.filter({ hasText: testUser.email })
-				.getByRole("button", { name: "Yhdistä" })
+				.getByRole("button", { name: "Yhdistä käyttäjät" })
 				.click();
 
 			// Get the merge wizard

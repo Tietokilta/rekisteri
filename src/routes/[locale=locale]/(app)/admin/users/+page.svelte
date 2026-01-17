@@ -415,6 +415,7 @@
 											variant="ghost"
 											onclick={() => openMergeModal(user)}
 											title={$LL.admin.users.table.merge()}
+											aria-label={$LL.admin.users.table.merge()}
 										>
 											<Merge class="size-4" />
 										</Button>
@@ -509,6 +510,7 @@
 											variant="ghost"
 											onclick={() => openMergeModal(user)}
 											title={$LL.admin.users.table.merge()}
+											aria-label={$LL.admin.users.table.merge()}
 										>
 											<Merge class="size-4" />
 										</Button>
