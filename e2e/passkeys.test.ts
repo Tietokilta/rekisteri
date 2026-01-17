@@ -87,7 +87,7 @@ test.describe("Passkey Management", () => {
 test.describe("Passkey Authentication", () => {
 	let webauthn: WebAuthnHelper;
 
-	test.beforeEach(async ({ adminPage, adminUser }) => {
+	test.beforeEach(async ({ adminPage }) => {
 		webauthn = new WebAuthnHelper(adminPage);
 		await webauthn.enable();
 
