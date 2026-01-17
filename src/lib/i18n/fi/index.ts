@@ -129,12 +129,16 @@ const fi = {
 		deleteConfirm: "Haluatko varmasti poistaa tämän sähköpostin?",
 		reverify: "Vahvista uudelleen",
 		verifyNow: "Vahvista nyt",
+		makePrimary: "Vaihda ensisijaiseksi",
+		makePrimaryConfirm:
+			"Haluatko varmasti vaihtaa {email} ensisijaiseksi sähköpostiosoitteeksi? Nykyinen ensisijainen sähköpostiosoite siirtyy toissijaisiin sähköposteihin.",
 
 		// Messages
 		addSuccess: "Vahvistuskoodi lähetetty osoitteeseen {email}",
 		verifySuccess: "Sähköposti vahvistettu onnistuneesti!",
 		verifySuccessExpires: "Sähköposti vahvistettu! Vanhenee {date}",
 		deleteSuccess: "Sähköposti poistettu onnistuneesti",
+		makePrimarySuccess: "Ensisijainen sähköposti vaihdettu onnistuneesti",
 		expiredMessage: "Aalto-sähköpostisi vahvistus on vanhentunut",
 		notVerifiedMessage: "Aalto-sähköpostia ei vahvistettu",
 		verifiedDomainEmail: "Aalto-sähköposti vahvistettu",

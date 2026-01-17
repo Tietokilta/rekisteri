@@ -129,12 +129,16 @@ const en = {
 		deleteConfirm: "Are you sure you want to delete this email?",
 		reverify: "Re-verify",
 		verifyNow: "Verify now",
+		makePrimary: "Make primary",
+		makePrimaryConfirm:
+			"Are you sure you want to make {email} your primary email address? Your current primary email will be moved to secondary emails.",
 
 		// Messages
 		addSuccess: "Verification code sent to {email}",
 		verifySuccess: "Email verified successfully!",
 		verifySuccessExpires: "Email verified! Expires on {date}",
 		deleteSuccess: "Email deleted successfully",
+		makePrimarySuccess: "Primary email changed successfully",
 		expiredMessage: "Your Aalto email verification has expired",
 		notVerifiedMessage: "Aalto email not verified",
 		verifiedDomainEmail: "Aalto email verified",

@@ -11,8 +11,13 @@
 	import CircleAlert from "@lucide/svelte/icons/circle-alert";
 	import Clock from "@lucide/svelte/icons/clock";
 	import Trash2 from "@lucide/svelte/icons/trash-2";
+	import Star from "@lucide/svelte/icons/star";
 
-	import { deleteSecondaryEmailForm, reverifySecondaryEmailForm } from "$lib/api/secondary-emails.remote";
+	import {
+		deleteSecondaryEmailForm,
+		reverifySecondaryEmailForm,
+		changePrimaryEmailForm,
+	} from "$lib/api/secondary-emails.remote";
 	import type { PageData } from "./$types";
 	import type { SecondaryEmail } from "$lib/server/db/schema";
 
@@ -68,6 +73,7 @@
 			{#each data.emails as email (email.id)}
 				{@const deleteForm = deleteSecondaryEmailForm.for(email.id)}
 				{@const reverifyForm = reverifySecondaryEmailForm.for(email.id)}
+				{@const changePrimaryForm = changePrimaryEmailForm.for(email.id)}
 				{@const status = getEmailStatus(email)}
 
 				<Item.Root variant="outline">
@@ -106,6 +112,31 @@
 						</Item.Description>
 					</Item.Content>
 					<Item.Actions>
+						{#if status === "verified"}
+							<form
+								class="contents"
+								{...changePrimaryForm.enhance(async ({ submit }) => {
+									if (!confirm($LL.secondaryEmail.makePrimaryConfirm({ email: email.email }))) {
+										return;
+									}
+									await submit();
+									await invalidateAll();
+								})}
+							>
+								<input type="hidden" name="emailId" value={email.id} />
+								<Button
+									type="submit"
+									variant="default"
+									size="sm"
+									disabled={!!changePrimaryForm.pending}
+									data-testid="make-primary-email"
+								>
+									<Star />
+									<span>{$LL.secondaryEmail.makePrimary()}</span>
+								</Button>
+							</form>
+						{/if}
+
 						{#if status === "expired" || status === "unverified"}
 							<form class="contents" {...reverifyForm}>
 								<input type="hidden" name="emailId" value={email.id} />
