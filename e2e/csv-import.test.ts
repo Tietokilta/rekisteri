@@ -130,13 +130,25 @@ Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
 
 	test("should attach membership to existing user when CSV email is a verified secondary email", async ({
 		adminPage,
-		adminUser,
 	}) => {
-		// 1. Set up: Admin user has a verified secondary email
+		// 1. Set up: Create a test user with a verified secondary email
+		const primaryEmail = getTestEmail("primary");
 		const secondaryEmail = getTestEmail("secondary");
+		const testUserId = crypto.randomUUID();
 
-		// Create verified secondary email for admin user
-		await createVerifiedSecondaryEmail(db, adminUser.id, secondaryEmail);
+		// Create test user
+		await db.insert(table.user).values({
+			id: testUserId,
+			email: primaryEmail,
+			firstNames: "Original",
+			lastName: "Name",
+			homeMunicipality: "Tampere",
+			isAdmin: false,
+			isAllowedEmails: false,
+		});
+
+		// Create verified secondary email for test user
+		await createVerifiedSecondaryEmail(db, testUserId, secondaryEmail);
 
 		// 2. Count users before import
 		const usersBeforeImport = await db.select().from(table.user);
@@ -175,29 +187,47 @@ Test,User,Helsinki,${secondaryEmail},varsinainen jäsen,2025-08-01`;
 			const duplicateUser = await db.select().from(table.user).where(eq(table.user.email, secondaryEmail));
 			expect(duplicateUser.length).toBe(0);
 
-			// 8. Verify membership was attached to the EXISTING admin user
-			const adminMembers = await db.select().from(table.member).where(eq(table.member.userId, adminUser.id));
+			// 8. Verify membership was attached to the EXISTING test user
+			const testUserMembers = await db.select().from(table.member).where(eq(table.member.userId, testUserId));
 
-			// Admin user should now have at least one member record
-			expect(adminMembers.length).toBeGreaterThan(0);
+			// Test user should now have at least one member record
+			expect(testUserMembers.length).toBeGreaterThan(0);
 
-			// 9. Verify the admin user's details were updated from the CSV
-			const [updatedUser] = await db.select().from(table.user).where(eq(table.user.id, adminUser.id));
+			// 9. Verify the test user's details were updated from the CSV
+			const [updatedUser] = await db.select().from(table.user).where(eq(table.user.id, testUserId));
 			expect(updatedUser?.firstNames).toBe("Test");
 			expect(updatedUser?.lastName).toBe("User");
 			expect(updatedUser?.homeMunicipality).toBe("Helsinki");
 		} finally {
 			// Clean up temp file
 			fs.unlinkSync(tempPath);
+
+			// Clean up test user and their members
+			await db.delete(table.member).where(eq(table.member.userId, testUserId));
+			await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.userId, testUserId));
+			await db.delete(table.user).where(eq(table.user.id, testUserId));
 		}
 	});
 
-	test("should NOT match unverified secondary emails during CSV import", async ({ adminPage, adminUser }) => {
-		// 1. Set up: Admin user has an UNVERIFIED secondary email
+	test("should NOT match unverified secondary emails during CSV import", async ({ adminPage }) => {
+		// 1. Set up: Create a test user with an UNVERIFIED secondary email
+		const primaryEmail = getTestEmail("primary");
 		const unverifiedEmail = getTestEmail("unverified");
+		const testUserId = crypto.randomUUID();
 
-		// Create unverified secondary email for admin user
-		await createUnverifiedSecondaryEmail(db, adminUser.id, unverifiedEmail);
+		// Create test user
+		await db.insert(table.user).values({
+			id: testUserId,
+			email: primaryEmail,
+			firstNames: "Existing",
+			lastName: "User",
+			homeMunicipality: "Tampere",
+			isAdmin: false,
+			isAllowedEmails: false,
+		});
+
+		// Create unverified secondary email for test user
+		await createUnverifiedSecondaryEmail(db, testUserId, unverifiedEmail);
 
 		// 2. Count users before import
 		const usersBeforeImport = await db.select().from(table.user);
@@ -247,6 +277,10 @@ New,Person,Espoo,${unverifiedEmail},varsinainen jäsen,2025-08-01`;
 		} finally {
 			// Clean up temp file
 			fs.unlinkSync(tempPath);
+
+			// Clean up test user and their secondary emails
+			await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.userId, testUserId));
+			await db.delete(table.user).where(eq(table.user.id, testUserId));
 		}
 	});
 });
