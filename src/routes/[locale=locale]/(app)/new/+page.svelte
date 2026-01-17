@@ -39,6 +39,10 @@
 			</Card.Header>
 			<!-- Show membership options when profile is complete -->
 			<Card.Content>
+				{#snippet membershipPriceFailed()}
+					<span class="font-medium text-destructive">Failed to load price</span>
+				{/snippet}
+
 				<form {...payMembership.preflight(payMembershipSchema)} class="flex flex-col gap-4">
 					<div class="space-y-3">
 						{#each filteredMemberships as membership (membership.id)}
@@ -47,16 +51,13 @@
 							>
 								<input {...payMembership.fields.membershipId.as("radio", membership.id)} required class="mt-1" />
 								<div class="flex flex-col">
-									<span class="font-medium">
-										{membership.type}
-										{#await getStripePriceMetadata(membership.stripePriceId)}
-											(...)
-										{:then priceMetadata}
-											({priceMetadata.priceCents / 100} {priceMetadata.currency.toUpperCase()})
-										{:catch}
-											(-)
-										{/await}
-									</span>
+									<svelte:boundary failed={membershipPriceFailed}>
+										{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
+										<span class="font-medium">
+											{membership.type} ({priceMetadata.priceCents / 100}
+											{priceMetadata.currency.toUpperCase()})
+										</span>
+									</svelte:boundary>
 									<span class="text-sm text-muted-foreground">
 										{new Date(membership.startTime).toLocaleDateString(`${$locale}-FI`)}
 										– {new Date(membership.endTime).toLocaleDateString(`${$locale}-FI`)}
@@ -120,6 +121,10 @@
 						</div>
 					{/if}
 
+					{#snippet priceFailedSnippet()}
+						<span>(-)</span>
+					{/snippet}
+
 					<Button type="submit" disabled={disableForm} class={disableForm ? "cursor-not-allowed opacity-50" : ""}>
 						{$LL.membership.buy()}
 						{#if payMembership.fields.membershipId.value()}
@@ -127,13 +132,11 @@
 								(x) => x.id === payMembership.fields.membershipId.value(),
 							)}
 							{#if selectedMembership}
-								{#await getStripePriceMetadata(selectedMembership.stripePriceId)}
-									(...)
-								{:then priceMetadata}
-									({priceMetadata.priceCents / 100} {priceMetadata.currency.toUpperCase()})
-								{:catch}
-									(-)
-								{/await}
+								<svelte:boundary failed={priceFailedSnippet}>
+									{@const priceMetadata = await getStripePriceMetadata(selectedMembership.stripePriceId)}
+									({priceMetadata.priceCents / 100}
+									{priceMetadata.currency.toUpperCase()})
+								</svelte:boundary>
 							{/if}
 						{/if}
 					</Button>
