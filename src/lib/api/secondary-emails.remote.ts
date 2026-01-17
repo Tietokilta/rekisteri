@@ -128,11 +128,6 @@ export const changePrimaryEmailForm = form(
 		if (!success) {
 			throw error(400, "Could not change primary email. Email must be verified and not expired.");
 		}
-
-		// Invalidate the session since the user's email changed
-		// Note: In a more robust implementation, you might want to update the session
-		// instead of invalidating it, but this is safer
-		return { success: true };
 	},
 );
 
