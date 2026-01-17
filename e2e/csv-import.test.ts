@@ -83,64 +83,54 @@ test.describe("CSV Import", () => {
 		await adminPage.goto("/fi/admin/members/import", { waitUntil: "networkidle" });
 
 		// Create a temporary CSV file with wrong columns
-		const tempPath = path.join(process.cwd(), "temp-invalid.csv");
+		const tempPath = path.join(process.cwd(), `temp-invalid-${crypto.randomUUID()}.csv`);
+		tempFiles.push(tempPath); // Track for cleanup
 		const invalidCsv = `wrong,columns,here
 value1,value2,value3`;
 		fs.writeFileSync(tempPath, invalidCsv);
 
-		try {
-			const fileInput = adminPage.locator('input[type="file"]');
-			await fileInput.setInputFiles(tempPath);
+		const fileInput = adminPage.locator('input[type="file"]');
+		await fileInput.setInputFiles(tempPath);
 
-			// Verify error message shows
-			await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
-			await expect(adminPage.getByText(/CSV columns don't match/)).toBeVisible();
-		} finally {
-			// Clean up temp file
-			fs.unlinkSync(tempPath);
-		}
+		// Verify error message shows
+		await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
+		await expect(adminPage.getByText(/CSV columns don't match/)).toBeVisible();
 	});
 
 	test("CSV import validates invalid email format", async ({ adminPage }) => {
 		await adminPage.goto("/fi/admin/members/import", { waitUntil: "networkidle" });
 
 		// Create a temporary CSV file with invalid email
-		const tempPath = path.join(process.cwd(), "temp-invalid-email.csv");
+		const tempPath = path.join(process.cwd(), `temp-invalid-email-${crypto.randomUUID()}.csv`);
+		tempFiles.push(tempPath); // Track for cleanup
 		const invalidEmailCsv = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
 Test,User,Helsinki,not-an-email,varsinainen jäsen,2025-08-01`;
 		fs.writeFileSync(tempPath, invalidEmailCsv);
 
-		try {
-			const fileInput = adminPage.locator('input[type="file"]');
-			await fileInput.setInputFiles(tempPath);
+		const fileInput = adminPage.locator('input[type="file"]');
+		await fileInput.setInputFiles(tempPath);
 
-			// Verify error message shows
-			await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
-			await expect(adminPage.getByText(/Invalid email/)).toBeVisible();
-		} finally {
-			fs.unlinkSync(tempPath);
-		}
+		// Verify error message shows
+		await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
+		await expect(adminPage.getByText(/Invalid email/)).toBeVisible();
 	});
 
 	test("CSV import validates invalid membership type", async ({ adminPage }) => {
 		await adminPage.goto("/fi/admin/members/import", { waitUntil: "networkidle" });
 
 		// Create a temporary CSV file with non-existent membership type
-		const tempPath = path.join(process.cwd(), "temp-invalid-type.csv");
+		const tempPath = path.join(process.cwd(), `temp-invalid-type-${crypto.randomUUID()}.csv`);
+		tempFiles.push(tempPath); // Track for cleanup
 		const invalidTypeCsv = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
 Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
 		fs.writeFileSync(tempPath, invalidTypeCsv);
 
-		try {
-			const fileInput = adminPage.locator('input[type="file"]');
-			await fileInput.setInputFiles(tempPath);
+		const fileInput = adminPage.locator('input[type="file"]');
+		await fileInput.setInputFiles(tempPath);
 
-			// Verify error message shows
-			await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
-			await expect(adminPage.getByText(/Invalid membership types/)).toBeVisible();
-		} finally {
-			fs.unlinkSync(tempPath);
-		}
+		// Verify error message shows
+		await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
+		await expect(adminPage.getByText(/Invalid membership types/)).toBeVisible();
 	});
 
 	test("CSV import shows existing memberships", async ({ adminPage }) => {
@@ -196,10 +186,7 @@ Test,User,Helsinki,${secondaryEmail},varsinainen jäsen,2025-08-01`;
 		const fileInput = adminPage.locator('input[type="file"]');
 		await fileInput.setInputFiles(tempPath);
 
-		// Wait for file to be parsed
-		await adminPage.waitForTimeout(1000);
-
-		// Verify preview shows
+		// Wait for file to be parsed and preview to show
 		await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
 
 		// 5. Execute the import
@@ -269,10 +256,7 @@ New,Person,Espoo,${unverifiedEmail},varsinainen jäsen,2025-08-01`;
 		const fileInput = adminPage.locator('input[type="file"]');
 		await fileInput.setInputFiles(tempPath);
 
-		// Wait for file to be parsed
-		await adminPage.waitForTimeout(1000);
-
-		// Verify preview shows
+		// Wait for file to be parsed and preview to show
 		await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
 
 		// 5. Execute the import
