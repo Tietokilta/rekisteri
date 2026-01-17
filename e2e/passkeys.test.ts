@@ -98,7 +98,7 @@ test.describe("Passkey Authentication", () => {
 		await adminPage.getByRole("button", { name: /tallenna/i }).click();
 		await expect(adminPage.getByText("Testilaitteen")).toBeVisible();
 
-		// Sign out
+		// Clear cookies to simulate logout (stay in same context)
 		await adminPage.context().clearCookies();
 	});
 
@@ -106,38 +106,39 @@ test.describe("Passkey Authentication", () => {
 		await webauthn.disable();
 	});
 
-	test("should sign in with passkey", async ({ page, adminUser }) => {
-		await page.goto("/fi/sign-in");
+	test("should sign in with passkey", async ({ adminPage, adminUser }) => {
+		await adminPage.goto("/fi/sign-in");
 
 		// Enter email
-		await page.getByLabel(/sähköposti/i).fill(adminUser.email);
-		await page.getByRole("button", { name: /kirjaudu/i }).click();
-		await page.waitForURL(/sign-in\/method/);
+		await adminPage.getByLabel(/sähköposti/i).fill(adminUser.email);
+		await adminPage.getByRole("button", { name: /kirjaudu/i }).click();
+		await adminPage.waitForURL(/sign-in\/method/);
 
 		// Select passkey authentication
-		await page.getByTestId("sign-in-with-passkey-button").click();
+		// Virtual authenticator (with registered credential) exists in this context
+		await adminPage.getByTestId("sign-in-with-passkey-button").click();
 
 		// Should be signed in and redirected to home
-		await page.waitForURL("/fi");
-		await expect(page.getByRole("button", { name: /kirjaudu ulos/i })).toBeVisible();
+		await adminPage.waitForURL("/fi");
+		await expect(adminPage.getByRole("button", { name: /kirjaudu ulos/i })).toBeVisible();
 	});
 
-	test("should allow fallback to email OTP", async ({ page, adminUser }) => {
-		await page.goto("/fi/sign-in");
+	test("should allow fallback to email OTP", async ({ adminPage, adminUser }) => {
+		await adminPage.goto("/fi/sign-in");
 
 		// Enter email
-		await page.getByLabel(/sähköposti/i).fill(adminUser.email);
-		await page.getByRole("button", { name: /kirjaudu/i }).click();
-		await page.waitForURL(/sign-in\/method/);
+		await adminPage.getByLabel(/sähköposti/i).fill(adminUser.email);
+		await adminPage.getByRole("button", { name: /kirjaudu/i }).click();
+		await adminPage.waitForURL(/sign-in\/method/);
 
 		// Verify passkey option is shown
-		await expect(page.getByTestId("sign-in-with-passkey-button")).toBeVisible();
+		await expect(adminPage.getByTestId("sign-in-with-passkey-button")).toBeVisible();
 
 		// Choose email OTP instead
-		await page.getByRole("button", { name: /sähköposti/i }).click();
+		await adminPage.getByRole("button", { name: /sähköposti/i }).click();
 
 		// Should navigate to OTP entry
-		await page.waitForURL(/sign-in\/email/);
-		await expect(page.getByText(/syötä koodi/i)).toBeVisible();
+		await adminPage.waitForURL(/sign-in\/email/);
+		await expect(adminPage.getByText(/syötä koodi/i)).toBeVisible();
 	});
 });
