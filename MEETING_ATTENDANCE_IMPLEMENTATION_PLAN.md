@@ -550,12 +550,17 @@ src/routes/api/attendance/
 
 **Server-side validation** (`+page.server.ts`):
 ```typescript
-export async function load({ params, locals }) {
+import { error, redirect } from "@sveltejs/kit";
+import { route } from "$lib/ROUTES";
+import { verifyShareToken } from "$lib/server/attendance/share-token";
+
+export async function load({ params, locals, url }) {
   const { user } = locals;
 
-  // Require authentication
+  // Require authentication (see section 8.3 for redirect implementation)
   if (!user) {
-    throw redirect(302, `/sign-in?redirect=/meetings/shared/${params.shareToken}`);
+    const signInUrl = route("/[locale=locale]/sign-in", { locale: locals.locale });
+    throw redirect(302, `${signInUrl}?redirect=${encodeURIComponent(url.pathname)}`);
   }
 
   // Verify share token
@@ -706,6 +711,13 @@ For a better user experience, consider implementing real-time updates on the att
    - Log share link generation/regeneration
    - Optionally log access to shared views
 
+6. **Sign-In Redirect Security** (Important for Shared Views):
+   - Implement secure redirect-after-login functionality
+   - Only allow redirects to same-origin pathnames (prevent open redirects)
+   - Validate redirect parameter using URL constructor with own origin
+   - Preserve redirect parameter through auth flow (sign-in → email verification → success)
+   - Use query parameter: `?redirect=/meetings/shared/abc123`
+
 ---
 
 ## 8. i18n Translations
@@ -801,6 +813,248 @@ attendance: {
 
 Add to `src/lib/i18n/en/index.ts` (similar structure in English).
 
+### 8.3 Secure Sign-In Redirect Implementation
+
+**Important**: This is a general authentication improvement needed for the shared view feature (and beneficial application-wide).
+
+#### Implementation
+
+**File**: `src/lib/server/auth/redirect.ts` (new file)
+
+```typescript
+import { dev } from "$app/environment";
+
+/**
+ * Validates a redirect URL to prevent open redirect attacks.
+ * Only allows redirects to same-origin pathnames.
+ *
+ * @param redirectParam - The redirect parameter from query string
+ * @param origin - The application's origin (e.g., from event.url.origin)
+ * @returns The validated pathname or null if invalid
+ */
+export function validateRedirect(redirectParam: string | null, origin: string): string | null {
+  if (!redirectParam) {
+    return null;
+  }
+
+  try {
+    // Try to construct a URL with our origin to validate the path
+    const url = new URL(redirectParam, origin);
+
+    // SECURITY: Only allow same-origin redirects
+    if (url.origin !== origin) {
+      return null;
+    }
+
+    // Return just the pathname + search + hash (no origin)
+    return url.pathname + url.search + url.hash;
+  } catch {
+    // If URL parsing fails, treat it as invalid
+    return null;
+  }
+}
+
+/**
+ * Gets the redirect URL from query params and validates it.
+ * Falls back to a default path if validation fails.
+ *
+ * @param url - The request URL object
+ * @param defaultPath - Default path if redirect is invalid (default: "/")
+ * @returns A validated pathname
+ */
+export function getValidatedRedirect(url: URL, defaultPath = "/"): string {
+  const redirectParam = url.searchParams.get("redirect");
+  const validated = validateRedirect(redirectParam, url.origin);
+  return validated ?? defaultPath;
+}
+```
+
+#### Update Sign-In Flow
+
+**File**: `src/routes/[locale=locale]/(auth)/sign-in/+page.server.ts`
+
+```typescript
+import { redirect } from "@sveltejs/kit";
+import type { PageServerLoad } from "./$types";
+import { emailCookieName } from "$lib/server/auth/email";
+import { route } from "$lib/ROUTES";
+import { getValidatedRedirect } from "$lib/server/auth/redirect";
+
+export const load: PageServerLoad = async (event) => {
+  if (event.locals.user) {
+    // User already logged in, redirect to requested page or home
+    const redirectTo = getValidatedRedirect(
+      event.url,
+      route("/[locale=locale]", { locale: event.locals.locale })
+    );
+    redirect(302, redirectTo);
+  }
+
+  // If email cookie exists, redirect to OTP verification page
+  // IMPORTANT: Preserve redirect parameter!
+  const emailCookie = event.cookies.get(emailCookieName);
+  if (emailCookie) {
+    const redirectParam = event.url.searchParams.get("redirect");
+    const verifyUrl = route("/[locale=locale]/sign-in/email", {
+      locale: event.locals.locale
+    });
+
+    // Preserve redirect parameter through the flow
+    const finalUrl = redirectParam
+      ? `${verifyUrl}?redirect=${encodeURIComponent(redirectParam)}`
+      : verifyUrl;
+
+    redirect(302, finalUrl);
+  }
+
+  return {
+    // Pass redirect param to page for form submission
+    redirectTo: event.url.searchParams.get("redirect"),
+  };
+};
+```
+
+**File**: `src/routes/[locale=locale]/(auth)/sign-in/method/+page.server.ts`
+
+```typescript
+// Similar changes: preserve redirect parameter when navigating to email input
+export const load: PageServerLoad = async (event) => {
+  // ... existing logic ...
+
+  return {
+    redirectTo: event.url.searchParams.get("redirect"),
+  };
+};
+```
+
+**File**: `src/routes/[locale=locale]/(auth)/sign-in/email/+page.server.ts`
+
+```typescript
+export const load: PageServerLoad = async (event) => {
+  // ... existing logic ...
+
+  return {
+    redirectTo: event.url.searchParams.get("redirect"),
+  };
+};
+```
+
+**File**: `src/routes/[locale=locale]/(auth)/sign-in/email/data.remote.ts`
+
+```typescript
+import { getValidatedRedirect } from "$lib/server/auth/redirect";
+
+export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
+  const event = getRequestEvent();
+
+  // ... existing verification logic ...
+
+  const token = generateSessionToken();
+  await createSession(token, userId);
+  setSessionTokenCookie(event, token, new Date(Date.now() + 1000 * 60 * 60 * 24 * 30));
+
+  await auditLogin(event, userId);
+
+  deleteEmailCookie(event);
+  deleteEmailOTP(otp.id);
+  deleteEmailOTPCookie(event);
+
+  // NEW: Use validated redirect
+  const redirectTo = getValidatedRedirect(
+    event.url,
+    route("/[locale=locale]", { locale: event.locals.locale })
+  );
+
+  redirect(302, redirectTo);
+});
+```
+
+#### Update Form Components
+
+**File**: `src/routes/[locale=locale]/(auth)/sign-in/method/+page.svelte`
+
+```svelte
+<script lang="ts">
+  import type { PageData } from "./$types";
+
+  let { data }: { data: PageData } = $props();
+
+  // Preserve redirect in form action URL
+  const actionUrl = data.redirectTo
+    ? `?/sendEmail&redirect=${encodeURIComponent(data.redirectTo)}`
+    : "?/sendEmail";
+</script>
+
+<form method="POST" action={actionUrl}>
+  <!-- form fields -->
+</form>
+```
+
+#### Usage in Protected Routes
+
+**Example**: Shared view route (already shown in section 4.6)
+
+```typescript
+// src/routes/[locale=locale]/meetings/shared/[shareToken]/+page.server.ts
+export async function load({ params, locals, url }) {
+  const { user } = locals;
+
+  if (!user) {
+    // Construct redirect URL with current path
+    const redirectPath = url.pathname;
+    const signInUrl = route("/[locale=locale]/sign-in", { locale: locals.locale });
+    throw redirect(302, `${signInUrl}?redirect=${encodeURIComponent(redirectPath)}`);
+  }
+
+  // ... rest of logic
+}
+```
+
+#### Testing
+
+Add tests to verify redirect security:
+
+```typescript
+// Test cases for src/lib/server/auth/redirect.test.ts
+describe("validateRedirect", () => {
+  const origin = "https://example.com";
+
+  it("allows same-origin pathname", () => {
+    expect(validateRedirect("/meetings/shared/abc123", origin)).toBe("/meetings/shared/abc123");
+  });
+
+  it("allows pathname with query params", () => {
+    expect(validateRedirect("/admin?tab=meetings", origin)).toBe("/admin?tab=meetings");
+  });
+
+  it("blocks different origin", () => {
+    expect(validateRedirect("https://evil.com/phishing", origin)).toBeNull();
+  });
+
+  it("blocks protocol-relative URLs", () => {
+    expect(validateRedirect("//evil.com/phishing", origin)).toBeNull();
+  });
+
+  it("blocks javascript: URLs", () => {
+    expect(validateRedirect("javascript:alert(1)", origin)).toBeNull();
+  });
+
+  it("handles null/undefined", () => {
+    expect(validateRedirect(null, origin)).toBeNull();
+    expect(validateRedirect(undefined, origin)).toBeNull();
+  });
+});
+```
+
+#### Security Notes
+
+1. **Always validate with URL constructor**: This prevents bypasses like `//evil.com`
+2. **Compare origins**: Only allow same-origin redirects
+3. **Return pathname only**: Never return full URL from validation
+4. **URL encode when passing**: Always use `encodeURIComponent()` in query params
+5. **Preserve through flow**: Pass redirect param through all auth steps
+6. **Test edge cases**: Test protocol-relative, javascript:, data: URLs
+
 ---
 
 ## 9. Migration Steps
@@ -838,6 +1092,16 @@ Add to `src/lib/i18n/en/index.ts` (similar structure in English).
 ---
 
 ## 10. Implementation Order
+
+### Phase 0: Secure Redirect (Prerequisite)
+1. Create redirect validation utilities (`src/lib/server/auth/redirect.ts`)
+2. Update sign-in page load function to handle redirect param
+3. Update email verification flow to preserve redirect param
+4. Update form components to pass redirect through
+5. Add unit tests for redirect validation
+6. Test redirect flow end-to-end
+
+**Note**: This phase improves authentication UX application-wide and is required for shared view feature.
 
 ### Phase 1: Database & Core Logic
 1. Add enums to `src/lib/shared/enums.ts`
@@ -898,6 +1162,7 @@ Add to `src/lib/i18n/en/index.ts` (similar structure in English).
 - [ ] Migration script: `src/lib/server/db/migrations/generate-qr-tokens.ts`
 
 #### Server Logic
+- [ ] `src/lib/server/auth/redirect.ts` (secure redirect validation)
 - [ ] `src/lib/server/attendance/qr-token.ts`
 - [ ] `src/lib/server/attendance/share-token.ts` (share link tokens)
 - [ ] `src/lib/server/attendance/index.ts` (core logic)
@@ -942,16 +1207,25 @@ Add to `src/lib/i18n/en/index.ts` (similar structure in English).
 
 ### Files to Modify
 
+#### Core Schema & Config
 - [ ] `src/lib/shared/enums.ts` (add meeting/attendance enums)
 - [ ] `src/lib/server/db/schema.ts` (add tables)
 - [ ] `src/lib/i18n/fi/index.ts` (add translations)
 - [ ] `src/lib/i18n/en/index.ts` (add translations)
 - [ ] `package.json` (add dependencies)
 
+#### Authentication Flow (Secure Redirect - Section 8.3)
+- [ ] `src/routes/[locale=locale]/(auth)/sign-in/+page.server.ts` (add redirect support)
+- [ ] `src/routes/[locale=locale]/(auth)/sign-in/method/+page.server.ts` (preserve redirect param)
+- [ ] `src/routes/[locale=locale]/(auth)/sign-in/method/+page.svelte` (pass redirect to form)
+- [ ] `src/routes/[locale=locale]/(auth)/sign-in/email/+page.server.ts` (preserve redirect param)
+- [ ] `src/routes/[locale=locale]/(auth)/sign-in/email/data.remote.ts` (use validated redirect)
+
 ---
 
 ## 12. Estimated Effort
 
+- **Secure Redirect Implementation**: 2-3 hours (auth improvement, required for shared view)
 - **Database Schema**: 2-3 hours
 - **QR Token System**: 2-3 hours
 - **User QR Display**: 2-3 hours
@@ -962,7 +1236,7 @@ Add to `src/lib/i18n/en/index.ts` (similar structure in English).
 - **Shared View Link**: 3-4 hours
 - **Testing & Polish**: 4-6 hours
 
-**Total**: 28-41 hours
+**Total**: 30-44 hours
 
 ---
 
@@ -982,6 +1256,11 @@ Add to `src/lib/i18n/en/index.ts` (similar structure in English).
 ## 14. Testing Strategy
 
 ### Unit Tests
+- **Redirect validation** (see test cases in section 8.3):
+  - Same-origin pathnames allowed
+  - Different origins blocked
+  - Protocol-relative URLs blocked
+  - JavaScript/data URLs blocked
 - QR token generation/verification
 - Share token generation/verification
 - CSV export formatting
@@ -993,20 +1272,26 @@ Add to `src/lib/i18n/en/index.ts` (similar structure in English).
 - CSV export with real data
 - Share link access control
 - Share link regeneration
+- **Redirect flow through auth**:
+  - Redirect preserved from sign-in → email verification → success
+  - Invalid redirects fall back to default
 
 ### E2E Tests (Playwright)
-1. User views their QR code
-2. Admin creates meeting
-3. Admin generates share link
-4. Admin starts meeting
-5. Admin scans user QR code (mock camera)
-6. Verify attendance recorded
-7. Non-admin user accesses shared view via link
-8. Verify shared view is read-only
-9. Admin exports CSV
-10. Verify CSV contents
-11. Admin regenerates share link
-12. Verify old link no longer works
+1. **Test redirect flow**: Visit protected page → sign-in → redirected back to protected page
+2. User views their QR code
+3. Admin creates meeting
+4. Admin generates share link
+5. **Test shared view redirect**: Non-admin clicks share link → sign-in → redirected to shared view
+6. Admin starts meeting
+7. Admin scans user QR code (mock camera)
+8. Verify attendance recorded
+9. Non-admin user accesses shared view via link (already authenticated)
+10. Verify shared view is read-only
+11. Admin exports CSV
+12. Verify CSV contents
+13. Admin regenerates share link
+14. Verify old link no longer works
+15. **Test open redirect prevention**: Try malicious redirect params (https://evil.com, //evil.com, javascript:alert(1))
 
 ---
 
