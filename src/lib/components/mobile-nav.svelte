@@ -4,22 +4,14 @@
 	import { Button } from "$lib/components/ui/button/index.js";
 	import { page } from "$app/state";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
-	import { route } from "$lib/ROUTES";
 	import { signOut } from "$lib/api/auth.remote";
 	import { stripLocaleFromPathname, type Locale } from "$lib/i18n/routing";
+	import { getMainNavItems, getSettingsNavItems, getAdminNavItems } from "$lib/navigation";
 
 	// Icons from @lucide/svelte
 	import Menu from "@lucide/svelte/icons/menu";
-	import Home from "@lucide/svelte/icons/home";
-	import CreditCard from "@lucide/svelte/icons/credit-card";
 	import Settings from "@lucide/svelte/icons/settings";
-	import User from "@lucide/svelte/icons/user";
-	import Key from "@lucide/svelte/icons/key";
-	import Mail from "@lucide/svelte/icons/mail";
 	import Shield from "@lucide/svelte/icons/shield";
-	import Users from "@lucide/svelte/icons/users";
-	import Tags from "@lucide/svelte/icons/tags";
-	import UserCog from "@lucide/svelte/icons/user-cog";
 	import LogOut from "@lucide/svelte/icons/log-out";
 	import X from "@lucide/svelte/icons/x";
 	import Languages from "@lucide/svelte/icons/languages";
@@ -37,55 +29,10 @@
 
 	let open = $state(false);
 
-	// Navigation items
-	const mainNavItems = $derived([
-		{
-			title: $LL.nav.dashboard(),
-			href: route("/[locale=locale]", { locale: $locale }),
-			icon: Home,
-		},
-		{
-			title: $LL.nav.membership(),
-			href: route("/[locale=locale]/membership", { locale: $locale }),
-			icon: CreditCard,
-		},
-	]);
-
-	const settingsNavItems = $derived([
-		{
-			title: $LL.nav.profile(),
-			href: route("/[locale=locale]/settings/profile", { locale: $locale }),
-			icon: User,
-		},
-		{
-			title: $LL.nav.passkeys(),
-			href: route("/[locale=locale]/settings/passkeys", { locale: $locale }),
-			icon: Key,
-		},
-		{
-			title: $LL.nav.emails(),
-			href: route("/[locale=locale]/settings/emails", { locale: $locale }),
-			icon: Mail,
-		},
-	]);
-
-	const adminNavItems = $derived([
-		{
-			title: $LL.nav.admin.members(),
-			href: route("/[locale=locale]/admin/members", { locale: $locale }),
-			icon: Users,
-		},
-		{
-			title: $LL.nav.admin.memberships(),
-			href: route("/[locale=locale]/admin/memberships", { locale: $locale }),
-			icon: Tags,
-		},
-		{
-			title: $LL.nav.admin.users(),
-			href: route("/[locale=locale]/admin/users", { locale: $locale }),
-			icon: UserCog,
-		},
-	]);
+	// Navigation items from shared module
+	const mainNavItems = $derived(getMainNavItems($locale, $LL));
+	const settingsNavItems = $derived(getSettingsNavItems($locale, $LL));
+	const adminNavItems = $derived(getAdminNavItems($locale, $LL));
 
 	function isActive(href: string): boolean {
 		return page.url.pathname === href;
