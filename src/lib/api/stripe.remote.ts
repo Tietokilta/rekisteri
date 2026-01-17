@@ -2,8 +2,7 @@ import { query } from "$app/server";
 import { stripe } from "$lib/server/payment";
 import * as v from "valibot";
 
-// Internal helper function for fetching price metadata
-async function fetchPriceMetadata(priceId: string) {
+export const getStripePriceMetadata = query(v.pipe(v.string(), v.minLength(1)), async (priceId) => {
 	if (!priceId || !priceId.startsWith("price_")) {
 		throw new Error("Invalid price ID");
 	}
@@ -30,18 +29,4 @@ async function fetchPriceMetadata(priceId: string) {
 		productName: product.name,
 		active: price.active,
 	};
-}
-
-export const getStripePriceMetadata = query(v.pipe(v.string(), v.minLength(1)), async (priceId) => {
-	return await fetchPriceMetadata(priceId);
-});
-
-export const getStripePriceMetadataBatch = query(v.array(v.string()), async (priceIds) => {
-	const results = await Promise.allSettled(priceIds.map((id) => fetchPriceMetadata(id)));
-
-	return results.map((result, index) => ({
-		priceId: priceIds[index],
-		data: result.status === "fulfilled" ? result.value : null,
-		error: result.status === "rejected" ? result.reason.message : null,
-	}));
 });
