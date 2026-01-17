@@ -165,14 +165,14 @@ export const mergeUsers = command(
 
 		// Perform the merge in a transaction
 		await db.transaction(async (tx) => {
-			// 1. Add secondary user's email as a secondary email on primary user (verified)
+			// 1. Add the secondary user's primary email as a verified secondary email on the primary user
 			await tx.insert(table.secondaryEmail).values({
 				id: crypto.randomUUID(),
 				userId: primaryUserId,
 				email: secondaryUser.email,
 				domain: secondaryUser.email.split("@")[1] ?? "",
 				verifiedAt: new Date(),
-				expiresAt: null, // Primary emails don't expire
+				expiresAt: null, // Was the secondary user's primary email, so it doesn't expire
 			});
 
 			// 2. Move all members from secondary to primary

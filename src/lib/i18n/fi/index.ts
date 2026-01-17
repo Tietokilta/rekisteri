@@ -414,6 +414,8 @@ const fi = {
 				sessions: "Aktiiviset istunnot",
 				primaryEmailWillBecome: "Toissijaisen käyttäjän sähköposti muuttuu toissijaiseksi sähköpostiksi",
 				confirmByTyping: "Vahvista kirjoittamalla molemmat sähköpostiosoitteet:",
+				irreversibleWarning:
+					"Tätä toimintoa ei voi perua. Toissijainen käyttäjätili poistetaan pysyvästi ja kaikki tiedot siirretään ensisijaiselle käyttäjälle.",
 				typePrimaryEmail: "Kirjoita ensisijaisen käyttäjän sähköposti",
 				typeSecondaryEmail: "Kirjoita toissijaisen käyttäjän sähköposti",
 				cancel: "Peruuta",

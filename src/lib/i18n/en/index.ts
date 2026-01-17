@@ -414,6 +414,8 @@ const en = {
 				sessions: "Active sessions",
 				primaryEmailWillBecome: "Secondary user's email will become a secondary email",
 				confirmByTyping: "Confirm by typing both email addresses:",
+				irreversibleWarning:
+					"This action cannot be undone. The secondary user account will be permanently deleted and all data will be transferred to the primary user.",
 				typePrimaryEmail: "Type primary user's email",
 				typeSecondaryEmail: "Type secondary user's email",
 				cancel: "Cancel",

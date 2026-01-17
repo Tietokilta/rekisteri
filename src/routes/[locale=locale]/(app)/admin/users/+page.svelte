@@ -318,8 +318,7 @@
 							<AlertCircle class="size-4" />
 							<Alert.Title>{$LL.admin.users.merge.confirmByTyping()}</Alert.Title>
 							<Alert.Description>
-								This action cannot be undone. The secondary user account will be permanently deleted and all data will
-								be transferred to the primary user.
+								{$LL.admin.users.merge.irreversibleWarning()}
 							</Alert.Description>
 						</Alert.Root>
 

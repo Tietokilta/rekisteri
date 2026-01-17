@@ -355,7 +355,7 @@ test.describe("User Merge Feature", () => {
 
 			// Add a secondary email to secondary user
 			await db.insert(table.secondaryEmail).values({
-				id: generateUserId(),
+				id: crypto.randomUUID(),
 				userId: secondaryUser.id,
 				email: secondaryEmailAddress,
 				domain: "aalto.fi",
