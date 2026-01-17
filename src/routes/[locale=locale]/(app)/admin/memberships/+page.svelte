@@ -63,6 +63,10 @@
 <main class="container mx-auto max-w-[1400px] px-4 py-6">
 	<AdminPageHeader title={$LL.admin.memberships.title()} />
 
+	{#snippet membershipMetadataFailed()}
+		<p class="text-xs text-destructive">Failed to load price</p>
+	{/snippet}
+
 	<div class="flex w-full max-w-2xl flex-col items-center gap-4 md:flex-row md:items-stretch">
 		<div class="w-full max-w-xs">
 			<h2 class="font-mono text-lg">{$LL.membership.title()}</h2>
@@ -72,9 +76,8 @@
 					<li class="flex items-center justify-between space-x-4 rounded-md border p-4">
 						<div class="text-sm">
 							<p class="font-medium">{membership.type}</p>
-							{#await getStripePriceMetadata(membership.stripePriceId)}
-								<p class="text-xs text-muted-foreground">{$LL.admin.memberships.fetchingStripeMetadata()}...</p>
-							{:then priceMetadata}
+							<svelte:boundary failed={membershipMetadataFailed}>
+								{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
 								{#if priceMetadata.productName}
 									<p class="text-xs text-muted-foreground">{priceMetadata.productName}</p>
 								{/if}
@@ -95,21 +98,8 @@
 								{#if !priceMetadata.active}
 									<p class="text-xs text-destructive">{$LL.admin.memberships.priceInactive()}</p>
 								{/if}
-								<p class="text-muted-foreground">{$LL.admin.members.count({ count: membership.memberCount })}</p>
-							{:catch}
-								<p>
-									<time datetime={membership.startTime.toISOString()}
-										>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time
-									>–<time datetime={membership.endTime.toISOString()}
-										>{membership.endTime.toLocaleDateString(`${$locale}-FI`)}</time
-									>
-								</p>
-								<p class="text-muted-foreground">
-									{$LL.admin.memberships.stripePriceIdLabel({ stripePriceId: membership.stripePriceId })}
-								</p>
-								<p class="text-xs text-destructive">Failed to load price</p>
-								<p class="text-muted-foreground">{$LL.admin.members.count({ count: membership.memberCount })}</p>
-							{/await}
+							</svelte:boundary>
+							<p class="text-muted-foreground">{$LL.admin.members.count({ count: membership.memberCount })}</p>
 						</div>
 						<div>
 							{#if membership.memberCount === 0}
