@@ -105,7 +105,7 @@ export const reverifySecondaryEmailForm = form(
 		});
 
 		// Server-side redirect ensures cookies are properly set before navigation
-		redirect(303, route("/[locale=locale]/secondary-emails/verify", { locale: locals.locale }));
+		redirect(303, route("/[locale=locale]/settings/emails/verify", { locale: locals.locale }));
 	},
 );
 
@@ -175,7 +175,7 @@ export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ emai
 			sameSite: "lax",
 		});
 
-		redirect(303, route("/[locale=locale]/secondary-emails/verify", { locale: locals.locale }));
+		redirect(303, route("/[locale=locale]/settings/emails/verify", { locale: locals.locale }));
 	} catch (err) {
 		// Re-throw SvelteKit errors (redirect, error, etc.)
 		if (isRedirect(err) || isHttpError(err)) {

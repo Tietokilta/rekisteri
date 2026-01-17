@@ -6,6 +6,7 @@ import * as table from "../src/lib/server/db/schema";
 import { eq, and, isNull, like } from "drizzle-orm";
 import path from "node:path";
 import fs from "node:fs";
+import { route } from "../src/lib/ROUTES";
 
 test.describe("Secondary Email OTP Flow", () => {
 	let client: ReturnType<typeof postgres>;
@@ -19,11 +20,11 @@ test.describe("Secondary Email OTP Flow", () => {
 	};
 
 	const addEmailAndNavigateToVerify = async (page: Page, email: string) => {
-		await page.goto("/fi/secondary-emails/add");
+		await page.goto(route("/[locale=locale]/settings/emails/add", { locale: "fi" }));
 		await page.getByTestId("submit-add-email").waitFor({ state: "visible" });
 		await page.fill('input[type="email"]', email);
 		await page.getByTestId("submit-add-email").click();
-		await page.waitForURL(/secondary-emails\/verify/);
+		await page.waitForURL(/settings\/emails\/verify/);
 	};
 
 	const verifyEmailWithOTP = async (page: Page, email: string) => {
@@ -31,7 +32,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		if (!otp) throw new Error("OTP not found");
 
 		await page.locator('[data-slot="input-otp"]').pressSequentially(otp.code);
-		await page.waitForURL(/^.*\/secondary-emails$/);
+		await page.waitForURL(/^.*\/settings\/emails$/);
 	};
 
 	test.beforeAll(async () => {
@@ -62,9 +63,9 @@ test.describe("Secondary Email OTP Flow", () => {
 	test("should send exactly one OTP email when adding secondary email", async ({ adminPage }, testInfo) => {
 		const testEmail = getTestEmail("test", testInfo.workerIndex);
 
-		await adminPage.goto("/fi/secondary-emails");
+		await adminPage.goto(route("/[locale=locale]/settings/emails", { locale: "fi" }));
 		await adminPage.getByTestId("add-secondary-email").click();
-		await adminPage.waitForURL(/secondary-emails\/add/);
+		await adminPage.waitForURL(/settings\/emails\/add/);
 
 		await adminPage.fill('input[type="email"]', testEmail);
 
@@ -75,7 +76,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		expect(otpsBeforeSubmit).toHaveLength(0);
 
 		await adminPage.getByTestId("submit-add-email").click();
-		await adminPage.waitForURL(/secondary-emails\/verify/);
+		await adminPage.waitForURL(/settings\/emails\/verify/);
 
 		const otpsAfterSubmit = await db
 			.select()
@@ -96,14 +97,14 @@ test.describe("Secondary Email OTP Flow", () => {
 		const [firstOtp] = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
 		const firstOtpId = firstOtp?.id;
 
-		await adminPage.goto("/fi/secondary-emails");
+		await adminPage.goto(route("/[locale=locale]/settings/emails", { locale: "fi" }));
 		await adminPage.getByTestId("add-secondary-email").waitFor({ state: "visible" });
 
 		const emailRow = getEmailRow(adminPage, testEmail);
 		await expect(emailRow).toBeVisible();
 
 		await emailRow.getByTestId("reverify-email").click();
-		await adminPage.waitForURL(/secondary-emails\/verify/);
+		await adminPage.waitForURL(/settings\/emails\/verify/);
 
 		const [secondOtp] = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
 		expect(secondOtp).toBeDefined();
@@ -118,13 +119,13 @@ test.describe("Secondary Email OTP Flow", () => {
 		const [firstOtp] = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
 		const firstCode = firstOtp?.code;
 
-		await adminPage.goto("/fi/secondary-emails");
+		await adminPage.goto(route("/[locale=locale]/settings/emails", { locale: "fi" }));
 		await adminPage.getByTestId("add-secondary-email").waitFor({ state: "visible" });
 
 		const emailRow = getEmailRow(adminPage, testEmail);
 		await expect(emailRow).toBeVisible();
 		await emailRow.getByTestId("reverify-email").click();
-		await adminPage.waitForURL(/secondary-emails\/verify/);
+		await adminPage.waitForURL(/settings\/emails\/verify/);
 
 		const [secondOtp] = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
 		expect(secondOtp?.code).not.toBe(firstCode);
@@ -165,7 +166,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		const victimPage = await victimContext.newPage();
 
 		try {
-			await victimPage.goto("/fi/sign-in");
+			await victimPage.goto(route("/[locale=locale]/sign-in", { locale: "fi" }));
 			await victimPage.fill('input[type="email"]', targetEmail);
 			await victimPage.getByRole("button", { name: /kirjaudu|sign in/i }).click();
 
@@ -201,12 +202,12 @@ test.describe("Secondary Email OTP Flow", () => {
 		await verifyEmailWithOTP(adminPage, testEmail);
 
 		// Try adding again - should redirect to verify (idempotent behavior)
-		await adminPage.goto("/fi/secondary-emails/add");
+		await adminPage.goto(route("/[locale=locale]/settings/emails/add", { locale: "fi" }));
 		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
 		await adminPage.fill('input[type="email"]', testEmail);
 		await adminPage.getByTestId("submit-add-email").click();
 
-		await adminPage.waitForURL(/secondary-emails\/verify/);
+		await adminPage.waitForURL(/settings\/emails\/verify/);
 	});
 
 	test("should reject adding email that is already a primary email", async ({ adminPage, adminUser }) => {
@@ -215,7 +216,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.email, primaryEmail.toLowerCase()));
 		await db.delete(table.emailOTP).where(eq(table.emailOTP.email, primaryEmail.toLowerCase()));
 
-		await adminPage.goto("/fi/secondary-emails/add");
+		await adminPage.goto(route("/[locale=locale]/settings/emails/add", { locale: "fi" }));
 		await adminPage.getByTestId("submit-add-email").waitFor({ state: "visible" });
 		await adminPage.fill('input[type="email"]', primaryEmail);
 		await adminPage.getByTestId("submit-add-email").click();
@@ -223,7 +224,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		// Verify we didn't navigate to verify page (rejection happened)
 		// Allow time for any potential redirect to occur
 		await adminPage.waitForTimeout(500);
-		await expect(adminPage).not.toHaveURL(/secondary-emails\/verify/);
+		await expect(adminPage).not.toHaveURL(/settings\/emails\/verify/);
 
 		// Verify no secondary email was created (the actual requirement)
 		const secondaryEmails = await db
@@ -241,7 +242,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		await adminPage.locator('[data-slot="input-otp"]').pressSequentially("WRONGABC");
 
 		await expect(adminPage.getByText("Incorrect")).toBeVisible();
-		await expect(adminPage).toHaveURL(/secondary-emails\/verify/);
+		await expect(adminPage).toHaveURL(/settings\/emails\/verify/);
 
 		const [email] = await db
 			.select()
@@ -283,7 +284,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		await verifyEmailWithOTP(adminPage, testEmail);
 
 		// Navigate to secondary emails page
-		await adminPage.goto("/fi/secondary-emails");
+		await adminPage.goto(route("/[locale=locale]/settings/emails", { locale: "fi" }));
 		await adminPage.getByTestId("add-secondary-email").waitFor({ state: "visible" });
 
 		// Find the new verified email row and click "Make Primary"
@@ -337,7 +338,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		await addEmailAndNavigateToVerify(adminPage, testEmail);
 
 		// Go back to secondary emails page without verifying
-		await adminPage.goto("/fi/secondary-emails");
+		await adminPage.goto(route("/[locale=locale]/settings/emails", { locale: "fi" }));
 		await adminPage.getByTestId("add-secondary-email").waitFor({ state: "visible" });
 
 		const emailRow = getEmailRow(adminPage, testEmail);

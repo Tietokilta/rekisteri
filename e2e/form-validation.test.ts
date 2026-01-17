@@ -1,8 +1,9 @@
 import { test, expect } from "./fixtures/auth";
+import { route } from "../src/lib/ROUTES";
 
 test.describe("Form Validation UX - Reward Early, Validate Late", () => {
 	test("should not show validation errors while typing initially", async ({ adminPage }) => {
-		await adminPage.goto("/fi/", { waitUntil: "networkidle" });
+		await adminPage.goto(route("/[locale=locale]/settings/profile", { locale: "fi" }), { waitUntil: "networkidle" });
 
 		const firstNamesInput = adminPage.getByTestId("firstNames-input");
 		const firstNamesError = adminPage.getByTestId("firstNames-error");
@@ -30,7 +31,7 @@ test.describe("Form Validation UX - Reward Early, Validate Late", () => {
 	});
 
 	test("should show validation errors on blur for empty required field", async ({ adminPage }) => {
-		await adminPage.goto("/fi/", { waitUntil: "networkidle" });
+		await adminPage.goto(route("/[locale=locale]/settings/profile", { locale: "fi" }), { waitUntil: "networkidle" });
 
 		const firstNamesInput = adminPage.getByTestId("firstNames-input");
 		const firstNamesError = adminPage.getByTestId("firstNames-error");
@@ -57,7 +58,7 @@ test.describe("Form Validation UX - Reward Early, Validate Late", () => {
 	});
 
 	test("should validate on input after initial validation (reward early)", async ({ adminPage }) => {
-		await adminPage.goto("/fi/", { waitUntil: "networkidle" });
+		await adminPage.goto(route("/[locale=locale]/settings/profile", { locale: "fi" }), { waitUntil: "networkidle" });
 
 		const firstNamesInput = adminPage.getByTestId("firstNames-input");
 		const firstNamesError = adminPage.getByTestId("firstNames-error");
@@ -86,7 +87,7 @@ test.describe("Form Validation UX - Reward Early, Validate Late", () => {
 	});
 
 	test("should show error again if field becomes invalid after being valid", async ({ adminPage }) => {
-		await adminPage.goto("/fi/", { waitUntil: "networkidle" });
+		await adminPage.goto(route("/[locale=locale]/settings/profile", { locale: "fi" }), { waitUntil: "networkidle" });
 
 		const firstNamesInput = adminPage.getByTestId("firstNames-input");
 		const firstNamesError = adminPage.getByTestId("firstNames-error");

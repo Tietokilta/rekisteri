@@ -3,7 +3,60 @@ import type { BaseTranslation } from "../i18n-types";
 const fi = {
 	// Application
 	app: {
-		title: "Tietokilta Jäsenrekisteri",
+		title: "Jäsenrekisteri",
+	},
+
+	// Navigation
+	nav: {
+		title: "Navigaatio",
+		dashboard: "Etusivu",
+		membership: "Jäsenyys",
+		settings: "Asetukset",
+		profile: "Profiili",
+		passkeys: "Avaimet",
+		emails: "Sähköpostit",
+		admin: {
+			title: "Hallinta",
+			members: "Jäsenet",
+			memberships: "Jäsenyydet",
+			users: "Käyttäjät",
+		},
+		signOut: "Kirjaudu ulos",
+	},
+
+	// Dashboard
+	dashboard: {
+		welcome: "Tervetuloa, {name}!",
+		membershipStatus: "Jäsenyystila",
+		noMembership: "Ei aktiivista jäsenyyttä",
+		getFirstMembership: "Hanki jäsenyys",
+		viewAll: "Näytä kaikki",
+		purchaseNew: "Osta uusi",
+		renewMembership: "Uusi jäsenyys",
+		profileIncomplete: "Täydennä profiilisi",
+		profileIncompleteDescription: "Tarvitsemme nimesi ja kotikuntasi jäsenyyden rekisteröintiä varten.",
+		completeProfile: "Siirry profiiliin",
+		paymentSuccess: "Maksu onnistui!",
+		paymentSuccessDescription: "Jäsenyytesi päivittyy hetken kuluttua.",
+	},
+
+	// Settings
+	settings: {
+		title: "Asetukset",
+		description: "Hallinnoi profiiliasi ja asetuksiasi",
+		profile: {
+			title: "Profiili",
+			description: "Henkilötiedot ja asetukset",
+			emailManagement: "Sähköposteja hallinnoidaan <>sähköpostisivulla<>.",
+		},
+		passkeys: {
+			title: "Avaimet",
+			description: "Hallinnoi avainkoodeja",
+		},
+		emails: {
+			title: "Sähköpostit",
+			description: "Hallinnoi toissijaisia sähköposteja",
+		},
 	},
 
 	// Authentication
@@ -101,7 +154,7 @@ const fi = {
 		primaryDescription: "Tämä on ensisijainen sähköpostiosoitteesi",
 
 		// Add email
-		addEmail: "Lisää toissijainen sähköposti",
+		addEmail: "Lisää sähköposti",
 		adding: "Lisätään...",
 		emailAddress: "Sähköpostiosoite",
 		emailPlaceholder: "teemu.teekkari@aalto.fi",
@@ -169,6 +222,7 @@ const fi = {
 	// Membership
 	membership: {
 		title: "Jäsenyydet",
+		historyDescription: "Näytä ja hallitse jäsenyyksiäsi",
 		current: "Nykyiset jäsenyydet",
 		createNew: "Luo uusi jäsenyys",
 		buy: "Osta jäsenyys",
@@ -183,6 +237,9 @@ const fi = {
 		noMembership: "Ei jäsenyyttä",
 		requiresStudentVerification: "Edellyttää opiskelijastatusta",
 		isStudent: "Olen opiskelija Aalto-yliopistossa",
+		getStarted: "Osta jäsenyys päästäksesi alkuun",
+		currentMemberships: "Aktiiviset jäsenyydet",
+		pastMemberships: "Aiemmat jäsenyydet",
 
 		// Status
 		status: {
