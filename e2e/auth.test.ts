@@ -18,10 +18,10 @@ test.describe("Authentication", () => {
 		// Verify we're not redirected to sign-in
 		await expect(adminPage).not.toHaveURL(/sign-in|kirjaudu/);
 
-		// Check for the welcome heading on dashboard
-		const welcomeHeading = adminPage.locator("h1").first();
-		await expect(welcomeHeading).toBeVisible();
-		await expect(welcomeHeading).toContainText(/Tervetuloa|Welcome/);
+		// Check for the membership card or profile incomplete card on dashboard
+		// The dashboard now shows either MembershipCard (Jäsenyystila) or ProfileIncompleteCard (Täydennä profiilisi)
+		// Using getByText with regex per PLAYWRIGHT.md best practices
+		await expect(adminPage.getByText(/Jäsenyystila|Täydennä profiilisi/)).toBeVisible();
 	});
 
 	test("user info form refreshes displayed data after save", async ({ adminPage }) => {
@@ -42,12 +42,12 @@ test.describe("Authentication", () => {
 		await firstNamesInput.fill(newFirstNames);
 		await lastNameInput.fill(newLastName);
 
-		// Submit the form
-		const saveButton = adminPage.locator('button[type="submit"]', { hasText: /Tallenna|Save/i });
+		// Submit the form using semantic selector per PLAYWRIGHT.md
+		const saveButton = adminPage.getByRole("button", { name: /Tallenna/i });
 		await saveButton.click();
 
 		// Wait for success toast
-		await expect(adminPage.locator("text=/Tallennettu|Saved/i")).toBeVisible({ timeout: 5000 });
+		await expect(adminPage.getByText(/Tallennettu/i)).toBeVisible({ timeout: 5000 });
 
 		// Verify form inputs still have the new values
 		await expect(firstNamesInput).toHaveValue(newFirstNames);
@@ -59,7 +59,7 @@ test.describe("Authentication", () => {
 		await saveButton.click();
 
 		// Wait for success toast
-		await expect(adminPage.locator("text=/Tallennettu|Saved/i")).toBeVisible({ timeout: 5000 });
+		await expect(adminPage.getByText(/Tallennettu/i)).toBeVisible({ timeout: 5000 });
 
 		// Verify values are restored
 		await expect(firstNamesInput).toHaveValue(originalFirstNames);
