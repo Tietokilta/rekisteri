@@ -4,14 +4,14 @@ import fs from "node:fs";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as table from "../src/lib/server/db/schema";
-import { eq, like } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { createVerifiedSecondaryEmail, createUnverifiedSecondaryEmail } from "./helpers/secondary-email";
 
 test.describe("CSV Import", () => {
 	let client: ReturnType<typeof postgres>;
 	let db: ReturnType<typeof drizzle>;
 
-	const getTestEmail = (prefix: string, workerIndex: number) => `${prefix}-w${workerIndex}-${Date.now()}@example.com`;
+	const getTestEmail = (prefix: string) => `${prefix}-${crypto.randomUUID()}@example.com`;
 
 	test.beforeAll(async () => {
 		const dbUrl = process.env.DATABASE_URL_TEST;
@@ -22,21 +22,6 @@ test.describe("CSV Import", () => {
 
 	test.afterAll(async () => {
 		await client.end();
-	});
-
-	// eslint-disable-next-line no-empty-pattern -- required for playwright fixture
-	test.beforeEach(async ({}, testInfo) => {
-		// Clean up worker-specific emails for parallel test isolation
-		const workerPattern = `%-w${testInfo.workerIndex}-%`;
-		await db.delete(table.emailOTP).where(like(table.emailOTP.email, workerPattern));
-		await db.delete(table.secondaryEmail).where(like(table.secondaryEmail.email, workerPattern));
-
-		// Clean up test users created during import tests
-		const [testUser] = await db.select().from(table.user).where(like(table.user.email, workerPattern));
-		if (testUser) {
-			await db.delete(table.member).where(eq(table.member.userId, testUser.id));
-			await db.delete(table.user).where(eq(table.user.id, testUser.id));
-		}
 	});
 
 	// Test file upload with actual CSV file
@@ -146,9 +131,9 @@ Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
 	test("should attach membership to existing user when CSV email is a verified secondary email", async ({
 		adminPage,
 		adminUser,
-	}, testInfo) => {
+	}) => {
 		// 1. Set up: Admin user has a verified secondary email
-		const secondaryEmail = getTestEmail("secondary", testInfo.workerIndex);
+		const secondaryEmail = getTestEmail("secondary");
 
 		// Create verified secondary email for admin user
 		await createVerifiedSecondaryEmail(db, adminUser.id, secondaryEmail);
@@ -158,7 +143,7 @@ Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
 		const initialUserCount = usersBeforeImport.length;
 
 		// 3. Create CSV with the secondary email
-		const tempPath = path.join(process.cwd(), `temp-secondary-email-import-w${testInfo.workerIndex}.csv`);
+		const tempPath = path.join(process.cwd(), `temp-csv-import-${crypto.randomUUID()}.csv`);
 		const csvContent = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
 Test,User,Helsinki,${secondaryEmail},varsinainen jäsen,2025-08-01`;
 		fs.writeFileSync(tempPath, csvContent);
@@ -207,9 +192,9 @@ Test,User,Helsinki,${secondaryEmail},varsinainen jäsen,2025-08-01`;
 		}
 	});
 
-	test("should NOT match unverified secondary emails during CSV import", async ({ adminPage, adminUser }, testInfo) => {
+	test("should NOT match unverified secondary emails during CSV import", async ({ adminPage, adminUser }) => {
 		// 1. Set up: Admin user has an UNVERIFIED secondary email
-		const unverifiedEmail = getTestEmail("unverified", testInfo.workerIndex);
+		const unverifiedEmail = getTestEmail("unverified");
 
 		// Create unverified secondary email for admin user
 		await createUnverifiedSecondaryEmail(db, adminUser.id, unverifiedEmail);
@@ -219,7 +204,7 @@ Test,User,Helsinki,${secondaryEmail},varsinainen jäsen,2025-08-01`;
 		const initialUserCount = usersBeforeImport.length;
 
 		// 3. Create CSV with the unverified secondary email
-		const tempPath = path.join(process.cwd(), `temp-unverified-import-w${testInfo.workerIndex}.csv`);
+		const tempPath = path.join(process.cwd(), `temp-csv-import-${crypto.randomUUID()}.csv`);
 		const csvContent = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
 New,Person,Espoo,${unverifiedEmail},varsinainen jäsen,2025-08-01`;
 		fs.writeFileSync(tempPath, csvContent);
