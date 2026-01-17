@@ -204,8 +204,11 @@ test.describe("User Merge Feature", () => {
 			// Click merge button using testid
 			await adminPage.getByTestId("merge-submit-button").click();
 
-			// Merge should fail - verify wizard is still visible (didn't close on success)
-			// and secondary user still exists in database
+			// Merge should fail due to overlapping memberships
+			// Wait for error toast to appear (indicates merge failed)
+			await expect(adminPage.locator('[data-sonner-toast][data-type="error"]')).toBeVisible();
+
+			// Verify wizard is still visible (didn't close on success)
 			await expect(mergeWizard).toBeVisible();
 
 			// Verify secondary user was NOT deleted (merge failed)
@@ -415,8 +418,11 @@ test.describe("User Merge Feature", () => {
 			// Click merge using testid
 			await adminPage.getByTestId("merge-submit-button").click();
 
-			// Wait for page to reload (merge success triggers reload, toast is transient)
-			await expect(adminPage.getByRole("heading", { name: "Käyttäjät" })).toBeVisible();
+			// Wait for wizard to close (indicates merge succeeded)
+			await expect(adminPage.getByTestId("merge-wizard")).not.toBeVisible();
+
+			// Wait for success toast to confirm operation completed
+			await expect(adminPage.locator('[data-sonner-toast][data-type="success"]')).toBeVisible();
 
 			// Verify data integrity in database
 			// 1. Secondary user should be deleted

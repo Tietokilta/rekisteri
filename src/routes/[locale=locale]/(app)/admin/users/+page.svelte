@@ -17,6 +17,7 @@
 	import { promoteToAdmin, demoteFromAdmin, mergeUsers } from "./data.remote";
 	import { promoteToAdminSchema, demoteFromAdminSchema } from "./schema";
 	import { toast } from "svelte-sonner";
+	import { invalidateAll } from "$app/navigation";
 
 	const { data }: PageProps = $props();
 
@@ -95,8 +96,8 @@
 			if (result.success) {
 				toast.success($LL.admin.users.merge.success());
 				closeMergeModal();
-				// Reload page to reflect changes
-				globalThis.location.reload();
+				// Refresh data to reflect changes
+				await invalidateAll();
 			}
 		} catch (err) {
 			const errorMessage = err instanceof Error ? err.message : "Unknown error";
