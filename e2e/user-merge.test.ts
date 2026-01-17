@@ -124,7 +124,7 @@ test.describe("User Merge Feature", () => {
 			const [membership] = await db
 				.select()
 				.from(table.membership)
-				.where(eq(table.membership.type, "varsinainen jäsen"))
+				.where(eq(table.membership.membershipTypeId, "varsinainen-jasen"))
 				.limit(1);
 			if (!membership) throw new Error("Membership not found");
 			membershipId = membership.id;
@@ -331,7 +331,7 @@ test.describe("User Merge Feature", () => {
 			const memberships = await db
 				.select()
 				.from(table.membership)
-				.where(eq(table.membership.type, "varsinainen jäsen"))
+				.where(eq(table.membership.membershipTypeId, "varsinainen-jasen"))
 				.limit(2);
 			if (!memberships[0] || !memberships[1]) throw new Error("Memberships not found");
 			membership2024 = memberships[0].id;
