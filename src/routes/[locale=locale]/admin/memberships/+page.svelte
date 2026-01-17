@@ -8,6 +8,7 @@
 	import { Input } from "$lib/components/ui/input";
 	import { Button } from "$lib/components/ui/button";
 	import { Label } from "$lib/components/ui/label";
+	import AdminPageHeader from "$lib/components/admin-page-header.svelte";
 
 	const { data }: PageProps = $props();
 
@@ -15,8 +16,8 @@
 	createMembership.fields.set(data.defaultValues);
 </script>
 
-<main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
-	<h1 class="font-mono text-lg">{$LL.admin.memberships.title()}</h1>
+<main class="container mx-auto max-w-[1400px] px-4 py-6">
+	<AdminPageHeader title={$LL.admin.memberships.title()} />
 
 	<div class="flex w-full max-w-2xl flex-col items-center gap-4 md:flex-row md:items-stretch">
 		<div class="w-full max-w-xs">

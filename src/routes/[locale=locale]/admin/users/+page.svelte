@@ -5,6 +5,7 @@
 	import { Button } from "$lib/components/ui/button";
 	import { Input } from "$lib/components/ui/input";
 	import { Badge } from "$lib/components/ui/badge";
+	import AdminPageHeader from "$lib/components/admin-page-header.svelte";
 	import ChevronUp from "@lucide/svelte/icons/chevron-up";
 	import ChevronDown from "@lucide/svelte/icons/chevron-down";
 	import { promoteToAdmin, demoteFromAdmin } from "./data.remote";
@@ -68,11 +69,8 @@
 	const isLastAdmin = $derived(admins.length === 1);
 </script>
 
-<main class="container mx-auto py-6">
-	<div class="mb-6">
-		<h1 class="text-3xl font-bold">{$LL.admin.users.title()}</h1>
-		<p class="text-muted-foreground">{$LL.admin.users.description()}</p>
-	</div>
+<main class="container mx-auto max-w-[1400px] px-4 py-6">
+	<AdminPageHeader title={$LL.admin.users.title()} description={$LL.admin.users.description()} />
 
 	<div class="mb-4">
 		<Input placeholder={$LL.admin.users.table.search()} type="search" class="max-w-sm" bind:value={searchQuery} />

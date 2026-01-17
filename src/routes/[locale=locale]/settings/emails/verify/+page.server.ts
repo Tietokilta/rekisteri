@@ -12,7 +12,7 @@ import { route } from "$lib/ROUTES";
 export const load: PageServerLoad = async (event) => {
 	const email = event.cookies.get(emailCookieName);
 	if (typeof email !== "string") {
-		return redirect(302, route("/[locale=locale]/secondary-emails", { locale: event.locals.locale }));
+		return redirect(302, route("/[locale=locale]/settings/emails", { locale: event.locals.locale }));
 	}
 
 	let otp = await getEmailOTPFromRequest(event);

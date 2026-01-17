@@ -1,9 +1,10 @@
 import { test, expect } from "./fixtures/auth";
+import { route } from "../src/lib/ROUTES";
 
 test.describe("Authentication", () => {
 	test("admin page fixture can access admin members page", async ({ adminPage }) => {
 		// Navigate to admin members page which requires authentication
-		await adminPage.goto("/fi/admin/members", { waitUntil: "networkidle" });
+		await adminPage.goto(route("/[locale=locale]/admin/members", { locale: "fi" }), { waitUntil: "networkidle" });
 
 		// Verify we're on the admin members page (handles i18n routes)
 		// and not redirected to sign-in page
@@ -11,24 +12,21 @@ test.describe("Authentication", () => {
 		await expect(adminPage).not.toHaveURL(/sign-in|kirjaudu/);
 	});
 
-	test("authenticated admin can see user profile on home page", async ({ adminPage }) => {
-		await adminPage.goto("/fi/", { waitUntil: "networkidle" });
+	test("authenticated admin can see dashboard on home page", async ({ adminPage }) => {
+		await adminPage.goto(route("/[locale=locale]", { locale: "fi" }), { waitUntil: "networkidle" });
 
 		// Verify we're not redirected to sign-in
 		await expect(adminPage).not.toHaveURL(/sign-in|kirjaudu/);
 
-		// Check for readonly email input (indicates authenticated user viewing their profile)
-		const emailInput = adminPage.locator('input[type="email"]').first();
-		await expect(emailInput).toBeVisible();
-		await expect(emailInput).toHaveValue("root@tietokilta.fi");
+		// Check for the welcome heading on dashboard
+		const welcomeHeading = adminPage.locator("h1").first();
+		await expect(welcomeHeading).toBeVisible();
+		await expect(welcomeHeading).toContainText(/Tervetuloa|Welcome/);
 	});
 
 	test("user info form refreshes displayed data after save", async ({ adminPage }) => {
-		await adminPage.goto("/fi/", { waitUntil: "networkidle" });
-
-		// Get current values from the welcome message
-		const welcomeHeading = adminPage.locator("h1").first();
-		const originalWelcomeText = (await welcomeHeading.textContent()) ?? "";
+		// Navigate to profile settings page where the form now lives
+		await adminPage.goto(route("/[locale=locale]/settings/profile", { locale: "fi" }), { waitUntil: "networkidle" });
 
 		// Find the form inputs
 		const firstNamesInput = adminPage.locator('input[autocomplete="given-name"]');
@@ -51,11 +49,6 @@ test.describe("Authentication", () => {
 		// Wait for success toast
 		await expect(adminPage.locator("text=/Tallennettu|Saved/i")).toBeVisible({ timeout: 5000 });
 
-		// Verify the welcome message updates immediately (without page refresh)
-		await expect(welcomeHeading).toContainText(newFirstNames);
-		await expect(welcomeHeading).toContainText(newLastName);
-		await expect(welcomeHeading).not.toHaveText(originalWelcomeText);
-
 		// Verify form inputs still have the new values
 		await expect(firstNamesInput).toHaveValue(newFirstNames);
 		await expect(lastNameInput).toHaveValue(newLastName);
@@ -69,7 +62,7 @@ test.describe("Authentication", () => {
 		await expect(adminPage.locator("text=/Tallennettu|Saved/i")).toBeVisible({ timeout: 5000 });
 
 		// Verify values are restored
-		await expect(welcomeHeading).toContainText(originalFirstNames);
-		await expect(welcomeHeading).toContainText(originalLastName);
+		await expect(firstNamesInput).toHaveValue(originalFirstNames);
+		await expect(lastNameInput).toHaveValue(originalLastName);
 	});
 });

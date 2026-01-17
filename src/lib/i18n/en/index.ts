@@ -3,7 +3,59 @@ import type { Translation } from "../i18n-types";
 const en = {
 	// Application
 	app: {
-		title: "CSG Membership Registry",
+		title: "Membership Registry",
+	},
+
+	// Navigation
+	nav: {
+		title: "Navigation",
+		dashboard: "Dashboard",
+		membership: "Membership",
+		settings: "Settings",
+		profile: "Profile",
+		passkeys: "Passkeys",
+		emails: "Emails",
+		admin: {
+			title: "Admin",
+			members: "Members",
+			memberships: "Memberships",
+			users: "Users",
+		},
+		signOut: "Sign out",
+	},
+
+	// Dashboard
+	dashboard: {
+		welcome: "Welcome, {name}!",
+		membershipStatus: "Membership Status",
+		noMembership: "No active membership",
+		getFirstMembership: "Get your first membership",
+		viewAll: "View all",
+		purchaseNew: "Purchase new",
+		renewMembership: "Renew membership",
+		profileIncomplete: "Complete your profile",
+		profileIncompleteDescription: "We need your name and home municipality to register your membership.",
+		completeProfile: "Go to profile",
+		paymentSuccess: "Payment successful!",
+		paymentSuccessDescription: "Your membership will be updated shortly.",
+	},
+
+	// Settings
+	settings: {
+		title: "Settings",
+		description: "Manage your profile and preferences",
+		profile: {
+			title: "Profile",
+			description: "Personal information and preferences",
+		},
+		passkeys: {
+			title: "Passkeys",
+			description: "Manage your passkeys",
+		},
+		emails: {
+			title: "Emails",
+			description: "Manage secondary emails",
+		},
 	},
 
 	// Authentication
@@ -101,7 +153,7 @@ const en = {
 		primaryDescription: "This is your primary email address",
 
 		// Add email
-		addEmail: "Add secondary email",
+		addEmail: "Add email",
 		adding: "Adding...",
 		emailAddress: "Email address",
 		emailPlaceholder: "teemu.teekkari@aalto.fi",
@@ -169,6 +221,7 @@ const en = {
 	// Membership
 	membership: {
 		title: "Memberships",
+		historyDescription: "View and manage your memberships",
 		current: "Current memberships",
 		createNew: "Create a new membership",
 		buy: "Buy membership",
@@ -183,6 +236,9 @@ const en = {
 		noMembership: "No membership",
 		requiresStudentVerification: "Requires student verification",
 		isStudent: "I am a student in Aalto University",
+		getStarted: "Purchase a membership to get started",
+		currentMemberships: "Active memberships",
+		pastMemberships: "Past memberships",
 
 		// Status
 		status: {

@@ -33,23 +33,29 @@ const PAGES = {
   "/[locale=locale]/admin/users": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
     return `/${params['locale']}/admin/users`
   },
+  "/[locale=locale]/membership": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/membership`
+  },
   "/[locale=locale]/new": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
     return `/${params['locale']}/new`
-  },
-  "/[locale=locale]/passkeys": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
-    return `/${params['locale']}/passkeys`
   },
   "/[locale=locale]/privacy-policy": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
     return `/${params['locale']}/privacy-policy`
   },
-  "/[locale=locale]/secondary-emails": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
-    return `/${params['locale']}/secondary-emails`
+  "/[locale=locale]/settings/emails": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/settings/emails`
   },
-  "/[locale=locale]/secondary-emails/add": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
-    return `/${params['locale']}/secondary-emails/add`
+  "/[locale=locale]/settings/emails/add": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/settings/emails/add`
   },
-  "/[locale=locale]/secondary-emails/verify": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
-    return `/${params['locale']}/secondary-emails/verify`
+  "/[locale=locale]/settings/emails/verify": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/settings/emails/verify`
+  },
+  "/[locale=locale]/settings/passkeys": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/settings/passkeys`
+  },
+  "/[locale=locale]/settings/profile": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/settings/profile`
   }
 }
 
@@ -184,7 +190,7 @@ type ExtractParamType<T extends (param: any) => any> = ExtractFnPredicate<T> ext
 * ```
 */
 export type KIT_ROUTES = {
-  PAGES: { '/[locale=locale]': 'locale', '/[locale=locale]/sign-in': 'locale', '/[locale=locale]/sign-in/email': 'locale', '/[locale=locale]/sign-in/method': 'locale', '/[locale=locale]/admin/members': 'locale', '/[locale=locale]/admin/members/import': 'locale', '/[locale=locale]/admin/memberships': 'locale', '/[locale=locale]/admin/users': 'locale', '/[locale=locale]/new': 'locale', '/[locale=locale]/passkeys': 'locale', '/[locale=locale]/privacy-policy': 'locale', '/[locale=locale]/secondary-emails': 'locale', '/[locale=locale]/secondary-emails/add': 'locale', '/[locale=locale]/secondary-emails/verify': 'locale' }
+  PAGES: { '/[locale=locale]': 'locale', '/[locale=locale]/sign-in': 'locale', '/[locale=locale]/sign-in/email': 'locale', '/[locale=locale]/sign-in/method': 'locale', '/[locale=locale]/admin/members': 'locale', '/[locale=locale]/admin/members/import': 'locale', '/[locale=locale]/admin/memberships': 'locale', '/[locale=locale]/admin/users': 'locale', '/[locale=locale]/membership': 'locale', '/[locale=locale]/new': 'locale', '/[locale=locale]/privacy-policy': 'locale', '/[locale=locale]/settings/emails': 'locale', '/[locale=locale]/settings/emails/add': 'locale', '/[locale=locale]/settings/emails/verify': 'locale', '/[locale=locale]/settings/passkeys': 'locale', '/[locale=locale]/settings/profile': 'locale' }
   SERVERS: { 'GET /api/health': never, 'POST /api/webhook/stripe': never }
   ACTIONS: Record<string, never>
   LINKS: Record<string, never>

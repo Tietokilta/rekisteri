@@ -75,7 +75,7 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
 	deleteEmailOTP(otp.id);
 	deleteEmailOTPCookie(event);
 
-	redirect(302, route("/[locale=locale]/secondary-emails", { locale: event.locals.locale }));
+	redirect(302, route("/[locale=locale]/settings/emails", { locale: event.locals.locale }));
 });
 
 export const resendEmail = form(async () => {
@@ -120,5 +120,5 @@ export const cancelVerification = form(async () => {
 	deleteEmailOTPCookie(event);
 
 	// Redirect back to management page
-	redirect(303, route("/[locale=locale]/secondary-emails", { locale: event.locals.locale }));
+	redirect(303, route("/[locale=locale]/settings/emails", { locale: event.locals.locale }));
 });

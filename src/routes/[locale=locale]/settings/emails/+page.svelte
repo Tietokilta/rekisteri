@@ -4,6 +4,7 @@
 	import { route } from "$lib/ROUTES";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import * as Item from "$lib/components/ui/item/index.js";
+	import * as Card from "$lib/components/ui/card/index.js";
 	import { Badge } from "$lib/components/ui/badge/index.js";
 	import Mail from "@lucide/svelte/icons/mail";
 	import CircleCheck from "@lucide/svelte/icons/circle-check";
@@ -34,21 +35,20 @@
 	}
 </script>
 
-<main class="container mx-auto my-8 max-w-4xl p-4">
-	<div class="mb-8 flex items-center justify-between">
-		<div>
-			<h1 class="text-3xl font-bold">{$LL.secondaryEmail.title()}</h1>
-			<p class="mt-1 text-muted-foreground">{$LL.secondaryEmail.manageDescription()}</p>
-		</div>
-		<Button
-			href={route("/[locale=locale]/secondary-emails/add", { locale: $locale })}
-			data-testid="add-secondary-email"
-		>
-			+ {$LL.secondaryEmail.addEmail()}
-		</Button>
-	</div>
-
-	<div class="space-y-4">
+<Card.Root>
+	<Card.Header>
+		<Card.Title>{$LL.settings.emails.title()}</Card.Title>
+		<Card.Description>{$LL.secondaryEmail.manageDescription()}</Card.Description>
+		<Card.Action>
+			<Button
+				href={route("/[locale=locale]/settings/emails/add", { locale: $locale })}
+				data-testid="add-secondary-email"
+			>
+				+ {$LL.secondaryEmail.addEmail()}
+			</Button>
+		</Card.Action>
+	</Card.Header>
+	<Card.Content class="space-y-4">
 		<!-- Primary Email -->
 		<Item.Root variant="outline">
 			<Item.Media variant="icon">
@@ -81,8 +81,8 @@
 						<Mail />
 					</Item.Media>
 					<Item.Content>
-						<Item.Title>
-							<span>{email.email}</span>
+						<Item.Title class="flex-wrap">
+							<span class="break-all">{email.email}</span>
 							<Badge variant="secondary">{email.domain}</Badge>
 
 							{#if status === "verified"}
@@ -102,16 +102,16 @@
 								</Badge>
 							{/if}
 						</Item.Title>
-						<Item.Description>
+						<Item.Description class="flex flex-col gap-1 sm:flex-row sm:gap-4">
 							{#if email.verifiedAt}
 								<span>{$LL.secondaryEmail.verifiedAt()}: {formatDate(email.verifiedAt)}</span>
 							{/if}
 							{#if email.expiresAt}
-								<span class="ml-4">{$LL.secondaryEmail.expiresAt()}: {formatDate(email.expiresAt)}</span>
+								<span>{$LL.secondaryEmail.expiresAt()}: {formatDate(email.expiresAt)}</span>
 							{/if}
 						</Item.Description>
 					</Item.Content>
-					<Item.Actions>
+					<Item.Actions class="flex-col sm:flex-row">
 						{#if status === "verified"}
 							<form
 								class="contents"
@@ -179,5 +179,5 @@
 				</Item.Root>
 			{/each}
 		{/if}
-	</div>
-</main>
+	</Card.Content>
+</Card.Root>

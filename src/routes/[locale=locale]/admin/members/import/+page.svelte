@@ -9,6 +9,7 @@
 	import { SvelteSet } from "svelte/reactivity";
 	import { LL } from "$lib/i18n/i18n-svelte";
 	import * as v from "valibot";
+	import AdminPageHeader from "$lib/components/admin-page-header.svelte";
 
 	let { data }: { data: PageData } = $props();
 
@@ -123,10 +124,10 @@
 	});
 </script>
 
-<main class="my-8 flex flex-col items-center justify-center p-4">
-	<h1 class="mb-6 font-mono text-2xl font-semibold">{$LL.admin.import.title()}</h1>
+<main class="container mx-auto max-w-[1400px] px-4 py-6">
+	<AdminPageHeader title={$LL.admin.import.title()} />
 
-	<div class="flex w-full max-w-6xl flex-col gap-8 md:flex-row">
+	<div class="flex w-full flex-col gap-8 md:flex-row">
 		<!-- Upload Section -->
 		<div class="w-full md:w-1/3">
 			<div class="rounded-lg border p-6">
