@@ -39,10 +39,6 @@
 			</Card.Header>
 			<!-- Show membership options when profile is complete -->
 			<Card.Content>
-				{#snippet membershipPriceFailed()}
-					<span class="font-medium text-destructive">Failed to load price</span>
-				{/snippet}
-
 				<form {...payMembership.preflight(payMembershipSchema)} class="flex flex-col gap-4">
 					<div class="space-y-3">
 						{#each filteredMemberships as membership (membership.id)}
@@ -51,12 +47,15 @@
 							>
 								<input {...payMembership.fields.membershipId.as("radio", membership.id)} required class="mt-1" />
 								<div class="flex flex-col">
-									<svelte:boundary failed={membershipPriceFailed}>
+									<svelte:boundary>
 										{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
 										<span class="font-medium">
 											{membership.type} ({priceMetadata.priceCents / 100}
 											{priceMetadata.currency.toUpperCase()})
 										</span>
+										{#snippet failed()}
+											<span class="font-medium text-destructive">Failed to load price</span>
+										{/snippet}
 									</svelte:boundary>
 									<span class="text-sm text-muted-foreground">
 										{new Date(membership.startTime).toLocaleDateString(`${$locale}-FI`)}
@@ -121,10 +120,6 @@
 						</div>
 					{/if}
 
-					{#snippet priceFailedSnippet()}
-						<span>(-)</span>
-					{/snippet}
-
 					<Button type="submit" disabled={disableForm} class={disableForm ? "cursor-not-allowed opacity-50" : ""}>
 						{$LL.membership.buy()}
 						{#if payMembership.fields.membershipId.value()}
@@ -132,10 +127,13 @@
 								(x) => x.id === payMembership.fields.membershipId.value(),
 							)}
 							{#if selectedMembership}
-								<svelte:boundary failed={priceFailedSnippet}>
+								<svelte:boundary>
 									{@const priceMetadata = await getStripePriceMetadata(selectedMembership.stripePriceId)}
 									({priceMetadata.priceCents / 100}
 									{priceMetadata.currency.toUpperCase()})
+									{#snippet failed()}
+										<span>(-)</span>
+									{/snippet}
 								</svelte:boundary>
 							{/if}
 						{/if}

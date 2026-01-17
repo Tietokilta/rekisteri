@@ -63,10 +63,6 @@
 <main class="container mx-auto max-w-[1400px] px-4 py-6">
 	<AdminPageHeader title={$LL.admin.memberships.title()} />
 
-	{#snippet membershipMetadataFailed()}
-		<p class="text-xs text-destructive">Failed to load price</p>
-	{/snippet}
-
 	<div class="flex w-full max-w-2xl flex-col items-center gap-4 md:flex-row md:items-stretch">
 		<div class="w-full max-w-xs">
 			<h2 class="font-mono text-lg">{$LL.membership.title()}</h2>
@@ -76,7 +72,7 @@
 					<li class="flex items-center justify-between space-x-4 rounded-md border p-4">
 						<div class="text-sm">
 							<p class="font-medium">{membership.type}</p>
-							<svelte:boundary failed={membershipMetadataFailed}>
+							<svelte:boundary>
 								{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
 								{#if priceMetadata.productName}
 									<p class="text-xs text-muted-foreground">{priceMetadata.productName}</p>
@@ -98,6 +94,9 @@
 								{#if !priceMetadata.active}
 									<p class="text-xs text-destructive">{$LL.admin.memberships.priceInactive()}</p>
 								{/if}
+								{#snippet failed()}
+									<p class="text-xs text-destructive">Failed to load price</p>
+								{/snippet}
 							</svelte:boundary>
 							<p class="text-muted-foreground">{$LL.admin.members.count({ count: membership.memberCount })}</p>
 						</div>
