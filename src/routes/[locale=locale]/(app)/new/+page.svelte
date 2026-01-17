@@ -47,7 +47,8 @@
 								<input {...payMembership.fields.membershipId.as("radio", membership.id)} required class="mt-1" />
 								<div class="flex flex-col">
 									<span class="font-medium">
-										{membership.type} ({membership.priceCents / 100} €)
+										{$locale === "fi" ? membership.membershipType.name.fi : membership.membershipType.name.en} ({membership.priceCents /
+											100} €)
 									</span>
 									<span class="text-sm text-muted-foreground">
 										{new Date(membership.startTime).toLocaleDateString(`${$locale}-FI`)}

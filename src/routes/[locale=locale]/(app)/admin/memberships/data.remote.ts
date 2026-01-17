@@ -16,7 +16,7 @@ export const createMembership = form(createMembershipSchema, async (data) => {
 		.insert(table.membership)
 		.values({
 			id: crypto.randomUUID(),
-			type: data.type,
+			membershipTypeId: data.membershipTypeId,
 			stripePriceId: data.stripePriceId,
 			startTime: new Date(data.startTime),
 			endTime: new Date(data.endTime),

@@ -1,7 +1,7 @@
 import * as v from "valibot";
 
 export const createMembershipSchema = v.object({
-	type: v.pipe(v.string(), v.minLength(1)),
+	membershipTypeId: v.pipe(v.string(), v.minLength(1)),
 	stripePriceId: v.pipe(v.string(), v.minLength(1)),
 	startTime: v.pipe(v.string(), v.minLength(1)),
 	endTime: v.pipe(v.string(), v.minLength(1)),

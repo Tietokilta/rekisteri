@@ -1,5 +1,16 @@
 import { relations, sql } from "drizzle-orm";
-import { boolean, index, integer, json, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	index,
+	integer,
+	json,
+	jsonb,
+	pgEnum,
+	pgTable,
+	text,
+	timestamp,
+	uniqueIndex,
+} from "drizzle-orm/pg-core";
 import * as v from "valibot";
 import { MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
