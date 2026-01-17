@@ -16,6 +16,7 @@ export default defineConfig({
 		env: {
 			DATABASE_URL: testDbUrl,
 			UNSAFE_DISABLE_RATE_LIMITS: "true",
+			TEST: "true",
 		},
 	},
 

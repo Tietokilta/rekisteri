@@ -4,6 +4,22 @@ import { dev } from "$app/environment";
 import * as v from "valibot";
 
 /**
+ * Schema for parsing booleanish environment variables.
+ * Accepts: true, false, "true", "1", "yes", "on", "y", "enabled", "false", "0", "no", "off", "n", "disabled"
+ * Transforms to boolean.
+ */
+const booleanish = v.pipe(
+	v.union([
+		v.boolean(),
+		v.picklist(["true", "1", "yes", "on", "y", "enabled", "false", "0", "no", "off", "n", "disabled"]),
+	]),
+	v.transform((val) => {
+		if (typeof val === "boolean") return val;
+		return ["true", "1", "yes", "on", "y", "enabled"].includes(val.toLowerCase());
+	}),
+);
+
+/**
  * Private environment variable validation schema using Valibot.
  * Validates all server-only environment variables at server startup.
  * If validation fails, the server will not start and will log detailed errors.
@@ -14,34 +30,14 @@ const privateEnvSchema = v.pipe(
 		NODE_ENV: v.optional(v.picklist(["development", "production", "test"]), "development"),
 
 		// CI environment (automatically set by most CI systems like GitHub Actions)
-		CI: v.optional(
-			v.pipe(
-				v.union([
-					v.boolean(),
-					v.picklist(["true", "1", "yes", "on", "y", "enabled", "false", "0", "no", "off", "n", "disabled"]),
-				]),
-				v.transform((val) => {
-					if (typeof val === "boolean") return val;
-					return ["true", "1", "yes", "on", "y", "enabled"].includes(val.toLowerCase());
-				}),
-			),
-			false,
-		),
+		CI: v.optional(booleanish, false),
+
+		// Test mode (set when running e2e or integration tests)
+		// This keeps NODE_ENV=production for accurate behavior while enabling test-specific features
+		TEST: v.optional(booleanish, false),
 
 		// UNSAFE: Disable rate limits for e2e tests (never set in production!)
-		UNSAFE_DISABLE_RATE_LIMITS: v.optional(
-			v.pipe(
-				v.union([
-					v.boolean(),
-					v.picklist(["true", "1", "yes", "on", "y", "enabled", "false", "0", "no", "off", "n", "disabled"]),
-				]),
-				v.transform((val) => {
-					if (typeof val === "boolean") return val;
-					return ["true", "1", "yes", "on", "y", "enabled"].includes(val.toLowerCase());
-				}),
-			),
-			false,
-		),
+		UNSAFE_DISABLE_RATE_LIMITS: v.optional(booleanish, false),
 
 		// Database
 		DATABASE_URL: v.pipe(
@@ -121,6 +117,7 @@ const privateEnvSchema = v.pipe(
 const parsed = v.safeParse(privateEnvSchema, {
 	NODE_ENV: privateEnv.NODE_ENV,
 	CI: privateEnv.CI,
+	TEST: privateEnv.TEST,
 	UNSAFE_DISABLE_RATE_LIMITS: privateEnv.UNSAFE_DISABLE_RATE_LIMITS,
 	DATABASE_URL: privateEnv.DATABASE_URL,
 	STRIPE_API_KEY: privateEnv.STRIPE_API_KEY,

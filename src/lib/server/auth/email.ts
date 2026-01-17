@@ -8,6 +8,7 @@ import { dev } from "$app/environment";
 import { sendEmail } from "$lib/server/mailgun";
 import { i18nObject } from "$lib/i18n/i18n-util";
 import { loadLocale } from "$lib/i18n/i18n-util.sync";
+import { env } from "$lib/server/env";
 
 import type { EmailOTP } from "$lib/server/db/schema";
 import type { RequestEvent } from "@sveltejs/kit";
@@ -76,8 +77,9 @@ export function sendOTPEmail(email: string, code: string, locale: "fi" | "en" = 
 		text: LL.auth.emailBody({ code }),
 	};
 
-	if (dev) {
-		console.log("[Email] OTP email (dev mode):", emailOptions);
+	if (dev || env.TEST) {
+		const mode = dev ? "dev" : "test";
+		console.log(`[Email] OTP email (${mode} mode):`, emailOptions);
 	} else {
 		sendEmail(emailOptions).catch((err) => {
 			// Critical: OTP emails are essential for authentication
