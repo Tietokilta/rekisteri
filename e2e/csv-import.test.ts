@@ -1,8 +1,56 @@
 import { test, expect } from "./fixtures/auth";
 import path from "node:path";
 import fs from "node:fs";
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
+import * as table from "../src/lib/server/db/schema";
+import { eq } from "drizzle-orm";
+import { createVerifiedSecondaryEmail, createUnverifiedSecondaryEmail } from "./helpers/secondary-email";
 
 test.describe("CSV Import", () => {
+	let client: ReturnType<typeof postgres>;
+	let db: ReturnType<typeof drizzle>;
+
+	// Track test data for cleanup
+	let testUserIds: string[] = [];
+	let tempFiles: string[] = [];
+
+	const getTestEmail = (prefix: string) => `${prefix}-${crypto.randomUUID()}@example.com`;
+
+	test.beforeAll(async () => {
+		const dbUrl = process.env.DATABASE_URL_TEST;
+		if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
+		client = postgres(dbUrl);
+		db = drizzle(client, { schema: table, casing: "snake_case" });
+	});
+
+	test.afterAll(async () => {
+		await client.end();
+	});
+
+	test.afterEach(async () => {
+		// Clean up test users and their related data
+		for (const userId of testUserIds) {
+			// Delete in correct order (foreign key constraints)
+			await db.delete(table.member).where(eq(table.member.userId, userId));
+			await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.userId, userId));
+			await db.delete(table.user).where(eq(table.user.id, userId));
+		}
+		testUserIds = []; // Reset for next test
+
+		// Clean up temporary CSV files
+		for (const tempFile of tempFiles) {
+			try {
+				if (fs.existsSync(tempFile)) {
+					fs.unlinkSync(tempFile);
+				}
+			} catch {
+				// Ignore cleanup errors
+			}
+		}
+		tempFiles = []; // Reset for next test
+	});
+
 	// Test file upload with actual CSV file
 	test("CSV import shows correct preview", async ({ adminPage }) => {
 		await adminPage.goto("/fi/admin/members/import", { waitUntil: "networkidle" });
@@ -35,64 +83,54 @@ test.describe("CSV Import", () => {
 		await adminPage.goto("/fi/admin/members/import", { waitUntil: "networkidle" });
 
 		// Create a temporary CSV file with wrong columns
-		const tempPath = path.join(process.cwd(), "temp-invalid.csv");
+		const tempPath = path.join(process.cwd(), `temp-invalid-${crypto.randomUUID()}.csv`);
+		tempFiles.push(tempPath); // Track for cleanup
 		const invalidCsv = `wrong,columns,here
 value1,value2,value3`;
 		fs.writeFileSync(tempPath, invalidCsv);
 
-		try {
-			const fileInput = adminPage.locator('input[type="file"]');
-			await fileInput.setInputFiles(tempPath);
+		const fileInput = adminPage.locator('input[type="file"]');
+		await fileInput.setInputFiles(tempPath);
 
-			// Verify error message shows
-			await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
-			await expect(adminPage.getByText(/CSV columns don't match/)).toBeVisible();
-		} finally {
-			// Clean up temp file
-			fs.unlinkSync(tempPath);
-		}
+		// Verify error message shows
+		await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
+		await expect(adminPage.getByText(/CSV columns don't match/)).toBeVisible();
 	});
 
 	test("CSV import validates invalid email format", async ({ adminPage }) => {
 		await adminPage.goto("/fi/admin/members/import", { waitUntil: "networkidle" });
 
 		// Create a temporary CSV file with invalid email
-		const tempPath = path.join(process.cwd(), "temp-invalid-email.csv");
+		const tempPath = path.join(process.cwd(), `temp-invalid-email-${crypto.randomUUID()}.csv`);
+		tempFiles.push(tempPath); // Track for cleanup
 		const invalidEmailCsv = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
 Test,User,Helsinki,not-an-email,varsinainen jäsen,2025-08-01`;
 		fs.writeFileSync(tempPath, invalidEmailCsv);
 
-		try {
-			const fileInput = adminPage.locator('input[type="file"]');
-			await fileInput.setInputFiles(tempPath);
+		const fileInput = adminPage.locator('input[type="file"]');
+		await fileInput.setInputFiles(tempPath);
 
-			// Verify error message shows
-			await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
-			await expect(adminPage.getByText(/Invalid email/)).toBeVisible();
-		} finally {
-			fs.unlinkSync(tempPath);
-		}
+		// Verify error message shows
+		await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
+		await expect(adminPage.getByText(/Invalid email/)).toBeVisible();
 	});
 
 	test("CSV import validates invalid membership type", async ({ adminPage }) => {
 		await adminPage.goto("/fi/admin/members/import", { waitUntil: "networkidle" });
 
 		// Create a temporary CSV file with non-existent membership type
-		const tempPath = path.join(process.cwd(), "temp-invalid-type.csv");
+		const tempPath = path.join(process.cwd(), `temp-invalid-type-${crypto.randomUUID()}.csv`);
+		tempFiles.push(tempPath); // Track for cleanup
 		const invalidTypeCsv = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
 Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
 		fs.writeFileSync(tempPath, invalidTypeCsv);
 
-		try {
-			const fileInput = adminPage.locator('input[type="file"]');
-			await fileInput.setInputFiles(tempPath);
+		const fileInput = adminPage.locator('input[type="file"]');
+		await fileInput.setInputFiles(tempPath);
 
-			// Verify error message shows
-			await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
-			await expect(adminPage.getByText(/Invalid membership types/)).toBeVisible();
-		} finally {
-			fs.unlinkSync(tempPath);
-		}
+		// Verify error message shows
+		await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
+		await expect(adminPage.getByText(/Invalid membership types/)).toBeVisible();
 	});
 
 	test("CSV import shows existing memberships", async ({ adminPage }) => {
@@ -105,5 +143,143 @@ Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
 		// Verify some membership types are listed
 		await expect(adminPage.getByText("varsinainen jäsen").first()).toBeVisible();
 		await expect(adminPage.getByText("ulkojäsen").first()).toBeVisible();
+	});
+
+	test("should attach membership to existing user when CSV email is a verified secondary email", async ({
+		adminPage,
+	}) => {
+		// 1. Set up: Create a test user with a verified secondary email
+		const primaryEmail = getTestEmail("primary");
+		const secondaryEmail = getTestEmail("secondary");
+		const testUserId = crypto.randomUUID();
+
+		// Track for cleanup in afterEach
+		testUserIds.push(testUserId);
+
+		// Create test user
+		await db.insert(table.user).values({
+			id: testUserId,
+			email: primaryEmail,
+			firstNames: "Original",
+			lastName: "Name",
+			homeMunicipality: "Tampere",
+			isAdmin: false,
+			isAllowedEmails: false,
+		});
+
+		// Create verified secondary email for test user
+		await createVerifiedSecondaryEmail(db, testUserId, secondaryEmail);
+
+		// 2. Count users before import
+		const usersBeforeImport = await db.select().from(table.user);
+		const initialUserCount = usersBeforeImport.length;
+
+		// 3. Create CSV with the secondary email
+		const tempPath = path.join(process.cwd(), `temp-csv-import-${crypto.randomUUID()}.csv`);
+		tempFiles.push(tempPath); // Track for cleanup
+		const csvContent = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
+Test,User,Helsinki,${secondaryEmail},varsinainen jäsen,2025-08-01`;
+		fs.writeFileSync(tempPath, csvContent);
+
+		// 4. Navigate to import page and upload CSV
+		await adminPage.goto("/fi/admin/members/import", { waitUntil: "networkidle" });
+		const fileInput = adminPage.locator('input[type="file"]');
+		await fileInput.setInputFiles(tempPath);
+
+		// Wait for file to be parsed and preview to show
+		await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
+
+		// 5. Execute the import
+		const importButton = adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i });
+		await importButton.click();
+
+		// Wait for success message
+		await expect(adminPage.getByText(/tuonti onnistui|import successful/i)).toBeVisible({ timeout: 10_000 });
+
+		// 6. Verify NO duplicate user was created
+		const usersAfterImport = await db.select().from(table.user);
+		expect(usersAfterImport.length).toBe(initialUserCount);
+
+		// 7. Verify the user was NOT created with secondary email as primary
+		const duplicateUser = await db.select().from(table.user).where(eq(table.user.email, secondaryEmail));
+		expect(duplicateUser.length).toBe(0);
+
+		// 8. Verify membership was attached to the EXISTING test user
+		const testUserMembers = await db.select().from(table.member).where(eq(table.member.userId, testUserId));
+
+		// Test user should now have at least one member record
+		expect(testUserMembers.length).toBeGreaterThan(0);
+
+		// 9. Verify the test user's details were updated from the CSV
+		const [updatedUser] = await db.select().from(table.user).where(eq(table.user.id, testUserId));
+		expect(updatedUser?.firstNames).toBe("Test");
+		expect(updatedUser?.lastName).toBe("User");
+		expect(updatedUser?.homeMunicipality).toBe("Helsinki");
+	});
+
+	test("should NOT match unverified secondary emails during CSV import", async ({ adminPage }) => {
+		// 1. Set up: Create a test user with an UNVERIFIED secondary email
+		const primaryEmail = getTestEmail("primary");
+		const unverifiedEmail = getTestEmail("unverified");
+		const testUserId = crypto.randomUUID();
+
+		// Track for cleanup in afterEach
+		testUserIds.push(testUserId);
+
+		// Create test user
+		await db.insert(table.user).values({
+			id: testUserId,
+			email: primaryEmail,
+			firstNames: "Existing",
+			lastName: "User",
+			homeMunicipality: "Tampere",
+			isAdmin: false,
+			isAllowedEmails: false,
+		});
+
+		// Create unverified secondary email for test user
+		await createUnverifiedSecondaryEmail(db, testUserId, unverifiedEmail);
+
+		// 2. Count users before import
+		const usersBeforeImport = await db.select().from(table.user);
+		const initialUserCount = usersBeforeImport.length;
+
+		// 3. Create CSV with the unverified secondary email
+		const tempPath = path.join(process.cwd(), `temp-csv-import-${crypto.randomUUID()}.csv`);
+		tempFiles.push(tempPath); // Track for cleanup
+		const csvContent = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
+New,Person,Espoo,${unverifiedEmail},varsinainen jäsen,2025-08-01`;
+		fs.writeFileSync(tempPath, csvContent);
+
+		// 4. Navigate to import page and upload CSV
+		await adminPage.goto("/fi/admin/members/import", { waitUntil: "networkidle" });
+		const fileInput = adminPage.locator('input[type="file"]');
+		await fileInput.setInputFiles(tempPath);
+
+		// Wait for file to be parsed and preview to show
+		await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
+
+		// 5. Execute the import
+		const importButton = adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i });
+		await importButton.click();
+
+		// Wait for success message
+		await expect(adminPage.getByText(/tuonti onnistui|import successful/i)).toBeVisible({ timeout: 10_000 });
+
+		// 6. Verify a NEW user WAS created (since unverified emails shouldn't match)
+		const usersAfterImport = await db.select().from(table.user);
+		expect(usersAfterImport.length).toBe(initialUserCount + 1);
+
+		// 7. Verify the new user has the unverified email as their PRIMARY email
+		const [newUser] = await db.select().from(table.user).where(eq(table.user.email, unverifiedEmail));
+		expect(newUser).toBeDefined();
+		expect(newUser?.email).toBe(unverifiedEmail);
+		expect(newUser?.firstNames).toBe("New");
+		expect(newUser?.lastName).toBe("Person");
+
+		// 8. Track the newly created user for cleanup
+		if (newUser) {
+			testUserIds.push(newUser.id);
+		}
 	});
 });
