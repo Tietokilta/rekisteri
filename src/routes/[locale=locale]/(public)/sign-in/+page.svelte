@@ -11,9 +11,10 @@
 	<h1 class="font-mono text-lg">{$LL.auth.signIn()}</h1>
 	<form {...signIn.preflight(signInSchema)} class="flex w-full max-w-xs flex-col gap-4">
 		<p>
-			<Label for="form-signIn.email">{$LL.auth.email()}</Label>
+			<Label for="email">{$LL.auth.email()}</Label>
 			<Input
 				{...signIn.fields.email.as("email")}
+				id="email"
 				autocomplete="email"
 				autocapitalize="none"
 				autocorrect="off"

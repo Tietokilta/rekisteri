@@ -104,8 +104,9 @@ const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 };
 
 const handleAdminAuthorization: Handle = async ({ event, resolve }) => {
-	// Protect all /admin routes - requires authenticated admin user
-	if (/^\/[a-z]{2}\/admin($|\/)/.test(event.url.pathname) && (!event.locals.session || !event.locals.user?.isAdmin)) {
+	// Protect all admin routes - requires authenticated admin user
+	// Using route.id is more robust than pathname matching
+	if (event.route.id?.includes("/admin/") && (!event.locals.session || !event.locals.user?.isAdmin)) {
 		return new Response("Not found", { status: 404 });
 	}
 

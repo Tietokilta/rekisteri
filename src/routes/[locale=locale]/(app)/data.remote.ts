@@ -1,10 +1,8 @@
-import { error, redirect } from "@sveltejs/kit";
+import { error } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
-import * as auth from "$lib/server/auth/session";
-import { route } from "$lib/ROUTES";
 import { userInfoSchema } from "./schema";
 
 export const saveUserInfo = form(userInfoSchema, async (data) => {
@@ -29,17 +27,4 @@ export const saveUserInfo = form(userInfoSchema, async (data) => {
 	} catch {
 		error(500, "Failed to update user information");
 	}
-});
-
-export const signOut = form(async () => {
-	const event = getRequestEvent();
-
-	if (!event.locals.session) {
-		error(401, "Not authenticated");
-	}
-
-	await auth.invalidateSession(event.locals.session.id);
-	auth.deleteSessionTokenCookie(event);
-
-	redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
 });

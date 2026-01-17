@@ -47,6 +47,7 @@ const fi = {
 		profile: {
 			title: "Profiili",
 			description: "Henkilötiedot ja asetukset",
+			emailManagement: "Sähköposteja hallinnoidaan <>sähköpostisivulla<>.",
 		},
 		passkeys: {
 			title: "Avaimet",

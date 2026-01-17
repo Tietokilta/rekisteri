@@ -4,7 +4,7 @@
 	import { page } from "$app/state";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import { route } from "$lib/ROUTES";
-	import { signOut } from "../../routes/[locale=locale]/data.remote";
+	import { signOut } from "$lib/api/auth.remote";
 	import { stripLocaleFromPathname, type Locale } from "$lib/i18n/routing";
 	import RatasLogo from "$lib/icons/ratas-logo.svelte";
 

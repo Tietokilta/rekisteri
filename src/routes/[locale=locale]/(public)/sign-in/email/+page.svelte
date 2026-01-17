@@ -18,8 +18,9 @@
 	<div class="flex w-full max-w-xs flex-col gap-4">
 		<form bind:this={verifyFormEl} {...verifyCode.preflight(verifyCodeSchema)} class="contents">
 			<div>
-				<Label for="form-verify.code">{$LL.auth.code()}</Label>
+				<Label for="code">{$LL.auth.code()}</Label>
 				<InputOTP.Root
+					id="code"
 					maxlength={8}
 					name={verifyCode.fields.code.as("text").name}
 					required

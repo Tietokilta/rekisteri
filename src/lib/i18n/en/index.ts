@@ -47,6 +47,7 @@ const en = {
 		profile: {
 			title: "Profile",
 			description: "Personal information and preferences",
+			emailManagement: "Emails are managed on the <>emails page<>.",
 		},
 		passkeys: {
 			title: "Passkeys",
