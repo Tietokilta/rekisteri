@@ -1,4 +1,4 @@
-import { error, redirect } from "@sveltejs/kit";
+import { error, redirect, isRedirect, isHttpError } from "@sveltejs/kit";
 import { getRequestEvent, query, form } from "$app/server";
 import * as v from "valibot";
 import { dev } from "$app/environment";
@@ -155,7 +155,7 @@ export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ emai
 		redirect(303, route("/[locale=locale]/secondary-emails/verify", { locale: locals.locale }));
 	} catch (err) {
 		// Re-throw SvelteKit errors (redirect, error, etc.)
-		if (err && typeof err === "object" && "status" in err) {
+		if (isRedirect(err) || isHttpError(err)) {
 			throw err;
 		}
 		// Use invalid.email() to attach error to the email field

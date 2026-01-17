@@ -209,9 +209,7 @@ test.describe("Secondary Email OTP Flow", () => {
 		await adminPage.waitForURL(/secondary-emails\/verify/);
 	});
 
-	// TODO: Fix this test - form submission not triggering error display after Valibot migration
-	// Possible causes: schema type mismatch, form library integration issue, or validation behavior difference
-	test.skip("should reject adding email that is already a primary email", async ({ adminPage, adminUser }) => {
+	test("should reject adding email that is already a primary email", async ({ adminPage, adminUser }) => {
 		const primaryEmail = adminUser.email;
 
 		await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.email, primaryEmail.toLowerCase()));
