@@ -116,7 +116,9 @@
 								</Item.Media>
 								<Item.Content>
 									<Item.Title class="flex-wrap">
-										<span>{membership.type}</span>
+										<span
+											>{$locale === "fi" ? membership.membershipType.name.fi : membership.membershipType.name.en}</span
+										>
 										<Badge variant={config.variant}>
 											<config.icon class="mr-1 size-3" />
 											{config.label}
@@ -146,7 +148,9 @@
 								</Item.Media>
 								<Item.Content>
 									<Item.Title class="flex-wrap">
-										<span>{membership.type}</span>
+										<span
+											>{$locale === "fi" ? membership.membershipType.name.fi : membership.membershipType.name.en}</span
+										>
 										<Badge variant={config.variant}>
 											{config.label}
 										</Badge>

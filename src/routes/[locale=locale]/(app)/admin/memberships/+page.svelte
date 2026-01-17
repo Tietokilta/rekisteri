@@ -25,9 +25,16 @@
 			<ul class="space-y-4">
 				{#each data.memberships as membership (membership.id)}
 					{@const deleteForm = deleteMembership.for(membership.id)}
+					{@const membershipType = data.membershipTypes.find((t) => t.id === membership.membershipTypeId)}
 					<li class="flex items-center justify-between space-x-4 rounded-md border p-4">
 						<div class="text-sm">
-							<p class="font-medium">{membership.type}</p>
+							<p class="font-medium">
+								{membershipType
+									? $locale === "fi"
+										? membershipType.name.fi
+										: membershipType.name.en
+									: membership.membershipTypeId}
+							</p>
 							<p>
 								<time datetime={membership.startTime.toISOString()}
 									>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time
@@ -73,15 +80,21 @@
 				class="flex w-full max-w-xs flex-col gap-4"
 			>
 				<div class="space-y-2">
-					<Label for="type">{$LL.membership.type()}</Label>
-					<Input {...createMembership.fields.type.as("text")} id="type" list="types" />
-					<p class="text-sm text-muted-foreground">{$LL.membership.continuityNote()}</p>
-					<datalist id="types">
-						{#each data.types as type (type)}
-							<option value={type}></option>
+					<Label for="membershipTypeId">{$LL.membership.type()}</Label>
+					<select
+						{...createMembership.fields.membershipTypeId.as("select")}
+						id="membershipTypeId"
+						class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+					>
+						<option value="">{$LL.common.select()}</option>
+						{#each data.membershipTypes as type (type.id)}
+							<option value={type.id}>
+								{$locale === "fi" ? type.name.fi : type.name.en}
+							</option>
 						{/each}
-					</datalist>
-					{#each createMembership.fields.type.issues() as issue, i (i)}
+					</select>
+					<p class="text-sm text-muted-foreground">{$LL.membership.continuityNote()}</p>
+					{#each createMembership.fields.membershipTypeId.issues() as issue, i (i)}
 						<p class="text-sm text-destructive">{issue.message}</p>
 					{/each}
 				</div>

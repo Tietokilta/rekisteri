@@ -142,11 +142,11 @@ export const mergeUsers = command(
 		const [primaryMembers, secondaryMembers] = await Promise.all([
 			db.query.member.findMany({
 				where: eq(table.member.userId, primaryUserId),
-				with: { membership: true },
+				with: { membership: { with: { membershipType: true } } },
 			}),
 			db.query.member.findMany({
 				where: eq(table.member.userId, secondaryUserId),
-				with: { membership: true },
+				with: { membership: { with: { membershipType: true } } },
 			}),
 		]);
 
@@ -157,7 +157,7 @@ export const mergeUsers = command(
 				if (secondaryMember.membershipId === primaryMember.membershipId) {
 					error(
 						400,
-						`Cannot merge: Both users have membership "${secondaryMember.membership.type}" for the same period (${new Date(secondaryMember.membership.startTime).toLocaleDateString()} - ${new Date(secondaryMember.membership.endTime).toLocaleDateString()})`,
+						`Cannot merge: Both users have membership "${secondaryMember.membership.membershipType.name.fi}" for the same period (${new Date(secondaryMember.membership.startTime).toLocaleDateString()} - ${new Date(secondaryMember.membership.endTime).toLocaleDateString()})`,
 					);
 				}
 			}

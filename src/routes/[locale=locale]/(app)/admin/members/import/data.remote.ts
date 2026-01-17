@@ -38,7 +38,7 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 	const memberships = await db
 		.select({
 			id: table.membership.id,
-			type: table.membership.type,
+			membershipTypeId: table.membership.membershipTypeId,
 			startTime: table.membership.startTime,
 			endTime: table.membership.endTime,
 		})
@@ -46,11 +46,11 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 
 	const membershipsByType = new Map<string, typeof memberships>();
 	for (const membership of memberships) {
-		const existing = membershipsByType.get(membership.type);
+		const existing = membershipsByType.get(membership.membershipTypeId);
 		if (existing) {
 			existing.push(membership);
 		} else {
-			membershipsByType.set(membership.type, [membership]);
+			membershipsByType.set(membership.membershipTypeId, [membership]);
 		}
 	}
 
