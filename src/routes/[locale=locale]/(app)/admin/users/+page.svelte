@@ -286,9 +286,9 @@
 							<Alert.Description>
 								<ul class="mt-2 list-inside list-disc space-y-1 text-sm">
 									<li>{$LL.admin.users.merge.primaryEmailWillBecome()}</li>
-									<li>{$LL.admin.users.merge.memberships({ count: 0 })}</li>
-									<li>{$LL.admin.users.merge.secondaryEmails({ count: 0 })}</li>
-									<li>{$LL.admin.users.merge.passkeys({ count: 0 })}</li>
+									<li>{$LL.admin.users.merge.memberships()}</li>
+									<li>{$LL.admin.users.merge.secondaryEmails()}</li>
+									<li>{$LL.admin.users.merge.passkeys()}</li>
 									<li>{$LL.admin.users.merge.sessions()}</li>
 								</ul>
 							</Alert.Description>
