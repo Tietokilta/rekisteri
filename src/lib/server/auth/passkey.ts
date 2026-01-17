@@ -15,6 +15,7 @@ import * as table from "$lib/server/db/schema";
 import type { User, Passkey } from "$lib/server/db/schema";
 import { encodeBase64url, decodeBase64url } from "@oslojs/encoding";
 import { env } from "$lib/server/env";
+import { getUserSecondaryEmails, isSecondaryEmailValid } from "./secondary-email";
 
 /**
  * Generate registration options for creating a new passkey
@@ -137,9 +138,25 @@ export async function verifyAuthenticationAndGetUser(
 
 	// Validate that the passkey belongs to the expected email (prevents wrong account login)
 	// Use case-insensitive comparison since email addresses are case-insensitive per RFC 5321
-	if (expectedEmail && user.email.toLowerCase() !== expectedEmail.toLowerCase()) {
-		console.warn("Passkey email mismatch detected");
-		return null;
+	if (expectedEmail) {
+		const normalizedExpected = expectedEmail.toLowerCase();
+
+		// Check primary email first
+		const matchesPrimary = user.email.toLowerCase() === normalizedExpected;
+
+		// Check verified secondary emails if primary doesn't match
+		let matchesSecondary = false;
+		if (!matchesPrimary) {
+			const secondaryEmails = await getUserSecondaryEmails(user.id);
+			matchesSecondary = secondaryEmails.some(
+				(se) => se.email.toLowerCase() === normalizedExpected && isSecondaryEmailValid(se),
+			);
+		}
+
+		if (!matchesPrimary && !matchesSecondary) {
+			console.warn("Passkey email mismatch detected");
+			return null;
+		}
 	}
 
 	try {
