@@ -126,9 +126,10 @@ test.describe("Passkey Management", () => {
 		adminPage.once("dialog", (dialog) => dialog.accept());
 		await adminPage.getByRole("button", { name: /poista/i }).click();
 
-		// Verify removed
+		// Verify removed - should show empty state with add button
 		await expect(adminPage.getByText(passkeyName)).not.toBeVisible();
-		await expect(adminPage.getByText(/ei passkey/i)).toBeVisible();
+		await expect(adminPage.getByTestId("add-passkey-button-empty")).toBeVisible();
+		await expect(adminPage.getByRole("heading", { name: /ei avainkoodeja/i })).toBeVisible();
 	});
 });
 
