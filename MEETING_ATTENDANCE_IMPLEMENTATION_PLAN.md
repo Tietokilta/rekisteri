@@ -528,12 +528,16 @@ src/routes/api/attendance/
 - Hide if user has never had a membership (no membership = no verification needed)
 
 **QR Card Features**:
-- Compact QR code display (200x200px or similar)
-- User's full name displayed
+- **Collapsed by default**: Show compact card with "Show QR Code" button
+- **Explicit user action required**: User must click button to reveal QR code
+- **Brightness boost**: When expanded, automatically set screen brightness to maximum
+- **Brightness restoration**: When collapsed, restore original brightness setting
+- QR code display: Large and clear (250-300px) for easy scanning
+- User's full name displayed prominently
 - Generic title: "Member Verification" or "Member Card"
 - Instructions: "Show this for member verification" (not attendance-specific)
-- Dark mode support (QR code should work in both modes)
-- Collapsible/expandable design (optional)
+- Dark mode support: QR code inverts properly (black on white for scanning)
+- Smooth expand/collapse animation
 
 **Purpose**:
 - General member verification tool (not just for attendance)
@@ -542,8 +546,18 @@ src/routes/api/attendance/
 
 **Dashboard Integration**:
 - Position QR card alongside MembershipCard
+- Collapsed state: Minimal height, doesn't dominate dashboard
+- Expanded state: Takes focus, bright screen for scanning
 - Could be in a grid layout or stacked depending on screen size
 - Responsive: full width on mobile, side-by-side on desktop
+
+**Screen Brightness Implementation**:
+```typescript
+// Use Screen Wake Lock API + CSS brightness hack
+const wakeLock = await navigator.wakeLock?.request('screen');
+// Also use CSS filter to boost brightness visually
+element.style.filter = 'brightness(1.5)';
+```
 
 ### 4.5 Shared View - Meeting Attendance Log (View-Only)
 
