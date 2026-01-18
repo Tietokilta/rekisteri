@@ -267,6 +267,7 @@ const en = {
 			priceNickname: "Price nickname",
 			amount: "Amount",
 			priceInactive: "Warning: This price is inactive in Stripe",
+			legacyMembership: "Legacy membership (no Stripe price)",
 		},
 
 		members: {

@@ -267,6 +267,7 @@ const fi = {
 			priceNickname: "Hinnan nimi",
 			amount: "Summa",
 			priceInactive: "Varoitus: Tämä hinta ei ole aktiivinen Stripessä",
+			legacyMembership: "Arkistojäsenyys (ei Stripe-hintaa)",
 		},
 
 		members: {

@@ -21,6 +21,9 @@ export async function createSession(userId: string, membershipId: string, locale
 	if (!membership || !user) {
 		throw new Error("Membership or user not found");
 	}
+	if (!membership.stripePriceId) {
+		throw new Error("Membership has no Stripe price ID (legacy membership)");
+	}
 
 	let stripeCustomerId = user.stripeCustomerId;
 	if (!stripeCustomerId) {

@@ -93,7 +93,7 @@ export const secondaryEmail = pgTable(
 export const membership = pgTable("membership", {
 	id: text().primaryKey(),
 	type: text().notNull(), // todo l10n
-	stripePriceId: text().notNull(),
+	stripePriceId: text(), // null for legacy memberships (pre-2025)
 	startTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 	endTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 	requiresStudentVerification: boolean().notNull().default(false),

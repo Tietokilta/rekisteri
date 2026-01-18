@@ -1,5 +1,5 @@
 {
-  "id": "22d9de3c-ebf9-47b0-b37b-6ce85a68539e",
+  "id": "5a89d30d-8dfd-4f3d-bb07-1585b204aa1c",
   "prevId": "9a7ea3d7-e62c-4306-b7ad-93bcbcf9c057",
   "version": "7",
   "dialect": "postgresql",
@@ -235,7 +235,7 @@
           "name": "stripe_price_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "start_time": {
           "name": "start_time",
