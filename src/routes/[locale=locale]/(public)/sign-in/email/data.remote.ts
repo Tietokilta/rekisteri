@@ -20,6 +20,7 @@ import * as table from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
 import { route } from "$lib/ROUTES";
 import { auditLogin, auditLoginFailed } from "$lib/server/audit";
+import { getRedirectPath, deleteRedirectCookie } from "$lib/server/auth/redirect";
 import { verifyCodeSchema } from "./schema";
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
@@ -90,7 +91,12 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
 	deleteEmailOTP(otp.id);
 	deleteEmailOTPCookie(event);
 
-	redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
+	// Get redirect path from cookie or use default
+	const isAdmin = existingUser?.isAdmin ?? false;
+	const redirectPath = getRedirectPath(event, event.url.origin, isAdmin);
+	deleteRedirectCookie(event);
+
+	redirect(302, route("/[locale=locale]", { locale: event.locals.locale }) + redirectPath);
 });
 
 export const resendEmail = form(async () => {
