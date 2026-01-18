@@ -6,7 +6,7 @@ export const getStripePriceMetadata = query.batch(v.pipe(v.string(), v.minLength
 	// Validate all price IDs
 	for (const priceId of priceIds) {
 		if (!priceId || !priceId.startsWith("price_")) {
-			throw new Error("Invalid price ID");
+			throw new Error(`Invalid price ID: ${priceId}`);
 		}
 	}
 
