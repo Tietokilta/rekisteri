@@ -14,6 +14,7 @@
 	import LogOut from "@lucide/svelte/icons/log-out";
 	import Search from "@lucide/svelte/icons/search";
 	import Users from "@lucide/svelte/icons/users";
+	import Download from "@lucide/svelte/icons/download";
 
 	const { data }: PageProps = $props();
 
@@ -52,6 +53,10 @@
 <main class="container mx-auto max-w-[1400px] px-4 py-6">
 	<AdminPageHeader title="Attendees" description={`Manage attendance for: ${data.meeting.name}`}>
 		{#snippet actions()}
+			<Button variant="outline" href="/{$locale}/admin/meetings/{data.meeting.id}/attendees/export">
+				<Download class="mr-2 h-4 w-4" />
+				Export CSV
+			</Button>
 			<Button variant="outline" href="/{$locale}/admin/meetings/{data.meeting.id}">Back to meeting</Button>
 		{/snippet}
 	</AdminPageHeader>
