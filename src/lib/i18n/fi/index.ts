@@ -258,6 +258,7 @@ const fi = {
 		memberships: {
 			title: "Hallinnoi jäsenyyksiä",
 			description: "Muokkaa hintoja ja kausia",
+			editMembership: "Muokkaa jäsenyyttä",
 			stripePriceId: "Stripe hintakoodi",
 			stripePriceIdDescription: "Stripe-hallintapaneelin tuotekoodi (Price ID)",
 			stripePriceIdLabel: "Hintakoodi {stripePriceId}",
@@ -444,6 +445,8 @@ const fi = {
 	common: {
 		save: "Tallenna",
 		delete: "Poista",
+		edit: "Muokkaa",
+		cancel: "Peruuta",
 	},
 
 	// Error page

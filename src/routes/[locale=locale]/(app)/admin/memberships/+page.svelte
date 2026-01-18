@@ -1,238 +1,198 @@
 <script lang="ts">
-	import { invalidateAll } from "$app/navigation";
-	import { Separator } from "$lib/components/ui/separator";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import type { PageProps } from "./$types";
-	import { createMembership, deleteMembership } from "./data.remote";
-	import { createMembershipSchema } from "./schema";
-	import { Input } from "$lib/components/ui/input";
 	import { Button } from "$lib/components/ui/button";
-	import { Label } from "$lib/components/ui/label";
+	import { Badge } from "$lib/components/ui/badge";
 	import AdminPageHeader from "$lib/components/admin-page-header.svelte";
 	import { getStripePriceMetadata } from "$lib/api/stripe.remote";
-	import { formatPrice } from "$lib/utils";
+	import { formatDateRange, formatPrice, formatShortDateRange } from "$lib/utils";
+	import * as Sheet from "$lib/components/ui/sheet";
+	import * as Item from "$lib/components/ui/item";
+	import * as Empty from "$lib/components/ui/empty";
+	import Plus from "@lucide/svelte/icons/plus";
+	import Users from "@lucide/svelte/icons/users";
+	import Calendar from "@lucide/svelte/icons/calendar";
+	import GraduationCap from "@lucide/svelte/icons/graduation-cap";
+	import Package from "@lucide/svelte/icons/package";
+	import CreateMembershipForm from "./create-membership-form.svelte";
+	import EditMembershipForm from "./edit-membership-form.svelte";
 
 	const { data }: PageProps = $props();
 
-	// Initialize form with default values from server
-	createMembership.fields.set(data.defaultValues);
+	// State for creating membership
+	let createSheetOpen = $state(false);
 
-	// State for Stripe metadata
-	let stripeMetadata = $state<{
-		priceId: string;
-		priceCents: number;
-		currency: string;
-		nickname: string | null;
-		productId: string;
-		productName: string | null;
-		active: boolean;
-	} | null>(null);
-	let fetchingMetadata = $state(false);
-	let metadataError = $state<string | null>(null);
+	// State for editing membership
+	let editingMembership = $state<(typeof data.memberships)[number] | null>(null);
+	let editSheetOpen = $state(false);
 
-	// Fetch Stripe metadata when stripePriceId changes
-	$effect(() => {
-		const priceId = createMembership.fields.stripePriceId.value();
+	function openEditSheet(membership: (typeof data.memberships)[number]) {
+		editingMembership = membership;
+		editSheetOpen = true;
+	}
 
-		if (!priceId || !priceId.startsWith("price_")) {
-			stripeMetadata = null;
-			metadataError = null;
-			return;
-		}
-
-		// Debounce the fetch
-		const timeoutId = setTimeout(async () => {
-			fetchingMetadata = true;
-			metadataError = null;
-
-			try {
-				const metadata = await getStripePriceMetadata(priceId);
-				stripeMetadata = metadata;
-			} catch (err) {
-				console.error("Failed to fetch Stripe metadata:", err);
-				metadataError = "Failed to fetch price information";
-				stripeMetadata = null;
-			} finally {
-				fetchingMetadata = false;
+	// Group memberships by start year and sort by type within each group
+	function groupByYear(memberships: typeof data.memberships) {
+		const groups: Record<number, typeof data.memberships> = {};
+		for (const membership of memberships) {
+			const year = membership.startTime.getFullYear();
+			if (!groups[year]) {
+				groups[year] = [];
 			}
-		}, 500);
+			groups[year].push(membership);
+		}
+		// Sort years descending (newest first), and sort memberships by type within each year
+		return Object.entries(groups)
+			.map(([year, items]) => [Number(year), items.toSorted((a, b) => a.type.localeCompare(b.type))] as const)
+			.toSorted((a, b) => b[0] - a[0]);
+	}
 
-		return () => clearTimeout(timeoutId);
-	});
+	const membershipsByYear = $derived(groupByYear(data.memberships));
 </script>
 
-<main class="container mx-auto max-w-[1400px] px-4 py-6">
-	<AdminPageHeader title={$LL.admin.memberships.title()} />
+<main class="container mx-auto max-w-350 px-4 py-6">
+	<AdminPageHeader title={$LL.admin.memberships.title()} description={$LL.admin.memberships.description()}>
+		{#snippet actions()}
+			<Button onclick={() => (createSheetOpen = true)}>
+				<Plus class="size-4" />
+				{$LL.membership.createNew()}
+			</Button>
+		{/snippet}
+	</AdminPageHeader>
 
-	<div class="flex w-full max-w-2xl flex-col items-center gap-4 md:flex-row md:items-stretch">
-		<div class="w-full max-w-xs">
-			<h2 class="font-mono text-lg">{$LL.membership.title()}</h2>
-			<ul class="space-y-4">
-				{#each data.memberships as membership (membership.id)}
-					{@const deleteForm = deleteMembership.for(membership.id)}
-					<li class="flex items-center justify-between space-x-4 rounded-md border p-4">
-						<div class="text-sm">
-							<p class="font-medium">{membership.type}</p>
-							{#if membership.stripePriceId}
-								<svelte:boundary>
-									{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
-									{#if priceMetadata.productName}
-										<p class="text-xs text-muted-foreground">{priceMetadata.productName}</p>
-									{/if}
-									<p>
-										<time datetime={membership.startTime.toISOString()}
-											>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time
-										>–<time datetime={membership.endTime.toISOString()}
-											>{membership.endTime.toLocaleDateString(`${$locale}-FI`)}</time
-										>
-									</p>
-									<p class="text-muted-foreground">
-										{$LL.admin.memberships.stripePriceIdLabel({ stripePriceId: membership.stripePriceId })}
-									</p>
-									<p class="text-muted-foreground">
-										{formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)}
-									</p>
-									{#if !priceMetadata.active}
-										<p class="text-xs text-destructive">{$LL.admin.memberships.priceInactive()}</p>
-									{/if}
-									{#snippet failed()}
-										<p class="text-xs text-destructive">{$LL.admin.memberships.failedToLoadPrice()}</p>
-									{/snippet}
-								</svelte:boundary>
-							{:else}
-								<!-- Legacy membership without Stripe price -->
-								<p>
-									<time datetime={membership.startTime.toISOString()}
-										>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time
-									>–<time datetime={membership.endTime.toISOString()}
-										>{membership.endTime.toLocaleDateString(`${$locale}-FI`)}</time
+	{#if data.memberships.length === 0}
+		<!-- Empty state -->
+		<Empty.Root class="border">
+			<Empty.Header>
+				<Empty.Media variant="icon">
+					<Package />
+				</Empty.Media>
+			</Empty.Header>
+			<Empty.Title>{$LL.membership.noMembership()}</Empty.Title>
+			<Empty.Content>
+				<Button onclick={() => (createSheetOpen = true)}>
+					<Plus class="size-4" />
+					{$LL.membership.createNew()}
+				</Button>
+			</Empty.Content>
+		</Empty.Root>
+	{:else}
+		<!-- Memberships grouped by year -->
+		<div class="space-y-8">
+			{#each membershipsByYear as [year, memberships] (year)}
+				<section>
+					<h2 class="mb-3 text-lg font-semibold text-muted-foreground">{year}–{year + 1}</h2>
+					<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+						{#each memberships as membership (membership.id)}
+							<Item.Root variant="outline" size="sm">
+								{#snippet child({ props })}
+									<button
+										type="button"
+										{...props}
+										class="{props.class} transition-colors hover:bg-accent/50"
+										onclick={() => openEditSheet(membership)}
 									>
-								</p>
-								<p class="text-xs text-muted-foreground">{$LL.admin.memberships.legacyMembership()}</p>
-							{/if}
-							<p class="text-muted-foreground">{$LL.admin.members.count({ count: membership.memberCount })}</p>
-						</div>
-						<div>
-							{#if membership.memberCount === 0}
-								<form
-									class="contents"
-									{...deleteForm.enhance(async ({ submit }) => {
-										await submit();
-										await invalidateAll();
-									})}
-								>
-									<input {...deleteForm.fields.id.as("hidden", membership.id)} />
-									<Button type="submit" variant="destructive" disabled={!!deleteForm.pending}>
-										{$LL.common.delete()}
-									</Button>
-								</form>
-							{/if}
-						</div>
-					</li>
-				{/each}
-			</ul>
-		</div>
-		<Separator class="hidden md:block" orientation="vertical" />
-		<div class="w-full max-w-xs">
-			<h2 class="font-mono text-lg">{$LL.membership.createNew()}</h2>
-			<form
-				{...createMembership.preflight(createMembershipSchema).enhance(async ({ submit }) => {
-					await submit();
-					createMembership.fields.set(data.defaultValues);
-					await invalidateAll();
-				})}
-				class="flex w-full max-w-xs flex-col gap-4"
-			>
-				<div class="space-y-2">
-					<Label for="type">{$LL.membership.type()}</Label>
-					<Input {...createMembership.fields.type.as("text")} id="type" list="types" />
-					<p class="text-sm text-muted-foreground">{$LL.membership.continuityNote()}</p>
-					<datalist id="types">
-						{#each data.types as type (type)}
-							<option value={type}></option>
+										<Item.Header>
+											<span class="font-medium">{membership.type}</span>
+											{#if membership.stripePriceId}
+												<svelte:boundary>
+													{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
+													<span class="font-semibold">
+														{formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)}
+													</span>
+													{#snippet failed()}
+														<span class="text-destructive">-</span>
+													{/snippet}
+												</svelte:boundary>
+											{/if}
+										</Item.Header>
+										<Item.Content>
+											<Item.Title class="font-normal text-muted-foreground">
+												{#if membership.stripePriceId}
+													<svelte:boundary>
+														{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
+														{priceMetadata.productName ?? $LL.admin.memberships.legacyMembership()}
+														{#snippet failed()}
+															{$LL.admin.memberships.failedToLoadPrice()}
+														{/snippet}
+													</svelte:boundary>
+												{:else}
+													{$LL.admin.memberships.legacyMembership()}
+												{/if}
+											</Item.Title>
+											<Item.Description class="flex items-center gap-3">
+												<span class="flex items-center gap-1">
+													<Calendar class="size-3.5" />
+													{formatShortDateRange(membership.startTime, membership.endTime, $locale)}
+												</span>
+												<span class="flex items-center gap-1">
+													<Users class="size-3.5" />
+													{membership.memberCount}
+												</span>
+												{#if membership.requiresStudentVerification}
+													<span title={$LL.membership.requiresStudentVerification()}>
+														<GraduationCap class="size-3.5" />
+													</span>
+												{/if}
+											</Item.Description>
+										</Item.Content>
+										{#if membership.stripePriceId}
+											<svelte:boundary>
+												{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
+												{#if !priceMetadata.active}
+													<Item.Footer>
+														<Badge variant="destructive" class="text-xs">{$LL.admin.memberships.priceInactive()}</Badge>
+													</Item.Footer>
+												{/if}
+												{#snippet failed()}{/snippet}
+											</svelte:boundary>
+										{/if}
+									</button>
+								{/snippet}
+							</Item.Root>
 						{/each}
-					</datalist>
-					{#each createMembership.fields.type.issues() as issue, i (i)}
-						<p class="text-sm text-destructive">{issue.message}</p>
-					{/each}
-				</div>
-
-				<div class="space-y-2">
-					<Label for="stripePriceId">{$LL.admin.memberships.stripePriceId()}</Label>
-					<Input {...createMembership.fields.stripePriceId.as("text")} id="stripePriceId" placeholder="price_xxx" />
-					<p class="text-sm text-muted-foreground">{$LL.admin.memberships.stripePriceIdDescription()}</p>
-
-					{#if fetchingMetadata}
-						<div class="mt-2 text-sm text-muted-foreground">
-							{$LL.admin.memberships.fetchingStripeMetadata()}
-						</div>
-					{:else if metadataError}
-						<div class="mt-2 text-sm text-destructive">
-							{metadataError}
-						</div>
-					{:else if stripeMetadata}
-						<div class="mt-2 space-y-1 rounded-md border bg-muted/50 p-2 text-sm">
-							<p class="font-medium text-foreground">
-								{$LL.admin.memberships.stripeMetadataPreview()}
-							</p>
-							{#if stripeMetadata.productName}
-								<p class="text-muted-foreground">
-									{$LL.admin.memberships.productName()}:
-									<span class="text-foreground">{stripeMetadata.productName}</span>
-								</p>
-							{/if}
-							{#if stripeMetadata.nickname}
-								<p class="text-muted-foreground">
-									{$LL.admin.memberships.priceNickname()}:
-									<span class="text-foreground">{stripeMetadata.nickname}</span>
-								</p>
-							{/if}
-							<p class="text-muted-foreground">
-								{$LL.admin.memberships.amount()}:
-								<span class="text-foreground"
-									>{formatPrice(stripeMetadata.priceCents, stripeMetadata.currency, $locale)}</span
-								>
-							</p>
-							{#if !stripeMetadata.active}
-								<p class="text-destructive">
-									{$LL.admin.memberships.priceInactive()}
-								</p>
-							{/if}
-						</div>
-					{/if}
-
-					{#each createMembership.fields.stripePriceId.issues() as issue, i (i)}
-						<p class="text-sm text-destructive">{issue.message}</p>
-					{/each}
-				</div>
-
-				<div class="space-y-2">
-					<Label for="startTime">{$LL.membership.startTime()}</Label>
-					<Input {...createMembership.fields.startTime.as("date")} id="startTime" />
-					{#each createMembership.fields.startTime.issues() as issue, i (i)}
-						<p class="text-sm text-destructive">{issue.message}</p>
-					{/each}
-				</div>
-
-				<div class="space-y-2">
-					<Label for="endTime">{$LL.membership.endTime()}</Label>
-					<Input {...createMembership.fields.endTime.as("date")} id="endTime" />
-					{#each createMembership.fields.endTime.issues() as issue, i (i)}
-						<p class="text-sm text-destructive">{issue.message}</p>
-					{/each}
-				</div>
-
-				<div class="flex items-center gap-2">
-					<Input
-						{...createMembership.fields.requiresStudentVerification.as("checkbox")}
-						id="requiresStudentVerification"
-						class="w-auto"
-					/>
-					<Label for="requiresStudentVerification">{$LL.membership.requiresStudentVerification()}</Label>
-				</div>
-
-				<Button type="submit">{$LL.membership.add()}</Button>
-			</form>
+					</div>
+				</section>
+			{/each}
 		</div>
-	</div>
+	{/if}
 </main>
+
+<!-- Create Membership Sheet -->
+<Sheet.Root bind:open={createSheetOpen}>
+	<Sheet.Content class="flex flex-col overflow-y-auto">
+		<Sheet.Header>
+			<Sheet.Title>{$LL.membership.createNew()}</Sheet.Title>
+			<Sheet.Description>{$LL.admin.memberships.description()}</Sheet.Description>
+		</Sheet.Header>
+		{#key createSheetOpen}
+			{#if createSheetOpen}
+				<CreateMembershipForm
+					defaultValues={data.defaultValues}
+					types={data.types}
+					onClose={() => (createSheetOpen = false)}
+				/>
+			{/if}
+		{/key}
+	</Sheet.Content>
+</Sheet.Root>
+
+<!-- Edit Membership Sheet -->
+<Sheet.Root bind:open={editSheetOpen}>
+	<Sheet.Content class="flex flex-col overflow-y-auto">
+		<Sheet.Header>
+			<Sheet.Title>{$LL.admin.memberships.editMembership()}</Sheet.Title>
+			{#if editingMembership}
+				<Sheet.Description class="flex items-center gap-2">
+					<Calendar class="size-4" />
+					{formatDateRange(editingMembership.startTime, editingMembership.endTime, $locale)}
+				</Sheet.Description>
+			{/if}
+		</Sheet.Header>
+		{#if editingMembership}
+			{#key editingMembership.id}
+				<EditMembershipForm membership={editingMembership} types={data.types} onClose={() => (editSheetOpen = false)} />
+			{/key}
+		{/if}
+	</Sheet.Content>
+</Sheet.Root>
