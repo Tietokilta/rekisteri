@@ -48,9 +48,9 @@ export default defineConfig({
 		{
 			name: "passkeys",
 			testMatch: /passkeys\.test\.ts$/,
-			// CDP-based virtual authenticators require single-worker execution
-			// to prevent session conflicts
-			fullyParallel: false,
+			// CDP-based virtual authenticators require isolated execution
+			// Run after default tests complete to prevent session conflicts
+			dependencies: ["default"],
 		},
 	],
 });

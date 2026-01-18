@@ -22,9 +22,6 @@ import { route } from "../src/lib/ROUTES";
 test.describe.configure({ mode: "serial" });
 
 test.describe("Passkey Management", () => {
-	// Serial mode for this suite
-	test.describe.configure({ mode: "serial" });
-
 	let webauthn: WebAuthnHelper;
 	let client: ReturnType<typeof postgres>;
 	let db: ReturnType<typeof drizzle>;
@@ -73,8 +70,12 @@ test.describe("Passkey Management", () => {
 		// Click add passkey button in empty state
 		await adminPage.getByTestId("add-passkey-button-empty").click();
 
+		// Wait for WebAuthn ceremony to complete (save button appears)
+		const saveButton = adminPage.getByRole("button", { name: /tallenna/i });
+		await saveButton.waitFor({ state: "visible" });
+
 		// Save with default name (date-based)
-		await adminPage.getByRole("button", { name: /tallenna/i }).click();
+		await saveButton.click();
 
 		// Verify passkey appears in list with date-based name
 		await expect(adminPage.getByText(/passkey \d{4}-\d{2}-\d{2}/i)).toBeVisible();
@@ -143,9 +144,6 @@ test.describe("Passkey Management", () => {
 });
 
 test.describe("Passkey Authentication", () => {
-	// CRITICAL: Serial mode prevents CDP session conflicts
-	test.describe.configure({ mode: "serial" });
-
 	let webauthn: WebAuthnHelper;
 	let client: ReturnType<typeof postgres>;
 	let db: ReturnType<typeof drizzle>;
@@ -185,9 +183,9 @@ test.describe("Passkey Authentication", () => {
 		await adminPage.getByTestId("add-passkey-button-empty").click();
 		const nameInput = adminPage.getByPlaceholder(/passkey/i);
 		await nameInput.waitFor({ state: "visible" });
-		await nameInput.fill("Testilaitteen");
+		await nameInput.fill("Testilaite");
 		await adminPage.getByRole("button", { name: /tallenna/i }).click();
-		await expect(adminPage.getByText("Testilaitteen")).toBeVisible();
+		await expect(adminPage.getByText("Testilaite")).toBeVisible();
 
 		// Clear cookies to simulate logout (stay in same context)
 		await adminPage.context().clearCookies();
