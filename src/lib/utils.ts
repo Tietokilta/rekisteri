@@ -28,3 +28,22 @@ export function formatPrice(priceCents: number, currency: string, locale: string
 		currency: currency.toUpperCase(),
 	}).format(priceCents / 100);
 }
+
+/**
+ * Format a date range to a localized string (e.g., "1.8.2024 – 31.7.2025").
+ */
+export function formatDateRange(start: Date, end: Date, locale: string): string {
+	const startStr = start.toLocaleDateString(`${locale}-FI`, { day: "numeric", month: "numeric", year: "numeric" });
+	const endStr = end.toLocaleDateString(`${locale}-FI`, { day: "numeric", month: "numeric", year: "numeric" });
+	return `${startStr} – ${endStr}`;
+}
+
+/**
+ * Format a date range without year on start date (e.g., "1.8. – 31.7.2025").
+ * Useful when the year is already displayed elsewhere (e.g., in a group header).
+ */
+export function formatShortDateRange(start: Date, end: Date, locale: string): string {
+	const startStr = start.toLocaleDateString(`${locale}-FI`, { day: "numeric", month: "numeric" });
+	const endStr = end.toLocaleDateString(`${locale}-FI`, { day: "numeric", month: "numeric", year: "numeric" });
+	return `${startStr} – ${endStr}`;
+}
