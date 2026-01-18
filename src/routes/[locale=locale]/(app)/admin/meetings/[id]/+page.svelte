@@ -219,7 +219,13 @@
 				<Card.Description>Scan member QR codes for check-in/out</Card.Description>
 			</Card.Header>
 			<Card.Footer>
-				<Button variant="outline" class="w-full" disabled>Coming soon: Phase 4</Button>
+				{#if data.meeting.status === "ongoing" || data.meeting.status === "recess"}
+					<Button variant="outline" class="w-full" href="/{$locale}/admin/meetings/{data.meeting.id}/scan">
+						Open Scanner
+					</Button>
+				{:else}
+					<Button variant="outline" class="w-full" disabled>Available when meeting is ongoing</Button>
+				{/if}
 			</Card.Footer>
 		</Card.Root>
 
