@@ -1,8 +1,15 @@
-import { query } from "$app/server";
+import { error } from "@sveltejs/kit";
+import { getRequestEvent, query } from "$app/server";
 import { stripe } from "$lib/server/payment";
 import * as v from "valibot";
 
 export const getStripePriceMetadata = query.batch(v.pipe(v.string(), v.minLength(1)), async (priceIds) => {
+	const { locals } = getRequestEvent();
+
+	if (!locals.user) {
+		throw error(401, "Not authenticated");
+	}
+
 	// Validate all price IDs
 	for (const priceId of priceIds) {
 		if (!priceId || !priceId.startsWith("price_")) {
