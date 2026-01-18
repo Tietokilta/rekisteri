@@ -17,6 +17,10 @@ export default defineConfig({
 			DATABASE_URL: testDbUrl,
 			UNSAFE_DISABLE_RATE_LIMITS: "true",
 			TEST: "true",
+			// WebAuthn/Passkey configuration for test environment
+			RP_ORIGIN: "http://localhost:4173",
+			RP_ID: "localhost",
+			RP_NAME: "Tietokilta Rekisteri",
 		},
 	},
 
@@ -34,4 +38,19 @@ export default defineConfig({
 
 	retries: process.env.CI ? 2 : 0,
 	reporter: process.env.CI ? "html" : "list",
+
+	// Configure projects to handle CDP-based tests (passkeys) that can't run in parallel
+	projects: [
+		{
+			name: "default",
+			testIgnore: /passkeys\.test\.ts$/,
+		},
+		{
+			name: "passkeys",
+			testMatch: /passkeys\.test\.ts$/,
+			// CDP-based virtual authenticators require isolated execution
+			// Run after default tests complete to prevent session conflicts
+			dependencies: ["default"],
+		},
+	],
 });
