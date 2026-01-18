@@ -82,8 +82,11 @@ _Note: Secondary emails are entirely optional, except for aalto.fi email verific
 **Technical data:**
 
 - Session tokens, login codes
-- Audit logs of administrative actions (90 days)
-- IP addresses and browser information from login attempts (90 days)
+- Audit logs with tiered retention periods:
+  - Security events (logins, failed attempts): 6 months
+  - Membership and payment events: approximately 7 years (Accounting Act)
+  - User data changes (email, admin rights): 3 years
+- IP addresses and browser information: retained with audit logs
 - Rate limiting data (in memory only)
 
 ## 6. Regular Sources of Data
@@ -113,7 +116,10 @@ No personal data is retained for users who do not complete the registration proc
 - Passkeys: until deleted by user or account is removed
 - Secondary emails: until deleted by user or account is removed
 - Aalto.fi email verification: valid for 6 months, then requires re-verification
-- IP addresses, browser info, audit logs: 90 days
+- Audit logs:
+  - Security events (logins, etc.): 6 months
+  - Membership and payment events: approximately 7 years (Accounting Act)
+  - User data changes: 3 years
 - Rate limiting data: in memory only
 
 **Statutory retention obligations:**

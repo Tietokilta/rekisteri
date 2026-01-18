@@ -80,8 +80,11 @@ _Huom: Toissijaiset sähköpostit ovat täysin vapaaehtoisia, lukuun ottamatta a
 **Tekniset tiedot:**
 
 - Istuntotunnisteet, kirjautumiskoodit
-- Tarkastusloki (audit log) hallinnollisista toimenpiteistä (90 pv)
-- IP-osoitteet ja selaintiedot (user agent) kirjautumisyrityksistä (90 pv)
+- Tarkastusloki (audit log) eri säilytysajoilla:
+  - Turvallisuustapahtumat (kirjautumiset, epäonnistuneet yritykset): 6 kuukautta
+  - Jäsenyys- ja maksutapahtumat: noin 7 vuotta (kirjanpitolaki)
+  - Käyttäjätietojen muutokset (sähköposti, ylläpitäjäoikeudet): 3 vuotta
+- IP-osoitteet ja selaintiedot (user agent): säilytetään lokien mukana
 - Kuormituksenrajoitustiedot (rate limiting) (vain muistissa)
 
 ## 6. Säännönmukaiset tietolähteet
@@ -111,7 +114,10 @@ Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröit
 - Avainkoodit: kunnes käyttäjä poistaa tai tili poistetaan
 - Toissijaiset sähköpostit: kunnes käyttäjä poistaa tai tili poistetaan
 - Aalto.fi-sähköpostin vahvistus: voimassa 6 kuukautta, jonka jälkeen vaaditaan uudelleenvahvistus
-- IP-osoitteet, selaintiedot, tarkastusloki: 90 päivää
+- Tarkastusloki (audit log):
+  - Turvallisuustapahtumat (kirjautumiset yms.): 6 kuukautta
+  - Jäsenyys- ja maksutapahtumat: noin 7 vuotta (kirjanpitolaki)
+  - Käyttäjätietojen muutokset: 3 vuotta
 - Kuormituksenrajoitustiedot: vain muistissa
 
 **Lakisääteiset säilytysvelvoitteet:**
