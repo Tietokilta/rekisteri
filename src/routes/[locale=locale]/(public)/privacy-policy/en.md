@@ -1,0 +1,206 @@
+---
+title: Member Registry Privacy Statement
+---
+
+# Member Registry Privacy Statement
+
+This is a registry and privacy statement in accordance with the EU General Data Protection Regulation (GDPR) and the Finnish Associations Act (503/1989).
+
+_Note: The legally binding version of this document is in Finnish. This English translation is provided for convenience only._
+
+**Created:** May 22, 2018
+**Last updated:** January 8, 2026
+
+---
+
+## 1. Data Controller
+
+**Computer Science Guild of Aalto University (Tietokilta ry)**
+Business ID: 1790346-8
+Address: Konemiehentie 2, 02150 Espoo, Finland
+Email: hallitus@tietokilta.fi
+
+## 2. Contact Person for Data Protection Matters
+
+For data protection inquiries, please contact the board at hallitus@tietokilta.fi
+
+## 3. Name of the Register
+
+Tietokilta Membership Registry
+
+## 4. Legal Basis and Purpose of Processing
+
+**Legal basis:**
+
+- Performance of membership agreement (GDPR 6(1)(b))
+- Legal obligation – Associations Act (GDPR 6(1)(c))
+- Legitimate interest in organizing member activities (GDPR 6(1)(f))
+- Consent for voluntary marketing communications (GDPR 6(1)(a))
+
+**Purpose of processing:**
+
+- Maintaining and managing memberships
+- Processing membership fees
+- Communication with members (events, newsletters, member benefits)
+- Fulfilling the association's legal obligations
+- Providing authentication services for other guild digital services
+
+## 5. Data Content of the Register
+
+**Member basic information:**
+
+- First name and last name
+- Email address
+- Municipality of residence (required by Associations Act)
+- Preferred language (optional)
+
+**Membership information:**
+
+- Membership type (e.g., regular member, alumni member), start/end dates, status
+- Student status (self-reported; may be verified via Aalto email)
+- Payment history, Stripe customer ID
+
+**Consents:**
+
+- Reception of non-membership related emails
+
+**Passkeys:**
+
+- Public keys for passwordless authentication
+- Device name, transport methods, sync status
+- Last usage timestamp
+
+**Secondary email addresses (optional):**
+
+- Additional email addresses for alternative sign-in
+- Email domain (e.g., aalto.fi)
+- Verification status and timestamp
+- Expiration date for domain-verified emails
+
+_Note: Secondary emails are entirely optional, except for aalto.fi email verification which is required for certain membership types (e.g., student membership)._
+
+**Technical data:**
+
+- Session tokens, login codes
+- Audit logs of administrative actions (90 days)
+- IP addresses and browser information from login attempts (90 days)
+- Rate limiting data (in memory only)
+
+## 6. Regular Sources of Data
+
+Personal data is primarily collected from the member themselves:
+
+- Membership application and purchase
+- Updating member information in the system
+- Logging into the system
+
+Additionally, data is obtained from:
+
+- Stripe payment system (payment transactions)
+
+## 7. Data Retention Period
+
+We delete data as soon as it is no longer needed.
+
+**Incomplete registrations:**
+
+No personal data is retained for users who do not complete the registration process. Login codes expire automatically in 10 minutes.
+
+**Technical data:**
+
+- Login codes: 10 minutes
+- Session tokens: 30 days
+- Passkeys: until deleted by user or account is removed
+- Secondary emails: until deleted by user or account is removed
+- Aalto.fi email verification: valid for 6 months, then requires re-verification
+- IP addresses, browser info, audit logs: 90 days
+- Rate limiting data: in memory only
+
+**Statutory retention obligations:**
+
+- **Accounting Act:** Payments, invoices, and receipts for at least 6 years from end of fiscal year
+- **Associations Act:** Member data retained to fulfill legal obligations
+
+**In practice after membership ends:** Technical data is automatically deleted when it expires. Member registry data and accounting records are retained in accordance with statutory obligations.
+
+## 8. Data Disclosure and Transfers
+
+| Service Provider | Location     | Purpose                  |
+| ---------------- | ------------ | ------------------------ |
+| Microsoft Azure  | EU (Ireland) | Database and application |
+| Stripe           | EU           | Payment processing       |
+| Mailgun          | EU           | Email service            |
+| Google Workspace | EU/Global\*  | Mailing lists            |
+
+_\*Google may process data outside the EU using Standard Contractual Clauses (SCCs)._
+
+**Other Tietokilta services:**
+
+With the member's consent, the registry may be used for authentication in other digital services provided by the guild. In such cases, only necessary data (e.g., name, email, membership status) is disclosed to the service.
+
+**Occasional disclosures:**
+
+Data may be disclosed to authorities based on statutory obligations.
+
+**Transfer security:**
+
+All transfers use encrypted connections (HTTPS/TLS). Data is not sold, rented, or disclosed for marketing purposes.
+
+## 9. Principles of Register Protection
+
+**Technical safeguards:**
+
+- Database protected by firewall; access restricted to authorized systems
+- All traffic encrypted (HTTPS/TLS)
+- No passwords – email-based OTP and passkeys used
+- Session tokens stored hashed
+- Comprehensive audit logging of administrative actions
+- Regular automated backups
+
+**Organizational safeguards:**
+
+- Access restricted to key board members (Chair, Secretary, Treasurer, System Admins)
+- Access granted only as required by specific tasks
+- All administrative actions recorded in audit log
+
+**Physical security:**
+
+Servers located in Microsoft Azure North Europe (Ireland) data center (ISO 27001, SOC 2).
+
+## 10. Data Subject Rights
+
+Data subjects have the right to:
+
+- Access their personal data
+- Request rectification of their data
+- Restrict or object to processing
+- Data portability
+- Withdraw consent
+- Lodge a complaint with the Data Protection Ombudsman ([tietosuoja.fi](https://tietosuoja.fi/en/))
+
+**Note on data erasure:**
+
+The Finnish Associations Act (503/1989 § 11) requires associations to maintain a member registry. This statutory obligation takes precedence over GDPR erasure rights.
+
+## 11. Right of Access and Rectification
+
+**Right of access:**
+
+Members can view and manage their own data by signing into the system. Technical data (sessions, logs, IP addresses) can be requested separately at hallitus@tietokilta.fi.
+
+**Right to rectification:**
+
+Data subjects can correct and update their information by logging into the system. If information cannot be corrected by the data subject, they can request correction by contacting hallitus@tietokilta.fi.
+
+**Supervisory authority in Finland:**
+
+Office of the Data Protection Ombudsman
+Visiting address: Lintulahdenkuja 4, 00530 Helsinki
+Postal address: P.O. Box 800, 00531 Helsinki
+Phone: +358 29 56 66700
+Email: tietosuoja@om.fi
+Website: [https://tietosuoja.fi/en/](https://tietosuoja.fi/en/)
+
+## 12. Automated Decision-Making
+
+The register does not use automated decision-making or profiling as defined in GDPR Article 22. All membership-related decisions (e.g., approval of membership applications) are made by a human.
