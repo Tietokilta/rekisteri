@@ -1,5 +1,11 @@
-import { test, expect } from "./fixtures/auth";
+import { test, expect, type UserInfo } from "./fixtures/auth";
 import { WebAuthnHelper } from "./fixtures/webauthn";
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
+import * as table from "../src/lib/server/db/schema";
+import { eq } from "drizzle-orm";
+import path from "node:path";
+import fs from "node:fs";
 
 /**
  * Passkey E2E Tests
@@ -19,13 +25,41 @@ test.describe("Passkey Management", () => {
 	test.describe.configure({ mode: "serial" });
 
 	let webauthn: WebAuthnHelper;
+	let client: ReturnType<typeof postgres>;
+	let db: ReturnType<typeof drizzle>;
+	let adminUser: UserInfo;
+
+	test.beforeAll(async () => {
+		const dbUrl = process.env.DATABASE_URL_TEST;
+		if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
+		client = postgres(dbUrl);
+		db = drizzle(client, { schema: table, casing: "snake_case" });
+
+		// Load admin user info
+		const userInfoPath = path.join(process.cwd(), "e2e/.auth/admin-user.json");
+		adminUser = JSON.parse(fs.readFileSync(userInfoPath, "utf8")) as UserInfo;
+
+		// Clean up any existing passkeys before tests
+		await db.delete(table.passkey).where(eq(table.passkey.userId, adminUser.id));
+	});
+
+	test.afterAll(async () => {
+		await client.end();
+	});
 
 	test.beforeEach(async ({ adminPage }) => {
+		// Clean up passkeys from previous test
+		await db.delete(table.passkey).where(eq(table.passkey.userId, adminUser.id));
+
+		// Navigate first, before setting up CDP session
+		await adminPage.goto("/fi/passkeys");
+
+		// Wait for the page element to ensure page is ready
+		await adminPage.getByTestId("add-passkey-button-empty").waitFor({ state: "visible" });
+
+		// NOW set up virtual authenticator after page is stable
 		webauthn = new WebAuthnHelper(adminPage);
 		await webauthn.enable();
-		await adminPage.goto("/fi/passkeys");
-		// Wait for page to be fully loaded and interactive
-		await adminPage.waitForLoadState("networkidle");
 	});
 
 	test.afterEach(async () => {
@@ -100,14 +134,41 @@ test.describe("Passkey Authentication", () => {
 	test.describe.configure({ mode: "serial" });
 
 	let webauthn: WebAuthnHelper;
+	let client: ReturnType<typeof postgres>;
+	let db: ReturnType<typeof drizzle>;
+	let adminUser: UserInfo;
+
+	test.beforeAll(async () => {
+		const dbUrl = process.env.DATABASE_URL_TEST;
+		if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
+		client = postgres(dbUrl);
+		db = drizzle(client, { schema: table, casing: "snake_case" });
+
+		// Load admin user info
+		const userInfoPath = path.join(process.cwd(), "e2e/.auth/admin-user.json");
+		adminUser = JSON.parse(fs.readFileSync(userInfoPath, "utf8")) as UserInfo;
+
+		// Clean up any existing passkeys before tests
+		await db.delete(table.passkey).where(eq(table.passkey.userId, adminUser.id));
+	});
+
+	test.afterAll(async () => {
+		await client.end();
+	});
 
 	test.beforeEach(async ({ adminPage }) => {
+		// Clean up passkeys from previous test
+		await db.delete(table.passkey).where(eq(table.passkey.userId, adminUser.id));
+
+		// Navigate and wait for page to be ready
+		await adminPage.goto("/fi/passkeys");
+		await adminPage.getByTestId("add-passkey-button-empty").waitFor({ state: "visible" });
+
+		// Set up virtual authenticator
 		webauthn = new WebAuthnHelper(adminPage);
 		await webauthn.enable();
 
 		// Register passkey for admin user
-		await adminPage.goto("/fi/passkeys");
-		await adminPage.waitForLoadState("networkidle");
 		await adminPage.getByTestId("add-passkey-button-empty").click();
 		await adminPage.getByPlaceholder(/passkey/i).fill("Testilaitteen");
 		await adminPage.getByRole("button", { name: /tallenna/i }).click();
