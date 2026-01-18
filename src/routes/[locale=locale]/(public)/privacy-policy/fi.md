@@ -75,7 +75,7 @@ Tietokillan jäsenrekisteri
 - Vahvistuksen tila ja ajankohta
 - Vanhenemispäivä verkkotunnusvarmennetuille sähköposteille
 
-*Huom: Toissijaiset sähköpostit ovat täysin vapaaehtoisia, lukuun ottamatta aalto.fi-sähköpostin vahvistusta, joka vaaditaan tietyille jäsenyystyypeille (esim. opiskelijajäsenyys).*
+_Huom: Toissijaiset sähköpostit ovat täysin vapaaehtoisia, lukuun ottamatta aalto.fi-sähköpostin vahvistusta, joka vaaditaan tietyille jäsenyystyypeille (esim. opiskelijajäsenyys)._
 
 **Tekniset tiedot:**
 
@@ -123,14 +123,14 @@ Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröit
 
 ## 8. Tietojen luovutus ja siirrot
 
-| Palveluntarjoaja | Sijainti | Käyttötarkoitus |
-| --- | --- | --- |
-| Microsoft Azure | EU (Irlanti) | Tietokanta ja sovellus |
-| Stripe | EU | Maksujenkäsittely |
-| Mailgun | EU | Sähköpostipalvelu |
-| Google Workspace | EU/Globaali* | Postituslistat |
+| Palveluntarjoaja | Sijainti      | Käyttötarkoitus        |
+| ---------------- | ------------- | ---------------------- |
+| Microsoft Azure  | EU (Irlanti)  | Tietokanta ja sovellus |
+| Stripe           | EU            | Maksujenkäsittely      |
+| Mailgun          | EU            | Sähköpostipalvelu      |
+| Google Workspace | EU/Globaali\* | Postituslistat         |
 
-*\*Google voi käsitellä tietoja EU:n ulkopuolella vakiolausekkein (SCCs).*
+_\*Google voi käsitellä tietoja EU:n ulkopuolella vakiolausekkein (SCCs)._
 
 **Tietokillan muut palvelut:**
 

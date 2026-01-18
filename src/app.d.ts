@@ -10,13 +10,5 @@ declare global {
 	}
 }
 
-declare module "*.svx" {
-	import type { SvelteComponent } from "svelte";
-
-	export default class Comp extends SvelteComponent {}
-
-	export const metadata: Record<string, unknown>;
-}
-
 // eslint-disable-next-line unicorn/require-module-specifiers -- needed to make this a module
 export {};

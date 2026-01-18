@@ -9,10 +9,10 @@ const config = {
 	preprocess: [
 		vitePreprocess(),
 		// @ts-expect-error mdsvex types are incompatible with latest svelte
-		mdsvex({ extensions: [".svx"] }),
+		mdsvex({ extensions: [".md"] }),
 	],
 
-	extensions: [".svelte", ".svx"],
+	extensions: [".svelte", ".md"],
 
 	compilerOptions: {
 		experimental: {

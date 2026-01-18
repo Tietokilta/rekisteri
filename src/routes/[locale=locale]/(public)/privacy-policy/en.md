@@ -6,7 +6,7 @@ title: Member Registry Privacy Statement
 
 This is a registry and privacy statement in accordance with the EU General Data Protection Regulation (GDPR) and the Finnish Associations Act (503/1989).
 
-*Note: The legally binding version of this document is in Finnish. This English translation is provided for convenience only.*
+_Note: The legally binding version of this document is in Finnish. This English translation is provided for convenience only._
 
 **Created:** May 22, 2018
 **Last updated:** January 8, 2026
@@ -77,7 +77,7 @@ Tietokilta Membership Registry
 - Verification status and timestamp
 - Expiration date for domain-verified emails
 
-*Note: Secondary emails are entirely optional, except for aalto.fi email verification which is required for certain membership types (e.g., student membership).*
+_Note: Secondary emails are entirely optional, except for aalto.fi email verification which is required for certain membership types (e.g., student membership)._
 
 **Technical data:**
 
@@ -125,14 +125,14 @@ No personal data is retained for users who do not complete the registration proc
 
 ## 8. Data Disclosure and Transfers
 
-| Service Provider | Location | Purpose |
-| --- | --- | --- |
-| Microsoft Azure | EU (Ireland) | Database and application |
-| Stripe | EU | Payment processing |
-| Mailgun | EU | Email service |
-| Google Workspace | EU/Global* | Mailing lists |
+| Service Provider | Location     | Purpose                  |
+| ---------------- | ------------ | ------------------------ |
+| Microsoft Azure  | EU (Ireland) | Database and application |
+| Stripe           | EU           | Payment processing       |
+| Mailgun          | EU           | Email service            |
+| Google Workspace | EU/Global\*  | Mailing lists            |
 
-*\*Google may process data outside the EU using Standard Contractual Clauses (SCCs).*
+_\*Google may process data outside the EU using Standard Contractual Clauses (SCCs)._
 
 **Other Tietokilta services:**
 
