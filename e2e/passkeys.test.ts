@@ -85,8 +85,12 @@ test.describe("Passkey Management", () => {
 
 		await adminPage.getByTestId("add-passkey-button-empty").click();
 
+		// Wait for the name input to appear (after WebAuthn ceremony completes)
+		const nameInput = adminPage.getByPlaceholder(/passkey/i);
+		await nameInput.waitFor({ state: "visible" });
+
 		// Enter custom name
-		await adminPage.getByPlaceholder(/passkey/i).fill(customName);
+		await nameInput.fill(customName);
 		await adminPage.getByRole("button", { name: /tallenna/i }).click();
 
 		// Verify custom name appears
@@ -99,7 +103,9 @@ test.describe("Passkey Management", () => {
 
 		// Register passkey
 		await adminPage.getByTestId("add-passkey-button-empty").click();
-		await adminPage.getByPlaceholder(/passkey/i).fill(originalName);
+		const nameInput = adminPage.getByPlaceholder(/passkey/i);
+		await nameInput.waitFor({ state: "visible" });
+		await nameInput.fill(originalName);
 		await adminPage.getByRole("button", { name: /tallenna/i }).click();
 		await expect(adminPage.getByText(originalName)).toBeVisible();
 
@@ -118,7 +124,9 @@ test.describe("Passkey Management", () => {
 
 		// Register passkey
 		await adminPage.getByTestId("add-passkey-button-empty").click();
-		await adminPage.getByPlaceholder(/passkey/i).fill(passkeyName);
+		const nameInput = adminPage.getByPlaceholder(/passkey/i);
+		await nameInput.waitFor({ state: "visible" });
+		await nameInput.fill(passkeyName);
 		await adminPage.getByRole("button", { name: /tallenna/i }).click();
 		await expect(adminPage.getByText(passkeyName)).toBeVisible();
 
@@ -129,7 +137,8 @@ test.describe("Passkey Management", () => {
 		// Verify removed - should show empty state with add button
 		await expect(adminPage.getByText(passkeyName)).not.toBeVisible();
 		await expect(adminPage.getByTestId("add-passkey-button-empty")).toBeVisible();
-		await expect(adminPage.getByRole("heading", { name: /ei avainkoodeja/i })).toBeVisible();
+		// Empty.Title is a div, not a heading - use getByText
+		await expect(adminPage.getByText(/ei avainkoodeja/i)).toBeVisible();
 	});
 });
 
@@ -174,7 +183,9 @@ test.describe("Passkey Authentication", () => {
 
 		// Register passkey for admin user
 		await adminPage.getByTestId("add-passkey-button-empty").click();
-		await adminPage.getByPlaceholder(/passkey/i).fill("Testilaitteen");
+		const nameInput = adminPage.getByPlaceholder(/passkey/i);
+		await nameInput.waitFor({ state: "visible" });
+		await nameInput.fill("Testilaitteen");
 		await adminPage.getByRole("button", { name: /tallenna/i }).click();
 		await expect(adminPage.getByText("Testilaitteen")).toBeVisible();
 
@@ -216,11 +227,12 @@ test.describe("Passkey Authentication", () => {
 		// Verify passkey option is shown
 		await expect(adminPage.getByTestId("sign-in-with-passkey-button")).toBeVisible();
 
-		// Choose email OTP instead
-		await adminPage.getByRole("button", { name: /sähköposti/i }).click();
+		// Choose email OTP instead (use specific text to avoid matching "Käytä toista sähköpostiosoitetta")
+		await adminPage.getByRole("button", { name: /lähetä sähköpostikoodi/i }).click();
 
 		// Should navigate to OTP entry
 		await adminPage.waitForURL(/sign-in\/email/);
-		await expect(adminPage.getByText(/syötä koodi/i)).toBeVisible();
+		// Page shows "Lähetimme 8-numeroisen koodin" (We sent an 8-digit code)
+		await expect(adminPage.getByText(/lähetimme.*koodin/i)).toBeVisible();
 	});
 });

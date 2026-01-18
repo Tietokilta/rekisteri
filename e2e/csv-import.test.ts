@@ -181,11 +181,7 @@ Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
 		// Create verified secondary email for test user
 		await createVerifiedSecondaryEmail(db, testUserId, secondaryEmail);
 
-		// 2. Count users before import
-		const usersBeforeImport = await db.select().from(table.user);
-		const initialUserCount = usersBeforeImport.length;
-
-		// 3. Create CSV with the secondary email
+		// 2. Create CSV with the secondary email
 		const tempPath = path.join(process.cwd(), `temp-csv-import-${crypto.randomUUID()}.csv`);
 		tempFiles.push(tempPath); // Track for cleanup
 		const csvContent = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
@@ -209,11 +205,8 @@ Test,User,Helsinki,${secondaryEmail},varsinainen jäsen,2025-08-01`;
 		// Wait for success message
 		await expect(adminPage.getByText(/tuonti onnistui|import successful/i)).toBeVisible({ timeout: 10_000 });
 
-		// 6. Verify NO duplicate user was created
-		const usersAfterImport = await db.select().from(table.user);
-		expect(usersAfterImport.length).toBe(initialUserCount);
-
-		// 7. Verify the user was NOT created with secondary email as primary
+		// 6. Verify the user was NOT created with secondary email as primary
+		// (Don't check total user count - races with parallel tests)
 		const duplicateUser = await db.select().from(table.user).where(eq(table.user.email, secondaryEmail));
 		expect(duplicateUser.length).toBe(0);
 
@@ -253,11 +246,7 @@ Test,User,Helsinki,${secondaryEmail},varsinainen jäsen,2025-08-01`;
 		// Create unverified secondary email for test user
 		await createUnverifiedSecondaryEmail(db, testUserId, unverifiedEmail);
 
-		// 2. Count users before import
-		const usersBeforeImport = await db.select().from(table.user);
-		const initialUserCount = usersBeforeImport.length;
-
-		// 3. Create CSV with the unverified secondary email
+		// 2. Create CSV with the unverified secondary email
 		const tempPath = path.join(process.cwd(), `temp-csv-import-${crypto.randomUUID()}.csv`);
 		tempFiles.push(tempPath); // Track for cleanup
 		const csvContent = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
@@ -281,18 +270,15 @@ New,Person,Espoo,${unverifiedEmail},varsinainen jäsen,2025-08-01`;
 		// Wait for success message
 		await expect(adminPage.getByText(/tuonti onnistui|import successful/i)).toBeVisible({ timeout: 10_000 });
 
-		// 6. Verify a NEW user WAS created (since unverified emails shouldn't match)
-		const usersAfterImport = await db.select().from(table.user);
-		expect(usersAfterImport.length).toBe(initialUserCount + 1);
-
-		// 7. Verify the new user has the unverified email as their PRIMARY email
+		// 6. Verify a NEW user WAS created with the unverified email as their PRIMARY email
+		// (Don't check total user count - races with parallel tests)
 		const [newUser] = await db.select().from(table.user).where(eq(table.user.email, unverifiedEmail));
 		expect(newUser).toBeDefined();
 		expect(newUser?.email).toBe(unverifiedEmail);
 		expect(newUser?.firstNames).toBe("New");
 		expect(newUser?.lastName).toBe("Person");
 
-		// 8. Track the newly created user for cleanup
+		// 7. Track the newly created user for cleanup
 		if (newUser) {
 			testUserIds.push(newUser.id);
 		}

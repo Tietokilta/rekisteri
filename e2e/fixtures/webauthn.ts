@@ -38,6 +38,18 @@ export class WebAuthnHelper {
 	}
 
 	/**
+	 * Clear all credentials from the virtual authenticator
+	 * Useful for test isolation
+	 */
+	async clearCredentials(): Promise<void> {
+		if (this.cdpSession && this.authenticatorId) {
+			await this.cdpSession.send("WebAuthn.clearCredentials", {
+				authenticatorId: this.authenticatorId,
+			});
+		}
+	}
+
+	/**
 	 * Disable authenticator and clean up resources
 	 * Handles cleanup gracefully even if page/context is already closing
 	 */

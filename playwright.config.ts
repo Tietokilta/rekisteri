@@ -38,4 +38,19 @@ export default defineConfig({
 
 	retries: process.env.CI ? 2 : 0,
 	reporter: process.env.CI ? "html" : "list",
+
+	// Configure projects to handle CDP-based tests (passkeys) that can't run in parallel
+	projects: [
+		{
+			name: "default",
+			testIgnore: /passkeys\.test\.ts$/,
+		},
+		{
+			name: "passkeys",
+			testMatch: /passkeys\.test\.ts$/,
+			// CDP-based virtual authenticators require single-worker execution
+			// to prevent session conflicts
+			fullyParallel: false,
+		},
+	],
 });
