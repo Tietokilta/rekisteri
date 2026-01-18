@@ -4,7 +4,7 @@ import fs from "node:fs";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as table from "../src/lib/server/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { createVerifiedSecondaryEmail, createUnverifiedSecondaryEmail } from "./helpers/secondary-email";
 import { route } from "../src/lib/ROUTES";
 
@@ -296,5 +296,173 @@ New,Person,Espoo,${unverifiedEmail},varsinainen jäsen,2025-08-01`;
 		if (newUser) {
 			testUserIds.push(newUser.id);
 		}
+	});
+
+	test("CSV import handles large batches (2000 rows)", async ({ adminPage }) => {
+		// Generate a CSV with 2000 rows
+		const rowCount = 2000;
+		const tempPath = path.join(process.cwd(), `temp-large-import-${crypto.randomUUID()}.csv`);
+		tempFiles.push(tempPath); // Track for cleanup
+
+		// Create CSV header
+		let csvContent = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate\n`;
+
+		// Generate 2000 unique rows
+		const generatedEmails: string[] = [];
+		for (let i = 0; i < rowCount; i++) {
+			const email = `batch-test-${i}-${crypto.randomUUID()}@example.com`;
+			generatedEmails.push(email);
+			csvContent += `FirstName${i},LastName${i},Helsinki,${email},varsinainen jäsen,2025-08-01\n`;
+		}
+
+		fs.writeFileSync(tempPath, csvContent);
+
+		// Navigate to import page and upload CSV
+		await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
+			waitUntil: "networkidle",
+		});
+		const fileInput = adminPage.locator('input[type="file"]');
+		await fileInput.setInputFiles(tempPath);
+
+		// Wait for file to be parsed and preview to show
+		await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
+
+		// Verify the preview shows - check for the label, not the count (count appears multiple times)
+		await expect(adminPage.getByText("Luotavia jäsentietueita:")).toBeVisible();
+
+		// Execute the import
+		const importButton = adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i });
+		await importButton.click();
+
+		// Wait for success message (give it more time for large import)
+		await expect(adminPage.getByText(/tuonti onnistui|import successful/i)).toBeVisible({ timeout: 60_000 });
+
+		// Verify success count - use regex to match the format "Tuotiin X / Y jäsentä"
+		await expect(adminPage.getByText(new RegExp(`Tuotiin ${rowCount} / ${rowCount}`))).toBeVisible();
+
+		// Verify users were created in database
+		const createdUsers = await db
+			.select()
+			.from(table.user)
+			.where(inArray(table.user.email, generatedEmails.slice(0, 10))); // Check first 10
+
+		expect(createdUsers.length).toBe(10);
+
+		// Track all created users for cleanup
+		const allCreatedUsers = await db.select().from(table.user).where(inArray(table.user.email, generatedEmails));
+		for (const user of allCreatedUsers) {
+			testUserIds.push(user.id);
+		}
+
+		// Verify members were created
+		const createdMembers = await db
+			.select()
+			.from(table.member)
+			.where(
+				inArray(
+					table.member.userId,
+					allCreatedUsers.map((u) => u.id),
+				),
+			);
+
+		expect(createdMembers.length).toBe(rowCount);
+	});
+
+	test("CSV import is idempotent (running twice doesn't duplicate)", async ({ adminPage }) => {
+		// Create a CSV with a few rows
+		const tempPath = path.join(process.cwd(), `temp-idempotent-${crypto.randomUUID()}.csv`);
+		tempFiles.push(tempPath); // Track for cleanup
+
+		const email1 = getTestEmail("idempotent1");
+		const email2 = getTestEmail("idempotent2");
+		const email3 = getTestEmail("idempotent3");
+
+		const csvContent = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
+Alice,Smith,Helsinki,${email1},varsinainen jäsen,2025-08-01
+Bob,Jones,Tampere,${email2},varsinainen jäsen,2025-08-01
+Charlie,Brown,Espoo,${email3},varsinainen jäsen,2025-08-01`;
+
+		fs.writeFileSync(tempPath, csvContent);
+
+		// First import
+		await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
+			waitUntil: "networkidle",
+		});
+		const fileInput = adminPage.locator('input[type="file"]');
+		await fileInput.setInputFiles(tempPath);
+
+		await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
+
+		const importButton = adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i });
+		await importButton.click();
+
+		await expect(adminPage.getByText(/tuonti onnistui|import successful/i)).toBeVisible({ timeout: 10_000 });
+
+		// Get counts after first import
+		const usersAfterFirstImport = await db
+			.select()
+			.from(table.user)
+			.where(inArray(table.user.email, [email1, email2, email3]));
+
+		expect(usersAfterFirstImport.length).toBe(3);
+
+		// Track for cleanup
+		for (const user of usersAfterFirstImport) {
+			testUserIds.push(user.id);
+		}
+
+		const membersAfterFirstImport = await db
+			.select()
+			.from(table.member)
+			.where(
+				inArray(
+					table.member.userId,
+					usersAfterFirstImport.map((u) => u.id),
+				),
+			);
+
+		expect(membersAfterFirstImport.length).toBe(3);
+
+		// Second import (same CSV)
+		await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
+			waitUntil: "networkidle",
+		});
+
+		// Re-query elements after navigation to avoid stale references
+		const fileInput2 = adminPage.locator('input[type="file"]');
+		await fileInput2.setInputFiles(tempPath);
+
+		await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
+
+		const importButton2 = adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i });
+		await importButton2.click();
+
+		await expect(adminPage.getByText(/tuonti onnistui|import successful/i)).toBeVisible({ timeout: 10_000 });
+
+		// Get counts after second import
+		const usersAfterSecondImport = await db
+			.select()
+			.from(table.user)
+			.where(inArray(table.user.email, [email1, email2, email3]));
+
+		const membersAfterSecondImport = await db
+			.select()
+			.from(table.member)
+			.where(
+				inArray(
+					table.member.userId,
+					usersAfterSecondImport.map((u) => u.id),
+				),
+			);
+
+		// Verify no duplicates were created
+		expect(usersAfterSecondImport.length).toBe(3); // Same as before
+		expect(membersAfterSecondImport.length).toBe(3); // Same as before
+
+		// Verify user details were updated (not duplicated)
+		const [user1] = await db.select().from(table.user).where(eq(table.user.email, email1));
+		expect(user1?.firstNames).toBe("Alice");
+		expect(user1?.lastName).toBe("Smith");
+		expect(user1?.homeMunicipality).toBe("Helsinki");
 	});
 });

@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import * as v from "valibot";
 import { db } from "../db";
 import * as table from "../db/schema";
@@ -99,6 +99,50 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 		.where(and(eq(table.secondaryEmail.email, normalizedEmail), isNotNull(table.secondaryEmail.verifiedAt)));
 
 	return secondaryResult?.user ?? null;
+}
+
+/**
+ * Batch lookup users by multiple email addresses
+ * Checks both primary and VERIFIED secondary emails
+ * Returns a Map of email (lowercase) to User
+ *
+ * More efficient than calling getUserByEmail in a loop
+ *
+ * SECURITY: Only verified secondary emails are considered
+ */
+export async function getUsersByEmails(emails: string[]): Promise<Map<string, User>> {
+	if (emails.length === 0) {
+		return new Map();
+	}
+
+	const normalizedEmails = emails.map((e) => e.toLowerCase());
+	const emailToUser = new Map<string, User>();
+
+	// Batch query primary emails
+	const primaryUsers = await db.select().from(table.user).where(inArray(table.user.email, normalizedEmails));
+
+	for (const user of primaryUsers) {
+		emailToUser.set(user.email, user);
+	}
+
+	// Batch query VERIFIED secondary emails
+	const secondaryResults = await db
+		.select({
+			email: table.secondaryEmail.email,
+			user: table.user,
+		})
+		.from(table.secondaryEmail)
+		.innerJoin(table.user, eq(table.user.id, table.secondaryEmail.userId))
+		.where(and(inArray(table.secondaryEmail.email, normalizedEmails), isNotNull(table.secondaryEmail.verifiedAt)));
+
+	for (const result of secondaryResults) {
+		// Only add if not already found via primary email
+		if (!emailToUser.has(result.email)) {
+			emailToUser.set(result.email, result.user);
+		}
+	}
+
+	return emailToUser;
 }
 
 /**
