@@ -26,7 +26,7 @@
 		availableMemberships.find((e) => e.id === payMembership.fields.membershipId.value())?.requiresStudentVerification ??
 			false,
 	);
-	let disableForm = $derived(!isStudent && requireStudentVerification);
+	let disableForm = $derived(requireStudentVerification && (!isStudent || !data.hasValidAaltoEmail));
 </script>
 
 <div class="container mx-auto max-w-2xl px-4 py-8">
