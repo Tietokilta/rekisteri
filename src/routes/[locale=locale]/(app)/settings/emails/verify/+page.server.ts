@@ -144,7 +144,7 @@ async function verifyCode(event: RequestEvent) {
 	deleteEmailOTP(otp.id);
 	deleteEmailOTPCookie(event);
 
-	redirect(302, route("/[locale=locale]/secondary-emails", { locale: event.locals.locale }));
+	redirect(302, route("/[locale=locale]/settings/emails", { locale: event.locals.locale }));
 }
 
 async function resendEmail(event: RequestEvent) {
@@ -209,5 +209,5 @@ async function cancelVerification(event: RequestEvent) {
 	deleteEmailOTPCookie(event);
 
 	// Redirect back to management page
-	redirect(303, route("/[locale=locale]/secondary-emails", { locale: event.locals.locale }));
+	redirect(303, route("/[locale=locale]/settings/emails", { locale: event.locals.locale }));
 }
