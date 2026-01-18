@@ -68,7 +68,8 @@
 		"vaul-svelte": "1.0.0-next.7",
 		"vite": "^7.3.1",
 		"vite-plugin-devtools-json": "^1.0.0",
-		"vite-plugin-kit-routes": "^1.0.2"
+		"vite-plugin-kit-routes": "^1.0.2",
+		"vitest": "^4.0.17"
 	},
 	"dependencies": {
 		"@fontsource-variable/inter": "^5.2.8",
