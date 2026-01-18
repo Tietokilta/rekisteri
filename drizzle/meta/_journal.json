@@ -43,6 +43,13 @@
       "when": 1767811306880,
       "tag": "0005_chemical_killmonger",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1768728689376,
+      "tag": "0006_aromatic_spot",
+      "breakpoints": true
     }
   ]
 }

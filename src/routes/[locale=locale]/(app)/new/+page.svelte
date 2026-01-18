@@ -10,6 +10,8 @@
 	import CircleAlert from "@lucide/svelte/icons/circle-alert";
 	import { payMembership } from "./data.remote";
 	import { payMembershipSchema } from "./schema";
+	import { getStripePriceMetadata } from "$lib/api/stripe.remote";
+	import { formatPrice } from "$lib/utils";
 
 	const { data }: PageProps = $props();
 
@@ -46,9 +48,19 @@
 							>
 								<input {...payMembership.fields.membershipId.as("radio", membership.id)} required class="mt-1" />
 								<div class="flex flex-col">
-									<span class="font-medium">
-										{membership.type} ({membership.priceCents / 100} €)
-									</span>
+									{#if membership.stripePriceId}
+										<svelte:boundary>
+											{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
+											<span class="font-medium">
+												{membership.type} ({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
+											</span>
+											{#snippet failed()}
+												<span class="font-medium text-destructive">{$LL.admin.memberships.failedToLoadPrice()}</span>
+											{/snippet}
+										</svelte:boundary>
+									{:else}
+										<span class="font-medium">{membership.type}</span>
+									{/if}
 									<span class="text-sm text-muted-foreground">
 										{new Date(membership.startTime).toLocaleDateString(`${$locale}-FI`)}
 										– {new Date(membership.endTime).toLocaleDateString(`${$locale}-FI`)}
@@ -115,8 +127,18 @@
 					<Button type="submit" disabled={disableForm} class={disableForm ? "cursor-not-allowed opacity-50" : ""}>
 						{$LL.membership.buy()}
 						{#if payMembership.fields.membershipId.value()}
-							({(availableMemberships.find((x) => x.id === payMembership.fields.membershipId.value())?.priceCents ??
-								0) / 100} €)
+							{@const selectedMembership = availableMemberships.find(
+								(x) => x.id === payMembership.fields.membershipId.value(),
+							)}
+							{#if selectedMembership?.stripePriceId}
+								<svelte:boundary>
+									{@const priceMetadata = await getStripePriceMetadata(selectedMembership.stripePriceId)}
+									({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
+									{#snippet failed()}
+										<span>(-)</span>
+									{/snippet}
+								</svelte:boundary>
+							{/if}
 						{/if}
 					</Button>
 				</form>

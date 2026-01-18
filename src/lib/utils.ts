@@ -18,3 +18,13 @@ export type NonEmptyArray<T> = [T, ...T[]];
 export const isNonEmpty = <T>(arr: T[] | undefined | null): arr is NonEmptyArray<T> => {
 	return Array.isArray(arr) && arr.length > 0;
 };
+
+/**
+ * Format a price in cents to a localized currency string using Intl.NumberFormat.
+ */
+export function formatPrice(priceCents: number, currency: string, locale: string): string {
+	return new Intl.NumberFormat(locale, {
+		style: "currency",
+		currency: currency.toUpperCase(),
+	}).format(priceCents / 100);
+}

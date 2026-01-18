@@ -261,6 +261,14 @@ const en = {
 			stripePriceId: "Stripe price ID",
 			stripePriceIdDescription: "Price ID found on Stripe dashboard",
 			stripePriceIdLabel: "Price ID {stripePriceId}",
+			fetchingStripeMetadata: "Fetching Stripe data...",
+			stripeMetadataPreview: "Stripe information:",
+			productName: "Product name",
+			priceNickname: "Price nickname",
+			amount: "Amount",
+			priceInactive: "Warning: This price is inactive in Stripe",
+			legacyMembership: "Legacy membership (no Stripe price)",
+			failedToLoadPrice: "Failed to load price",
 		},
 
 		members: {

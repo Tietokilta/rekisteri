@@ -261,6 +261,14 @@ const fi = {
 			stripePriceId: "Stripe hintakoodi",
 			stripePriceIdDescription: "Stripe-hallintapaneelin tuotekoodi (Price ID)",
 			stripePriceIdLabel: "Hintakoodi {stripePriceId}",
+			fetchingStripeMetadata: "Haetaan Stripe-tietoja...",
+			stripeMetadataPreview: "Stripe-tiedot:",
+			productName: "Tuotteen nimi",
+			priceNickname: "Hinnan nimi",
+			amount: "Summa",
+			priceInactive: "Varoitus: Tämä hinta ei ole aktiivinen Stripessä",
+			legacyMembership: "Arkistojäsenyys (ei Stripe-hintaa)",
+			failedToLoadPrice: "Hinnan lataus epäonnistui",
 		},
 
 		members: {
