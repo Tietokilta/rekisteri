@@ -521,23 +521,26 @@ src/routes/api/attendance/
 
 **File**: `src/routes/[locale=locale]/(app)/+page.svelte` (Dashboard)
 
-**Component**: `src/lib/components/member-qr-card.svelte` (new component)
+**Component**: `src/lib/components/member-qr-modal.svelte` (new component - full screen dialog)
 
 **Display Logic**:
 - Only show QR code card if user has at least one active OR expired membership
 - Hide if user has never had a membership (no membership = no verification needed)
 
-**QR Card Features**:
-- **Collapsed by default**: Show compact card with "Show QR Code" button
-- **Explicit user action required**: User must click button to reveal QR code
-- **Brightness boost**: When expanded, automatically set screen brightness to maximum
-- **Brightness restoration**: When collapsed, restore original brightness setting
+**UI Approach - Full Screen Modal**:
+- **Button on dashboard**: "Show Member Card" or QR icon button
+- **Native `<dialog>` element**: Opens in full screen mode
+- **Explicit user action required**: User must click button to open dialog
+- **Brightness boost**: When dialog opens, automatically maximize screen brightness
+- **Brightness restoration**: When dialog closes, restore original brightness setting
+- **Consistent position**: QR code always centered on screen, no scrolling needed
 - QR code display: Large and clear (250-300px) for easy scanning
 - User's full name displayed prominently
 - Generic title: "Member Verification" or "Member Card"
 - Instructions: "Show this for member verification" (not attendance-specific)
+- Close button (X) and backdrop click to dismiss
 - Dark mode support: QR code inverts properly (black on white for scanning)
-- Smooth expand/collapse animation
+- Smooth open/close animation
 
 **Purpose**:
 - General member verification tool (not just for attendance)
@@ -545,18 +548,91 @@ src/routes/api/attendance/
 - Admin scanner will show context (meeting name if scanning for attendance)
 
 **Dashboard Integration**:
-- Position QR card alongside MembershipCard
-- Collapsed state: Minimal height, doesn't dominate dashboard
-- Expanded state: Takes focus, bright screen for scanning
-- Could be in a grid layout or stacked depending on screen size
-- Responsive: full width on mobile, side-by-side on desktop
+- Button positioned alongside MembershipCard
+- Simple button or icon to trigger modal
+- Minimal dashboard footprint when closed
+- Full screen takeover when open for maximum visibility
 
-**Screen Brightness Implementation**:
-```typescript
-// Use Screen Wake Lock API + CSS brightness hack
-const wakeLock = await navigator.wakeLock?.request('screen');
-// Also use CSS filter to boost brightness visually
-element.style.filter = 'brightness(1.5)';
+**Implementation Example**:
+```svelte
+<script lang="ts">
+  import { onMount } from 'svelte';
+
+  let dialog: HTMLDialogElement;
+  let wakeLock: WakeLockSentinel | null = null;
+  let originalBrightness: string | null = null;
+
+  async function openQRCode() {
+    dialog.showModal();
+
+    // Request wake lock to keep screen on
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+      } catch (err) {
+        console.error('Wake Lock error:', err);
+      }
+    }
+
+    // Boost brightness visually
+    originalBrightness = dialog.style.filter;
+    dialog.style.filter = 'brightness(1.5)';
+  }
+
+  function closeQRCode() {
+    // Release wake lock
+    if (wakeLock) {
+      wakeLock.release();
+      wakeLock = null;
+    }
+
+    // Restore brightness
+    if (originalBrightness !== null) {
+      dialog.style.filter = originalBrightness;
+    }
+
+    dialog.close();
+  }
+</script>
+
+<button onclick={openQRCode}>Show Member Card</button>
+
+<dialog bind:this={dialog} class="full-screen-qr-modal">
+  <div class="modal-content">
+    <button onclick={closeQRCode} class="close-button">×</button>
+    <h2>Member Card</h2>
+    <div class="qr-code">
+      <!-- QR code rendered here -->
+    </div>
+    <p class="user-name">{userName}</p>
+    <p class="instructions">Show this for member verification</p>
+  </div>
+</dialog>
+
+<style>
+  .full-screen-qr-modal {
+    max-width: 100vw;
+    max-height: 100vh;
+    width: 100vw;
+    height: 100vh;
+    padding: 0;
+    border: none;
+    background: var(--background);
+  }
+
+  .full-screen-qr-modal::backdrop {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  .modal-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 2rem;
+  }
+</style>
 ```
 
 ### 4.5 Shared View - Meeting Attendance Log (View-Only)
@@ -1168,12 +1244,12 @@ describe("validateRedirect", () => {
 4. Create QR token utilities (`src/lib/server/attendance/qr-token.ts`)
 5. Create attendance logic utilities (`src/lib/server/attendance/index.ts`)
 
-### Phase 2: Member QR Card on Dashboard
-1. Create member QR card component (`src/lib/components/member-qr-card.svelte`)
+### Phase 2: Member QR Modal on Dashboard
+1. Create member QR modal component (`src/lib/components/member-qr-modal.svelte`)
 2. Update dashboard to load QR token (if user has membership)
-3. Integrate QR card into dashboard layout (alongside MembershipCard)
+3. Add trigger button to dashboard (alongside MembershipCard)
 4. Add i18n translations (generic member verification, not attendance-specific)
-5. Add conditional rendering (only show if active/expired membership exists)
+5. Add conditional rendering (only show button if active/expired membership exists)
 
 ### Phase 3: Admin Meeting Management
 1. Add "Meetings" nav item to `src/lib/navigation.ts` (getAdminNavItems)
@@ -1230,7 +1306,7 @@ describe("validateRedirect", () => {
 - [ ] `src/lib/server/attendance/export.ts` (CSV generation)
 
 #### Components
-- [ ] `src/lib/components/member-qr-card.svelte` (QR code card for dashboard - general member verification)
+- [ ] `src/lib/components/member-qr-modal.svelte` (full screen dialog for QR code - general member verification)
 - [ ] `src/lib/components/attendance/qr-scanner.svelte` (admin scanner for meetings)
 - [ ] `src/lib/components/attendance/scan-confirmation-modal.svelte`
 - [ ] `src/lib/components/attendance/meeting-timeline.svelte`
@@ -1271,7 +1347,7 @@ describe("validateRedirect", () => {
 - [ ] `package.json` (add dependencies)
 
 #### Dashboard Integration
-- [ ] `src/routes/[locale=locale]/(app)/+page.svelte` (add QR card to dashboard)
+- [ ] `src/routes/[locale=locale]/(app)/+page.svelte` (add QR modal trigger button to dashboard)
 - [ ] `src/routes/[locale=locale]/(app)/+page.server.ts` (load QR token if has membership)
 
 #### Authentication Flow (Secure Redirect - Section 8.3)
