@@ -21,7 +21,12 @@ export type AuditAction =
 	| "member.bulk_cancel"
 	| "member.bulk_reactivate"
 	| "membership.create"
-	| "membership.delete";
+	| "membership.delete"
+	| "user.promote_to_admin"
+	| "user.demote_from_admin"
+	| "user.merge"
+	| "user.change_primary_email"
+	| "user.update_profile";
 
 export interface AuditLogParams {
 	userId?: string;
@@ -194,5 +199,55 @@ export async function auditPasskeyDeleted(
 		targetId: passkeyId,
 		ipAddress,
 		userAgent,
+	});
+}
+
+/**
+ * Audit a user administrative action (promote, demote, merge)
+ */
+export async function auditUserAdminAction(
+	event: RequestEvent,
+	action: Extract<AuditAction, "user.promote_to_admin" | "user.demote_from_admin" | "user.merge">,
+	targetUserId: string,
+	metadata?: Record<string, unknown>,
+): Promise<void> {
+	await auditFromEvent(event, action, {
+		targetType: "user",
+		targetId: targetUserId,
+		metadata,
+	});
+}
+
+/**
+ * Audit a primary email change
+ */
+export async function auditEmailChange(
+	event: RequestEvent,
+	userId: string,
+	oldEmail: string,
+	newEmail: string,
+): Promise<void> {
+	await auditFromEvent(event, "user.change_primary_email", {
+		targetType: "user",
+		targetId: userId,
+		metadata: {
+			oldEmail,
+			newEmail,
+		},
+	});
+}
+
+/**
+ * Audit user profile changes (name, municipality, etc.)
+ */
+export async function auditProfileChange(
+	event: RequestEvent,
+	userId: string,
+	changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>,
+): Promise<void> {
+	await auditFromEvent(event, "user.update_profile", {
+		targetType: "user",
+		targetId: userId,
+		metadata: { changes },
 	});
 }

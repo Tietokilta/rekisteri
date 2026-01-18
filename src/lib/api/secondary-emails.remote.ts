@@ -117,13 +117,13 @@ export const changePrimaryEmailForm = form(
 		emailId: v.pipe(v.string(), v.minLength(1, "Email ID is required")),
 	}),
 	async ({ emailId }) => {
-		const { locals } = getRequestEvent();
+		const event = getRequestEvent();
 
-		if (!locals.user) {
+		if (!event.locals.user) {
 			throw error(401, "Not authenticated");
 		}
 
-		const success = await changePrimaryEmail(emailId, locals.user.id);
+		const success = await changePrimaryEmail(emailId, event.locals.user.id, event);
 
 		if (!success) {
 			throw error(400, "Could not change primary email. Email must be verified and not expired.");
