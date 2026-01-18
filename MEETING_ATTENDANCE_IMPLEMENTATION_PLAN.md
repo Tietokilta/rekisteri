@@ -1433,12 +1433,21 @@ describe("validateRedirect", () => {
 
 **Note**: This phase improves authentication UX application-wide and is required for shared view feature.
 
-### Phase 1: Database & Core Logic
+### Phase 1: Database & Core Logic + Test Helpers
 1. Add enums to `src/lib/shared/enums.ts`
 2. Add database schema to `src/lib/server/db/schema.ts`
 3. Create migration and run it
 4. Create QR token utilities (`src/lib/server/attendance/qr-token.ts`)
 5. Create attendance logic utilities (`src/lib/server/attendance/index.ts`)
+6. **Create test helpers** (`e2e/fixtures/attendance.ts`):
+   - `AttendanceTestHelper` class
+   - Factory functions (`createTestMeeting`, `createTestUser`)
+7. **Write unit tests** (`src/lib/server/attendance/index.test.ts`):
+   - QR token generation/verification
+   - Share token generation/verification
+   - Meeting state transitions
+
+**Estimated**: 3-4 hours
 
 ### Phase 2: Member QR Modal on Dashboard
 1. Create member QR modal component (`src/lib/components/member-qr-modal.svelte`)
@@ -1446,6 +1455,9 @@ describe("validateRedirect", () => {
 3. Add trigger button to dashboard (alongside MembershipCard)
 4. Add i18n translations (generic member verification, not attendance-specific)
 5. Add conditional rendering (only show button if active/expired membership exists)
+6. **Write e2e test**: User opens QR modal, sees brightness warning, closes modal
+
+**Estimated**: 2-3 hours
 
 ### Phase 3: Admin Meeting Management
 1. Add "Meetings" nav item to `src/lib/navigation.ts` (getAdminNavItems)
@@ -1453,36 +1465,81 @@ describe("validateRedirect", () => {
 3. Create meeting creation form
 4. Create meeting detail/control panel
 5. Implement state transition actions
+6. **Write e2e tests**:
+   - Admin creates meeting
+   - Admin starts meeting
+   - Admin transitions to recess (test both short and long options)
+   - Admin ends meeting
 
-### Phase 4: QR Scanner
-1. Create scanner page
-2. Implement QR scanner component
-3. Implement scan confirmation UI
-4. Connect to backend API
+**Estimated**: 4-6 hours
+
+### Phase 4: QR Scanner & Scan API
+1. Create scan API endpoint (`src/routes/api/attendance/scan/+server.ts`) with double-scan prevention
+2. Create scanner page
+3. Implement QR scanner component
+4. Implement scan confirmation UI
+5. Add network error feedback (audio/haptic)
+6. **Write unit tests**:
+   - Double-scan prevention (check-in after check-in fails)
+   - State validation (check-out requires prior check-in)
+7. **Write integration tests** (`e2e/attendance-flows.test.ts`):
+   - Simple check-in/out flow
+   - User tries to check in twice (error)
+   - User tries to check out without checking in (error)
+
+**Estimated**: 5-7 hours
 
 ### Phase 5: Attendee Management
 1. Create attendee list page
 2. Implement manual check-in/out
 3. Add filtering/searching
+4. **Write integration tests**:
+   - Short recess scenario (keep state, continue scanning)
+   - Long recess scenario (check out all, re-scan on resume)
+   - User leaves and returns multiple times
+   - Concurrent arrivals
+
+**Estimated**: 4-6 hours
 
 ### Phase 6: CSV Export
-1. Implement CSV generation logic
+1. Implement CSV generation logic with segment duration calculation
 2. Create export endpoint
-3. Test various scenarios
+3. **Write unit tests**:
+   - Duration calculation with single segment
+   - Duration calculation with multiple segments (recess scenario)
+   - CSV formatting with all sections
+4. **Write e2e test**:
+   - Export CSV and verify content
+
+**Estimated**: 3-4 hours
 
 ### Phase 7: Shared View Link
 1. Create share token utilities
 2. Add share link UI to admin control panel
 3. Create shared view page
-4. Test authentication flow
-5. Test share link regeneration
+4. **Write e2e tests**:
+   - Non-admin accesses shared view
+   - Verify read-only (no edit buttons)
+   - Admin regenerates share link
+   - Old link no longer works
 
-### Phase 8: Polish & Testing
-1. Add error handling
+**Estimated**: 3-4 hours
+
+### Phase 8: Polish & Full Test Suite
+1. Add error handling throughout
 2. Add loading states
 3. Add success/error toasts
-4. Test full flow end-to-end
-5. Add audit logging
+4. Add audit logging
+5. **Complete test coverage**:
+   - Run through test coverage checklist
+   - Fix any failing tests
+   - Add edge case tests as needed
+6. **Manual testing**:
+   - Test on real mobile devices
+   - Test QR scanner in different lighting conditions
+   - Test network failure scenarios
+
+**Estimated**: 4-6 hours
 
 ---
 
@@ -1553,22 +1610,27 @@ describe("validateRedirect", () => {
 - [ ] `src/routes/[locale=locale]/(auth)/sign-in/email/+page.server.ts` (preserve redirect param)
 - [ ] `src/routes/[locale=locale]/(auth)/sign-in/email/data.remote.ts` (use validated redirect)
 
+#### Test Files
+- [ ] `e2e/fixtures/attendance.ts` (test helpers: AttendanceTestHelper, factories)
+- [ ] `src/lib/server/attendance/index.test.ts` (unit tests: double-scan prevention, duration calculation, state transitions)
+- [ ] `e2e/attendance-flows.test.ts` (integration tests: door flows, recess scenarios)
+- [ ] `e2e/attendance-ui.test.ts` (e2e tests: UI flows, CSV export, shared views)
+
 ---
 
 ## 12. Estimated Effort
 
-- **Secure Redirect Implementation**: 2-3 hours (auth improvement, required for shared view)
-- **Database Schema**: 2-3 hours
-- **QR Token System**: 2-3 hours
-- **User QR Display**: 2-3 hours
-- **Admin Meeting Management**: 4-6 hours
-- **QR Scanner**: 4-6 hours
-- **Attendee Management**: 4-6 hours
-- **CSV Export**: 3-4 hours
-- **Shared View Link**: 3-4 hours
-- **Testing & Polish**: 4-6 hours
+- **Phase 0: Secure Redirect**: 2-3 hours (auth improvement, required for shared view)
+- **Phase 1: Database & Core Logic + Test Helpers**: 3-4 hours
+- **Phase 2: Member QR Modal**: 2-3 hours
+- **Phase 3: Admin Meeting Management**: 4-6 hours
+- **Phase 4: QR Scanner & Scan API**: 5-7 hours (includes double-scan prevention logic)
+- **Phase 5: Attendee Management**: 4-6 hours (includes recess scenario tests)
+- **Phase 6: CSV Export**: 3-4 hours (includes duration calculation tests)
+- **Phase 7: Shared View Link**: 3-4 hours
+- **Phase 8: Polish & Full Test Suite**: 4-6 hours
 
-**Total**: 30-44 hours
+**Total**: 30-46 hours (includes comprehensive test coverage)
 
 ---
 
@@ -1587,43 +1649,647 @@ describe("validateRedirect", () => {
 
 ## 14. Testing Strategy
 
-### Unit Tests
-- **Redirect validation** (see test cases in section 8.3):
-  - Same-origin pathnames allowed
-  - Different origins blocked
-  - Protocol-relative URLs blocked
-  - JavaScript/data URLs blocked
-- QR token generation/verification
-- Share token generation/verification
-- CSV export formatting
-- Attendance calculation logic
+### 14.1 Test Helpers & Abstractions
 
-### Integration Tests
-- Meeting state transitions
-- Attendance recording
-- CSV export with real data
-- Share link access control
-- Share link regeneration
-- **Redirect flow through auth**:
-  - Redirect preserved from sign-in → email verification → success
-  - Invalid redirects fall back to default
+**File**: `e2e/fixtures/attendance.ts`
 
-### E2E Tests (Playwright)
-1. **Test redirect flow**: Visit protected page → sign-in → redirected back to protected page
-2. User views their QR code
-3. Admin creates meeting
-4. Admin generates share link
-5. **Test shared view redirect**: Non-admin clicks share link → sign-in → redirected to shared view
-6. Admin starts meeting
-7. Admin scans user QR code (mock camera)
-8. Verify attendance recorded
-9. Non-admin user accesses shared view via link (already authenticated)
-10. Verify shared view is read-only
-11. Admin exports CSV
-12. Verify CSV contents
-13. Admin regenerates share link
-14. Verify old link no longer works
-15. **Test open redirect prevention**: Try malicious redirect params (https://evil.com, //evil.com, javascript:alert(1))
+Create helper functions to make attendance tests readable and maintainable:
+
+```typescript
+import { db } from '$lib/server/db';
+import * as table from '$lib/server/db/schema';
+import type { User } from '$lib/server/db/schema';
+
+/**
+ * Test helper for simulating attendance flows without QR scanning
+ */
+export class AttendanceTestHelper {
+  constructor(
+    private meetingId: string,
+    private adminUserId: string
+  ) {}
+
+  /**
+   * Simulate a user checking in (bypasses QR scan)
+   */
+  async checkIn(userId: string, timestamp?: Date): Promise<void> {
+    await db.insert(table.attendance).values({
+      id: crypto.randomUUID(),
+      meetingId: this.meetingId,
+      userId,
+      eventType: 'CHECK_IN',
+      scanMethod: 'manual',
+      scannedBy: this.adminUserId,
+      timestamp: timestamp || new Date(),
+    });
+  }
+
+  /**
+   * Simulate a user checking out
+   */
+  async checkOut(userId: string, timestamp?: Date): Promise<void> {
+    await db.insert(table.attendance).values({
+      id: crypto.randomUUID(),
+      meetingId: this.meetingId,
+      userId,
+      eventType: 'CHECK_OUT',
+      scanMethod: 'manual',
+      scannedBy: this.adminUserId,
+      timestamp: timestamp || new Date(),
+    });
+  }
+
+  /**
+   * Simulate a complete visit (check-in + check-out)
+   */
+  async visit(userId: string, checkInTime: Date, checkOutTime: Date): Promise<void> {
+    await this.checkIn(userId, checkInTime);
+    await this.checkOut(userId, checkOutTime);
+  }
+
+  /**
+   * Get current attendees (checked in but not out)
+   */
+  async getCurrentAttendees(): Promise<string[]> {
+    const events = await db.query.attendance.findMany({
+      where: eq(table.attendance.meetingId, this.meetingId),
+      orderBy: [asc(table.attendance.timestamp)],
+    });
+
+    const currentlyIn = new Set<string>();
+
+    for (const event of events) {
+      if (event.eventType === 'CHECK_IN') {
+        currentlyIn.add(event.userId);
+      } else if (event.eventType === 'CHECK_OUT') {
+        currentlyIn.delete(event.userId);
+      }
+    }
+
+    return Array.from(currentlyIn);
+  }
+
+  /**
+   * Transition meeting state
+   */
+  async transitionMeeting(
+    status: 'upcoming' | 'ongoing' | 'recess' | 'finished',
+    notes?: string
+  ): Promise<void> {
+    const eventTypeMap = {
+      ongoing: 'START',
+      recess: 'RECESS_START',
+      finished: 'FINISH',
+    };
+
+    if (status !== 'upcoming') {
+      await db.insert(table.meetingEvent).values({
+        id: crypto.randomUUID(),
+        meetingId: this.meetingId,
+        eventType: eventTypeMap[status],
+        notes,
+        timestamp: new Date(),
+      });
+    }
+
+    await db.update(table.meeting)
+      .set({ status })
+      .where(eq(table.meeting.id, this.meetingId));
+  }
+
+  /**
+   * Check out all attendees (for long recess scenario)
+   */
+  async checkOutAll(): Promise<void> {
+    const currentlyIn = await this.getCurrentAttendees();
+    const now = new Date();
+
+    for (const userId of currentlyIn) {
+      await this.checkOut(userId, now);
+    }
+  }
+}
+
+/**
+ * Factory for creating test meetings
+ */
+export async function createTestMeeting(name: string): Promise<string> {
+  const id = crypto.randomUUID();
+  await db.insert(table.meeting).values({
+    id,
+    name,
+    description: `Test meeting: ${name}`,
+    status: 'upcoming',
+  });
+  return id;
+}
+
+/**
+ * Factory for creating test users with QR tokens
+ */
+export async function createTestUser(
+  email: string,
+  name: string,
+  isAdmin = false
+): Promise<User> {
+  const id = crypto.randomUUID();
+  const qrToken = generateQrToken();
+
+  await db.insert(table.user).values({
+    id,
+    email,
+    name,
+    isAdmin,
+    attendanceQrToken: qrToken,
+  });
+
+  return { id, email, name, isAdmin, attendanceQrToken: qrToken } as User;
+}
+```
+
+### 14.2 Unit Tests (Vitest)
+
+**File**: `src/lib/server/attendance/index.test.ts`
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { AttendanceTestHelper, createTestMeeting, createTestUser } from 'e2e/fixtures/attendance';
+import { calculateUserDuration } from '$lib/server/attendance/export';
+import { db } from '$lib/server/db';
+
+describe('Attendance Logic', () => {
+  let helper: AttendanceTestHelper;
+  let meetingId: string;
+  let adminUser: User;
+  let testUser: User;
+
+  beforeEach(async () => {
+    meetingId = await createTestMeeting('Test Meeting');
+    adminUser = await createTestUser('admin@test.com', 'Admin', true);
+    testUser = await createTestUser('user@test.com', 'Test User');
+    helper = new AttendanceTestHelper(meetingId, adminUser.id);
+  });
+
+  describe('Double-Scan Prevention', () => {
+    it('should prevent double check-in', async () => {
+      await helper.checkIn(testUser.id);
+
+      // Attempt second check-in should fail
+      await expect(
+        helper.checkIn(testUser.id)
+      ).rejects.toThrow('User is already checked in');
+    });
+
+    it('should prevent double check-out', async () => {
+      await helper.checkIn(testUser.id);
+      await helper.checkOut(testUser.id);
+
+      // Attempt second check-out should fail
+      await expect(
+        helper.checkOut(testUser.id)
+      ).rejects.toThrow('User is already checked out');
+    });
+
+    it('should allow check-in after check-out', async () => {
+      await helper.checkIn(testUser.id);
+      await helper.checkOut(testUser.id);
+      await helper.checkIn(testUser.id); // Should succeed
+
+      const currentAttendees = await helper.getCurrentAttendees();
+      expect(currentAttendees).toContain(testUser.id);
+    });
+  });
+
+  describe('Duration Calculation', () => {
+    it('should calculate simple visit duration', async () => {
+      const checkIn = new Date('2026-01-17T14:00:00Z');
+      const checkOut = new Date('2026-01-17T16:30:00Z');
+
+      await helper.visit(testUser.id, checkIn, checkOut);
+
+      const duration = await calculateUserDuration(testUser.id, meetingId);
+      expect(duration).toBe(150); // 2.5 hours = 150 minutes
+    });
+
+    it('should sum multiple segments (recess scenario)', async () => {
+      // Segment 1: 14:00 - 15:30 (90 min)
+      await helper.visit(
+        testUser.id,
+        new Date('2026-01-17T14:00:00Z'),
+        new Date('2026-01-17T15:30:00Z')
+      );
+
+      // Segment 2: 16:00 - 18:00 (120 min)
+      await helper.visit(
+        testUser.id,
+        new Date('2026-01-17T16:00:00Z'),
+        new Date('2026-01-17T18:00:00Z')
+      );
+
+      const duration = await calculateUserDuration(testUser.id, meetingId);
+      expect(duration).toBe(210); // 90 + 120 = 210 minutes
+
+      // NOT 240 (18:00 - 14:00)
+      expect(duration).not.toBe(240);
+    });
+
+    it('should handle currently checked-in user (no check-out yet)', async () => {
+      await helper.checkIn(testUser.id, new Date('2026-01-17T14:00:00Z'));
+
+      const duration = await calculateUserDuration(testUser.id, meetingId);
+      // Should return 0 or current duration up to now
+      expect(duration).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('Meeting State Transitions', () => {
+    it('should transition from upcoming to ongoing', async () => {
+      await helper.transitionMeeting('ongoing');
+
+      const meeting = await db.query.meeting.findFirst({
+        where: eq(table.meeting.id, meetingId),
+      });
+
+      expect(meeting?.status).toBe('ongoing');
+    });
+
+    it('should record meeting events', async () => {
+      await helper.transitionMeeting('ongoing');
+      await helper.transitionMeeting('recess', 'Lunch break');
+
+      const events = await db.query.meetingEvent.findMany({
+        where: eq(table.meetingEvent.meetingId, meetingId),
+      });
+
+      expect(events).toHaveLength(2);
+      expect(events[0].eventType).toBe('START');
+      expect(events[1].eventType).toBe('RECESS_START');
+      expect(events[1].notes).toBe('Lunch break');
+    });
+  });
+});
+```
+
+### 14.3 Integration Tests - Door Flow Scenarios
+
+**File**: `e2e/attendance-flows.test.ts`
+
+```typescript
+import { test, expect } from '@playwright/test';
+import { AttendanceTestHelper, createTestMeeting, createTestUser } from './fixtures/attendance';
+import { db } from '$lib/server/db';
+
+test.describe('Attendance Door Flows', () => {
+  let meetingId: string;
+  let helper: AttendanceTestHelper;
+  let admin: User;
+  let users: User[];
+
+  test.beforeEach(async () => {
+    meetingId = await createTestMeeting('General Assembly 2026');
+    admin = await createTestUser('admin@tietokilta.fi', 'Admin User', true);
+    helper = new AttendanceTestHelper(meetingId, admin.id);
+
+    // Create test users
+    users = await Promise.all([
+      createTestUser('alice@test.com', 'Alice'),
+      createTestUser('bob@test.com', 'Bob'),
+      createTestUser('charlie@test.com', 'Charlie'),
+    ]);
+  });
+
+  test('Simple check-in/out flow', async () => {
+    // Meeting starts
+    await helper.transitionMeeting('ongoing');
+
+    // Alice arrives
+    await helper.checkIn(users[0].id);
+    expect(await helper.getCurrentAttendees()).toHaveLength(1);
+
+    // Bob arrives
+    await helper.checkIn(users[1].id);
+    expect(await helper.getCurrentAttendees()).toHaveLength(2);
+
+    // Alice leaves
+    await helper.checkOut(users[0].id);
+    expect(await helper.getCurrentAttendees()).toHaveLength(1);
+
+    // Bob leaves
+    await helper.checkOut(users[1].id);
+    expect(await helper.getCurrentAttendees()).toHaveLength(0);
+  });
+
+  test('Short recess - keep state, continue scanning', async () => {
+    await helper.transitionMeeting('ongoing');
+
+    // 3 users check in
+    await helper.checkIn(users[0].id);
+    await helper.checkIn(users[1].id);
+    await helper.checkIn(users[2].id);
+    expect(await helper.getCurrentAttendees()).toHaveLength(3);
+
+    // Start short recess (keep state)
+    await helper.transitionMeeting('recess', '15 min coffee break');
+
+    // Alice leaves during recess (scan out at door)
+    await helper.checkOut(users[0].id);
+    expect(await helper.getCurrentAttendees()).toHaveLength(2);
+
+    // Resume meeting
+    await helper.transitionMeeting('ongoing');
+
+    // Bob leaves after resume
+    await helper.checkOut(users[1].id);
+    expect(await helper.getCurrentAttendees()).toHaveLength(1);
+
+    // Only Charlie remains
+    const remaining = await helper.getCurrentAttendees();
+    expect(remaining).toEqual([users[2].id]);
+  });
+
+  test('Long recess - clear all, re-scan on resume', async () => {
+    await helper.transitionMeeting('ongoing');
+
+    // 3 users check in
+    await helper.checkIn(users[0].id);
+    await helper.checkIn(users[1].id);
+    await helper.checkIn(users[2].id);
+    expect(await helper.getCurrentAttendees()).toHaveLength(3);
+
+    // Start long recess (overnight)
+    await helper.transitionMeeting('recess', 'Day 1 end');
+
+    // Admin clicks "Check Out All"
+    await helper.checkOutAll();
+    expect(await helper.getCurrentAttendees()).toHaveLength(0);
+
+    // Resume meeting (Day 2)
+    await helper.transitionMeeting('ongoing', 'Day 2 start');
+
+    // Only Alice and Bob return (Charlie doesn't come back)
+    await helper.checkIn(users[0].id);
+    await helper.checkIn(users[1].id);
+    expect(await helper.getCurrentAttendees()).toHaveLength(2);
+  });
+
+  test('User leaves and returns multiple times', async () => {
+    await helper.transitionMeeting('ongoing');
+
+    const baseTime = new Date('2026-01-17T14:00:00Z');
+
+    // Alice: 14:00 - 15:00 (60 min)
+    await helper.visit(
+      users[0].id,
+      new Date(baseTime.getTime()),
+      new Date(baseTime.getTime() + 60 * 60 * 1000)
+    );
+
+    // Alice: 15:30 - 16:30 (60 min)
+    await helper.visit(
+      users[0].id,
+      new Date(baseTime.getTime() + 90 * 60 * 1000),
+      new Date(baseTime.getTime() + 150 * 60 * 1000)
+    );
+
+    // Alice: 17:00 - 18:00 (60 min)
+    await helper.visit(
+      users[0].id,
+      new Date(baseTime.getTime() + 180 * 60 * 1000),
+      new Date(baseTime.getTime() + 240 * 60 * 1000)
+    );
+
+    // Total should be 180 minutes (3 x 60min segments)
+    const duration = await calculateUserDuration(users[0].id, meetingId);
+    expect(duration).toBe(180);
+  });
+
+  test('Concurrent arrivals (realistic door scenario)', async () => {
+    await helper.transitionMeeting('ongoing');
+
+    // All 3 users arrive within 1 minute (realistic door scenario)
+    const arrivalTime = new Date('2026-01-17T14:00:00Z');
+
+    await helper.checkIn(users[0].id, new Date(arrivalTime.getTime()));
+    await helper.checkIn(users[1].id, new Date(arrivalTime.getTime() + 20 * 1000)); // 20s later
+    await helper.checkIn(users[2].id, new Date(arrivalTime.getTime() + 40 * 1000)); // 40s later
+
+    expect(await helper.getCurrentAttendees()).toHaveLength(3);
+  });
+
+  test('Edge case: user tries to leave without checking in', async () => {
+    await helper.transitionMeeting('ongoing');
+
+    // Alice tries to check out without checking in first
+    await expect(
+      helper.checkOut(users[0].id)
+    ).rejects.toThrow('User is not checked in');
+  });
+
+  test('Edge case: meeting finishes while users are still checked in', async () => {
+    await helper.transitionMeeting('ongoing');
+
+    await helper.checkIn(users[0].id);
+    await helper.checkIn(users[1].id);
+
+    // Admin ends meeting (users forgot to check out)
+    await helper.transitionMeeting('finished');
+
+    // Should still have 2 attendees (they never checked out)
+    expect(await helper.getCurrentAttendees()).toHaveLength(2);
+
+    // CSV export should handle this gracefully (no check-out time)
+  });
+});
+```
+
+### 14.4 E2E Tests (Playwright UI)
+
+**File**: `e2e/attendance-ui.test.ts`
+
+```typescript
+import { test, expect } from './fixtures/auth';
+
+test.describe('Attendance UI Flows', () => {
+  test('Admin creates and manages meeting', async ({ adminPage }) => {
+    // Navigate to meetings page
+    await adminPage.goto('/fi/admin/meetings');
+
+    // Create new meeting
+    await adminPage.getByRole('button', { name: 'Luo kokous' }).click();
+    await adminPage.getByLabel('Nimi').fill('General Assembly 2026');
+    await adminPage.getByLabel('Kuvaus').fill('Annual general assembly');
+    await adminPage.getByRole('button', { name: 'Tallenna' }).click();
+
+    // Verify meeting created
+    await expect(adminPage.getByText('General Assembly 2026')).toBeVisible();
+
+    // Start meeting
+    await adminPage.getByRole('button', { name: 'Aloita kokous' }).click();
+    await expect(adminPage.getByText('Käynnissä')).toBeVisible();
+
+    // Start short recess
+    await adminPage.getByRole('button', { name: 'Aloita tauko' }).click();
+    await adminPage.getByLabel('Lyhyt tauko').check();
+    await adminPage.getByLabel('Huomautukset').fill('Coffee break');
+    await adminPage.getByRole('button', { name: 'Tallenna' }).click();
+
+    // Verify warning is shown
+    await expect(
+      adminPage.getByText('Osallistujamäärä pysyy tarkkana vain jos ovi on miehitetty')
+    ).toBeVisible();
+
+    // Resume meeting
+    await adminPage.getByRole('button', { name: 'Jatka kokousta' }).click();
+
+    // End meeting
+    await adminPage.getByRole('button', { name: 'Lopeta kokous' }).click();
+    await expect(adminPage.getByText('Päättynyt')).toBeVisible();
+  });
+
+  test('Admin manually checks user in/out', async ({ adminPage }) => {
+    // Pre-create meeting and user via test helpers
+    const meetingId = await createTestMeeting('Test Meeting');
+    const user = await createTestUser('test@test.com', 'Test User');
+
+    // Navigate to attendees page
+    await adminPage.goto(`/fi/admin/meetings/${meetingId}/attendees`);
+
+    // Find user in list
+    const userRow = adminPage.getByRole('row', { name: /Test User/ });
+
+    // Manual check-in
+    await userRow.getByRole('button', { name: 'Kirjaa sisään' }).click();
+    await expect(userRow.getByText('Sisällä')).toBeVisible();
+
+    // Manual check-out
+    await userRow.getByRole('button', { name: 'Kirjaa ulos' }).click();
+    await expect(userRow.getByText('Ulkona')).toBeVisible();
+  });
+
+  test('CSV export contains correct data', async ({ adminPage }) => {
+    // Setup test scenario with known data
+    const meetingId = await createTestMeeting('Test Meeting');
+    const helper = new AttendanceTestHelper(meetingId, adminUser.id);
+    const user = await createTestUser('alice@test.com', 'Alice');
+
+    await helper.transitionMeeting('ongoing');
+    await helper.visit(
+      user.id,
+      new Date('2026-01-17T14:00:00Z'),
+      new Date('2026-01-17T16:30:00Z')
+    );
+    await helper.transitionMeeting('finished');
+
+    // Download CSV
+    await adminPage.goto(`/fi/admin/meetings/${meetingId}`);
+    const downloadPromise = adminPage.waitForEvent('download');
+    await adminPage.getByRole('button', { name: 'Vie CSV' }).click();
+    const download = await downloadPromise;
+
+    // Read CSV content
+    const csvContent = await download.path();
+    const content = await fs.readFile(csvContent, 'utf-8');
+
+    // Verify data
+    expect(content).toContain('Test Meeting');
+    expect(content).toContain('Alice');
+    expect(content).toContain('alice@test.com');
+    expect(content).toContain('150'); // 2.5 hours = 150 minutes
+  });
+
+  test('User views their QR code in modal', async ({ authenticatedPage }) => {
+    // User with membership
+    await authenticatedPage.goto('/fi');
+
+    // Click "Show Member Card" button
+    await authenticatedPage.getByRole('button', { name: 'Näytä jäsenkortti' }).click();
+
+    // Verify modal opened
+    const modal = authenticatedPage.getByRole('dialog');
+    await expect(modal).toBeVisible();
+
+    // Verify brightness warning
+    await expect(
+      modal.getByText('Aseta näytön kirkkaus maksimiin')
+    ).toBeVisible();
+
+    // Verify QR code is visible
+    const qrCode = modal.locator('canvas, img').first();
+    await expect(qrCode).toBeVisible();
+
+    // Close modal
+    await modal.getByRole('button', { name: 'Close' }).click();
+    await expect(modal).not.toBeVisible();
+  });
+
+  test('Non-admin accesses shared view', async ({ authenticatedPage }) => {
+    // Pre-create meeting with share token
+    const meetingId = await createTestMeeting('Shared Meeting');
+    const shareToken = await ensureMeetingHasShareToken(meetingId);
+
+    // Navigate to shared view
+    await authenticatedPage.goto(`/fi/meetings/shared/${shareToken}`);
+
+    // Verify read-only banner
+    await expect(
+      authenticatedPage.getByText('Vain luku -näkymä')
+    ).toBeVisible();
+
+    // Verify can see meeting data
+    await expect(authenticatedPage.getByText('Shared Meeting')).toBeVisible();
+
+    // Verify no edit buttons
+    await expect(
+      authenticatedPage.getByRole('button', { name: 'Kirjaa sisään' })
+    ).not.toBeVisible();
+  });
+});
+```
+
+### 14.5 Test Coverage Checklist
+
+**Core Logic**:
+- [ ] QR token generation/verification
+- [ ] Share token generation/verification  - [ ] Double-scan prevention (check-in after check-in fails)
+- [ ] State validation (check-out requires prior check-in)
+- [ ] Duration calculation with single segment
+- [ ] Duration calculation with multiple segments (recess scenario)
+- [ ] Meeting state transitions (upcoming → ongoing → recess → ongoing → finished)
+
+**Door Flow Scenarios**:
+- [ ] Simple check-in/check-out
+- [ ] Multiple users arriving concurrently
+- [ ] User leaves and returns (multiple segments)
+- [ ] Short recess - keep state, continue scanning
+- [ ] Long recess - check out all, re-scan on resume
+- [ ] User tries to leave without checking in (error)
+- [ ] User tries to check in twice (error)
+- [ ] Meeting finishes with users still checked in
+
+**CSV Export**:
+- [ ] Header section with meeting info
+- [ ] Meeting events section (start, recess, finish)
+- [ ] Attendance records with all columns
+- [ ] Summary section with counts
+- [ ] Duration calculated correctly for multi-segment visits
+- [ ] Large meetings (1000+ attendees) export successfully
+
+**Security & Access Control**:
+- [ ] Only admins can access meeting control panel
+- [ ] Only admins can scan QR codes
+- [ ] Non-admin authenticated users can access shared views
+- [ ] Unauthenticated users redirected to sign-in for shared views
+- [ ] Share link regeneration invalidates old link
+- [ ] Redirect validation (same-origin only)
+
+**UI/UX**:
+- [ ] QR code modal opens and closes
+- [ ] Brightness warning displayed in modal
+- [ ] High contrast mode (black QR on white)
+- [ ] Scanner shows confirmation after scan
+- [ ] Network error feedback (audio/haptic)
+- [ ] Recess warning ("door must remain manned") displayed
+- [ ] Manual check-in/out requires confirmation
 
 ---
 
