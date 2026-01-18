@@ -26,9 +26,9 @@ export const load: PageServerLoad = async (event) => {
 			preferredLanguage: table.user.preferredLanguage,
 			isAllowedEmails: table.user.isAllowedEmails,
 			membershipType: table.membership.type,
+			membershipStripePriceId: table.membership.stripePriceId,
 			membershipStartTime: table.membership.startTime,
 			membershipEndTime: table.membership.endTime,
-			membershipPriceCents: table.membership.priceCents,
 		})
 		.from(table.member)
 		.leftJoin(table.user, sql`${table.member.userId} = ${table.user.id}`)

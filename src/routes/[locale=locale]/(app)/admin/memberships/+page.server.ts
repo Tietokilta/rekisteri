@@ -18,7 +18,6 @@ export const load: PageServerLoad = async (event) => {
 			stripePriceId: table.membership.stripePriceId,
 			startTime: table.membership.startTime,
 			endTime: table.membership.endTime,
-			priceCents: table.membership.priceCents,
 			memberCount: count(table.member.userId),
 		})
 		.from(table.membership)
@@ -40,7 +39,6 @@ export const load: PageServerLoad = async (event) => {
 			stripePriceId: "",
 			startTime: formatDate(new Date(currentYear, 7, 1, 12)),
 			endTime: formatDate(new Date(currentYear + 1, 6, 31, 12)),
-			priceCents: 0,
 			requiresStudentVerification: false,
 		},
 	};
