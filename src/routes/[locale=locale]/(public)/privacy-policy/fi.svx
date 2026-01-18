@@ -1,8 +1,6 @@
-<script context="module">
-	export const metadata = {
-		title: "Jäsenrekisterin rekisteri- ja tietosuojaseloste"
-	};
-</script>
+---
+title: Jäsenrekisterin rekisteri- ja tietosuojaseloste
+---
 
 # Jäsenrekisterin rekisteri- ja tietosuojaseloste
 

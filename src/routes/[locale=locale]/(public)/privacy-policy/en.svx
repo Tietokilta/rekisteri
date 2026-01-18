@@ -1,8 +1,6 @@
-<script context="module">
-	export const metadata = {
-		title: "Member Registry Privacy Statement"
-	};
-</script>
+---
+title: Member Registry Privacy Statement
+---
 
 # Member Registry Privacy Statement
 
