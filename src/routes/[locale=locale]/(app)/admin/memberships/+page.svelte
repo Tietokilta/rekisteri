@@ -11,7 +11,7 @@
 	import AdminPageHeader from "$lib/components/admin-page-header.svelte";
 	import { getStripePriceMetadata } from "$lib/api/stripe.remote";
 	import { formatPrice } from "$lib/utils";
-	import * as Drawer from "$lib/components/ui/drawer";
+	import * as Sheet from "$lib/components/ui/sheet";
 
 	const { data }: PageProps = $props();
 
@@ -20,9 +20,9 @@
 
 	// State for editing membership
 	let editingMembership = $state<(typeof data.memberships)[number] | null>(null);
-	let editDrawerOpen = $state(false);
+	let editSheetOpen = $state(false);
 
-	function openEditDrawer(membership: (typeof data.memberships)[number]) {
+	function openEditSheet(membership: (typeof data.memberships)[number]) {
 		editingMembership = membership;
 		updateMembership.fields.set({
 			id: membership.id,
@@ -30,7 +30,7 @@
 			stripePriceId: membership.stripePriceId ?? "",
 			requiresStudentVerification: membership.requiresStudentVerification,
 		});
-		editDrawerOpen = true;
+		editSheetOpen = true;
 	}
 
 	// State for Stripe metadata (create form)
@@ -48,7 +48,7 @@
 
 	// Fetch Stripe metadata when editing stripePriceId changes
 	$effect(() => {
-		if (!editDrawerOpen) return;
+		if (!editSheetOpen) return;
 
 		const priceId = updateMembership.fields.stripePriceId.value();
 
@@ -174,7 +174,7 @@
 							<p class="text-muted-foreground">{$LL.admin.members.count({ count: membership.memberCount })}</p>
 						</div>
 						<div class="flex flex-col gap-2">
-							<Button variant="outline" size="sm" onclick={() => openEditDrawer(membership)}>
+							<Button variant="outline" size="sm" onclick={() => openEditSheet(membership)}>
 								{$LL.common.edit()}
 							</Button>
 							{#if membership.memberCount === 0}
@@ -301,112 +301,110 @@
 	</div>
 </main>
 
-<!-- Edit Membership Drawer -->
-<Drawer.Root bind:open={editDrawerOpen}>
-	<Drawer.Content>
-		<Drawer.Header>
-			<Drawer.Title>{$LL.admin.memberships.editMembership()}</Drawer.Title>
+<!-- Edit Membership Sheet -->
+<Sheet.Root bind:open={editSheetOpen}>
+	<Sheet.Content>
+		<Sheet.Header>
+			<Sheet.Title>{$LL.admin.memberships.editMembership()}</Sheet.Title>
 			{#if editingMembership}
-				<Drawer.Description>
+				<Sheet.Description>
 					{editingMembership.startTime.toLocaleDateString(
 						`${$locale}-FI`,
 					)}–{editingMembership.endTime.toLocaleDateString(`${$locale}-FI`)}
-				</Drawer.Description>
+				</Sheet.Description>
 			{/if}
-		</Drawer.Header>
-		<div class="p-4">
-			{#if editingMembership}
-				{@const editForm = updateMembership.for(editingMembership.id)}
-				<form
-					{...editForm.preflight(updateMembershipSchema).enhance(async ({ submit }) => {
-						await submit();
-						editDrawerOpen = false;
-						await invalidateAll();
-					})}
-					class="flex flex-col gap-4"
-				>
-					<input {...editForm.fields.id.as("hidden", editingMembership.id)} />
+		</Sheet.Header>
+		{#if editingMembership}
+			{@const editForm = updateMembership.for(editingMembership.id)}
+			<form
+				{...editForm.preflight(updateMembershipSchema).enhance(async ({ submit }) => {
+					await submit();
+					editSheetOpen = false;
+					await invalidateAll();
+				})}
+				class="flex flex-col gap-4"
+			>
+				<input {...editForm.fields.id.as("hidden", editingMembership.id)} />
 
-					<div class="space-y-2">
-						<Label for="edit-type">{$LL.membership.type()}</Label>
-						<Input {...editForm.fields.type.as("text")} id="edit-type" list="edit-types" />
-						<p class="text-sm text-muted-foreground">{$LL.membership.continuityNote()}</p>
-						<datalist id="edit-types">
-							{#each data.types as type (type)}
-								<option value={type}></option>
-							{/each}
-						</datalist>
-						{#each editForm.fields.type.issues() as issue, i (i)}
-							<p class="text-sm text-destructive">{issue.message}</p>
+				<div class="space-y-2">
+					<Label for="edit-type">{$LL.membership.type()}</Label>
+					<Input {...editForm.fields.type.as("text")} id="edit-type" list="edit-types" />
+					<p class="text-sm text-muted-foreground">{$LL.membership.continuityNote()}</p>
+					<datalist id="edit-types">
+						{#each data.types as type (type)}
+							<option value={type}></option>
 						{/each}
-					</div>
+					</datalist>
+					{#each editForm.fields.type.issues() as issue, i (i)}
+						<p class="text-sm text-destructive">{issue.message}</p>
+					{/each}
+				</div>
 
-					<div class="space-y-2">
-						<Label for="edit-stripePriceId">{$LL.admin.memberships.stripePriceId()}</Label>
-						<Input {...editForm.fields.stripePriceId.as("text")} id="edit-stripePriceId" placeholder="price_xxx" />
-						<p class="text-sm text-muted-foreground">{$LL.admin.memberships.stripePriceIdDescription()}</p>
+				<div class="space-y-2">
+					<Label for="edit-stripePriceId">{$LL.admin.memberships.stripePriceId()}</Label>
+					<Input {...editForm.fields.stripePriceId.as("text")} id="edit-stripePriceId" placeholder="price_xxx" />
+					<p class="text-sm text-muted-foreground">{$LL.admin.memberships.stripePriceIdDescription()}</p>
 
-						{#if fetchingEditMetadata}
-							<div class="mt-2 text-sm text-muted-foreground">
-								{$LL.admin.memberships.fetchingStripeMetadata()}
-							</div>
-						{:else if editMetadataError}
-							<div class="mt-2 text-sm text-destructive">
-								{editMetadataError}
-							</div>
-						{:else if editStripeMetadata}
-							<div class="mt-2 space-y-1 rounded-md border bg-muted/50 p-2 text-sm">
-								<p class="font-medium text-foreground">
-									{$LL.admin.memberships.stripeMetadataPreview()}
-								</p>
-								{#if editStripeMetadata.productName}
-									<p class="text-muted-foreground">
-										{$LL.admin.memberships.productName()}:
-										<span class="text-foreground">{editStripeMetadata.productName}</span>
-									</p>
-								{/if}
-								{#if editStripeMetadata.nickname}
-									<p class="text-muted-foreground">
-										{$LL.admin.memberships.priceNickname()}:
-										<span class="text-foreground">{editStripeMetadata.nickname}</span>
-									</p>
-								{/if}
+					{#if fetchingEditMetadata}
+						<div class="mt-2 text-sm text-muted-foreground">
+							{$LL.admin.memberships.fetchingStripeMetadata()}
+						</div>
+					{:else if editMetadataError}
+						<div class="mt-2 text-sm text-destructive">
+							{editMetadataError}
+						</div>
+					{:else if editStripeMetadata}
+						<div class="mt-2 space-y-1 rounded-md border bg-muted/50 p-2 text-sm">
+							<p class="font-medium text-foreground">
+								{$LL.admin.memberships.stripeMetadataPreview()}
+							</p>
+							{#if editStripeMetadata.productName}
 								<p class="text-muted-foreground">
-									{$LL.admin.memberships.amount()}:
-									<span class="text-foreground"
-										>{formatPrice(editStripeMetadata.priceCents, editStripeMetadata.currency, $locale)}</span
-									>
+									{$LL.admin.memberships.productName()}:
+									<span class="text-foreground">{editStripeMetadata.productName}</span>
 								</p>
-								{#if !editStripeMetadata.active}
-									<p class="text-destructive">
-										{$LL.admin.memberships.priceInactive()}
-									</p>
-								{/if}
-							</div>
-						{/if}
+							{/if}
+							{#if editStripeMetadata.nickname}
+								<p class="text-muted-foreground">
+									{$LL.admin.memberships.priceNickname()}:
+									<span class="text-foreground">{editStripeMetadata.nickname}</span>
+								</p>
+							{/if}
+							<p class="text-muted-foreground">
+								{$LL.admin.memberships.amount()}:
+								<span class="text-foreground"
+									>{formatPrice(editStripeMetadata.priceCents, editStripeMetadata.currency, $locale)}</span
+								>
+							</p>
+							{#if !editStripeMetadata.active}
+								<p class="text-destructive">
+									{$LL.admin.memberships.priceInactive()}
+								</p>
+							{/if}
+						</div>
+					{/if}
 
-						{#each editForm.fields.stripePriceId.issues() as issue, i (i)}
-							<p class="text-sm text-destructive">{issue.message}</p>
-						{/each}
-					</div>
+					{#each editForm.fields.stripePriceId.issues() as issue, i (i)}
+						<p class="text-sm text-destructive">{issue.message}</p>
+					{/each}
+				</div>
 
-					<div class="flex items-center gap-2">
-						<Input
-							{...editForm.fields.requiresStudentVerification.as("checkbox")}
-							id="edit-requiresStudentVerification"
-							class="w-auto"
-						/>
-						<Label for="edit-requiresStudentVerification">{$LL.membership.requiresStudentVerification()}</Label>
-					</div>
+				<div class="flex items-center gap-2">
+					<Input
+						{...editForm.fields.requiresStudentVerification.as("checkbox")}
+						id="edit-requiresStudentVerification"
+						class="w-auto"
+					/>
+					<Label for="edit-requiresStudentVerification">{$LL.membership.requiresStudentVerification()}</Label>
+				</div>
 
-					<Drawer.Footer class="px-0">
-						<Button type="submit" disabled={!!editForm.pending}>{$LL.common.save()}</Button>
-						<Drawer.Close>
-							<Button variant="outline" class="w-full">{$LL.common.cancel()}</Button>
-						</Drawer.Close>
-					</Drawer.Footer>
-				</form>
-			{/if}
-		</div>
-	</Drawer.Content>
-</Drawer.Root>
+				<Sheet.Footer>
+					<Button type="submit" disabled={!!editForm.pending}>{$LL.common.save()}</Button>
+					<Sheet.Close>
+						<Button variant="outline" class="w-full">{$LL.common.cancel()}</Button>
+					</Sheet.Close>
+				</Sheet.Footer>
+			</form>
+		{/if}
+	</Sheet.Content>
+</Sheet.Root>
