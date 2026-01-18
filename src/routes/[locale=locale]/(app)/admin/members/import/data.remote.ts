@@ -5,7 +5,7 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { generateUserId } from "$lib/server/auth/utils";
-import { getUserByEmail } from "$lib/server/auth/secondary-email";
+import { getUsersByEmails } from "$lib/server/auth/secondary-email";
 import { csvRowSchema, importMembersSchema, type CsvRow } from "./schema";
 
 export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }) => {
@@ -68,18 +68,17 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 	};
 
 	const processedRows: ProcessedRow[] = [];
-	const emailToUserId = new Map<string, string>();
 
 	// Fetch all emails at once to check which users already exist
 	const allEmails = rows.map((r) => r.email);
 	const uniqueEmails = [...new Set(allEmails)];
 
-	// Check which users exist (including verified secondary emails)
-	for (const email of uniqueEmails) {
-		const existingUser = await getUserByEmail(email);
-		if (existingUser) {
-			emailToUserId.set(email, existingUser.id);
-		}
+	// Batch lookup all users by email (including verified secondary emails)
+	const emailToUserMap = await getUsersByEmails(uniqueEmails);
+	const emailToUserId = new Map<string, string>();
+
+	for (const [email, user] of emailToUserMap) {
+		emailToUserId.set(email, user.id);
 	}
 
 	// Validate and prepare all rows
@@ -259,12 +258,20 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 
 	for (let i = 0; i < membersToInsert.length; i += BATCH_SIZE) {
 		const batch = membersToInsert.slice(i, i + BATCH_SIZE);
-		const memberValues = batch.map((p) => ({
-			id: crypto.randomUUID(),
-			userId: p.userId,
-			membershipId: p.membershipId,
-			status: p.status,
-		}));
+
+		// Create lookup map to avoid O(n²) complexity during error handling
+		const valueToProcessed = new Map<string, ProcessedRow>();
+		const memberValues = batch.map((p) => {
+			const id = crypto.randomUUID();
+			const key = `${p.userId}:${p.membershipId}`;
+			valueToProcessed.set(key, p);
+			return {
+				id,
+				userId: p.userId,
+				membershipId: p.membershipId,
+				status: p.status,
+			};
+		});
 
 		if (memberValues.length > 0) {
 			try {
@@ -272,7 +279,8 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 			} catch {
 				// If batch insert fails, try individually to identify the problematic rows
 				for (const value of memberValues) {
-					const processed = batch.find((p) => p.userId === value.userId && p.membershipId === value.membershipId);
+					const key = `${value.userId}:${value.membershipId}`;
+					const processed = valueToProcessed.get(key);
 					try {
 						await db.insert(table.member).values(value);
 					} catch (innerErr) {

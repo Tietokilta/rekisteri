@@ -427,11 +427,15 @@ Charlie,Brown,Espoo,${email3},varsinainen jäsen,2025-08-01`;
 		await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
 			waitUntil: "networkidle",
 		});
-		await fileInput.setInputFiles(tempPath);
+
+		// Re-query elements after navigation to avoid stale references
+		const fileInput2 = adminPage.locator('input[type="file"]');
+		await fileInput2.setInputFiles(tempPath);
 
 		await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
 
-		await importButton.click();
+		const importButton2 = adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i });
+		await importButton2.click();
 
 		await expect(adminPage.getByText(/tuonti onnistui|import successful/i)).toBeVisible({ timeout: 10_000 });
 
