@@ -55,7 +55,7 @@
 												{membership.type} ({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
 											</span>
 											{#snippet failed()}
-												<span class="font-medium text-destructive">Failed to load price</span>
+												<span class="font-medium text-destructive">{$LL.admin.memberships.failedToLoadPrice()}</span>
 											{/snippet}
 										</svelte:boundary>
 									{:else}

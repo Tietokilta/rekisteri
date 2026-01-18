@@ -268,6 +268,7 @@ const en = {
 			amount: "Amount",
 			priceInactive: "Warning: This price is inactive in Stripe",
 			legacyMembership: "Legacy membership (no Stripe price)",
+			failedToLoadPrice: "Failed to load price",
 		},
 
 		members: {

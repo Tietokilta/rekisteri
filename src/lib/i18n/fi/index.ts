@@ -268,6 +268,7 @@ const fi = {
 			amount: "Summa",
 			priceInactive: "Varoitus: Tämä hinta ei ole aktiivinen Stripessä",
 			legacyMembership: "Arkistojäsenyys (ei Stripe-hintaa)",
+			failedToLoadPrice: "Hinnan lataus epäonnistui",
 		},
 
 		members: {

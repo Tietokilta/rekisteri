@@ -96,7 +96,7 @@
 										<p class="text-xs text-destructive">{$LL.admin.memberships.priceInactive()}</p>
 									{/if}
 									{#snippet failed()}
-										<p class="text-xs text-destructive">Failed to load price</p>
+										<p class="text-xs text-destructive">{$LL.admin.memberships.failedToLoadPrice()}</p>
 									{/snippet}
 								</svelte:boundary>
 							{:else}
