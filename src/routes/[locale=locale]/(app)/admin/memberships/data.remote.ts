@@ -56,6 +56,17 @@ export const updateMembership = form(updateMembershipSchema, async (data) => {
 		error(404, "Not found");
 	}
 
+	// Verify membership exists before updating
+	const existing = await db
+		.select({ id: table.membership.id })
+		.from(table.membership)
+		.where(eq(table.membership.id, data.id))
+		.then((result) => result[0]);
+
+	if (!existing) {
+		error(404, "Membership not found");
+	}
+
 	await db
 		.update(table.membership)
 		.set({

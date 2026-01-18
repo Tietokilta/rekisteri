@@ -29,7 +29,13 @@ export const updateMembershipSchema = v.pipeAsync(
 	v.object({
 		id: v.pipe(v.string(), v.uuid()),
 		type: v.pipe(v.string(), v.minLength(1)),
-		stripePriceId: v.optional(v.pipe(v.string(), v.minLength(1))),
+		// Transform empty strings to undefined so they're treated as "not provided"
+		stripePriceId: v.optional(
+			v.pipe(
+				v.string(),
+				v.transform((s) => s.trim() || undefined),
+			),
+		),
 		requiresStudentVerification: v.optional(v.boolean(), false),
 	}),
 	v.checkAsync(async (input) => {
