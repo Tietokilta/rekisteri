@@ -6,6 +6,7 @@ import * as table from "../src/lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import path from "node:path";
 import fs from "node:fs";
+import { route } from "../src/lib/ROUTES";
 
 /**
  * Passkey E2E Tests
@@ -52,7 +53,7 @@ test.describe("Passkey Management", () => {
 		await db.delete(table.passkey).where(eq(table.passkey.userId, adminUser.id));
 
 		// Navigate first, before setting up CDP session
-		await adminPage.goto("/fi/passkeys");
+		await adminPage.goto(route("/[locale=locale]/settings/passkeys", { locale: "fi" }));
 
 		// Wait for the page element to ensure page is ready
 		await adminPage.getByTestId("add-passkey-button-empty").waitFor({ state: "visible" });
@@ -63,7 +64,9 @@ test.describe("Passkey Management", () => {
 	});
 
 	test.afterEach(async () => {
-		await webauthn.disable();
+		if (webauthn) {
+			await webauthn.disable();
+		}
 	});
 
 	test("should register passkey with default name", async ({ adminPage }) => {
@@ -161,7 +164,7 @@ test.describe("Passkey Authentication", () => {
 		await db.delete(table.passkey).where(eq(table.passkey.userId, adminUser.id));
 
 		// Navigate and wait for page to be ready
-		await adminPage.goto("/fi/passkeys");
+		await adminPage.goto(route("/[locale=locale]/settings/passkeys", { locale: "fi" }));
 		await adminPage.getByTestId("add-passkey-button-empty").waitFor({ state: "visible" });
 
 		// Set up virtual authenticator
@@ -179,11 +182,13 @@ test.describe("Passkey Authentication", () => {
 	});
 
 	test.afterEach(async () => {
-		await webauthn.disable();
+		if (webauthn) {
+			await webauthn.disable();
+		}
 	});
 
 	test("should sign in with passkey", async ({ adminPage, adminUser }) => {
-		await adminPage.goto("/fi/sign-in");
+		await adminPage.goto(route("/[locale=locale]/sign-in", { locale: "fi" }));
 
 		// Enter email
 		await adminPage.getByLabel(/sähköposti/i).fill(adminUser.email);
@@ -200,7 +205,7 @@ test.describe("Passkey Authentication", () => {
 	});
 
 	test("should allow fallback to email OTP", async ({ adminPage, adminUser }) => {
-		await adminPage.goto("/fi/sign-in");
+		await adminPage.goto(route("/[locale=locale]/sign-in", { locale: "fi" }));
 
 		// Enter email
 		await adminPage.getByLabel(/sähköposti/i).fill(adminUser.email);
