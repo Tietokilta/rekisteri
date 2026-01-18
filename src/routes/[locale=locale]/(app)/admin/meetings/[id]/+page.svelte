@@ -235,7 +235,9 @@
 				<Card.Description>View and manage attendance records</Card.Description>
 			</Card.Header>
 			<Card.Footer>
-				<Button variant="outline" class="w-full" disabled>Coming soon: Phase 5</Button>
+				<Button variant="outline" class="w-full" href="/{$locale}/admin/meetings/{data.meeting.id}/attendees">
+					View Attendees
+				</Button>
 			</Card.Footer>
 		</Card.Root>
 	</div>

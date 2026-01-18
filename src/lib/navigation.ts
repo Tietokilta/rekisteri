@@ -69,7 +69,7 @@ export function getAdminNavItems(locale: Locale, LL: TranslationFunctions): NavI
 		},
 		{
 			title: LL.nav.admin.meetings(),
-			href: route("/[locale=locale]/admin/meetings", { locale }),
+			href: `/${locale}/admin/meetings`,
 			icon: Calendar,
 		},
 		{

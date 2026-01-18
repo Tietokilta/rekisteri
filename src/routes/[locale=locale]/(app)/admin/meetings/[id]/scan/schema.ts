@@ -4,7 +4,6 @@ import * as v from "valibot";
  * Schema for scanning a member QR code.
  */
 export const scanQrSchema = v.object({
-	meetingId: v.string(),
 	token: v.string(),
 });
 

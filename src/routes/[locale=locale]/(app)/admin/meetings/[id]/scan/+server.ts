@@ -1,13 +1,14 @@
-import { error } from "@sveltejs/kit";
-import { form, getRequestEvent } from "$app/server";
+import { error, json } from "@sveltejs/kit";
+import type { RequestHandler } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { verifyQrToken } from "$lib/server/attendance/qr-token";
 import { scanQrSchema } from "./schema";
+import * as v from "valibot";
 
 /**
- * Scans a member QR code for check-in or check-out.
+ * POST /scan - Scans a member QR code for check-in or check-out.
  *
  * Double-scan prevention:
  * - If last event was CHECK_IN, this will CHECK_OUT
@@ -15,16 +16,23 @@ import { scanQrSchema } from "./schema";
  *
  * Only accessible to admin users during ongoing meetings or recess.
  */
-export const scanQr = form(scanQrSchema, async (data) => {
-	const event = getRequestEvent();
-
-	if (!event.locals.user?.isAdmin) {
+export const POST: RequestHandler = async ({ request, locals, params }) => {
+	if (!locals.user?.isAdmin) {
 		error(403, "Forbidden");
 	}
 
+	const body = await request.json();
+	const parseResult = v.safeParse(scanQrSchema, body);
+
+	if (!parseResult.success) {
+		error(400, "Invalid request data");
+	}
+
+	const data = parseResult.output;
+
 	// Verify meeting exists and is in correct state
 	const meeting = await db.query.meeting.findFirst({
-		where: eq(table.meeting.id, data.meetingId),
+		where: eq(table.meeting.id, params.id),
 	});
 
 	if (!meeting) {
@@ -39,11 +47,11 @@ export const scanQr = form(scanQrSchema, async (data) => {
 	const userId = await verifyQrToken(data.token);
 
 	if (!userId) {
-		return {
+		return json({
 			success: false,
 			error: "invalid_token",
 			message: "Invalid or expired QR code",
-		};
+		});
 	}
 
 	// Get user details for display
@@ -70,7 +78,7 @@ export const scanQr = form(scanQrSchema, async (data) => {
 	});
 
 	if (!validMember) {
-		return {
+		return json({
 			success: false,
 			error: "no_membership",
 			message: "User does not have an active membership",
@@ -78,12 +86,12 @@ export const scanQr = form(scanQrSchema, async (data) => {
 				email: user.email,
 				name: user.firstNames && user.lastName ? `${user.firstNames} ${user.lastName}` : user.email,
 			},
-		};
+		});
 	}
 
 	// Get last attendance event for this user at this meeting
 	const lastEvent = await db.query.attendance.findFirst({
-		where: and(eq(table.attendance.meetingId, data.meetingId), eq(table.attendance.userId, userId)),
+		where: and(eq(table.attendance.meetingId, params.id), eq(table.attendance.userId, userId)),
 		orderBy: [desc(table.attendance.timestamp)],
 	});
 
@@ -93,15 +101,15 @@ export const scanQr = form(scanQrSchema, async (data) => {
 	// Record attendance event
 	await db.insert(table.attendance).values({
 		id: crypto.randomUUID(),
-		meetingId: data.meetingId,
+		meetingId: params.id,
 		userId,
 		eventType,
 		scanMethod: "qr_scan",
-		scannedBy: event.locals.user.id,
+		scannedBy: locals.user.id,
 		timestamp: new Date(),
 	});
 
-	return {
+	return json({
 		success: true,
 		eventType,
 		user: {
@@ -109,5 +117,5 @@ export const scanQr = form(scanQrSchema, async (data) => {
 			email: user.email,
 			name: user.firstNames && user.lastName ? `${user.firstNames} ${user.lastName}` : user.email,
 		},
-	};
-});
+	});
+};

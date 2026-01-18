@@ -7,7 +7,6 @@
 	import * as Card from "$lib/components/ui/card";
 	import * as Alert from "$lib/components/ui/alert";
 	import AdminPageHeader from "$lib/components/admin-page-header.svelte";
-	import { scanQr } from "./data.remote";
 	import { invalidateAll } from "$app/navigation";
 	import Camera from "@lucide/svelte/icons/camera";
 	import CameraOff from "@lucide/svelte/icons/camera-off";
@@ -90,16 +89,29 @@
 	}
 
 	async function handleScan(token: string) {
-		const result = await scanQr.submitRaw({ meetingId: data.meeting.id, token });
+		try {
+			const response = await fetch(`/${$locale}/admin/meetings/${data.meeting.id}/scan`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ token }),
+			});
 
-		if (result.success && result.data) {
-			lastScan = result.data;
-			await invalidateAll();
-		} else {
+			if (response.ok) {
+				lastScan = await response.json();
+				await invalidateAll();
+			} else {
+				lastScan = {
+					success: false,
+					error: "server_error",
+					message: "Failed to process scan",
+				};
+			}
+		} catch (err) {
+			console.error("Scan error:", err);
 			lastScan = {
 				success: false,
-				error: "unknown",
-				message: "Failed to process scan",
+				error: "network_error",
+				message: "Network error occurred",
 			};
 		}
 	}
