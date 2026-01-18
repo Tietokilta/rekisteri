@@ -400,7 +400,7 @@ export async function verifyShareToken(token: string): Promise<string | null> {
 ### 3.1 Admin Routes
 
 ```
-src/routes/[locale=locale]/admin/meetings/
+src/routes/[locale=locale]/(app)/admin/meetings/
 ├── +page.svelte                    # List all meetings
 ├── +page.server.ts                 # Load meetings
 ├── create/
@@ -420,28 +420,40 @@ src/routes/[locale=locale]/admin/meetings/
 │   └── actions.remote.ts           # Meeting actions (start, recess, finish, etc.)
 ```
 
+**Navigation**: Add to `src/lib/navigation.ts` in `getAdminNavItems()`:
+```typescript
+{
+  title: LL.nav.admin.meetings(),
+  href: route("/[locale=locale]/admin/meetings", { locale }),
+  icon: Calendar, // from @lucide/svelte/icons/calendar
+}
+```
+
 ### 3.2 User Routes
 
 ```
-src/routes/[locale=locale]/attendance/
-├── +page.svelte                    # Show user's QR code
-├── +page.server.ts                 # Load/generate QR token
-└── history/
-    ├── +page.svelte                # User's attendance history
-    └── +page.server.ts             # Load user's attendance records
+src/routes/[locale=locale]/(app)/
+├── +page.svelte                    # Dashboard with QR code (if has membership)
+├── +page.server.ts                 # Load user data + QR token
+└── attendance/
+    └── history/
+        ├── +page.svelte            # User's attendance history
+        └── +page.server.ts         # Load user's attendance records
 ```
+
+**Note**: User's QR code is displayed directly on the dashboard page, not a separate route. Only shown if user has at least one active or expired membership.
 
 ### 3.3 Shared View Routes
 
 ```
-src/routes/[locale=locale]/meetings/
+src/routes/[locale=locale]/(app)/meetings/
 └── shared/
     └── [shareToken]/
         ├── +page.svelte            # View-only meeting attendance log
         └── +page.server.ts         # Load meeting data via share token
 ```
 
-**Note**: This route is outside `/admin/` so non-admin authenticated users can access it.
+**Note**: This route is in the `(app)` group and outside `/admin/` so non-admin authenticated users can access it.
 
 ### 3.4 API Routes
 
@@ -503,16 +515,28 @@ src/routes/api/attendance/
 - Bulk actions: "Check Out All"
 - Real-time updates (optional: use polling or WebSockets)
 
-### 4.4 User - QR Code Display
+### 4.4 User - QR Code on Dashboard
 
-**File**: `src/routes/[locale=locale]/attendance/+page.svelte`
+**File**: `src/routes/[locale=locale]/(app)/+page.svelte` (Dashboard)
 
-**Features**:
-- Large QR code display
-- User name below
-- Instructions: "Show this to the moderator"
-- "My Attendance History" link
+**Component**: `src/lib/components/attendance/user-qr-card.svelte` (new component)
+
+**Display Logic**:
+- Only show QR code card if user has at least one active OR expired membership
+- Hide if user has never had a membership (they can't attend meetings without one)
+
+**QR Card Features**:
+- Compact QR code display (200x200px or similar)
+- User's full name displayed
+- Instructions: "Show this to meeting moderators for attendance tracking"
+- "View Attendance History" link button
 - Dark mode support (QR code should work in both modes)
+- Collapsible/expandable design (optional)
+
+**Dashboard Integration**:
+- Position QR card alongside MembershipCard
+- Could be in a grid layout or stacked depending on screen size
+- Responsive: full width on mobile, side-by-side on desktop
 
 ### 4.5 User - Attendance History
 
@@ -727,11 +751,27 @@ For a better user experience, consider implementing real-time updates on the att
 Add to `src/lib/i18n/fi/index.ts`:
 
 ```typescript
+// Add to nav.admin section:
+nav: {
+  admin: {
+    // ... existing items ...
+    meetings: "Kokoukset",
+  },
+},
+
+// Add new attendance section:
 attendance: {
   title: "Läsnäololista",
   myQrCode: "Minun QR-koodini",
-  showToModerator: "Näytä tämä järjestäjälle",
+  showToModerator: "Näytä tämä kokouksen järjestäjälle",
   myHistory: "Läsnäolohistoriani",
+  viewHistory: "Katso läsnäolohistoria",
+
+  qrCard: {
+    title: "Kokouksen läsnäolokirjaus",
+    instructions: "Näytä tämä QR-koodi kokouksen järjestäjälle läsnäolon kirjaamiseen",
+    yourName: "Sinun nimesi",
+  },
 
   meetings: {
     title: "Kokoukset",
@@ -1110,16 +1150,19 @@ describe("validateRedirect", () => {
 4. Create QR token utilities (`src/lib/server/attendance/qr-token.ts`)
 5. Create attendance logic utilities (`src/lib/server/attendance/index.ts`)
 
-### Phase 2: User QR Code Display
-1. Create user QR code route (`src/routes/[locale=locale]/attendance/+page.svelte`)
-2. Add QR code generation component
-3. Add i18n translations
+### Phase 2: User QR Code on Dashboard
+1. Create QR card component (`src/lib/components/attendance/user-qr-card.svelte`)
+2. Update dashboard to load QR token (if user has membership)
+3. Integrate QR card into dashboard layout
+4. Add i18n translations
+5. Add conditional rendering (only show if active/expired membership exists)
 
 ### Phase 3: Admin Meeting Management
-1. Create meetings list page
-2. Create meeting creation form
-3. Create meeting detail/control panel
-4. Implement state transition actions
+1. Add "Meetings" nav item to `src/lib/navigation.ts` (getAdminNavItems)
+2. Create meetings list page
+3. Create meeting creation form
+4. Create meeting detail/control panel
+5. Implement state transition actions
 
 ### Phase 4: QR Scanner
 1. Create scanner page
@@ -1169,37 +1212,35 @@ describe("validateRedirect", () => {
 - [ ] `src/lib/server/attendance/export.ts` (CSV generation)
 
 #### Components
-- [ ] `src/lib/components/attendance/user-qr-code.svelte`
-- [ ] `src/lib/components/attendance/qr-scanner.svelte`
+- [ ] `src/lib/components/attendance/user-qr-card.svelte` (QR code card for dashboard)
+- [ ] `src/lib/components/attendance/qr-scanner.svelte` (admin scanner)
 - [ ] `src/lib/components/attendance/scan-confirmation-modal.svelte`
 - [ ] `src/lib/components/attendance/meeting-timeline.svelte`
 - [ ] `src/lib/components/attendance/attendee-count-cards.svelte`
 
 #### User Routes
-- [ ] `src/routes/[locale=locale]/attendance/+page.svelte`
-- [ ] `src/routes/[locale=locale]/attendance/+page.server.ts`
-- [ ] `src/routes/[locale=locale]/attendance/history/+page.svelte`
-- [ ] `src/routes/[locale=locale]/attendance/history/+page.server.ts`
+- [ ] `src/routes/[locale=locale]/(app)/attendance/history/+page.svelte`
+- [ ] `src/routes/[locale=locale]/(app)/attendance/history/+page.server.ts`
 
 #### Shared View Routes
-- [ ] `src/routes/[locale=locale]/meetings/shared/[shareToken]/+page.svelte`
-- [ ] `src/routes/[locale=locale]/meetings/shared/[shareToken]/+page.server.ts`
+- [ ] `src/routes/[locale=locale]/(app)/meetings/shared/[shareToken]/+page.svelte`
+- [ ] `src/routes/[locale=locale]/(app)/meetings/shared/[shareToken]/+page.server.ts`
 
 #### Admin Routes - Meetings
-- [ ] `src/routes/[locale=locale]/admin/meetings/+page.svelte`
-- [ ] `src/routes/[locale=locale]/admin/meetings/+page.server.ts`
-- [ ] `src/routes/[locale=locale]/admin/meetings/create/+page.svelte`
-- [ ] `src/routes/[locale=locale]/admin/meetings/create/create.remote.ts`
+- [ ] `src/routes/[locale=locale]/(app)/admin/meetings/+page.svelte`
+- [ ] `src/routes/[locale=locale]/(app)/admin/meetings/+page.server.ts`
+- [ ] `src/routes/[locale=locale]/(app)/admin/meetings/create/+page.svelte`
+- [ ] `src/routes/[locale=locale]/(app)/admin/meetings/create/create.remote.ts`
 
 #### Admin Routes - Meeting Detail
-- [ ] `src/routes/[locale=locale]/admin/meetings/[meetingId]/+page.svelte`
-- [ ] `src/routes/[locale=locale]/admin/meetings/[meetingId]/+page.server.ts`
-- [ ] `src/routes/[locale=locale]/admin/meetings/[meetingId]/actions.remote.ts`
-- [ ] `src/routes/[locale=locale]/admin/meetings/[meetingId]/scan/+page.svelte`
-- [ ] `src/routes/[locale=locale]/admin/meetings/[meetingId]/scan/+page.server.ts`
-- [ ] `src/routes/[locale=locale]/admin/meetings/[meetingId]/attendees/+page.svelte`
-- [ ] `src/routes/[locale=locale]/admin/meetings/[meetingId]/attendees/+page.server.ts`
-- [ ] `src/routes/[locale=locale]/admin/meetings/[meetingId]/export/+server.ts`
+- [ ] `src/routes/[locale=locale]/(app)/admin/meetings/[meetingId]/+page.svelte`
+- [ ] `src/routes/[locale=locale]/(app)/admin/meetings/[meetingId]/+page.server.ts`
+- [ ] `src/routes/[locale=locale]/(app)/admin/meetings/[meetingId]/actions.remote.ts`
+- [ ] `src/routes/[locale=locale]/(app)/admin/meetings/[meetingId]/scan/+page.svelte`
+- [ ] `src/routes/[locale=locale]/(app)/admin/meetings/[meetingId]/scan/+page.server.ts`
+- [ ] `src/routes/[locale=locale]/(app)/admin/meetings/[meetingId]/attendees/+page.svelte`
+- [ ] `src/routes/[locale=locale]/(app)/admin/meetings/[meetingId]/attendees/+page.server.ts`
+- [ ] `src/routes/[locale=locale]/(app)/admin/meetings/[meetingId]/export/+server.ts`
 
 #### API Routes
 - [ ] `src/routes/api/attendance/scan/+server.ts`
@@ -1212,7 +1253,12 @@ describe("validateRedirect", () => {
 - [ ] `src/lib/server/db/schema.ts` (add tables)
 - [ ] `src/lib/i18n/fi/index.ts` (add translations)
 - [ ] `src/lib/i18n/en/index.ts` (add translations)
+- [ ] `src/lib/navigation.ts` (add admin meetings nav item)
 - [ ] `package.json` (add dependencies)
+
+#### Dashboard Integration
+- [ ] `src/routes/[locale=locale]/(app)/+page.svelte` (add QR card to dashboard)
+- [ ] `src/routes/[locale=locale]/(app)/+page.server.ts` (load QR token if has membership)
 
 #### Authentication Flow (Secure Redirect - Section 8.3)
 - [ ] `src/routes/[locale=locale]/(auth)/sign-in/+page.server.ts` (add redirect support)
