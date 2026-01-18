@@ -11,6 +11,7 @@
 	import { payMembership } from "./data.remote";
 	import { payMembershipSchema } from "./schema";
 	import { getStripePriceMetadata } from "$lib/api/stripe.remote";
+	import { formatPrice } from "$lib/utils";
 
 	const { data }: PageProps = $props();
 
@@ -47,16 +48,19 @@
 							>
 								<input {...payMembership.fields.membershipId.as("radio", membership.id)} required class="mt-1" />
 								<div class="flex flex-col">
-									<svelte:boundary>
-										{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
-										<span class="font-medium">
-											{membership.type} ({priceMetadata.priceCents / 100}
-											{priceMetadata.currency.toUpperCase()})
-										</span>
-										{#snippet failed()}
-											<span class="font-medium text-destructive">Failed to load price</span>
-										{/snippet}
-									</svelte:boundary>
+									{#if membership.stripePriceId}
+										<svelte:boundary>
+											{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
+											<span class="font-medium">
+												{membership.type} ({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
+											</span>
+											{#snippet failed()}
+												<span class="font-medium text-destructive">Failed to load price</span>
+											{/snippet}
+										</svelte:boundary>
+									{:else}
+										<span class="font-medium">{membership.type}</span>
+									{/if}
 									<span class="text-sm text-muted-foreground">
 										{new Date(membership.startTime).toLocaleDateString(`${$locale}-FI`)}
 										– {new Date(membership.endTime).toLocaleDateString(`${$locale}-FI`)}
@@ -126,11 +130,10 @@
 							{@const selectedMembership = availableMemberships.find(
 								(x) => x.id === payMembership.fields.membershipId.value(),
 							)}
-							{#if selectedMembership}
+							{#if selectedMembership?.stripePriceId}
 								<svelte:boundary>
 									{@const priceMetadata = await getStripePriceMetadata(selectedMembership.stripePriceId)}
-									({priceMetadata.priceCents / 100}
-									{priceMetadata.currency.toUpperCase()})
+									({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
 									{#snippet failed()}
 										<span>(-)</span>
 									{/snippet}

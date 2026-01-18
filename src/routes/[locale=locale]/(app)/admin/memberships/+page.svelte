@@ -10,6 +10,7 @@
 	import { Label } from "$lib/components/ui/label";
 	import AdminPageHeader from "$lib/components/admin-page-header.svelte";
 	import { getStripePriceMetadata } from "$lib/api/stripe.remote";
+	import { formatPrice } from "$lib/utils";
 
 	const { data }: PageProps = $props();
 
@@ -72,11 +73,34 @@
 					<li class="flex items-center justify-between space-x-4 rounded-md border p-4">
 						<div class="text-sm">
 							<p class="font-medium">{membership.type}</p>
-							<svelte:boundary>
-								{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
-								{#if priceMetadata.productName}
-									<p class="text-xs text-muted-foreground">{priceMetadata.productName}</p>
-								{/if}
+							{#if membership.stripePriceId}
+								<svelte:boundary>
+									{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
+									{#if priceMetadata.productName}
+										<p class="text-xs text-muted-foreground">{priceMetadata.productName}</p>
+									{/if}
+									<p>
+										<time datetime={membership.startTime.toISOString()}
+											>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time
+										>–<time datetime={membership.endTime.toISOString()}
+											>{membership.endTime.toLocaleDateString(`${$locale}-FI`)}</time
+										>
+									</p>
+									<p class="text-muted-foreground">
+										{$LL.admin.memberships.stripePriceIdLabel({ stripePriceId: membership.stripePriceId })}
+									</p>
+									<p class="text-muted-foreground">
+										{formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)}
+									</p>
+									{#if !priceMetadata.active}
+										<p class="text-xs text-destructive">{$LL.admin.memberships.priceInactive()}</p>
+									{/if}
+									{#snippet failed()}
+										<p class="text-xs text-destructive">Failed to load price</p>
+									{/snippet}
+								</svelte:boundary>
+							{:else}
+								<!-- Legacy membership without Stripe price -->
 								<p>
 									<time datetime={membership.startTime.toISOString()}
 										>{membership.startTime.toLocaleDateString(`${$locale}-FI`)}</time
@@ -84,20 +108,8 @@
 										>{membership.endTime.toLocaleDateString(`${$locale}-FI`)}</time
 									>
 								</p>
-								<p class="text-muted-foreground">
-									{$LL.admin.memberships.stripePriceIdLabel({ stripePriceId: membership.stripePriceId })}
-								</p>
-								<p class="text-muted-foreground">
-									{$LL.membership.price({ price: priceMetadata.priceCents / 100 })}
-									{priceMetadata.currency.toUpperCase()}
-								</p>
-								{#if !priceMetadata.active}
-									<p class="text-xs text-destructive">{$LL.admin.memberships.priceInactive()}</p>
-								{/if}
-								{#snippet failed()}
-									<p class="text-xs text-destructive">Failed to load price</p>
-								{/snippet}
-							</svelte:boundary>
+								<p class="text-xs text-muted-foreground">{$LL.admin.memberships.legacyMembership()}</p>
+							{/if}
 							<p class="text-muted-foreground">{$LL.admin.members.count({ count: membership.memberCount })}</p>
 						</div>
 						<div>
@@ -178,7 +190,7 @@
 							<p class="text-muted-foreground">
 								{$LL.admin.memberships.amount()}:
 								<span class="text-foreground"
-									>{stripeMetadata.priceCents / 100} {stripeMetadata.currency.toUpperCase()}</span
+									>{formatPrice(stripeMetadata.priceCents, stripeMetadata.currency, $locale)}</span
 								>
 							</p>
 							{#if !stripeMetadata.active}
