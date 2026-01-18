@@ -18,6 +18,7 @@ export const load: PageServerLoad = async (event) => {
 			stripePriceId: table.membership.stripePriceId,
 			startTime: table.membership.startTime,
 			endTime: table.membership.endTime,
+			requiresStudentVerification: table.membership.requiresStudentVerification,
 			memberCount: count(table.member.userId),
 		})
 		.from(table.membership)

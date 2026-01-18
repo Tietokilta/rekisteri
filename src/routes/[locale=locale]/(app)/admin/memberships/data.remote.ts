@@ -3,7 +3,7 @@ import { form, getRequestEvent } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { count, eq } from "drizzle-orm";
-import { createMembershipSchema, deleteMembershipSchema } from "./schema";
+import { createMembershipSchema, deleteMembershipSchema, updateMembershipSchema } from "./schema";
 
 export const createMembership = form(createMembershipSchema, async (data) => {
 	const event = getRequestEvent();
@@ -45,6 +45,26 @@ export const deleteMembership = form(deleteMembershipSchema, async ({ id }) => {
 	}
 
 	await db.delete(table.membership).where(eq(table.membership.id, id)).execute();
+
+	return { success: true };
+});
+
+export const updateMembership = form(updateMembershipSchema, async (data) => {
+	const event = getRequestEvent();
+
+	if (!event.locals.session || !event.locals.user?.isAdmin) {
+		error(404, "Not found");
+	}
+
+	await db
+		.update(table.membership)
+		.set({
+			type: data.type,
+			stripePriceId: data.stripePriceId ?? null,
+			requiresStudentVerification: data.requiresStudentVerification,
+		})
+		.where(eq(table.membership.id, data.id))
+		.execute();
 
 	return { success: true };
 });

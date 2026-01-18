@@ -3,19 +3,80 @@
 	import { Separator } from "$lib/components/ui/separator";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import type { PageProps } from "./$types";
-	import { createMembership, deleteMembership } from "./data.remote";
-	import { createMembershipSchema } from "./schema";
+	import { createMembership, deleteMembership, updateMembership } from "./data.remote";
+	import { createMembershipSchema, updateMembershipSchema } from "./schema";
 	import { Input } from "$lib/components/ui/input";
 	import { Button } from "$lib/components/ui/button";
 	import { Label } from "$lib/components/ui/label";
 	import AdminPageHeader from "$lib/components/admin-page-header.svelte";
 	import { getStripePriceMetadata } from "$lib/api/stripe.remote";
 	import { formatPrice } from "$lib/utils";
+	import * as Drawer from "$lib/components/ui/drawer";
 
 	const { data }: PageProps = $props();
 
 	// Initialize form with default values from server
 	createMembership.fields.set(data.defaultValues);
+
+	// State for editing membership
+	let editingMembership = $state<(typeof data.memberships)[number] | null>(null);
+	let editDrawerOpen = $state(false);
+
+	function openEditDrawer(membership: (typeof data.memberships)[number]) {
+		editingMembership = membership;
+		updateMembership.fields.set({
+			id: membership.id,
+			type: membership.type,
+			stripePriceId: membership.stripePriceId ?? "",
+			requiresStudentVerification: membership.requiresStudentVerification,
+		});
+		editDrawerOpen = true;
+	}
+
+	// State for Stripe metadata (create form)
+	let editStripeMetadata = $state<{
+		priceId: string;
+		priceCents: number;
+		currency: string;
+		nickname: string | null;
+		productId: string;
+		productName: string | null;
+		active: boolean;
+	} | null>(null);
+	let fetchingEditMetadata = $state(false);
+	let editMetadataError = $state<string | null>(null);
+
+	// Fetch Stripe metadata when editing stripePriceId changes
+	$effect(() => {
+		if (!editDrawerOpen) return;
+
+		const priceId = updateMembership.fields.stripePriceId.value();
+
+		if (!priceId || !priceId.startsWith("price_")) {
+			editStripeMetadata = null;
+			editMetadataError = null;
+			return;
+		}
+
+		// Debounce the fetch
+		const timeoutId = setTimeout(async () => {
+			fetchingEditMetadata = true;
+			editMetadataError = null;
+
+			try {
+				const metadata = await getStripePriceMetadata(priceId);
+				editStripeMetadata = metadata;
+			} catch (err) {
+				console.error("Failed to fetch Stripe metadata:", err);
+				editMetadataError = "Failed to fetch price information";
+				editStripeMetadata = null;
+			} finally {
+				fetchingEditMetadata = false;
+			}
+		}, 500);
+
+		return () => clearTimeout(timeoutId);
+	});
 
 	// State for Stripe metadata
 	let stripeMetadata = $state<{
@@ -112,7 +173,10 @@
 							{/if}
 							<p class="text-muted-foreground">{$LL.admin.members.count({ count: membership.memberCount })}</p>
 						</div>
-						<div>
+						<div class="flex flex-col gap-2">
+							<Button variant="outline" size="sm" onclick={() => openEditDrawer(membership)}>
+								{$LL.common.edit()}
+							</Button>
 							{#if membership.memberCount === 0}
 								<form
 									class="contents"
@@ -122,7 +186,7 @@
 									})}
 								>
 									<input {...deleteForm.fields.id.as("hidden", membership.id)} />
-									<Button type="submit" variant="destructive" disabled={!!deleteForm.pending}>
+									<Button type="submit" variant="destructive" size="sm" disabled={!!deleteForm.pending}>
 										{$LL.common.delete()}
 									</Button>
 								</form>
@@ -236,3 +300,113 @@
 		</div>
 	</div>
 </main>
+
+<!-- Edit Membership Drawer -->
+<Drawer.Root bind:open={editDrawerOpen}>
+	<Drawer.Content>
+		<Drawer.Header>
+			<Drawer.Title>{$LL.admin.memberships.editMembership()}</Drawer.Title>
+			{#if editingMembership}
+				<Drawer.Description>
+					{editingMembership.startTime.toLocaleDateString(
+						`${$locale}-FI`,
+					)}–{editingMembership.endTime.toLocaleDateString(`${$locale}-FI`)}
+				</Drawer.Description>
+			{/if}
+		</Drawer.Header>
+		<div class="p-4">
+			{#if editingMembership}
+				{@const editForm = updateMembership.for(editingMembership.id)}
+				<form
+					{...editForm.preflight(updateMembershipSchema).enhance(async ({ submit }) => {
+						await submit();
+						editDrawerOpen = false;
+						await invalidateAll();
+					})}
+					class="flex flex-col gap-4"
+				>
+					<input {...editForm.fields.id.as("hidden", editingMembership.id)} />
+
+					<div class="space-y-2">
+						<Label for="edit-type">{$LL.membership.type()}</Label>
+						<Input {...editForm.fields.type.as("text")} id="edit-type" list="edit-types" />
+						<p class="text-sm text-muted-foreground">{$LL.membership.continuityNote()}</p>
+						<datalist id="edit-types">
+							{#each data.types as type (type)}
+								<option value={type}></option>
+							{/each}
+						</datalist>
+						{#each editForm.fields.type.issues() as issue, i (i)}
+							<p class="text-sm text-destructive">{issue.message}</p>
+						{/each}
+					</div>
+
+					<div class="space-y-2">
+						<Label for="edit-stripePriceId">{$LL.admin.memberships.stripePriceId()}</Label>
+						<Input {...editForm.fields.stripePriceId.as("text")} id="edit-stripePriceId" placeholder="price_xxx" />
+						<p class="text-sm text-muted-foreground">{$LL.admin.memberships.stripePriceIdDescription()}</p>
+
+						{#if fetchingEditMetadata}
+							<div class="mt-2 text-sm text-muted-foreground">
+								{$LL.admin.memberships.fetchingStripeMetadata()}
+							</div>
+						{:else if editMetadataError}
+							<div class="mt-2 text-sm text-destructive">
+								{editMetadataError}
+							</div>
+						{:else if editStripeMetadata}
+							<div class="mt-2 space-y-1 rounded-md border bg-muted/50 p-2 text-sm">
+								<p class="font-medium text-foreground">
+									{$LL.admin.memberships.stripeMetadataPreview()}
+								</p>
+								{#if editStripeMetadata.productName}
+									<p class="text-muted-foreground">
+										{$LL.admin.memberships.productName()}:
+										<span class="text-foreground">{editStripeMetadata.productName}</span>
+									</p>
+								{/if}
+								{#if editStripeMetadata.nickname}
+									<p class="text-muted-foreground">
+										{$LL.admin.memberships.priceNickname()}:
+										<span class="text-foreground">{editStripeMetadata.nickname}</span>
+									</p>
+								{/if}
+								<p class="text-muted-foreground">
+									{$LL.admin.memberships.amount()}:
+									<span class="text-foreground"
+										>{formatPrice(editStripeMetadata.priceCents, editStripeMetadata.currency, $locale)}</span
+									>
+								</p>
+								{#if !editStripeMetadata.active}
+									<p class="text-destructive">
+										{$LL.admin.memberships.priceInactive()}
+									</p>
+								{/if}
+							</div>
+						{/if}
+
+						{#each editForm.fields.stripePriceId.issues() as issue, i (i)}
+							<p class="text-sm text-destructive">{issue.message}</p>
+						{/each}
+					</div>
+
+					<div class="flex items-center gap-2">
+						<Input
+							{...editForm.fields.requiresStudentVerification.as("checkbox")}
+							id="edit-requiresStudentVerification"
+							class="w-auto"
+						/>
+						<Label for="edit-requiresStudentVerification">{$LL.membership.requiresStudentVerification()}</Label>
+					</div>
+
+					<Drawer.Footer class="px-0">
+						<Button type="submit" disabled={!!editForm.pending}>{$LL.common.save()}</Button>
+						<Drawer.Close>
+							<Button variant="outline" class="w-full">{$LL.common.cancel()}</Button>
+						</Drawer.Close>
+					</Drawer.Footer>
+				</form>
+			{/if}
+		</div>
+	</Drawer.Content>
+</Drawer.Root>

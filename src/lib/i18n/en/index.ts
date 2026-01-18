@@ -258,6 +258,7 @@ const en = {
 		memberships: {
 			title: "Manage memberships",
 			description: "Configure price and period",
+			editMembership: "Edit membership",
 			stripePriceId: "Stripe price ID",
 			stripePriceIdDescription: "Price ID found on Stripe dashboard",
 			stripePriceIdLabel: "Price ID {stripePriceId}",
@@ -443,6 +444,8 @@ const en = {
 	common: {
 		save: "Save",
 		delete: "Delete",
+		edit: "Edit",
+		cancel: "Cancel",
 	},
 
 	// Error page
