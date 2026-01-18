@@ -392,6 +392,131 @@ export async function verifyShareToken(token: string): Promise<string | null> {
 }
 ```
 
+### 2.5 Scan API Endpoint with Double-Scan Prevention
+
+**File**: `src/routes/api/attendance/scan/+server.ts`
+
+**Purpose**: Handle QR code scans with state validation to prevent accidental double-scans
+
+**Implementation**:
+```typescript
+import { json, error } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import { verifyQrToken } from '$lib/server/attendance/qr-token';
+import { db } from '$lib/server/db';
+import * as table from '$lib/server/db/schema';
+import { eq, and, desc } from 'drizzle-orm';
+
+export const POST: RequestHandler = async ({ request, locals }) => {
+  // Require admin authentication
+  if (!locals.user?.isAdmin) {
+    throw error(403, 'Forbidden');
+  }
+
+  const { token, meetingId } = await request.json();
+
+  // Verify QR token and get user
+  const userId = await verifyQrToken(token);
+  if (!userId) {
+    throw error(400, 'Invalid QR code');
+  }
+
+  // Get user details
+  const user = await db.query.user.findFirst({
+    where: eq(table.user.id, userId),
+  });
+
+  if (!user) {
+    throw error(400, 'User not found');
+  }
+
+  // CRITICAL: Get user's last attendance event for this meeting
+  const lastEvent = await db.query.attendance.findFirst({
+    where: and(
+      eq(table.attendance.meetingId, meetingId),
+      eq(table.attendance.userId, userId)
+    ),
+    orderBy: [desc(table.attendance.timestamp)],
+  });
+
+  // Determine next event type based on last event
+  let nextEventType: 'CHECK_IN' | 'CHECK_OUT';
+
+  if (!lastEvent || lastEvent.eventType === 'CHECK_OUT') {
+    // User is currently OUT → next must be CHECK_IN
+    nextEventType = 'CHECK_IN';
+  } else if (lastEvent.eventType === 'CHECK_IN') {
+    // User is currently IN → next must be CHECK_OUT
+    nextEventType = 'CHECK_OUT';
+  } else {
+    // Unexpected state
+    throw error(500, 'Invalid attendance state');
+  }
+
+  // Record attendance event
+  await db.insert(table.attendance).values({
+    id: crypto.randomUUID(),
+    meetingId,
+    userId,
+    eventType: nextEventType,
+    scanMethod: 'qr_scan',
+    scannedBy: locals.user.id,
+    timestamp: new Date(),
+  });
+
+  // Return success with user info and action taken
+  return json({
+    success: true,
+    action: nextEventType,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      // Add membership type from member table if needed
+    },
+  });
+};
+```
+
+**Key Features**:
+- **State Validation**: Queries user's last attendance event before inserting new one
+- **Prevents Double-Scans**: If user is already checked in, next scan must be check out
+- **Clear Error Messages**: Returns specific error if scan violates state
+- **Audit Trail**: Records who performed the scan (`scannedBy`)
+- **Response Data**: Returns action taken + user info for confirmation UI
+
+**Frontend Integration**:
+```typescript
+// In scanner component, after QR code decoded:
+async function handleScan(token: string) {
+  try {
+    const response = await fetch('/api/attendance/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, meetingId }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      // Show error to admin (e.g., "User is already checked in")
+      showError(error.message);
+      playErrorSound();
+      return;
+    }
+
+    const result = await response.json();
+    // Show confirmation modal with user name and action
+    showConfirmation(result.user, result.action);
+    playSuccessSound();
+  } catch (err) {
+    // Network error - CRITICAL for single door
+    showError('Network Error - Please Try Again');
+    playErrorSound();
+    vibrateDevice(); // Immediate haptic feedback
+  }
+}
+```
+
 ---
 
 ## 3. Route Structure
@@ -474,6 +599,8 @@ src/routes/api/attendance/
   - `upcoming → ongoing`: "Start Meeting" button
   - `ongoing → recess`: "Start Recess" button with options:
     - **Short recess** (e.g., 15 min break): Keep current attendance state, continue scanning people in/out at door for accurate count
+      - ⚠️ **Warning displayed in UI**: "Attendee count will only remain accurate if the door remains manned during recess"
+      - If admin also takes a break, count will drift
     - **Long recess** (e.g., overnight/multi-day): "Clear All Attendees" option - checks everyone out, then re-scan when meeting resumes
     - Optional notes field (e.g., "Lunch break", "Day 2 continuation")
   - `recess → ongoing`: "Resume Meeting" button
@@ -531,15 +658,15 @@ src/routes/api/attendance/
 - **Button on dashboard**: "Show Member Card" or QR icon button
 - **Native `<dialog>` element**: Opens in full screen mode
 - **Explicit user action required**: User must click button to open dialog
-- **Brightness boost**: When dialog opens, automatically maximize screen brightness
-- **Brightness restoration**: When dialog closes, restore original brightness setting
+- **Wake Lock API**: Keep screen on (prevent auto-dimming) while modal is open
+- **High Contrast Mode**: Force black QR on pure white background (override dark mode)
+- **Manual Brightness Instruction**: Clear UI prompt: "Please maximize your screen brightness for best scanning"
 - **Consistent position**: QR code always centered on screen, no scrolling needed
 - QR code display: Large and clear (250-300px) for easy scanning
 - User's full name displayed prominently
 - Generic title: "Member Verification" or "Member Card"
 - Instructions: "Show this for member verification" (not attendance-specific)
 - Close button (X) and backdrop click to dismiss
-- Dark mode support: QR code inverts properly (black on white for scanning)
 - Smooth open/close animation
 
 **Purpose**:
@@ -560,12 +687,11 @@ src/routes/api/attendance/
 
   let dialog: HTMLDialogElement;
   let wakeLock: WakeLockSentinel | null = null;
-  let originalBrightness: string | null = null;
 
   async function openQRCode() {
     dialog.showModal();
 
-    // Request wake lock to keep screen on
+    // Request wake lock to keep screen on (prevent auto-dimming)
     if ('wakeLock' in navigator) {
       try {
         wakeLock = await navigator.wakeLock.request('screen');
@@ -573,10 +699,6 @@ src/routes/api/attendance/
         console.error('Wake Lock error:', err);
       }
     }
-
-    // Boost brightness visually
-    originalBrightness = dialog.style.filter;
-    dialog.style.filter = 'brightness(1.5)';
   }
 
   function closeQRCode() {
@@ -584,11 +706,6 @@ src/routes/api/attendance/
     if (wakeLock) {
       wakeLock.release();
       wakeLock = null;
-    }
-
-    // Restore brightness
-    if (originalBrightness !== null) {
-      dialog.style.filter = originalBrightness;
     }
 
     dialog.close();
@@ -600,10 +717,19 @@ src/routes/api/attendance/
 <dialog bind:this={dialog} class="full-screen-qr-modal">
   <div class="modal-content">
     <button onclick={closeQRCode} class="close-button">×</button>
-    <h2>Member Card</h2>
-    <div class="qr-code">
-      <!-- QR code rendered here -->
+
+    <!-- Brightness instruction -->
+    <div class="brightness-notice">
+      ⚠️ Please maximize your screen brightness for best scanning
     </div>
+
+    <h2>Member Card</h2>
+
+    <!-- QR code container with forced high contrast -->
+    <div class="qr-code-container">
+      <!-- QR code rendered here (black on white, always) -->
+    </div>
+
     <p class="user-name">{userName}</p>
     <p class="instructions">Show this for member verification</p>
   </div>
@@ -617,7 +743,9 @@ src/routes/api/attendance/
     height: 100vh;
     padding: 0;
     border: none;
-    background: var(--background);
+    /* Force white background, override dark mode */
+    background: #ffffff;
+    color: #000000;
   }
 
   .full-screen-qr-modal::backdrop {
@@ -631,6 +759,23 @@ src/routes/api/attendance/
     justify-content: center;
     height: 100%;
     padding: 2rem;
+  }
+
+  .brightness-notice {
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    color: #000;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    font-weight: 500;
+  }
+
+  .qr-code-container {
+    /* Ensure pure white background for QR code */
+    background: #ffffff;
+    padding: 1rem;
+    border-radius: 0.5rem;
   }
 </style>
 ```
@@ -771,6 +916,40 @@ export function generateAttendanceCSV(
 
   return sections.join("");
 }
+
+/**
+ * Calculate total duration by summing segments (check-in to check-out pairs).
+ *
+ * IMPORTANT: Do NOT use simple subtraction (finalCheckOut - firstCheckIn).
+ * Users may leave and return during recess, creating multiple segments:
+ *
+ * Example: User arrives at 14:00, leaves at 15:30 for recess, returns at 16:00, leaves at 18:00
+ * - Segment 1: 15:30 - 14:00 = 90 minutes
+ * - Segment 2: 18:00 - 16:00 = 120 minutes
+ * - Total: 210 minutes (NOT 18:00 - 14:00 = 240 minutes)
+ */
+function calculateUserDuration(userAttendance: Attendance[]): number {
+  // Sort by timestamp
+  const sorted = userAttendance.sort((a, b) =>
+    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+
+  let totalMinutes = 0;
+  let currentCheckIn: Date | null = null;
+
+  for (const event of sorted) {
+    if (event.eventType === 'CHECK_IN') {
+      currentCheckIn = new Date(event.timestamp);
+    } else if (event.eventType === 'CHECK_OUT' && currentCheckIn) {
+      const checkOut = new Date(event.timestamp);
+      const segmentMinutes = (checkOut.getTime() - currentCheckIn.getTime()) / (1000 * 60);
+      totalMinutes += segmentMinutes;
+      currentCheckIn = null;
+    }
+  }
+
+  return Math.round(totalMinutes);
+}
 ```
 
 ---
@@ -825,14 +1004,31 @@ For a better user experience, consider implementing real-time updates on the att
    - Use existing `ExpiringTokenBucket` pattern
    - Consider rate limiting share link regeneration
 
-5. **Audit Logging**:
+5. **Double-Scan Prevention** (Single Admin/Single Door):
+   - Backend endpoint (`api/attendance/scan`) MUST check user's last attendance event
+   - State validation:
+     - If last event was CHECK_IN → Next must be CHECK_OUT (or prompt for confirmation)
+     - If last event was CHECK_OUT → Next must be CHECK_IN
+   - Prevents accidental double-scans from nervous hand or network lag
+   - Return clear error message if scan violates state (e.g., "User is already checked in")
+   - Admin UI should show current state before scan (visual indicator: "In" or "Out")
+
+6. **Network Feedback** (Critical for Single Door):
+   - Online-first validation (server-side check) - no offline mode
+   - Immediate audio/haptic feedback for network errors
+   - Visual loading state during scan processing
+   - If network fails, entire line stops → feedback must be instant
+   - Consider retry logic with exponential backoff for transient network errors
+   - Clear error messages: "Network Error - Please Try Again"
+
+7. **Audit Logging**:
    - Log all meeting state changes (use existing `auditLog` table)
    - Log all attendance events
    - Track who performed each action
    - Log share link generation/regeneration
    - Optionally log access to shared views
 
-6. **Sign-In Redirect Security** (Important for Shared Views):
+8. **Sign-In Redirect Security** (Important for Shared Views):
    - Implement secure redirect-after-login functionality
    - Only allow redirects to same-origin pathnames (prevent open redirects)
    - Validate redirect parameter using URL constructor with own origin
