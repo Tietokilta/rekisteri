@@ -6,7 +6,7 @@ import { validateRedirect, setRedirectCookie, getRedirectPath } from "$lib/serve
 
 export const load: PageServerLoad = async (event) => {
 	// Handle redirect parameter
-	const redirectParam = event.url.searchParams.get('redirect');
+	const redirectParam = event.url.searchParams.get("redirect");
 	if (redirectParam) {
 		const validatedRedirect = validateRedirect(redirectParam, event.url.origin);
 		if (validatedRedirect) {

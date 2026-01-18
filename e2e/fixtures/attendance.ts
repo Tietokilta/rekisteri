@@ -1,8 +1,8 @@
-import { db } from '../../src/lib/server/db';
-import * as table from '../../src/lib/server/db/schema';
-import { eq, asc } from 'drizzle-orm';
-import type { User } from '../../src/lib/server/db/schema';
-import { generateQrToken } from '../../src/lib/server/attendance/qr-token';
+import { db } from "../../src/lib/server/db";
+import * as table from "../../src/lib/server/db/schema";
+import { eq, asc } from "drizzle-orm";
+import type { User } from "../../src/lib/server/db/schema";
+import { generateQrToken } from "../../src/lib/server/attendance/qr-token";
 
 /**
  * Test helper for simulating attendance flows without QR scanning.
@@ -14,10 +14,13 @@ import { generateQrToken } from '../../src/lib/server/attendance/qr-token';
  * - Simulate complete visits
  */
 export class AttendanceTestHelper {
-	constructor(
-		private meetingId: string,
-		private adminUserId: string,
-	) {}
+	private meetingId: string;
+	private adminUserId: string;
+
+	constructor(meetingId: string, adminUserId: string) {
+		this.meetingId = meetingId;
+		this.adminUserId = adminUserId;
+	}
 
 	/**
 	 * Simulate a user checking in (bypasses QR scan).
@@ -30,8 +33,8 @@ export class AttendanceTestHelper {
 			id: crypto.randomUUID(),
 			meetingId: this.meetingId,
 			userId,
-			eventType: 'CHECK_IN',
-			scanMethod: 'manual',
+			eventType: "CHECK_IN",
+			scanMethod: "manual",
 			scannedBy: this.adminUserId,
 			timestamp: timestamp || new Date(),
 		});
@@ -48,8 +51,8 @@ export class AttendanceTestHelper {
 			id: crypto.randomUUID(),
 			meetingId: this.meetingId,
 			userId,
-			eventType: 'CHECK_OUT',
-			scanMethod: 'manual',
+			eventType: "CHECK_OUT",
+			scanMethod: "manual",
 			scannedBy: this.adminUserId,
 			timestamp: timestamp || new Date(),
 		});
@@ -81,9 +84,9 @@ export class AttendanceTestHelper {
 		const currentlyIn = new Set<string>();
 
 		for (const event of events) {
-			if (event.eventType === 'CHECK_IN') {
+			if (event.eventType === "CHECK_IN") {
 				currentlyIn.add(event.userId);
-			} else if (event.eventType === 'CHECK_OUT') {
+			} else if (event.eventType === "CHECK_OUT") {
 				currentlyIn.delete(event.userId);
 			}
 		}
@@ -97,21 +100,18 @@ export class AttendanceTestHelper {
 	 * @param status - New meeting status
 	 * @param notes - Optional notes for the event
 	 */
-	async transitionMeeting(
-		status: 'upcoming' | 'ongoing' | 'recess' | 'finished',
-		notes?: string,
-	): Promise<void> {
+	async transitionMeeting(status: "upcoming" | "ongoing" | "recess" | "finished", notes?: string): Promise<void> {
 		const eventTypeMap = {
-			ongoing: 'START',
-			recess: 'RECESS_START',
-			finished: 'FINISH',
+			ongoing: "START",
+			recess: "RECESS_START",
+			finished: "FINISH",
 		} as const;
 
 		// Update meeting status
 		await db.update(table.meeting).set({ status }).where(eq(table.meeting.id, this.meetingId));
 
 		// Record event if transitioning to ongoing, recess, or finished
-		if (status !== 'upcoming') {
+		if (status !== "upcoming") {
 			await db.insert(table.meetingEvent).values({
 				id: crypto.randomUUID(),
 				meetingId: this.meetingId,
@@ -122,16 +122,10 @@ export class AttendanceTestHelper {
 		}
 
 		// Update meeting timestamps
-		if (status === 'ongoing') {
-			await db
-				.update(table.meeting)
-				.set({ startedAt: new Date() })
-				.where(eq(table.meeting.id, this.meetingId));
-		} else if (status === 'finished') {
-			await db
-				.update(table.meeting)
-				.set({ finishedAt: new Date() })
-				.where(eq(table.meeting.id, this.meetingId));
+		if (status === "ongoing") {
+			await db.update(table.meeting).set({ startedAt: new Date() }).where(eq(table.meeting.id, this.meetingId));
+		} else if (status === "finished") {
+			await db.update(table.meeting).set({ finishedAt: new Date() }).where(eq(table.meeting.id, this.meetingId));
 		}
 	}
 
@@ -162,7 +156,7 @@ export async function createTestMeeting(name: string): Promise<string> {
 		id,
 		name,
 		description: `Test meeting: ${name}`,
-		status: 'upcoming',
+		status: "upcoming",
 	});
 	return id;
 }
@@ -175,19 +169,15 @@ export async function createTestMeeting(name: string): Promise<string> {
  * @param isAdmin - Whether user is admin (default: false)
  * @returns User object with QR token
  */
-export async function createTestUser(
-	email: string,
-	name: string,
-	isAdmin = false,
-): Promise<User> {
+export async function createTestUser(email: string, name: string, isAdmin = false): Promise<User> {
 	const id = crypto.randomUUID();
 	const qrToken = generateQrToken();
 
 	await db.insert(table.user).values({
 		id,
 		email,
-		firstNames: name.split(' ')[0],
-		lastName: name.split(' ').slice(1).join(' ') || 'User',
+		firstNames: name.split(" ")[0],
+		lastName: name.split(" ").slice(1).join(" ") || "User",
 		isAdmin,
 		attendanceQrToken: qrToken,
 	});
@@ -198,7 +188,7 @@ export async function createTestUser(
 	});
 
 	if (!user) {
-		throw new Error('Failed to create test user');
+		throw new Error("Failed to create test user");
 	}
 
 	return user;

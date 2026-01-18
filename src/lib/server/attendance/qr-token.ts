@@ -39,10 +39,7 @@ export async function ensureUserHasQrToken(userId: string): Promise<string> {
 
 	// Generate new token
 	const token = generateQrToken();
-	await db
-		.update(table.user)
-		.set({ attendanceQrToken: token })
-		.where(eq(table.user.id, userId));
+	await db.update(table.user).set({ attendanceQrToken: token }).where(eq(table.user.id, userId));
 
 	return token;
 }
@@ -84,10 +81,7 @@ export async function regenerateQrToken(userId: string): Promise<string> {
 	}
 
 	const token = generateQrToken();
-	await db
-		.update(table.user)
-		.set({ attendanceQrToken: token })
-		.where(eq(table.user.id, userId));
+	await db.update(table.user).set({ attendanceQrToken: token }).where(eq(table.user.id, userId));
 
 	return token;
 }

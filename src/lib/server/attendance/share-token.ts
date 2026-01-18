@@ -39,10 +39,7 @@ export async function ensureMeetingHasShareToken(meetingId: string): Promise<str
 
 	// Generate new token
 	const token = generateShareToken();
-	await db
-		.update(table.meeting)
-		.set({ shareToken: token })
-		.where(eq(table.meeting.id, meetingId));
+	await db.update(table.meeting).set({ shareToken: token }).where(eq(table.meeting.id, meetingId));
 
 	return token;
 }
@@ -67,10 +64,7 @@ export async function regenerateShareToken(meetingId: string): Promise<string> {
 	}
 
 	const token = generateShareToken();
-	await db
-		.update(table.meeting)
-		.set({ shareToken: token })
-		.where(eq(table.meeting.id, meetingId));
+	await db.update(table.meeting).set({ shareToken: token }).where(eq(table.meeting.id, meetingId));
 
 	return token;
 }

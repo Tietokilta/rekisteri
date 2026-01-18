@@ -8,6 +8,9 @@
  * Used when user attempts to access protected page → redirected to sign-in → redirected back after auth.
  */
 
+import type { RequestEvent } from "@sveltejs/kit";
+import { env } from "$lib/server/env";
+
 /**
  * Validates a redirect parameter from user input.
  *
@@ -58,17 +61,17 @@ export function validateRedirect(redirectParam: string | null, origin: string): 
 /**
  * Gets the default redirect path based on user status.
  *
- * @param isAdmin - Whether the user is an admin
+ * @param _isAdmin - Whether the user is an admin
  * @returns Default redirect path
  */
-export function getDefaultRedirect(isAdmin: boolean): string {
+export function getDefaultRedirect(_isAdmin: boolean): string {
 	// For now, always redirect to home
 	// Could be extended to redirect admins to /admin/members, etc.
-	return '/';
+	return "/";
 }
 
 // Cookie name for storing redirect parameter
-export const redirectCookieName = 'auth_redirect';
+export const redirectCookieName = "auth_redirect";
 
 /**
  * Sets the redirect cookie to preserve redirect path through auth flow.
@@ -76,12 +79,12 @@ export const redirectCookieName = 'auth_redirect';
  * @param event - SvelteKit request event
  * @param redirectPath - Validated redirect path (pathname + search + hash)
  */
-export function setRedirectCookie(event: { cookies: { set: (name: string, value: string, options: any) => void } }, redirectPath: string): void {
+export function setRedirectCookie(event: RequestEvent, redirectPath: string): void {
 	event.cookies.set(redirectCookieName, redirectPath, {
 		httpOnly: true,
-		sameSite: 'lax',
-		path: '/',
-		secure: process.env.NODE_ENV === 'production',
+		sameSite: "lax",
+		path: "/",
+		secure: env.NODE_ENV === "production",
 		maxAge: 60 * 10, // 10 minutes - enough time for auth flow
 	});
 }
@@ -91,9 +94,9 @@ export function setRedirectCookie(event: { cookies: { set: (name: string, value:
  *
  * @param event - SvelteKit request event
  */
-export function deleteRedirectCookie(event: { cookies: { delete: (name: string, options: any) => void } }): void {
+export function deleteRedirectCookie(event: RequestEvent): void {
 	event.cookies.delete(redirectCookieName, {
-		path: '/',
+		path: "/",
 	});
 }
 
@@ -105,7 +108,7 @@ export function deleteRedirectCookie(event: { cookies: { delete: (name: string, 
  * @param isAdmin - Whether the user is an admin (for default redirect)
  * @returns Validated redirect path or default
  */
-export function getRedirectPath(event: { cookies: { get: (name: string) => string | undefined } }, origin: string, isAdmin: boolean): string {
+export function getRedirectPath(event: RequestEvent, origin: string, isAdmin: boolean): string {
 	const redirectCookie = event.cookies.get(redirectCookieName);
 
 	if (redirectCookie) {
