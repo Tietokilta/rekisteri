@@ -366,6 +366,17 @@ const en = {
 				showing: "Showing {current} of {total} members",
 				previous: "Previous",
 				next: "Next",
+
+				// Bulk actions
+				selectAll: "Select all",
+				selectRow: "Select row",
+				selectedCount: "{count} selected",
+				bulkApprove: "Approve ({count})",
+				bulkReject: "Reject ({count})",
+				bulkMarkExpired: "Mark as Expired ({count})",
+				bulkCancel: "Cancel ({count})",
+				bulkReactivate: "Reactivate ({count})",
+				clearSelection: "Clear selection",
 			},
 		},
 
