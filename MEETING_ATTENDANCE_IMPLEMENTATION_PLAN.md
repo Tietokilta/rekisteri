@@ -10,7 +10,7 @@ This document outlines the implementation plan for adding a meeting attendance t
 2. **Attendance Logging**: Track check-in/check-out with timestamps
 3. **Meeting States**: upcoming, ongoing, recess, finished
 4. **Member Counting**: Track current attendee count by membership type
-5. **Recess Handling**: Option to re-scan during multi-day recesses
+5. **Recess Handling**: Two modes - short recess (keep state, continue scanning) or long recess (clear all, re-scan on resume)
 6. **Manual Override**: Manual check-in/out in case of QR failure
 7. **Confirmation UI**: Show name and action after QR scan for verification
 8. **CSV Export**: Export full attendance log with meeting events
@@ -104,8 +104,7 @@ export const attendanceEventTypeEnum = pgEnum(
 
 export const SCAN_METHOD_VALUES = [
   "qr_scan",
-  "manual",
-  "auto_recess_scan" // Automatic re-scan during recess resume
+  "manual"
 ] as const;
 
 export const scanMethodEnum = pgEnum("scan_method", SCAN_METHOD_VALUES);
@@ -168,7 +167,7 @@ export type MeetingEventType = (typeof MEETING_EVENT_TYPE_VALUES)[number];
 export const ATTENDANCE_EVENT_TYPE_VALUES = ["check_in", "check_out"] as const;
 export type AttendanceEventType = (typeof ATTENDANCE_EVENT_TYPE_VALUES)[number];
 
-export const SCAN_METHOD_VALUES = ["qr_scan", "manual", "auto_recess_scan"] as const;
+export const SCAN_METHOD_VALUES = ["qr_scan", "manual"] as const;
 export type ScanMethod = (typeof SCAN_METHOD_VALUES)[number];
 ```
 
@@ -434,14 +433,10 @@ src/routes/[locale=locale]/(app)/admin/meetings/
 ```
 src/routes/[locale=locale]/(app)/
 ├── +page.svelte                    # Dashboard with QR code (if has membership)
-├── +page.server.ts                 # Load user data + QR token
-└── attendance/
-    └── history/
-        ├── +page.svelte            # User's attendance history
-        └── +page.server.ts         # Load user's attendance records
+└── +page.server.ts                 # Load user data + QR token
 ```
 
-**Note**: User's QR code is displayed directly on the dashboard page, not a separate route. Only shown if user has at least one active or expired membership.
+**Note**: User's QR code is displayed directly on the dashboard page, not a separate route. Only shown if user has at least one active or expired membership. This is a general member verification QR code, not specific to attendance tracking (can be used for various validation purposes).
 
 ### 3.3 Shared View Routes
 
@@ -477,8 +472,13 @@ src/routes/api/attendance/
 - Meeting info header (name, description, status)
 - State transition buttons:
   - `upcoming → ongoing`: "Start Meeting" button
-  - `ongoing → recess`: "Start Recess" button (with optional notes)
-  - `recess → ongoing`: "Resume Meeting" button (with option to re-scan all)
+  - `ongoing → recess`: "Start Recess" button with options:
+    - **Short recess** (e.g., 15 min break): Keep current attendance state, continue scanning people in/out at door for accurate count
+    - **Long recess** (e.g., overnight/multi-day): "Clear All Attendees" option - checks everyone out, then re-scan when meeting resumes
+    - Optional notes field (e.g., "Lunch break", "Day 2 continuation")
+  - `recess → ongoing`: "Resume Meeting" button
+    - If cleared during recess: attendees must be re-scanned as they arrive
+    - If not cleared: continue with current state
   - `ongoing → finished`: "End Meeting" button
 - Current attendee count by membership type
 - Timeline of meeting events (visual timeline)
@@ -512,43 +512,40 @@ src/routes/api/attendance/
 - Columns: Name, Membership Type, Status (In/Out), Last Action, Manual Actions
 - Filter by: Currently In, All Users, By Membership Type
 - Manual check-in/out buttons per user
-- Bulk actions: "Check Out All"
+- Bulk actions:
+  - "Check Out All" - Used for long recess to clear everyone before multi-day break
+  - Confirmation required for bulk actions
 - Real-time updates (optional: use polling or WebSockets)
 
-### 4.4 User - QR Code on Dashboard
+### 4.4 User - Member QR Code on Dashboard
 
 **File**: `src/routes/[locale=locale]/(app)/+page.svelte` (Dashboard)
 
-**Component**: `src/lib/components/attendance/user-qr-card.svelte` (new component)
+**Component**: `src/lib/components/member-qr-card.svelte` (new component)
 
 **Display Logic**:
 - Only show QR code card if user has at least one active OR expired membership
-- Hide if user has never had a membership (they can't attend meetings without one)
+- Hide if user has never had a membership (no membership = no verification needed)
 
 **QR Card Features**:
 - Compact QR code display (200x200px or similar)
 - User's full name displayed
-- Instructions: "Show this to meeting moderators for attendance tracking"
-- "View Attendance History" link button
+- Generic title: "Member Verification" or "Member Card"
+- Instructions: "Show this for member verification" (not attendance-specific)
 - Dark mode support (QR code should work in both modes)
 - Collapsible/expandable design (optional)
+
+**Purpose**:
+- General member verification tool (not just for attendance)
+- Can be used for: meeting check-in, event access, member discounts, etc.
+- Admin scanner will show context (meeting name if scanning for attendance)
 
 **Dashboard Integration**:
 - Position QR card alongside MembershipCard
 - Could be in a grid layout or stacked depending on screen size
 - Responsive: full width on mobile, side-by-side on desktop
 
-### 4.5 User - Attendance History
-
-**File**: `src/routes/[locale=locale]/attendance/history/+page.svelte`
-
-**Features**:
-- List of meetings attended
-- For each meeting: name, date, check-in/out times, duration
-- Filter by date range
-- Export personal attendance CSV
-
-### 4.6 Shared View - Meeting Attendance Log (View-Only)
+### 4.5 Shared View - Meeting Attendance Log (View-Only)
 
 **File**: `src/routes/[locale=locale]/meetings/shared/[shareToken]/+page.svelte`
 
@@ -706,6 +703,16 @@ For a better user experience, consider implementing real-time updates on the att
    - Tokens should be long (32 bytes) and random
    - Store tokens securely (consider hashing if needed)
    - Tokens should be unique per user
+   - **Rotation vs Static**:
+     - **Static tokens (recommended)**: Permanent QR code per user, simple and convenient
+     - **Rotating tokens**: More secure but adds complexity (users need to refresh QR code)
+     - **Mitigation without rotation**:
+       - Human confirmation: Scanner always shows user's name for verification
+       - Context awareness: Scanner shows what the QR code is being used for (meeting name, event, etc.)
+       - Rate limiting: Prevent same QR code being scanned multiple times rapidly
+       - Audit logging: Track all QR code uses for security review
+       - Revocation: Ability to regenerate user's QR token if compromised (admin action)
+     - **Best practice**: Start with static tokens + human confirmation. Only add rotation if abuse is detected.
 
 2. **Share Token Security**:
    - Share tokens should be long (32 bytes) and random
@@ -759,19 +766,16 @@ nav: {
   },
 },
 
-// Add new attendance section:
+// Add new member card and attendance sections:
+memberCard: {
+  title: "Jäsenkortti",
+  verification: "Jäsentodistus",
+  instructions: "Näytä tämä QR-koodi jäsentodistusta varten",
+  yourName: "Sinun nimesi",
+},
+
 attendance: {
   title: "Läsnäololista",
-  myQrCode: "Minun QR-koodini",
-  showToModerator: "Näytä tämä kokouksen järjestäjälle",
-  myHistory: "Läsnäolohistoriani",
-  viewHistory: "Katso läsnäolohistoria",
-
-  qrCard: {
-    title: "Kokouksen läsnäolokirjaus",
-    instructions: "Näytä tämä QR-koodi kokouksen järjestäjälle läsnäolon kirjaamiseen",
-    yourName: "Sinun nimesi",
-  },
 
   meetings: {
     title: "Kokoukset",
@@ -1150,11 +1154,11 @@ describe("validateRedirect", () => {
 4. Create QR token utilities (`src/lib/server/attendance/qr-token.ts`)
 5. Create attendance logic utilities (`src/lib/server/attendance/index.ts`)
 
-### Phase 2: User QR Code on Dashboard
-1. Create QR card component (`src/lib/components/attendance/user-qr-card.svelte`)
+### Phase 2: Member QR Card on Dashboard
+1. Create member QR card component (`src/lib/components/member-qr-card.svelte`)
 2. Update dashboard to load QR token (if user has membership)
-3. Integrate QR card into dashboard layout
-4. Add i18n translations
+3. Integrate QR card into dashboard layout (alongside MembershipCard)
+4. Add i18n translations (generic member verification, not attendance-specific)
 5. Add conditional rendering (only show if active/expired membership exists)
 
 ### Phase 3: Admin Meeting Management
@@ -1212,15 +1216,11 @@ describe("validateRedirect", () => {
 - [ ] `src/lib/server/attendance/export.ts` (CSV generation)
 
 #### Components
-- [ ] `src/lib/components/attendance/user-qr-card.svelte` (QR code card for dashboard)
-- [ ] `src/lib/components/attendance/qr-scanner.svelte` (admin scanner)
+- [ ] `src/lib/components/member-qr-card.svelte` (QR code card for dashboard - general member verification)
+- [ ] `src/lib/components/attendance/qr-scanner.svelte` (admin scanner for meetings)
 - [ ] `src/lib/components/attendance/scan-confirmation-modal.svelte`
 - [ ] `src/lib/components/attendance/meeting-timeline.svelte`
 - [ ] `src/lib/components/attendance/attendee-count-cards.svelte`
-
-#### User Routes
-- [ ] `src/routes/[locale=locale]/(app)/attendance/history/+page.svelte`
-- [ ] `src/routes/[locale=locale]/(app)/attendance/history/+page.server.ts`
 
 #### Shared View Routes
 - [ ] `src/routes/[locale=locale]/(app)/meetings/shared/[shareToken]/+page.svelte`
@@ -1343,13 +1343,32 @@ describe("validateRedirect", () => {
 
 ## Notes
 
+### General
 - All timestamps should use `withTimezone: true` for international support
-- Consider rate limiting on QR scans (max 1 scan per user per 5 seconds)
-- QR codes should be large enough to scan easily (300x300px recommended)
-- Scanner should provide audio/haptic feedback for better UX
 - CSV export should handle large meetings (1000+ attendees)
 - Meeting events (start, recess, finish) should be clearly visible in CSV
 - Manual check-in/out should require confirmation to prevent accidents
+
+### Member QR Code
+- **General purpose tool**: Not branded as "attendance" for users - just "member verification/card"
+- Can be used for: meeting check-in, event access, member discounts, verification, etc.
+- Only shown if user has active or expired membership
+- QR code should be large enough to scan easily (200-300px recommended)
+- Static tokens recommended (with human confirmation as security layer)
+- Consider adding admin ability to regenerate user's QR token if compromised
+
+### Scanner & Scanning
+- Scanner should provide audio/haptic feedback for better UX
+- Always show user name after scan for human verification
+- Show context (e.g., "Scanning for: General Assembly 2026")
+- Consider rate limiting on QR scans (max 1 scan per user per 5 seconds per meeting)
+
+### Recess Handling
+- **Short recess** (15 min): Keep current state, continue scanning in/out for accurate count
+- **Long recess** (overnight/multi-day): Admin uses "Check Out All", then re-scan when resumed
+- Admin chooses approach when starting recess based on duration
+
+### Shared Links
 - Share links require authentication for audit purposes (know who viewed the data)
 - Share links should be regenerated if compromised or when secretary/chair changes
 - Consider adding expiration dates to share links for additional security (optional enhancement)
