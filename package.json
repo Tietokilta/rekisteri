@@ -2,6 +2,7 @@
 	"name": "rekisteri",
 	"private": true,
 	"version": "0.0.1",
+	"license": "MIT",
 	"type": "module",
 	"scripts": {
 		"prepare": "[ -n \"$NIX_BUILD_TOP\" ] || (svelte-kit sync && pnpm i18n:generate)",
