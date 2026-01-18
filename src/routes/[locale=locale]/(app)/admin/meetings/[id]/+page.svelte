@@ -4,6 +4,7 @@
 	import { Button } from "$lib/components/ui/button/index.js";
 	import * as Card from "$lib/components/ui/card";
 	import { Badge } from "$lib/components/ui/badge";
+	import { Input } from "$lib/components/ui/input";
 	import AdminPageHeader from "$lib/components/admin-page-header.svelte";
 	import { transitionMeeting, checkOutAll } from "./data.remote";
 	import { transitionMeetingSchema, checkOutAllSchema } from "./schema";
@@ -12,8 +13,20 @@
 	import Coffee from "@lucide/svelte/icons/coffee";
 	import CheckCircle from "@lucide/svelte/icons/check-circle";
 	import Users from "@lucide/svelte/icons/users";
+	import Share2 from "@lucide/svelte/icons/share-2";
+	import Copy from "@lucide/svelte/icons/copy";
+	import { toast } from "svelte-sonner";
 
 	const { data }: PageProps = $props();
+
+	async function copyShareLink() {
+		try {
+			await navigator.clipboard.writeText(data.shareUrl);
+			toast.success("Share link copied to clipboard!");
+		} catch {
+			toast.error("Failed to copy link");
+		}
+	}
 
 	// Get status badge variant based on meeting status
 	function getStatusVariant(
@@ -83,6 +96,26 @@
 					<dd class="mt-1 text-sm font-semibold">{data.currentAttendeeCount}</dd>
 				</div>
 			</dl>
+		</Card.Content>
+	</Card.Root>
+
+	<!-- Share link -->
+	<Card.Root class="mb-6">
+		<Card.Header>
+			<div class="flex items-center gap-2">
+				<Share2 class="h-5 w-5" />
+				<Card.Title>Public Attendance View</Card.Title>
+			</div>
+			<Card.Description>Share this link to allow read-only access to attendance data</Card.Description>
+		</Card.Header>
+		<Card.Content>
+			<div class="flex gap-2">
+				<Input value={data.shareUrl} readonly class="font-mono text-sm" />
+				<Button onclick={copyShareLink} variant="outline">
+					<Copy class="mr-2 h-4 w-4" />
+					Copy
+				</Button>
+			</div>
 		</Card.Content>
 	</Card.Root>
 

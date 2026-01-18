@@ -3,6 +3,7 @@ import type { PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
 import { eq } from "drizzle-orm";
 import * as table from "$lib/server/db/schema";
+import { ensureMeetingHasShareToken } from "$lib/server/attendance/share-token";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user?.isAdmin) {
@@ -40,8 +41,13 @@ export const load: PageServerLoad = async (event) => {
 		}
 	}
 
+	// Ensure meeting has a share token and build the share URL
+	const shareToken = await ensureMeetingHasShareToken(id);
+	const shareUrl = `${event.url.origin}/share/${shareToken}`;
+
 	return {
 		meeting,
 		currentAttendeeCount: currentlyIn.size,
+		shareUrl,
 	};
 };
