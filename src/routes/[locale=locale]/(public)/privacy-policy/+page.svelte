@@ -2,18 +2,15 @@
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	// svelte-check doesn't recognize ambient module declarations for .svx files
 	// @ts-expect-error - see app.d.ts for module declaration
-	import FiContent from "./fi.svx";
+	import FiContent, { metadata as fiMetadata } from "./fi.svx";
 	// @ts-expect-error - see app.d.ts for module declaration
-	import EnContent from "./en.svx";
+	import EnContent, { metadata as enMetadata } from "./en.svx";
 
-	const titles = {
-		fi: "Jäsenrekisterin rekisteri- ja tietosuojaseloste",
-		en: "Member Registry Privacy Statement",
-	} as const;
+	const metadata = { fi: fiMetadata, en: enMetadata } as const;
 </script>
 
 <svelte:head>
-	<title>{titles[$locale]} - {$LL.app.title()}</title>
+	<title>{metadata[$locale].title} - {$LL.app.title()}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-4xl px-4 py-8">
