@@ -3,6 +3,8 @@ import * as v from "valibot";
 import { db } from "../db";
 import * as table from "../db/schema";
 import type { SecondaryEmail, User } from "../db/schema";
+import type { RequestEvent } from "@sveltejs/kit";
+import { auditEmailChange } from "../audit";
 
 /**
  * Domains that require periodic re-verification
@@ -314,10 +316,11 @@ export async function deleteSecondaryEmail(emailId: string, userId: string): Pro
  *    a. Updates user's primary email
  *    b. Deletes the promoted secondary email record
  *    c. Creates new secondary email from old primary
+ *    d. Logs the email change for audit trail
  *
  * Returns true if successful, false if validation fails
  */
-export async function changePrimaryEmail(emailId: string, userId: string): Promise<boolean> {
+export async function changePrimaryEmail(emailId: string, userId: string, event: RequestEvent): Promise<boolean> {
 	// Get and validate the secondary email
 	const secondaryEmail = await getSecondaryEmailById(emailId, userId);
 	if (!secondaryEmail) {
@@ -371,6 +374,9 @@ export async function changePrimaryEmail(emailId: string, userId: string): Promi
 
 		await tx.insert(table.secondaryEmail).values(newSecondaryEmail);
 	});
+
+	// 4. Log the email change for audit trail
+	await auditEmailChange(event, userId, oldPrimaryEmail, newPrimaryEmail);
 
 	return true;
 }
