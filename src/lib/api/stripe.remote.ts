@@ -46,6 +46,12 @@ export const getStripePriceMetadata = query.batch(v.pipe(v.string(), v.minLength
 		}),
 	);
 
-	// Return lookup function
-	return (priceId) => lookup.get(priceId);
+	// Return lookup function that throws if price not found
+	return (priceId) => {
+		const result = lookup.get(priceId);
+		if (!result) {
+			throw new Error(`Price ${priceId} not found in batch results`);
+		}
+		return result;
+	};
 });
