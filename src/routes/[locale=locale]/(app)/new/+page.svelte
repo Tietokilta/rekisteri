@@ -8,6 +8,7 @@
 	import ProfileIncompleteCard from "$lib/components/profile-incomplete-card.svelte";
 	import CircleCheck from "@lucide/svelte/icons/circle-check";
 	import CircleAlert from "@lucide/svelte/icons/circle-alert";
+	import ExternalLink from "@lucide/svelte/icons/external-link";
 	import { payMembership } from "./data.remote";
 	import { payMembershipSchema } from "./schema";
 	import { getStripePriceMetadata } from "$lib/api/stripe.remote";
@@ -16,7 +17,17 @@
 	const { data }: PageProps = $props();
 
 	const { memberships, availableMemberships } = data;
-	const filteredMemberships = availableMemberships.filter((a) => !memberships.some((b) => a.id === b.id));
+	// Only show memberships that have a Stripe price ID and user doesn't already have
+	const filteredMemberships = availableMemberships.filter(
+		(a): a is typeof a & { stripePriceId: string } => !!a.stripePriceId && !memberships.some((b) => a.id === b.id),
+	);
+
+	// URL for guild bylaws based on locale
+	const bylawsUrl = $derived(
+		$locale === "fi"
+			? "https://tietokilta.fi/fi/kilta/saannot#5-jasenet"
+			: "https://tietokilta.fi/en/guild/rules#5-members",
+	);
 
 	// Check if profile is complete
 	const isProfileComplete = $derived(Boolean(data.user.firstNames && data.user.lastName && data.user.homeMunicipality));
@@ -45,31 +56,45 @@
 						{#each filteredMemberships as membership (membership.id)}
 							{@const typeName =
 								$locale === "fi" ? membership.membershipType.name.fi : membership.membershipType.name.en}
+							{@const typeDescription = membership.membershipType.description
+								? $locale === "fi"
+									? membership.membershipType.description.fi
+									: membership.membershipType.description.en
+								: null}
 							<label
 								class="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors focus-within:border-primary hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-accent"
 							>
 								<input {...payMembership.fields.membershipId.as("radio", membership.id)} required class="mt-1" />
-								<div class="flex flex-col">
-									{#if membership.stripePriceId}
-										<svelte:boundary>
-											{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
-											<span class="font-medium">
-												{typeName} ({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
-											</span>
-											{#snippet failed()}
-												<span class="font-medium text-destructive">{$LL.admin.memberships.failedToLoadPrice()}</span>
-											{/snippet}
-										</svelte:boundary>
-									{:else}
-										<span class="font-medium">{typeName}</span>
-									{/if}
+								<div class="flex flex-col gap-1">
+									<svelte:boundary>
+										{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
+										<span class="font-medium">
+											{typeName} ({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
+										</span>
+										{#snippet failed()}
+											<span class="font-medium text-destructive">{$LL.admin.memberships.failedToLoadPrice()}</span>
+										{/snippet}
+									</svelte:boundary>
 									<span class="text-sm text-muted-foreground">
 										{new Date(membership.startTime).toLocaleDateString(`${$locale}-FI`)}
 										– {new Date(membership.endTime).toLocaleDateString(`${$locale}-FI`)}
 									</span>
+									{#if typeDescription}
+										<span class="text-sm text-muted-foreground">{typeDescription}</span>
+									{/if}
 								</div>
 							</label>
 						{/each}
+
+						<a
+							href={bylawsUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:underline"
+						>
+							<ExternalLink class="size-4" />
+							{$LL.membership.moreInfoInBylaws()}
+						</a>
 					</div>
 
 					{#if requireStudentVerification}

@@ -241,6 +241,7 @@ const fi = {
 		getStarted: "Osta jäsenyys päästäksesi alkuun",
 		currentMemberships: "Aktiiviset jäsenyydet",
 		pastMemberships: "Aiemmat jäsenyydet",
+		moreInfoInBylaws: "Lisätietoja jäsenyyksistä killan säännöissä",
 
 		// Status
 		status: {

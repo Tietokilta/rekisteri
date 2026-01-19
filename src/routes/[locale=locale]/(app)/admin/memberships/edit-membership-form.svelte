@@ -33,6 +33,12 @@
 
 	let { membership, membershipTypes, onClose }: Props = $props();
 
+	// Generate unique IDs for form elements
+	const formId = $derived(`edit-membership-form-${membership.id}`);
+	const membershipTypeInputId = $derived(`edit-membershipTypeId-${membership.id}`);
+	const stripePriceInputId = $derived(`edit-stripePriceId-${membership.id}`);
+	const studentVerificationInputId = $derived(`edit-requiresStudentVerification-${membership.id}`);
+
 	const editForm = updateMembership.for(membership.id);
 
 	// Initialize form fields when component mounts
@@ -92,6 +98,7 @@
 </script>
 
 <form
+	id={formId}
 	{...editForm.preflight(updateMembershipSchema).enhance(async ({ submit }) => {
 		await submit();
 		onClose();
@@ -103,10 +110,10 @@
 
 	<!-- Membership Type -->
 	<div class="space-y-2">
-		<Label for="edit-membershipTypeId">{$LL.membership.type()}</Label>
+		<Label for={membershipTypeInputId}>{$LL.membership.type()}</Label>
 		<select
 			{...editForm.fields.membershipTypeId.as("select")}
-			id="edit-membershipTypeId"
+			id={membershipTypeInputId}
 			class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 		>
 			<option value="">{$LL.common.select()}</option>
@@ -124,10 +131,10 @@
 
 	<!-- Stripe Price ID -->
 	<div class="space-y-2">
-		<Label for="edit-stripePriceId">{$LL.admin.memberships.stripePriceId()}</Label>
+		<Label for={stripePriceInputId}>{$LL.admin.memberships.stripePriceId()}</Label>
 		<Input
 			{...editForm.fields.stripePriceId.as("text")}
-			id="edit-stripePriceId"
+			id={stripePriceInputId}
 			placeholder="price_xxx"
 			class="font-mono"
 		/>
@@ -187,7 +194,7 @@
 	>
 		<Input
 			{...editForm.fields.requiresStudentVerification.as("checkbox")}
-			id="edit-requiresStudentVerification"
+			id={studentVerificationInputId}
 			class="size-5"
 		/>
 		<div class="flex-1">
@@ -198,31 +205,36 @@
 		</div>
 		<GraduationCap class="size-5 text-muted-foreground" />
 	</label>
-
-	<Sheet.Footer class="flex-col gap-3">
-		<div class="flex w-full gap-3">
-			<Button type="button" variant="outline" class="flex-1" onclick={onClose}>
-				{$LL.common.cancel()}
-			</Button>
-			<Button type="submit" disabled={!!editForm.pending} class="flex-1">{$LL.common.save()}</Button>
-		</div>
-	</Sheet.Footer>
 </form>
 
-{#if membership.memberCount === 0}
-	{@const deleteForm = deleteMembership.for(membership.id)}
-	<form
-		{...deleteForm.preflight(deleteMembershipSchema).enhance(async ({ submit }) => {
-			await submit();
-			onClose();
-			await invalidateAll();
-		})}
-		class="px-4 pb-4"
-	>
-		<input {...deleteForm.fields.id.as("hidden", membership.id)} />
-		<Button type="submit" variant="destructive" class="w-full">
-			<Trash2 class="size-4" />
-			{$LL.common.delete()}
+<Sheet.Footer class="flex-col gap-3">
+	<div class="flex w-full gap-3">
+		<Button type="button" variant="outline" class="flex-1" onclick={onClose}>
+			{$LL.common.cancel()}
 		</Button>
-	</form>
-{/if}
+		<Button type="submit" form={formId} disabled={!!editForm.pending} class="flex-1">
+			{$LL.common.save()}
+		</Button>
+	</div>
+	{#if membership.memberCount === 0}
+		{@const deleteForm = deleteMembership.for(membership.id)}
+		<form
+			{...deleteForm.preflight(deleteMembershipSchema).enhance(async ({ submit }) => {
+				await submit();
+				onClose();
+				await invalidateAll();
+			})}
+			class="w-full"
+		>
+			<input {...deleteForm.fields.id.as("hidden", membership.id)} />
+			<Button
+				type="submit"
+				variant="outline"
+				class="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+			>
+				<Trash2 class="size-4" />
+				{$LL.common.delete()}
+			</Button>
+		</form>
+	{/if}
+</Sheet.Footer>

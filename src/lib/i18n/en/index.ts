@@ -241,6 +241,7 @@ const en = {
 		getStarted: "Purchase a membership to get started",
 		currentMemberships: "Active memberships",
 		pastMemberships: "Past memberships",
+		moreInfoInBylaws: "More information about memberships in the guild bylaws",
 
 		// Status
 		status: {
