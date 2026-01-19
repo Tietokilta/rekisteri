@@ -157,7 +157,7 @@ export const mergeUsers = command(
 				if (secondaryMember.membershipId === primaryMember.membershipId) {
 					error(
 						400,
-						`Cannot merge: Both users have membership "${secondaryMember.membership.type}" for the same period (${new Date(secondaryMember.membership.startTime).toLocaleDateString()} - ${new Date(secondaryMember.membership.endTime).toLocaleDateString()})`,
+						`Cannot merge: Both users have membership "${secondaryMember.membership.membershipTypeId}" for the same period (${new Date(secondaryMember.membership.startTime).toLocaleDateString()} - ${new Date(secondaryMember.membership.endTime).toLocaleDateString()})`,
 					);
 				}
 			}

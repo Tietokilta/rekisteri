@@ -5,7 +5,7 @@ export const csvRowSchema = v.object({
 	lastName: v.pipe(v.string(), v.minLength(1)),
 	homeMunicipality: v.pipe(v.string(), v.minLength(1)),
 	email: v.pipe(v.string(), v.email()),
-	membershipType: v.pipe(v.string(), v.minLength(1)),
+	membershipTypeId: v.pipe(v.string(), v.minLength(1)),
 	membershipStartDate: v.pipe(v.string(), v.minLength(1)),
 });
 

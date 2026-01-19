@@ -19,6 +19,7 @@ const fi = {
 			title: "Hallinta",
 			members: "Jäsenet",
 			memberships: "Jäsenyydet",
+			membershipTypes: "Jäsenyystyypit",
 			users: "Käyttäjät",
 		},
 		signOut: "Kirjaudu ulos",
@@ -240,6 +241,7 @@ const fi = {
 		getStarted: "Osta jäsenyys päästäksesi alkuun",
 		currentMemberships: "Aktiiviset jäsenyydet",
 		pastMemberships: "Aiemmat jäsenyydet",
+		moreInfoInBylaws: "Lisätietoja jäsenyyksistä killan säännöissä",
 
 		// Status
 		status: {
@@ -270,6 +272,24 @@ const fi = {
 			priceInactive: "Varoitus: Tämä hinta ei ole aktiivinen Stripessä",
 			legacyMembership: "Arkistojäsenyys (ei Stripe-hintaa)",
 			failedToLoadPrice: "Hinnan lataus epäonnistui",
+		},
+
+		membershipTypes: {
+			title: "Hallinnoi jäsenyystyyppejä",
+			description: "Luo ja muokkaa jäsenyystyyppejä",
+			createNew: "Luo uusi tyyppi",
+			createDescription: "Luo uusi jäsenyystyyppi, jota voidaan käyttää jäsenyyksissä",
+			editType: "Muokkaa jäsenyystyyppiä",
+			noTypes: "Ei jäsenyystyyppejä",
+			id: "Tunniste",
+			idDescription: "Yksilöllinen tunniste (käytetään sisäisesti). Käytä pieniä kirjaimia, numeroita ja tavuviivoja.",
+			idCannotChange: "Tunnistetta ei voi muuttaa luomisen jälkeen",
+			nameFi: "Nimi (suomeksi)",
+			nameEn: "Nimi (englanniksi)",
+			descriptionFi: "Kuvaus (suomeksi, valinnainen)",
+			descriptionEn: "Kuvaus (englanniksi, valinnainen)",
+			descriptionPlaceholder: "Valinnainen kuvaus jäsenyystyypille...",
+			cannotDeleteInUse: "Jäsenyystyyppiä ei voi poistaa, koska sillä on jäsenyyksiä",
 		},
 
 		members: {
@@ -445,9 +465,12 @@ const fi = {
 	common: {
 		save: "Tallenna",
 		delete: "Poista",
+		deleteFailed: "Poistaminen epäonnistui",
 		edit: "Muokkaa",
 		cancel: "Peruuta",
 		actions: "Toiminnot",
+		create: "Luo",
+		select: "Valitse",
 	},
 
 	// Error page

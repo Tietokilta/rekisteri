@@ -34,23 +34,28 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 		error(400, `Validation failed: ${issues}`);
 	}
 
-	// Fetch all memberships
+	// Fetch all membership types to validate IDs
+	const membershipTypes = await db.select().from(table.membershipType);
+	const validTypeIds = new Set(membershipTypes.map((mt) => mt.id));
+
+	// Fetch all memberships with their type info
 	const memberships = await db
 		.select({
 			id: table.membership.id,
-			type: table.membership.type,
+			membershipTypeId: table.membership.membershipTypeId,
 			startTime: table.membership.startTime,
 			endTime: table.membership.endTime,
 		})
 		.from(table.membership);
 
-	const membershipsByType = new Map<string, typeof memberships>();
+	// Group memberships by membershipTypeId
+	const membershipsByTypeId = new Map<string, typeof memberships>();
 	for (const membership of memberships) {
-		const existing = membershipsByType.get(membership.type);
+		const existing = membershipsByTypeId.get(membership.membershipTypeId);
 		if (existing) {
 			existing.push(membership);
 		} else {
-			membershipsByType.set(membership.type, [membership]);
+			membershipsByTypeId.set(membership.membershipTypeId, [membership]);
 		}
 	}
 
@@ -98,13 +103,23 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 				continue;
 			}
 
-			// Check if membership type exists
-			const membershipOptions = membershipsByType.get(row.membershipType);
+			// Check if membership type ID is valid
+			if (!validTypeIds.has(row.membershipTypeId)) {
+				errors.push({
+					row: i + 1,
+					email: row.email,
+					error: `Membership type ID "${row.membershipTypeId}" not found`,
+				});
+				continue;
+			}
+
+			// Get memberships for this type
+			const membershipOptions = membershipsByTypeId.get(row.membershipTypeId);
 			if (!membershipOptions || membershipOptions.length === 0) {
 				errors.push({
 					row: i + 1,
 					email: row.email,
-					error: `Membership type "${row.membershipType}" not found`,
+					error: `No memberships found for type "${row.membershipTypeId}"`,
 				});
 				continue;
 			}
@@ -116,7 +131,7 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 				errors.push({
 					row: i + 1,
 					email: row.email,
-					error: `No membership found for type "${row.membershipType}" starting on ${row.membershipStartDate}`,
+					error: `No membership found for type "${row.membershipTypeId}" starting on ${row.membershipStartDate}`,
 				});
 				continue;
 			}

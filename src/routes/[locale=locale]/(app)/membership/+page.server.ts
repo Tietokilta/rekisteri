@@ -14,11 +14,13 @@ export const load: PageServerLoad = async (event) => {
 		.select()
 		.from(table.member)
 		.innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
+		.innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
 		.where(eq(table.member.userId, event.locals.user.id))
 		.orderBy(desc(table.membership.startTime));
 
 	const memberships = result.map((m) => ({
 		...m.membership,
+		membershipType: m.membership_type,
 		status: m.member.status,
 		unique_id: m.member.id,
 	}));

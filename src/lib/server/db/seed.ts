@@ -14,10 +14,54 @@ try {
 	const db = drizzle(client, { schema: table, casing: "snake_case" });
 
 	console.log("Resetting database...");
-	await reset(db, { user: table.user, membership: table.membership, member: table.member });
+	await reset(db, {
+		user: table.user,
+		membership: table.membership,
+		member: table.member,
+		membershipType: table.membershipType,
+	});
 	console.log("Database reset!");
 
 	console.log("Seeding database...");
+
+	// Seed membership types first
+	const membershipTypesToSeed = [
+		{
+			id: "varsinainen-jasen",
+			name: { fi: "Varsinainen jäsen", en: "Regular member" },
+			description: {
+				fi: "Killan toiminnasta kiinnostuneille henkilöille, joilla on tutkintoon johtava opiskeluoikeus tai vaihto-opinto-oikeus Aalto-yliopistossa.",
+				en: "For persons interested in the guild's activities who have a right to study leading to a degree or a right to complete exchange studies at Aalto University.",
+			},
+		},
+		{
+			id: "ulkojasen",
+			name: { fi: "Ulkojäsen", en: "External member" },
+			description: {
+				fi: "Killan toiminnasta kiinnostuneille henkilöille, jotka ovat suorittaneet toisen asteen tutkinnon tai joilla on tutkintoon johtava opinto-oikeus toisessa korkeakoulussa.",
+				en: "For persons interested in the guild's activities who have completed an upper secondary qualification or have a right to study leading to a degree at another higher education institution.",
+			},
+		},
+		{
+			id: "alumnijasen",
+			name: { fi: "Alumnijäsen", en: "Alumni member" },
+			description: {
+				fi: "Henkilöille, joilla on aiemmin ollut tutkintoon johtava opiskeluoikeus korkeakoulussa.",
+				en: "For persons who previously had a right to study leading to a degree at a higher education institution.",
+			},
+		},
+		{
+			id: "kannatusjasen",
+			name: { fi: "Kannatusjäsen", en: "Supporting member" },
+			description: {
+				fi: "Killan toimintaa tukeville henkilöille tai oikeushenkilöille.",
+				en: "For persons or legal entities supporting the guild's activities.",
+			},
+		},
+	];
+
+	await db.insert(table.membershipType).values(membershipTypesToSeed);
+	console.log("Seeded membership types!");
 
 	const rootUserId = generateUserId();
 	await db.insert(table.user).values({
@@ -34,16 +78,16 @@ try {
 	const membershipsToSeed = [
 		// 2022-2023 period (expired, legacy - no Stripe price)
 		{
-			id: generateUserId(),
-			type: "varsinainen jäsen",
+			id: crypto.randomUUID(),
+			membershipTypeId: "varsinainen-jasen",
 			stripePriceId: null,
 			startTime: new Date("2022-08-01"),
 			endTime: new Date("2023-07-31"),
 			requiresStudentVerification: true,
 		},
 		{
-			id: generateUserId(),
-			type: "ulkojäsen",
+			id: crypto.randomUUID(),
+			membershipTypeId: "ulkojasen",
 			stripePriceId: null,
 			startTime: new Date("2022-08-01"),
 			endTime: new Date("2023-07-31"),
@@ -51,16 +95,16 @@ try {
 		},
 		// 2023-2024 period (expired, legacy - no Stripe price)
 		{
-			id: generateUserId(),
-			type: "varsinainen jäsen",
+			id: crypto.randomUUID(),
+			membershipTypeId: "varsinainen-jasen",
 			stripePriceId: null,
 			startTime: new Date("2023-08-01"),
 			endTime: new Date("2024-07-31"),
 			requiresStudentVerification: true,
 		},
 		{
-			id: generateUserId(),
-			type: "ulkojäsen",
+			id: crypto.randomUUID(),
+			membershipTypeId: "ulkojasen",
 			stripePriceId: null,
 			startTime: new Date("2023-08-01"),
 			endTime: new Date("2024-07-31"),
@@ -68,24 +112,24 @@ try {
 		},
 		// 2024-2025 period (with Stripe prices)
 		{
-			id: generateUserId(),
-			type: "varsinainen jäsen",
+			id: crypto.randomUUID(),
+			membershipTypeId: "varsinainen-jasen",
 			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
 			startTime: new Date("2024-08-01"),
 			endTime: new Date("2025-07-31"),
 			requiresStudentVerification: true,
 		},
 		{
-			id: generateUserId(),
-			type: "ulkojäsen",
+			id: crypto.randomUUID(),
+			membershipTypeId: "ulkojasen",
 			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
 			startTime: new Date("2024-08-01"),
 			endTime: new Date("2025-07-31"),
 			requiresStudentVerification: false,
 		},
 		{
-			id: generateUserId(),
-			type: "kannatusjäsen",
+			id: crypto.randomUUID(),
+			membershipTypeId: "kannatusjasen",
 			stripePriceId: "price_1R8ORc2a3B4f6jfh4mtYKiXl",
 			startTime: new Date("2024-08-01"),
 			endTime: new Date("2025-07-31"),
@@ -93,27 +137,53 @@ try {
 		},
 		// 2025-2026 period (current, with Stripe prices)
 		{
-			id: generateUserId(),
-			type: "varsinainen jäsen",
+			id: crypto.randomUUID(),
+			membershipTypeId: "varsinainen-jasen",
 			stripePriceId: "price_1Sqs7c2a3B4f6jfhBiyJfAno",
 			startTime: new Date("2025-08-01"),
 			endTime: new Date("2026-07-31"),
 			requiresStudentVerification: true,
 		},
 		{
-			id: generateUserId(),
-			type: "ulkojäsen",
+			id: crypto.randomUUID(),
+			membershipTypeId: "ulkojasen",
 			stripePriceId: "price_1Sqs7y2a3B4f6jfhHjnWzk9n",
 			startTime: new Date("2025-08-01"),
 			endTime: new Date("2026-07-31"),
 			requiresStudentVerification: false,
 		},
 		{
-			id: generateUserId(),
-			type: "kannatusjäsen",
+			id: crypto.randomUUID(),
+			membershipTypeId: "kannatusjasen",
 			stripePriceId: "price_1Sqs8B2a3B4f6jfhB5Ga6AJC",
 			startTime: new Date("2025-08-01"),
 			endTime: new Date("2026-07-31"),
+			requiresStudentVerification: false,
+		},
+		// 2026-2027 period (upcoming, no Stripe prices yet, no members seeded)
+		// Note: Kannatusjäsen replaced by Alumnijäsen starting this period
+		{
+			id: crypto.randomUUID(),
+			membershipTypeId: "varsinainen-jasen",
+			stripePriceId: null,
+			startTime: new Date("2026-08-01"),
+			endTime: new Date("2027-07-31"),
+			requiresStudentVerification: true,
+		},
+		{
+			id: crypto.randomUUID(),
+			membershipTypeId: "ulkojasen",
+			stripePriceId: null,
+			startTime: new Date("2026-08-01"),
+			endTime: new Date("2027-07-31"),
+			requiresStudentVerification: false,
+		},
+		{
+			id: crypto.randomUUID(),
+			membershipTypeId: "alumnijasen",
+			stripePriceId: null,
+			startTime: new Date("2026-08-01"),
+			endTime: new Date("2027-07-31"),
 			requiresStudentVerification: false,
 		},
 	];
@@ -123,7 +193,7 @@ try {
 		.values(membershipsToSeed)
 		.returning({ id: table.membership.id, endTime: table.membership.endTime });
 
-	// Direct weights for each membership (must sum to 1.0)
+	// Direct weights for each membership (must sum to 1.0 for memberships that should have members)
 	const weights = [
 		0.045, // 2022 varsinainen (5% of users * 90% varsinainen)
 		0.005, // 2022 ulkojäsen (5% of users * 10% ulkojäsen)
@@ -135,6 +205,10 @@ try {
 		0.45, // 2025 varsinainen (50% of users * 90% varsinainen)
 		0.045, // 2025 ulkojäsen (50% of users * 9% ulkojäsen)
 		0.005, // 2025 kannatusjäsen (50% of users * 1% kannatusjäsen)
+		// 2026-2027 memberships - no members seeded (upcoming period)
+		0, // 2026 varsinainen
+		0, // 2026 ulkojäsen
+		0, // 2026 alumnijäsen
 	];
 
 	// Seed users only first

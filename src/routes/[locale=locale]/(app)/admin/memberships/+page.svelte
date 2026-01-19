@@ -31,7 +31,14 @@
 		editSheetOpen = true;
 	}
 
-	// Group memberships by start year and sort by type within each group
+	// Helper to get membership type name for a membership
+	function getMembershipTypeName(membershipTypeId: string, locale: string): string {
+		const membershipType = data.membershipTypes.find((t) => t.id === membershipTypeId);
+		if (!membershipType) return membershipTypeId;
+		return locale === "fi" ? membershipType.name.fi : membershipType.name.en;
+	}
+
+	// Group memberships by start year and sort by type name within each group
 	function groupByYear(memberships: typeof data.memberships) {
 		const groups: Record<number, typeof data.memberships> = {};
 		for (const membership of memberships) {
@@ -41,9 +48,19 @@
 			}
 			groups[year].push(membership);
 		}
-		// Sort years descending (newest first), and sort memberships by type within each year
+		// Sort years descending (newest first), and sort memberships by type name within each year
 		return Object.entries(groups)
-			.map(([year, items]) => [Number(year), items.toSorted((a, b) => a.type.localeCompare(b.type))] as const)
+			.map(
+				([year, items]) =>
+					[
+						Number(year),
+						items.toSorted((a, b) =>
+							getMembershipTypeName(a.membershipTypeId, $locale).localeCompare(
+								getMembershipTypeName(b.membershipTypeId, $locale),
+							),
+						),
+					] as const,
+			)
 			.toSorted((a, b) => b[0] - a[0]);
 	}
 
@@ -93,7 +110,7 @@
 										onclick={() => openEditSheet(membership)}
 									>
 										<Item.Header>
-											<span class="font-medium">{membership.type}</span>
+											<span class="font-medium">{getMembershipTypeName(membership.membershipTypeId, $locale)}</span>
 											{#if membership.stripePriceId}
 												<svelte:boundary>
 													{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
@@ -169,7 +186,7 @@
 			{#if createSheetOpen}
 				<CreateMembershipForm
 					defaultValues={data.defaultValues}
-					types={data.types}
+					membershipTypes={data.membershipTypes}
 					onClose={() => (createSheetOpen = false)}
 				/>
 			{/if}
@@ -191,7 +208,11 @@
 		</Sheet.Header>
 		{#if editingMembership}
 			{#key editingMembership.id}
-				<EditMembershipForm membership={editingMembership} types={data.types} onClose={() => (editSheetOpen = false)} />
+				<EditMembershipForm
+					membership={editingMembership}
+					membershipTypes={data.membershipTypes}
+					onClose={() => (editSheetOpen = false)}
+				/>
 			{/key}
 		{/if}
 	</Sheet.Content>

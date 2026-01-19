@@ -68,6 +68,10 @@
 		const end = new Date(endTime).toLocaleDateString(`${$locale}-FI`);
 		return `${start} – ${end}`;
 	}
+
+	function getTypeName(membership: (typeof data.memberships)[number]) {
+		return $locale === "fi" ? membership.membershipType.name.fi : membership.membershipType.name.en;
+	}
 </script>
 
 <div class="container mx-auto max-w-2xl px-4 py-8">
@@ -116,7 +120,7 @@
 								</Item.Media>
 								<Item.Content>
 									<Item.Title class="flex-wrap">
-										<span>{membership.type}</span>
+										<span>{getTypeName(membership)}</span>
 										<Badge variant={config.variant}>
 											<config.icon class="mr-1 size-3" />
 											{config.label}
@@ -146,7 +150,7 @@
 								</Item.Media>
 								<Item.Content>
 									<Item.Title class="flex-wrap">
-										<span>{membership.type}</span>
+										<span>{getTypeName(membership)}</span>
 										<Badge variant={config.variant}>
 											{config.label}
 										</Badge>

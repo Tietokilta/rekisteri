@@ -19,6 +19,7 @@ const en = {
 			title: "Admin",
 			members: "Members",
 			memberships: "Memberships",
+			membershipTypes: "Membership Types",
 			users: "Users",
 		},
 		signOut: "Sign out",
@@ -240,6 +241,7 @@ const en = {
 		getStarted: "Purchase a membership to get started",
 		currentMemberships: "Active memberships",
 		pastMemberships: "Past memberships",
+		moreInfoInBylaws: "More information about memberships in the guild bylaws",
 
 		// Status
 		status: {
@@ -270,6 +272,24 @@ const en = {
 			priceInactive: "Warning: This price is inactive in Stripe",
 			legacyMembership: "Legacy membership (no Stripe price)",
 			failedToLoadPrice: "Failed to load price",
+		},
+
+		membershipTypes: {
+			title: "Manage membership types",
+			description: "Create and edit membership types",
+			createNew: "Create new type",
+			createDescription: "Create a new membership type that can be used for memberships",
+			editType: "Edit membership type",
+			noTypes: "No membership types",
+			id: "ID",
+			idDescription: "Unique identifier (used internally). Use lowercase letters, numbers, and hyphens.",
+			idCannotChange: "ID cannot be changed after creation",
+			nameFi: "Name (Finnish)",
+			nameEn: "Name (English)",
+			descriptionFi: "Description (Finnish, optional)",
+			descriptionEn: "Description (English, optional)",
+			descriptionPlaceholder: "Optional description for the membership type...",
+			cannotDeleteInUse: "Cannot delete membership type that has memberships",
 		},
 
 		members: {
@@ -444,9 +464,12 @@ const en = {
 	common: {
 		save: "Save",
 		delete: "Delete",
+		deleteFailed: "Failed to delete",
 		edit: "Edit",
 		cancel: "Cancel",
 		actions: "Actions",
+		create: "Create",
+		select: "Select",
 	},
 
 	// Error page

@@ -50,6 +50,13 @@
       "when": 1768728689376,
       "tag": "0006_aromatic_spot",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1768820967444,
+      "tag": "0007_condemned_silver_sable",
+      "breakpoints": true
     }
   ]
 }

@@ -1,8 +1,21 @@
 import { relations, sql } from "drizzle-orm";
-import { boolean, index, integer, json, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	index,
+	integer,
+	json,
+	jsonb,
+	pgEnum,
+	pgTable,
+	text,
+	timestamp,
+	uniqueIndex,
+} from "drizzle-orm/pg-core";
 import * as v from "valibot";
 import { MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
+
+export type LocalizedString = { fi: string; en: string };
 
 const timestamps = {
 	createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -90,9 +103,18 @@ export const secondaryEmail = pgTable(
 	],
 );
 
+export const membershipType = pgTable("membership_type", {
+	id: text().primaryKey(),
+	name: jsonb("name").$type<LocalizedString>().notNull(),
+	description: jsonb("description").$type<LocalizedString>(),
+	...timestamps,
+});
+
 export const membership = pgTable("membership", {
 	id: text().primaryKey(),
-	type: text().notNull(), // todo l10n
+	membershipTypeId: text()
+		.notNull()
+		.references(() => membershipType.id),
 	stripePriceId: text(), // null for legacy memberships (pre-2025)
 	startTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 	endTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
@@ -123,6 +145,18 @@ export const memberRelations = relations(member, ({ one }) => ({
 	}),
 }));
 
+export const membershipTypeRelations = relations(membershipType, ({ many }) => ({
+	memberships: many(membership),
+}));
+
+export const membershipRelations = relations(membership, ({ one, many }) => ({
+	membershipType: one(membershipType, {
+		fields: [membership.membershipTypeId],
+		references: [membershipType.id],
+	}),
+	members: many(member),
+}));
+
 export const auditLog = pgTable("audit_log", {
 	id: text().primaryKey(),
 	userId: text().references(() => user.id),
@@ -140,6 +174,8 @@ export type Member = typeof member.$inferSelect;
 export type MemberStatus = v.InferOutput<typeof memberStatusEnumSchema>;
 
 export type PreferredLanguage = v.InferOutput<typeof preferredLanguageEnumSchema>;
+
+export type MembershipType = typeof membershipType.$inferSelect;
 
 export type Membership = typeof membership.$inferSelect;
 

@@ -5,6 +5,7 @@
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import { route } from "$lib/ROUTES";
 	import type { MemberStatus } from "$lib/shared/enums";
+	import type { LocalizedString } from "$lib/server/db/schema";
 
 	// Icons
 	import CircleCheck from "@lucide/svelte/icons/circle-check";
@@ -13,8 +14,13 @@
 	import Banknote from "@lucide/svelte/icons/banknote";
 	import CreditCard from "@lucide/svelte/icons/credit-card";
 
+	interface MembershipType {
+		id: string;
+		name: LocalizedString;
+	}
+
 	interface Membership {
-		type: string;
+		membershipType: MembershipType;
 		startTime: Date;
 		endTime: Date;
 		status: MemberStatus;
@@ -26,6 +32,11 @@
 	}
 
 	let { memberships }: Props = $props();
+
+	// Helper to get localized membership type name
+	function getTypeName(membershipType: MembershipType): string {
+		return $locale === "fi" ? membershipType.name.fi : membershipType.name.en;
+	}
 
 	// Get the most relevant membership (active > awaiting > expired)
 	const currentMembership = $derived.by(() => {
@@ -113,7 +124,7 @@
 	<Card.Content class="space-y-4">
 		{#if currentMembership}
 			<div class="space-y-1">
-				<p class="text-2xl font-semibold">{currentMembership.type}</p>
+				<p class="text-2xl font-semibold">{getTypeName(currentMembership.membershipType)}</p>
 				<p class="text-sm text-muted-foreground">
 					<time datetime={currentMembership.startTime.toISOString()}>
 						{currentMembership.startTime.toLocaleDateString(`${$locale}-FI`)}
