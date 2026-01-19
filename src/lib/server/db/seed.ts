@@ -30,24 +30,32 @@ try {
 			id: "varsinainen-jasen",
 			name: { fi: "Varsinainen jäsen", en: "Regular member" },
 			description: {
-				fi: "Aalto-yliopiston tietotekniikan opiskelijoille",
-				en: "For computer science students at Aalto University",
+				fi: "Killan toiminnasta kiinnostuneille henkilöille, joilla on tutkintoon johtava opiskeluoikeus tai vaihto-opinto-oikeus Aalto-yliopistossa.",
+				en: "For persons interested in the guild's activities who have a right to study leading to a degree or a right to complete exchange studies at Aalto University.",
 			},
 		},
 		{
 			id: "ulkojasen",
 			name: { fi: "Ulkojäsen", en: "External member" },
 			description: {
-				fi: "Muille kuin Aalto-yliopiston tietotekniikan opiskelijoille",
-				en: "For non-Aalto CS students",
+				fi: "Killan toiminnasta kiinnostuneille henkilöille, jotka ovat suorittaneet toisen asteen tutkinnon tai joilla on tutkintoon johtava opinto-oikeus toisessa korkeakoulussa.",
+				en: "For persons interested in the guild's activities who have completed an upper secondary qualification or have a right to study leading to a degree at another higher education institution.",
+			},
+		},
+		{
+			id: "alumnijasen",
+			name: { fi: "Alumnijäsen", en: "Alumni member" },
+			description: {
+				fi: "Henkilöille, joilla on aiemmin ollut tutkintoon johtava opiskeluoikeus korkeakoulussa.",
+				en: "For persons who previously had a right to study leading to a degree at a higher education institution.",
 			},
 		},
 		{
 			id: "kannatusjasen",
 			name: { fi: "Kannatusjäsen", en: "Supporting member" },
 			description: {
-				fi: "Tukee Tietokillan toimintaa",
-				en: "Supports Tietokilta's activities",
+				fi: "Killan toimintaa tukeville henkilöille tai oikeushenkilöille.",
+				en: "For persons or legal entities supporting the guild's activities.",
 			},
 		},
 	];
@@ -152,6 +160,32 @@ try {
 			endTime: new Date("2026-07-31"),
 			requiresStudentVerification: false,
 		},
+		// 2026-2027 period (upcoming, no Stripe prices yet, no members seeded)
+		// Note: Kannatusjäsen replaced by Alumnijäsen starting this period
+		{
+			id: generateUserId(),
+			membershipTypeId: "varsinainen-jasen",
+			stripePriceId: null,
+			startTime: new Date("2026-08-01"),
+			endTime: new Date("2027-07-31"),
+			requiresStudentVerification: true,
+		},
+		{
+			id: generateUserId(),
+			membershipTypeId: "ulkojasen",
+			stripePriceId: null,
+			startTime: new Date("2026-08-01"),
+			endTime: new Date("2027-07-31"),
+			requiresStudentVerification: false,
+		},
+		{
+			id: generateUserId(),
+			membershipTypeId: "alumnijasen",
+			stripePriceId: null,
+			startTime: new Date("2026-08-01"),
+			endTime: new Date("2027-07-31"),
+			requiresStudentVerification: false,
+		},
 	];
 
 	const insertedMemberships = await db
@@ -159,7 +193,7 @@ try {
 		.values(membershipsToSeed)
 		.returning({ id: table.membership.id, endTime: table.membership.endTime });
 
-	// Direct weights for each membership (must sum to 1.0)
+	// Direct weights for each membership (must sum to 1.0 for memberships that should have members)
 	const weights = [
 		0.045, // 2022 varsinainen (5% of users * 90% varsinainen)
 		0.005, // 2022 ulkojäsen (5% of users * 10% ulkojäsen)
@@ -171,6 +205,10 @@ try {
 		0.45, // 2025 varsinainen (50% of users * 90% varsinainen)
 		0.045, // 2025 ulkojäsen (50% of users * 9% ulkojäsen)
 		0.005, // 2025 kannatusjäsen (50% of users * 1% kannatusjäsen)
+		// 2026-2027 memberships - no members seeded (upcoming period)
+		0, // 2026 varsinainen
+		0, // 2026 ulkojäsen
+		0, // 2026 alumnijäsen
 	];
 
 	// Seed users only first
