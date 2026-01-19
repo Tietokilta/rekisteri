@@ -5,13 +5,15 @@
 	import { Button } from "$lib/components/ui/button/index.js";
 	import * as Item from "$lib/components/ui/item/index.js";
 	import * as Card from "$lib/components/ui/card/index.js";
-	import { Badge } from "$lib/components/ui/badge/index.js";
+	import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 	import Mail from "@lucide/svelte/icons/mail";
 	import CircleCheck from "@lucide/svelte/icons/circle-check";
 	import CircleAlert from "@lucide/svelte/icons/circle-alert";
 	import Clock from "@lucide/svelte/icons/clock";
 	import Trash2 from "@lucide/svelte/icons/trash-2";
 	import Star from "@lucide/svelte/icons/star";
+	import EllipsisVertical from "@lucide/svelte/icons/ellipsis-vertical";
+	import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 
 	import {
 		deleteSecondaryEmailForm,
@@ -30,7 +32,7 @@
 	}
 
 	function formatDate(date: Date | null): string {
-		if (!date) return $LL.secondaryEmail.neverExpires();
+		if (!date) return "";
 		return new Date(date).toLocaleDateString();
 	}
 </script>
@@ -48,22 +50,19 @@
 			</Button>
 		</Card.Action>
 	</Card.Header>
-	<Card.Content class="space-y-4">
+	<Card.Content class="space-y-3">
 		<!-- Primary Email -->
-		<Item.Root variant="outline">
+		<Item.Root variant="muted" size="sm">
 			<Item.Media variant="icon">
-				<Mail />
+				<Mail class="text-muted-foreground" />
 			</Item.Media>
 			<Item.Content>
-				<Item.Title>
-					<span>{data.primaryEmail}</span>
-					<Badge variant="default" class="gap-1">
-						<Star class="h-3 w-3 fill-current" />
-						{$LL.secondaryEmail.primary()}
-					</Badge>
+				<Item.Title class="font-normal">
+					{data.primaryEmail}
 				</Item.Title>
-				<Item.Description>
-					<span class="text-muted-foreground">{$LL.secondaryEmail.primaryDescription()}</span>
+				<Item.Description class="flex items-center gap-1">
+					<Star class="size-3 fill-current text-amber-500" />
+					<span>{$LL.secondaryEmail.primaryDescription()}</span>
 				</Item.Description>
 			</Item.Content>
 		</Item.Root>
@@ -76,42 +75,48 @@
 				{@const changePrimaryForm = changePrimaryEmailForm.for(email.id)}
 				{@const status = getEmailStatus(email)}
 
-				<Item.Root variant="outline">
+				<Item.Root variant="outline" size="sm">
 					<Item.Media variant="icon">
-						<Mail />
+						<Mail class="text-muted-foreground" />
 					</Item.Media>
 					<Item.Content>
-						<Item.Title class="flex-wrap">
+						<Item.Title class="font-normal">
 							<span class="break-all">{email.email}</span>
-							<Badge variant="secondary">{email.domain}</Badge>
-
-							{#if status === "verified"}
-								<Badge variant="default" class="gap-1">
-									<CircleCheck class="h-3 w-3" />
-									{$LL.secondaryEmail.status.verified()}
-								</Badge>
-							{:else if status === "expired"}
-								<Badge variant="destructive" class="gap-1">
-									<CircleAlert class="h-3 w-3" />
-									{$LL.secondaryEmail.status.expired()}
-								</Badge>
-							{:else}
-								<Badge variant="outline" class="gap-1">
-									<Clock class="h-3 w-3" />
-									{$LL.secondaryEmail.status.unverified()}
-								</Badge>
-							{/if}
 						</Item.Title>
-						<Item.Description class="flex flex-col gap-1 sm:flex-row sm:gap-4">
-							{#if email.verifiedAt}
-								<span>{$LL.secondaryEmail.verifiedAt()}: {formatDate(email.verifiedAt)}</span>
-							{/if}
-							{#if email.expiresAt}
-								<span>{$LL.secondaryEmail.expiresAt()}: {formatDate(email.expiresAt)}</span>
-							{/if}
+						<Item.Description>
+							<span class="flex flex-wrap items-center gap-x-3 gap-y-1">
+								<!-- Status indicator -->
+								{#if status === "verified"}
+									<span class="flex items-center gap-1 text-green-600 dark:text-green-500">
+										<CircleCheck class="size-3" />
+										{$LL.secondaryEmail.status.verified()}
+									</span>
+								{:else if status === "expired"}
+									<span class="flex items-center gap-1 text-destructive">
+										<CircleAlert class="size-3" />
+										{$LL.secondaryEmail.status.expired()}
+									</span>
+								{:else}
+									<span class="flex items-center gap-1 text-muted-foreground">
+										<Clock class="size-3" />
+										{$LL.secondaryEmail.status.unverified()}
+									</span>
+								{/if}
+
+								<!-- Domain -->
+								<span class="text-muted-foreground">{email.domain}</span>
+
+								<!-- Expiration date (only show if expiring/expired) -->
+								{#if email.expiresAt}
+									<span class="text-muted-foreground">
+										{$LL.secondaryEmail.expiresAt()}: {formatDate(email.expiresAt)}
+									</span>
+								{/if}
+							</span>
 						</Item.Description>
 					</Item.Content>
-					<Item.Actions class="flex-col sm:flex-row">
+					<Item.Actions>
+						<!-- Make Primary button (only for verified) -->
 						{#if status === "verified"}
 							<form
 								class="contents"
@@ -126,55 +131,71 @@
 								<input type="hidden" name="emailId" value={email.id} />
 								<Button
 									type="submit"
-									variant="default"
+									variant="outline"
 									size="sm"
 									disabled={!!changePrimaryForm.pending}
 									data-testid="make-primary-email"
 								>
-									<Star />
-									<span>{$LL.secondaryEmail.makePrimary()}</span>
+									<Star class="size-4" />
+									<span class="hidden sm:inline">{$LL.secondaryEmail.makePrimary()}</span>
 								</Button>
 							</form>
 						{/if}
 
-						{#if status === "expired" || status === "unverified"}
-							<form class="contents" {...reverifyForm}>
-								<input type="hidden" name="emailId" value={email.id} />
-								<Button
-									type="submit"
-									variant="default"
-									size="sm"
-									disabled={!!reverifyForm.pending}
-									data-testid="reverify-email"
+						<!-- Actions dropdown -->
+						<DropdownMenu.Root>
+							<DropdownMenu.Trigger>
+								{#snippet child({ props })}
+									<Button {...props} variant="ghost" size="sm" class="size-8 p-0">
+										<EllipsisVertical class="size-4" />
+										<span class="sr-only">{$LL.common.actions()}</span>
+									</Button>
+								{/snippet}
+							</DropdownMenu.Trigger>
+							<DropdownMenu.Content align="end">
+								{#if status === "expired" || status === "unverified"}
+									<form class="contents" {...reverifyForm}>
+										<input type="hidden" name="emailId" value={email.id} />
+										<DropdownMenu.Item
+											disabled={!!reverifyForm.pending}
+											data-testid="reverify-email"
+											onclick={(e) => {
+												e.preventDefault();
+												const form = e.currentTarget.closest("form");
+												if (form) form.requestSubmit();
+											}}
+										>
+											<RefreshCw class="size-4" />
+											{$LL.secondaryEmail.reverify()}
+										</DropdownMenu.Item>
+									</form>
+								{/if}
+
+								<form
+									class="contents"
+									{...deleteForm.enhance(async ({ submit }) => {
+										await submit();
+										await invalidateAll();
+									})}
 								>
-									{$LL.secondaryEmail.reverify()}
-								</Button>
-							</form>
-						{/if}
-
-						<form
-							class="contents"
-							{...deleteForm.enhance(async ({ submit }) => {
-								await submit();
-								await invalidateAll();
-							})}
-						>
-							<input type="hidden" name="emailId" value={email.id} />
-							<Button
-								type="submit"
-								variant="destructive"
-								size="sm"
-								disabled={!!deleteForm.pending}
-								onclick={(e) => {
-									if (!confirm($LL.secondaryEmail.deleteConfirm())) {
-										e.preventDefault();
-									}
-								}}
-							>
-								<Trash2 />
-								<span>{$LL.secondaryEmail.delete()}</span>
-							</Button>
-						</form>
+									<input type="hidden" name="emailId" value={email.id} />
+									<DropdownMenu.Item
+										variant="destructive"
+										disabled={!!deleteForm.pending}
+										onclick={(e) => {
+											e.preventDefault();
+											if (confirm($LL.secondaryEmail.deleteConfirm())) {
+												const form = e.currentTarget.closest("form");
+												if (form) form.requestSubmit();
+											}
+										}}
+									>
+										<Trash2 class="size-4" />
+										{$LL.secondaryEmail.delete()}
+									</DropdownMenu.Item>
+								</form>
+							</DropdownMenu.Content>
+						</DropdownMenu.Root>
 					</Item.Actions>
 				</Item.Root>
 			{/each}
