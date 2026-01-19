@@ -19,6 +19,14 @@ test.describe("Secondary Email OTP Flow", () => {
 		return page.locator('[data-slot="item"]').filter({ hasText: email });
 	};
 
+	// Helper to open the actions dropdown menu for an email row
+	const openEmailActionsMenu = async (page: Page, emailRow: ReturnType<typeof getEmailRow>) => {
+		// Click the ellipsis button to open dropdown
+		await emailRow.getByRole("button", { name: /actions/i }).click();
+		// Wait for dropdown menu to be visible
+		await page.locator('[data-slot="dropdown-menu-content"]').waitFor({ state: "visible" });
+	};
+
 	const addEmailAndNavigateToVerify = async (page: Page, email: string) => {
 		await page.goto(route("/[locale=locale]/settings/emails/add", { locale: "fi" }));
 		await page.getByTestId("submit-add-email").waitFor({ state: "visible" });
@@ -103,7 +111,9 @@ test.describe("Secondary Email OTP Flow", () => {
 		const emailRow = getEmailRow(adminPage, testEmail);
 		await expect(emailRow).toBeVisible();
 
-		await emailRow.getByTestId("reverify-email").click();
+		// Open dropdown menu and click reverify
+		await openEmailActionsMenu(adminPage, emailRow);
+		await adminPage.getByTestId("reverify-email").click();
 		await adminPage.waitForURL(/settings\/emails\/verify/);
 
 		const [secondOtp] = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
@@ -124,7 +134,10 @@ test.describe("Secondary Email OTP Flow", () => {
 
 		const emailRow = getEmailRow(adminPage, testEmail);
 		await expect(emailRow).toBeVisible();
-		await emailRow.getByTestId("reverify-email").click();
+
+		// Open dropdown menu and click reverify
+		await openEmailActionsMenu(adminPage, emailRow);
+		await adminPage.getByTestId("reverify-email").click();
 		await adminPage.waitForURL(/settings\/emails\/verify/);
 
 		const [secondOtp] = await db.select().from(table.emailOTP).where(eq(table.emailOTP.email, testEmail.toLowerCase()));
@@ -264,7 +277,9 @@ test.describe("Secondary Email OTP Flow", () => {
 		const emailRow = getEmailRow(adminPage, testEmail);
 		await expect(emailRow).toBeVisible();
 
-		await emailRow.getByRole("button", { name: /poista|delete/i }).click();
+		// Open dropdown menu and click delete
+		await openEmailActionsMenu(adminPage, emailRow);
+		await adminPage.getByRole("menuitem", { name: /poista|delete/i }).click();
 
 		await expect(emailRow).toBeHidden();
 
