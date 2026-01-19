@@ -227,6 +227,9 @@
 			class="w-full"
 		>
 			<input {...deleteForm.fields.id.as("hidden", membership.id)} />
+			{#each deleteForm.fields.allIssues() as issue, i (i)}
+				<p class="text-sm text-destructive">{issue.message}</p>
+			{/each}
 			<Button
 				type="submit"
 				variant="outline"

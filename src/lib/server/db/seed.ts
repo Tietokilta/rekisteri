@@ -78,7 +78,7 @@ try {
 	const membershipsToSeed = [
 		// 2022-2023 period (expired, legacy - no Stripe price)
 		{
-			id: generateUserId(),
+			id: crypto.randomUUID(),
 			membershipTypeId: "varsinainen-jasen",
 			stripePriceId: null,
 			startTime: new Date("2022-08-01"),
@@ -86,7 +86,7 @@ try {
 			requiresStudentVerification: true,
 		},
 		{
-			id: generateUserId(),
+			id: crypto.randomUUID(),
 			membershipTypeId: "ulkojasen",
 			stripePriceId: null,
 			startTime: new Date("2022-08-01"),
@@ -95,7 +95,7 @@ try {
 		},
 		// 2023-2024 period (expired, legacy - no Stripe price)
 		{
-			id: generateUserId(),
+			id: crypto.randomUUID(),
 			membershipTypeId: "varsinainen-jasen",
 			stripePriceId: null,
 			startTime: new Date("2023-08-01"),
@@ -103,7 +103,7 @@ try {
 			requiresStudentVerification: true,
 		},
 		{
-			id: generateUserId(),
+			id: crypto.randomUUID(),
 			membershipTypeId: "ulkojasen",
 			stripePriceId: null,
 			startTime: new Date("2023-08-01"),
@@ -112,7 +112,7 @@ try {
 		},
 		// 2024-2025 period (with Stripe prices)
 		{
-			id: generateUserId(),
+			id: crypto.randomUUID(),
 			membershipTypeId: "varsinainen-jasen",
 			stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
 			startTime: new Date("2024-08-01"),
@@ -120,7 +120,7 @@ try {
 			requiresStudentVerification: true,
 		},
 		{
-			id: generateUserId(),
+			id: crypto.randomUUID(),
 			membershipTypeId: "ulkojasen",
 			stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
 			startTime: new Date("2024-08-01"),
@@ -128,7 +128,7 @@ try {
 			requiresStudentVerification: false,
 		},
 		{
-			id: generateUserId(),
+			id: crypto.randomUUID(),
 			membershipTypeId: "kannatusjasen",
 			stripePriceId: "price_1R8ORc2a3B4f6jfh4mtYKiXl",
 			startTime: new Date("2024-08-01"),
@@ -137,7 +137,7 @@ try {
 		},
 		// 2025-2026 period (current, with Stripe prices)
 		{
-			id: generateUserId(),
+			id: crypto.randomUUID(),
 			membershipTypeId: "varsinainen-jasen",
 			stripePriceId: "price_1Sqs7c2a3B4f6jfhBiyJfAno",
 			startTime: new Date("2025-08-01"),
@@ -145,7 +145,7 @@ try {
 			requiresStudentVerification: true,
 		},
 		{
-			id: generateUserId(),
+			id: crypto.randomUUID(),
 			membershipTypeId: "ulkojasen",
 			stripePriceId: "price_1Sqs7y2a3B4f6jfhHjnWzk9n",
 			startTime: new Date("2025-08-01"),
@@ -153,7 +153,7 @@ try {
 			requiresStudentVerification: false,
 		},
 		{
-			id: generateUserId(),
+			id: crypto.randomUUID(),
 			membershipTypeId: "kannatusjasen",
 			stripePriceId: "price_1Sqs8B2a3B4f6jfhB5Ga6AJC",
 			startTime: new Date("2025-08-01"),
@@ -163,7 +163,7 @@ try {
 		// 2026-2027 period (upcoming, no Stripe prices yet, no members seeded)
 		// Note: Kannatusjäsen replaced by Alumnijäsen starting this period
 		{
-			id: generateUserId(),
+			id: crypto.randomUUID(),
 			membershipTypeId: "varsinainen-jasen",
 			stripePriceId: null,
 			startTime: new Date("2026-08-01"),
@@ -171,7 +171,7 @@ try {
 			requiresStudentVerification: true,
 		},
 		{
-			id: generateUserId(),
+			id: crypto.randomUUID(),
 			membershipTypeId: "ulkojasen",
 			stripePriceId: null,
 			startTime: new Date("2026-08-01"),
@@ -179,7 +179,7 @@ try {
 			requiresStudentVerification: false,
 		},
 		{
-			id: generateUserId(),
+			id: crypto.randomUUID(),
 			membershipTypeId: "alumnijasen",
 			stripePriceId: null,
 			startTime: new Date("2026-08-01"),
