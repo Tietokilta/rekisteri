@@ -54,4 +54,3 @@ export type AttendanceEventType = (typeof ATTENDANCE_EVENT_TYPE_VALUES)[number];
  */
 export const SCAN_METHOD_VALUES = ["qr_scan", "manual"] as const;
 export type ScanMethod = (typeof SCAN_METHOD_VALUES)[number];
-
