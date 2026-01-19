@@ -1,14 +1,9 @@
-import { test, expect } from "./fixtures/auth";
-import postgres from "postgres";
-import { drizzle } from "drizzle-orm/postgres-js";
+import { test, expect } from "./fixtures/db";
 import * as table from "../src/lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { route } from "../src/lib/ROUTES";
 
 test.describe("Memberships Admin", () => {
-	let client: ReturnType<typeof postgres>;
-	let db: ReturnType<typeof drizzle>;
-
 	// Track test memberships for cleanup
 	let testMembershipIds: string[] = [];
 
@@ -16,18 +11,7 @@ test.describe("Memberships Admin", () => {
 	const membershipTypeId = "varsinainen-jasen";
 	const alternateMembershipTypeId = "ulkojasen";
 
-	test.beforeAll(async () => {
-		const dbUrl = process.env.DATABASE_URL_TEST;
-		if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
-		client = postgres(dbUrl);
-		db = drizzle(client, { schema: table, casing: "snake_case" });
-	});
-
-	test.afterAll(async () => {
-		await client.end();
-	});
-
-	test.afterEach(async () => {
+	test.afterEach(async ({ db }) => {
 		// Clean up test memberships
 		for (const id of testMembershipIds) {
 			await db.delete(table.membership).where(eq(table.membership.id, id));
@@ -65,7 +49,7 @@ test.describe("Memberships Admin", () => {
 		await expect(adminPage.getByLabel("Päättymisaika")).toBeVisible();
 	});
 
-	test("opens edit sheet when clicking a membership", async ({ adminPage }) => {
+	test("opens edit sheet when clicking a membership", async ({ adminPage, db }) => {
 		// Create a test membership with a unique date range to identify it
 		const testMembershipId = crypto.randomUUID();
 
@@ -83,9 +67,9 @@ test.describe("Memberships Admin", () => {
 			waitUntil: "networkidle",
 		});
 
-		// Click the test membership (Varsinainen jäsen in 2030-2031)
+		// Click the test membership (date display shows end year: 31.7.2031)
 		await adminPage
-			.getByRole("button", { name: /Varsinainen jäsen.*2030/ })
+			.getByRole("button", { name: /Varsinainen jäsen.*2031/ })
 			.first()
 			.click();
 
@@ -96,7 +80,7 @@ test.describe("Memberships Admin", () => {
 		await expect(adminPage.getByLabel("Tyyppi")).toBeVisible();
 	});
 
-	test("edit form is pre-populated with membership data", async ({ adminPage }) => {
+	test("edit form is pre-populated with membership data", async ({ adminPage, db }) => {
 		// Create a test membership with known values
 		const testMembershipId = crypto.randomUUID();
 
@@ -114,9 +98,9 @@ test.describe("Memberships Admin", () => {
 			waitUntil: "networkidle",
 		});
 
-		// Click our test membership (Ulkojäsen in 2031-2032)
+		// Click our test membership (date display shows end year: 31.7.2032)
 		await adminPage
-			.getByRole("button", { name: /Ulkojäsen.*2031/ })
+			.getByRole("button", { name: /Ulkojäsen.*2032/ })
 			.first()
 			.click();
 
@@ -127,7 +111,7 @@ test.describe("Memberships Admin", () => {
 		await expect(adminPage.getByLabel("Tyyppi")).toHaveValue(alternateMembershipTypeId);
 	});
 
-	test("can update membership type", async ({ adminPage }) => {
+	test("can update membership type", async ({ adminPage, db }) => {
 		// Create a test membership to edit
 		const testMembershipId = crypto.randomUUID();
 
@@ -145,9 +129,9 @@ test.describe("Memberships Admin", () => {
 			waitUntil: "networkidle",
 		});
 
-		// Find and click our test membership
+		// Find and click our test membership (date display shows end year: 31.7.2033)
 		await adminPage
-			.getByRole("button", { name: /Varsinainen jäsen.*2032/ })
+			.getByRole("button", { name: /Varsinainen jäsen.*2033/ })
 			.first()
 			.click();
 
@@ -161,14 +145,14 @@ test.describe("Memberships Admin", () => {
 		// Submit the form
 		await adminPage.getByRole("button", { name: "Tallenna" }).click();
 
-		// Wait for the sheet to close and page to refresh
+		// Wait for the sheet to close
 		await expect(adminPage.getByRole("heading", { name: "Muokkaa jäsenyyttä" })).not.toBeVisible();
 
-		// Verify the new type appears in the UI (Ulkojäsen in 2032-2033)
-		await expect(adminPage.getByRole("button", { name: /Ulkojäsen.*2032/ }).first()).toBeVisible();
+		// Verify the new type appears in the UI (date display shows end year: 31.7.2033)
+		await expect(adminPage.getByRole("button", { name: /Ulkojäsen.*2033/ }).first()).toBeVisible();
 	});
 
-	test("can toggle student verification requirement", async ({ adminPage }) => {
+	test("can toggle student verification requirement", async ({ adminPage, db }) => {
 		// Create a test membership
 		const testMembershipId = crypto.randomUUID();
 
@@ -186,9 +170,9 @@ test.describe("Memberships Admin", () => {
 			waitUntil: "networkidle",
 		});
 
-		// Find and click our test membership
+		// Find and click our test membership (date display shows end year: 31.7.2034)
 		await adminPage
-			.getByRole("button", { name: /Varsinainen jäsen.*2033/ })
+			.getByRole("button", { name: /Varsinainen jäsen.*2034/ })
 			.first()
 			.click();
 
@@ -214,16 +198,16 @@ test.describe("Memberships Admin", () => {
 		expect(updatedMembership?.requiresStudentVerification).toBe(true);
 	});
 
-	test("can delete membership with no members", async ({ adminPage }) => {
-		// Create a test membership with no members
+	test("can delete membership with no members", async ({ adminPage, db }) => {
+		// Create a test membership with no members using a unique far-future year
 		const testMembershipId = crypto.randomUUID();
 
 		await db.insert(table.membership).values({
 			id: testMembershipId,
 			membershipTypeId,
 			stripePriceId: null,
-			startTime: new Date(2034, 7, 1),
-			endTime: new Date(2035, 6, 31),
+			startTime: new Date(2040, 7, 1),
+			endTime: new Date(2041, 6, 31),
 			requiresStudentVerification: false,
 		});
 		// Don't add to cleanup array since we're testing delete
@@ -232,9 +216,9 @@ test.describe("Memberships Admin", () => {
 			waitUntil: "networkidle",
 		});
 
-		// Find and click our test membership
+		// Find and click our test membership (date display shows end year: 31.7.2041)
 		await adminPage
-			.getByRole("button", { name: /Varsinainen jäsen.*2034/ })
+			.getByRole("button", { name: /Varsinainen jäsen.*2041/ })
 			.first()
 			.click();
 
@@ -247,11 +231,16 @@ test.describe("Memberships Admin", () => {
 		// Wait for the sheet to close
 		await expect(adminPage.getByRole("heading", { name: "Muokkaa jäsenyyttä" })).not.toBeVisible();
 
-		// Verify the membership no longer appears in the UI
-		await expect(adminPage.getByRole("button", { name: /Varsinainen jäsen.*2034/ })).not.toBeVisible();
+		// Verify the membership was deleted from the database
+		const [deletedMembership] = await db
+			.select()
+			.from(table.membership)
+			.where(eq(table.membership.id, testMembershipId));
+
+		expect(deletedMembership).toBeUndefined();
 	});
 
-	test("cancel button closes sheet without saving", async ({ adminPage }) => {
+	test("cancel button closes sheet without saving", async ({ adminPage, db }) => {
 		// Create a test membership
 		const testMembershipId = crypto.randomUUID();
 
@@ -269,9 +258,9 @@ test.describe("Memberships Admin", () => {
 			waitUntil: "networkidle",
 		});
 
-		// Find and click our test membership
+		// Find and click our test membership (date display shows end year: 31.7.2036)
 		await adminPage
-			.getByRole("button", { name: /Varsinainen jäsen.*2035/ })
+			.getByRole("button", { name: /Varsinainen jäsen.*2036/ })
 			.first()
 			.click();
 
@@ -289,6 +278,6 @@ test.describe("Memberships Admin", () => {
 		await expect(adminPage.getByRole("heading", { name: "Muokkaa jäsenyyttä" })).not.toBeVisible();
 
 		// Verify the original type is still shown (change was not saved)
-		await expect(adminPage.getByRole("button", { name: /Varsinainen jäsen.*2035/ }).first()).toBeVisible();
+		await expect(adminPage.getByRole("button", { name: /Varsinainen jäsen.*2036/ }).first()).toBeVisible();
 	});
 });

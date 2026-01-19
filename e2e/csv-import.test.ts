@@ -110,8 +110,8 @@ value1,value2,value3`;
 		// Create a temporary CSV file with invalid email
 		const tempPath = path.join(process.cwd(), `temp-invalid-email-${crypto.randomUUID()}.csv`);
 		tempFiles.push(tempPath); // Track for cleanup
-		const invalidEmailCsv = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
-Test,User,Helsinki,not-an-email,varsinainen jäsen,2025-08-01`;
+		const invalidEmailCsv = `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
+Test,User,Helsinki,not-an-email,varsinainen-jasen,2025-08-01`;
 		fs.writeFileSync(tempPath, invalidEmailCsv);
 
 		const fileInput = adminPage.locator('input[type="file"]');
@@ -122,7 +122,7 @@ Test,User,Helsinki,not-an-email,varsinainen jäsen,2025-08-01`;
 		await expect(adminPage.getByText(/Invalid email/)).toBeVisible();
 	});
 
-	test("CSV import validates invalid membership type", async ({ adminPage }) => {
+	test("CSV import validates invalid membership type ID", async ({ adminPage }) => {
 		await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
 			waitUntil: "networkidle",
 		});
@@ -130,7 +130,7 @@ Test,User,Helsinki,not-an-email,varsinainen jäsen,2025-08-01`;
 		// Create a temporary CSV file with non-existent membership type
 		const tempPath = path.join(process.cwd(), `temp-invalid-type-${crypto.randomUUID()}.csv`);
 		tempFiles.push(tempPath); // Track for cleanup
-		const invalidTypeCsv = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
+		const invalidTypeCsv = `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
 Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
 		fs.writeFileSync(tempPath, invalidTypeCsv);
 
@@ -139,7 +139,7 @@ Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
 
 		// Verify error message shows
 		await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
-		await expect(adminPage.getByText(/Invalid membership types/)).toBeVisible();
+		await expect(adminPage.getByText(/Invalid membership type IDs/)).toBeVisible();
 	});
 
 	test("CSV import shows existing memberships", async ({ adminPage }) => {
@@ -184,8 +184,8 @@ Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
 		// 2. Create CSV with the secondary email
 		const tempPath = path.join(process.cwd(), `temp-csv-import-${crypto.randomUUID()}.csv`);
 		tempFiles.push(tempPath); // Track for cleanup
-		const csvContent = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
-Test,User,Helsinki,${secondaryEmail},varsinainen jäsen,2025-08-01`;
+		const csvContent = `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
+Test,User,Helsinki,${secondaryEmail},varsinainen-jasen,2025-08-01`;
 		fs.writeFileSync(tempPath, csvContent);
 
 		// 4. Navigate to import page and upload CSV
@@ -249,8 +249,8 @@ Test,User,Helsinki,${secondaryEmail},varsinainen jäsen,2025-08-01`;
 		// 2. Create CSV with the unverified secondary email
 		const tempPath = path.join(process.cwd(), `temp-csv-import-${crypto.randomUUID()}.csv`);
 		tempFiles.push(tempPath); // Track for cleanup
-		const csvContent = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
-New,Person,Espoo,${unverifiedEmail},varsinainen jäsen,2025-08-01`;
+		const csvContent = `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
+New,Person,Espoo,${unverifiedEmail},varsinainen-jasen,2025-08-01`;
 		fs.writeFileSync(tempPath, csvContent);
 
 		// 4. Navigate to import page and upload CSV
@@ -291,14 +291,14 @@ New,Person,Espoo,${unverifiedEmail},varsinainen jäsen,2025-08-01`;
 		tempFiles.push(tempPath); // Track for cleanup
 
 		// Create CSV header
-		let csvContent = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate\n`;
+		let csvContent = `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate\n`;
 
 		// Generate 2000 unique rows
 		const generatedEmails: string[] = [];
 		for (let i = 0; i < rowCount; i++) {
 			const email = `batch-test-${i}-${crypto.randomUUID()}@example.com`;
 			generatedEmails.push(email);
-			csvContent += `FirstName${i},LastName${i},Helsinki,${email},varsinainen jäsen,2025-08-01\n`;
+			csvContent += `FirstName${i},LastName${i},Helsinki,${email},varsinainen-jasen,2025-08-01\n`;
 		}
 
 		fs.writeFileSync(tempPath, csvContent);
@@ -363,10 +363,10 @@ New,Person,Espoo,${unverifiedEmail},varsinainen jäsen,2025-08-01`;
 		const email2 = getTestEmail("idempotent2");
 		const email3 = getTestEmail("idempotent3");
 
-		const csvContent = `firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
-Alice,Smith,Helsinki,${email1},varsinainen jäsen,2025-08-01
-Bob,Jones,Tampere,${email2},varsinainen jäsen,2025-08-01
-Charlie,Brown,Espoo,${email3},varsinainen jäsen,2025-08-01`;
+		const csvContent = `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
+Alice,Smith,Helsinki,${email1},varsinainen-jasen,2025-08-01
+Bob,Jones,Tampere,${email2},varsinainen-jasen,2025-08-01
+Charlie,Brown,Espoo,${email3},varsinainen-jasen,2025-08-01`;
 
 		fs.writeFileSync(tempPath, csvContent);
 

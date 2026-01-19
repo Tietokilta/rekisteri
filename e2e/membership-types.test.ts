@@ -1,29 +1,13 @@
-import { test, expect } from "./fixtures/auth";
-import postgres from "postgres";
-import { drizzle } from "drizzle-orm/postgres-js";
+import { test, expect } from "./fixtures/db";
 import * as table from "../src/lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { route } from "../src/lib/ROUTES";
 
 test.describe("Membership Types Admin", () => {
-	let client: ReturnType<typeof postgres>;
-	let db: ReturnType<typeof drizzle>;
-
 	// Track test membership types for cleanup
 	let testMembershipTypeIds: string[] = [];
 
-	test.beforeAll(async () => {
-		const dbUrl = process.env.DATABASE_URL_TEST;
-		if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
-		client = postgres(dbUrl);
-		db = drizzle(client, { schema: table, casing: "snake_case" });
-	});
-
-	test.afterAll(async () => {
-		await client.end();
-	});
-
-	test.afterEach(async () => {
+	test.afterEach(async ({ db }) => {
 		// Clean up test membership types
 		for (const id of testMembershipTypeIds) {
 			await db.delete(table.membershipType).where(eq(table.membershipType.id, id));
@@ -90,7 +74,7 @@ test.describe("Membership Types Admin", () => {
 		await expect(adminPage.getByRole("button", { name: /Testityyppi/ })).toBeVisible();
 	});
 
-	test("opens edit sheet when clicking a membership type", async ({ adminPage }) => {
+	test("opens edit sheet when clicking a membership type", async ({ adminPage, db }) => {
 		// Create a test membership type
 		const testId = `test-edit-${crypto.randomUUID().slice(0, 8)}`;
 		await db.insert(table.membershipType).values({
@@ -115,7 +99,7 @@ test.describe("Membership Types Admin", () => {
 		await expect(adminPage.getByLabel("Nimi (englanniksi)")).toHaveValue("Edit type");
 	});
 
-	test("edit form ID is read-only", async ({ adminPage }) => {
+	test("edit form ID is read-only", async ({ adminPage, db }) => {
 		// Create a test membership type
 		const testId = `test-readonly-${crypto.randomUUID().slice(0, 8)}`;
 		await db.insert(table.membershipType).values({
@@ -141,7 +125,7 @@ test.describe("Membership Types Admin", () => {
 		await expect(idField).toBeDisabled();
 	});
 
-	test("can update membership type name", async ({ adminPage }) => {
+	test("can update membership type name", async ({ adminPage, db }) => {
 		// Create a test membership type
 		const testId = `test-update-${crypto.randomUUID().slice(0, 8)}`;
 		await db.insert(table.membershipType).values({
@@ -175,7 +159,7 @@ test.describe("Membership Types Admin", () => {
 		await expect(adminPage.getByRole("button", { name: /Vanha nimi/ })).not.toBeVisible();
 	});
 
-	test("can delete membership type with no memberships", async ({ adminPage }) => {
+	test("can delete membership type with no memberships", async ({ adminPage, db }) => {
 		// Create a test membership type with no memberships
 		const testId = `test-delete-${crypto.randomUUID().slice(0, 8)}`;
 		const uniqueName = `Poistettava ${testId}`;
@@ -224,7 +208,7 @@ test.describe("Membership Types Admin", () => {
 		await expect(adminPage.getByText("Jäsenyystyyppiä ei voi poistaa")).toBeVisible();
 	});
 
-	test("cancel button closes sheet without saving", async ({ adminPage }) => {
+	test("cancel button closes sheet without saving", async ({ adminPage, db }) => {
 		// Create a test membership type
 		const testId = `test-cancel-${crypto.randomUUID().slice(0, 8)}`;
 		await db.insert(table.membershipType).values({

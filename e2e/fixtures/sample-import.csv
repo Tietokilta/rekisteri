@@ -1,13 +1,13 @@
-firstNames,lastName,homeMunicipality,email,membershipType,membershipStartDate
-Matti,Meikäläinen,Helsinki,matti.meikalainen@example.com,varsinainen jäsen,2022-08-01
-Matti,Meikäläinen,Helsinki,matti.meikalainen@example.com,varsinainen jäsen,2023-08-01
-Matti,Meikäläinen,Helsinki,matti.meikalainen@example.com,varsinainen jäsen,2024-08-01
-Matti,Meikäläinen,Helsinki,matti.meikalainen@example.com,varsinainen jäsen,2025-08-01
-Liisa,Virtanen,Espoo,liisa.virtanen@example.com,ulkojäsen,2023-08-01
-Liisa,Virtanen,Espoo,liisa.virtanen@example.com,varsinainen jäsen,2024-08-01
-Liisa,Virtanen,Espoo,liisa.virtanen@example.com,varsinainen jäsen,2025-08-01
-Pekka,Korhonen,Tampere,pekka.korhonen@example.com,ulkojäsen,2024-08-01
-Anna,Nieminen,Turku,anna.nieminen@example.com,varsinainen jäsen,2025-08-01
-Jukka,Mäkinen,Vantaa,jukka.makinen@example.com,kannatusjäsen,2024-08-01
-Sari,Laine,Oulu,sari.laine@example.com,ulkojäsen,2025-08-01
-Mikko,Virtanen,Helsinki,mikko.virtanen@example.com,varsinainen jäsen,2025-08-01
+firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
+Matti,Meikäläinen,Helsinki,matti.meikalainen@example.com,varsinainen-jasen,2022-08-01
+Matti,Meikäläinen,Helsinki,matti.meikalainen@example.com,varsinainen-jasen,2023-08-01
+Matti,Meikäläinen,Helsinki,matti.meikalainen@example.com,varsinainen-jasen,2024-08-01
+Matti,Meikäläinen,Helsinki,matti.meikalainen@example.com,varsinainen-jasen,2025-08-01
+Liisa,Virtanen,Espoo,liisa.virtanen@example.com,ulkojasen,2023-08-01
+Liisa,Virtanen,Espoo,liisa.virtanen@example.com,varsinainen-jasen,2024-08-01
+Liisa,Virtanen,Espoo,liisa.virtanen@example.com,varsinainen-jasen,2025-08-01
+Pekka,Korhonen,Tampere,pekka.korhonen@example.com,ulkojasen,2024-08-01
+Anna,Nieminen,Turku,anna.nieminen@example.com,varsinainen-jasen,2025-08-01
+Jukka,Mäkinen,Vantaa,jukka.makinen@example.com,kannatusjasen,2024-08-01
+Sari,Laine,Oulu,sari.laine@example.com,ulkojasen,2025-08-01
+Mikko,Virtanen,Helsinki,mikko.virtanen@example.com,varsinainen-jasen,2025-08-01

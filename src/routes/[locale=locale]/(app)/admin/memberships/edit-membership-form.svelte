@@ -101,8 +101,8 @@
 	id={formId}
 	{...editForm.preflight(updateMembershipSchema).enhance(async ({ submit }) => {
 		await submit();
-		onClose();
 		await invalidateAll();
+		onClose();
 	})}
 	class="flex flex-1 flex-col gap-5 px-4"
 >
@@ -221,8 +221,8 @@
 		<form
 			{...deleteForm.preflight(deleteMembershipSchema).enhance(async ({ submit }) => {
 				await submit();
-				onClose();
 				await invalidateAll();
+				onClose();
 			})}
 			class="w-full"
 		>

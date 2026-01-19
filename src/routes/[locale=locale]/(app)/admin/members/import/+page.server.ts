@@ -26,12 +26,12 @@ export const load: PageServerLoad = async (event) => {
 		membershipType: r.membership_type,
 	}));
 
-	// Build a list of valid type names (both fi and en)
-	const typeNames = membershipTypes.flatMap((t) => [t.name.fi, t.name.en]);
+	// Build a list of valid type IDs
+	const typeIds = membershipTypes.map((t) => t.id);
 
 	return {
 		membershipTypes,
-		typeNames,
+		typeIds,
 		memberships,
 	};
 };

@@ -34,15 +34,9 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 		error(400, `Validation failed: ${issues}`);
 	}
 
-	// Fetch all membership types to build a name-to-id mapping
+	// Fetch all membership types to validate IDs
 	const membershipTypes = await db.select().from(table.membershipType);
-
-	// Build a map from type name (both fi and en) to membershipTypeId
-	const typeNameToId = new Map<string, string>();
-	for (const mt of membershipTypes) {
-		typeNameToId.set(mt.name.fi, mt.id);
-		typeNameToId.set(mt.name.en, mt.id);
-	}
+	const validTypeIds = new Set(membershipTypes.map((mt) => mt.id));
 
 	// Fetch all memberships with their type info
 	const memberships = await db
@@ -109,24 +103,23 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 				continue;
 			}
 
-			// Check if membership type name exists (accepts both fi and en names)
-			const membershipTypeId = typeNameToId.get(row.membershipType);
-			if (!membershipTypeId) {
+			// Check if membership type ID is valid
+			if (!validTypeIds.has(row.membershipTypeId)) {
 				errors.push({
 					row: i + 1,
 					email: row.email,
-					error: `Membership type "${row.membershipType}" not found`,
+					error: `Membership type ID "${row.membershipTypeId}" not found`,
 				});
 				continue;
 			}
 
 			// Get memberships for this type
-			const membershipOptions = membershipsByTypeId.get(membershipTypeId);
+			const membershipOptions = membershipsByTypeId.get(row.membershipTypeId);
 			if (!membershipOptions || membershipOptions.length === 0) {
 				errors.push({
 					row: i + 1,
 					email: row.email,
-					error: `No memberships found for type "${row.membershipType}"`,
+					error: `No memberships found for type "${row.membershipTypeId}"`,
 				});
 				continue;
 			}
@@ -138,7 +131,7 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 				errors.push({
 					row: i + 1,
 					email: row.email,
-					error: `No membership found for type "${row.membershipType}" starting on ${row.membershipStartDate}`,
+					error: `No membership found for type "${row.membershipTypeId}" starting on ${row.membershipStartDate}`,
 				});
 				continue;
 			}

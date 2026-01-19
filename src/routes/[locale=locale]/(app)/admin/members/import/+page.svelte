@@ -24,7 +24,7 @@
 		"lastName",
 		"homeMunicipality",
 		"email",
-		"membershipType",
+		"membershipTypeId",
 		"membershipStartDate",
 	] as const;
 
@@ -68,17 +68,17 @@
 
 			rows = validatedRows;
 
-			// Validate membership types (accepts both fi and en names)
+			// Validate membership type IDs
 			const invalidTypes = new SvelteSet<string>();
 			for (const row of validatedRows) {
-				if (!data.typeNames.includes(row.membershipType)) {
-					invalidTypes.add(row.membershipType);
+				if (!data.typeIds.includes(row.membershipTypeId)) {
+					invalidTypes.add(row.membershipTypeId);
 				}
 			}
 
 			if (invalidTypes.size > 0) {
 				parseErrors.push(
-					`Invalid membership types: ${Array.from(invalidTypes).join(", ")}. Available types: ${data.typeNames.join(", ")}`,
+					`Invalid membership type IDs: ${Array.from(invalidTypes).join(", ")}. Available IDs: ${data.typeIds.join(", ")}`,
 				);
 			}
 		};
@@ -95,9 +95,9 @@
 		return $locale === "fi" ? membership.membershipType.name.fi : membership.membershipType.name.en;
 	}
 
-	// Helper to check if a membership matches a type name (accepts both fi and en)
-	function matchesTypeName(membership: (typeof data.memberships)[number], typeName: string) {
-		return membership.membershipType.name.fi === typeName || membership.membershipType.name.en === typeName;
+	// Helper to check if a membership matches a type ID
+	function matchesTypeId(membership: (typeof data.memberships)[number], typeId: string) {
+		return membership.membershipType.id === typeId;
 	}
 
 	// Calculate import preview
@@ -115,7 +115,7 @@
 		for (const row of rows) {
 			const membership = data.memberships.find(
 				(m) =>
-					matchesTypeName(m, row.membershipType) && m.startTime.toISOString().split("T")[0] === row.membershipStartDate,
+					matchesTypeId(m, row.membershipTypeId) && m.startTime.toISOString().split("T")[0] === row.membershipStartDate,
 			);
 			if (membership) {
 				if (membership.endTime < now) {
@@ -270,7 +270,7 @@
 											<td class="p-2">{row.lastName}</td>
 											<td class="p-2">{row.homeMunicipality}</td>
 											<td class="p-2">{row.email}</td>
-											<td class="p-2">{row.membershipType}</td>
+											<td class="p-2">{row.membershipTypeId}</td>
 											<td class="p-2">{row.membershipStartDate}</td>
 										</tr>
 									{/each}
