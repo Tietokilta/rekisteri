@@ -464,6 +464,7 @@ const en = {
 	common: {
 		save: "Save",
 		delete: "Delete",
+		deleteFailed: "Failed to delete",
 		edit: "Edit",
 		cancel: "Cancel",
 		actions: "Actions",

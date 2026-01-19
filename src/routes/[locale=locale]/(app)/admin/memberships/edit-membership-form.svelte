@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from "svelte";
 	import { invalidateAll } from "$app/navigation";
+	import { toast } from "svelte-sonner";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import { updateMembership, deleteMembership } from "./data.remote";
 	import { updateMembershipSchema, deleteMembershipSchema } from "./schema";
@@ -221,6 +222,10 @@
 		<form
 			{...deleteForm.preflight(deleteMembershipSchema).enhance(async ({ submit }) => {
 				await submit();
+				if (deleteForm.result?.success === false) {
+					toast.error($LL.common.deleteFailed());
+					return;
+				}
 				await invalidateAll();
 				onClose();
 			})}

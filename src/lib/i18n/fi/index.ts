@@ -465,6 +465,7 @@ const fi = {
 	common: {
 		save: "Tallenna",
 		delete: "Poista",
+		deleteFailed: "Poistaminen epäonnistui",
 		edit: "Muokkaa",
 		cancel: "Peruuta",
 		actions: "Toiminnot",

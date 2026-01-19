@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from "svelte";
 	import { invalidateAll } from "$app/navigation";
+	import { toast } from "svelte-sonner";
 	import { LL } from "$lib/i18n/i18n-svelte";
 	import { updateMembershipType, deleteMembershipType } from "./data.remote";
 	import { updateMembershipTypeSchema, deleteMembershipTypeSchema } from "./schema";
@@ -53,8 +54,8 @@
 	id={formId}
 	{...editForm.preflight(updateMembershipTypeSchema).enhance(async ({ submit }) => {
 		await submit();
-		onClose();
 		await invalidateAll();
+		onClose();
 	})}
 	class="flex flex-1 flex-col gap-5 px-4"
 >
@@ -128,8 +129,12 @@
 		<form
 			{...deleteForm.preflight(deleteMembershipTypeSchema).enhance(async ({ submit }) => {
 				await submit();
-				onClose();
+				if (deleteForm.result?.success === false) {
+					toast.error($LL.common.deleteFailed());
+					return;
+				}
 				await invalidateAll();
+				onClose();
 			})}
 			class="w-full"
 		>
