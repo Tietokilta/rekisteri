@@ -446,6 +446,7 @@ const en = {
 		delete: "Delete",
 		edit: "Edit",
 		cancel: "Cancel",
+		actions: "Actions",
 	},
 
 	// Error page

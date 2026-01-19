@@ -13,7 +13,7 @@
 	let verifyFormEl: HTMLFormElement;
 </script>
 
-<Card.Root class="w-full max-w-md">
+<Card.Root class="mx-auto w-full max-w-md">
 	<Card.Header>
 		<Card.Title class="text-center">{$LL.secondaryEmail.verifyTitle()}</Card.Title>
 		<Card.Description class="text-center"
@@ -23,14 +23,14 @@
 	<Card.Content>
 		<div class="flex w-full flex-col gap-4">
 			<form bind:this={verifyFormEl} {...verifyCode.preflight(verifyCodeSchema)} class="contents">
-				<div>
+				<div class="flex flex-col gap-2">
 					<Label for="code">{$LL.secondaryEmail.code()}</Label>
 					<InputOTP.Root
 						id="code"
 						maxlength={8}
 						name={verifyCode.fields.code.as("text").name}
 						required
-						class="capitalize"
+						class="justify-center capitalize"
 						onComplete={() => verifyFormEl.requestSubmit()}
 					>
 						{#snippet children({ cells })}

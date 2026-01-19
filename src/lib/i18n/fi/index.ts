@@ -447,6 +447,7 @@ const fi = {
 		delete: "Poista",
 		edit: "Muokkaa",
 		cancel: "Peruuta",
+		actions: "Toiminnot",
 	},
 
 	// Error page
