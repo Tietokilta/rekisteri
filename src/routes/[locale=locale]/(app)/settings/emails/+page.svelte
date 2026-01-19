@@ -75,7 +75,7 @@
 				{@const changePrimaryForm = changePrimaryEmailForm.for(email.id)}
 				{@const status = getEmailStatus(email)}
 
-				<Item.Root variant="outline" size="sm">
+				<Item.Root variant="outline" size="sm" data-testid={`email-row-${email.email}`}>
 					<Item.Media variant="icon">
 						<Mail class="text-muted-foreground" />
 					</Item.Media>
@@ -146,7 +146,7 @@
 						<DropdownMenu.Root>
 							<DropdownMenu.Trigger>
 								{#snippet child({ props })}
-									<Button {...props} variant="ghost" size="sm" class="size-8 p-0">
+									<Button {...props} variant="ghost" size="sm" class="size-8 p-0" data-testid="email-actions-menu">
 										<EllipsisVertical class="size-4" />
 										<span class="sr-only">{$LL.common.actions()}</span>
 									</Button>
