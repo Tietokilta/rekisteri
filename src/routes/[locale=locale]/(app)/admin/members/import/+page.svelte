@@ -7,7 +7,7 @@
 	import { csvRowSchema, importMembersSchema, type CsvRow } from "./schema";
 	import type { PageData } from "./$types";
 	import { SvelteSet } from "svelte/reactivity";
-	import { LL } from "$lib/i18n/i18n-svelte";
+	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import * as v from "valibot";
 	import AdminPageHeader from "$lib/components/admin-page-header.svelte";
 
@@ -68,17 +68,17 @@
 
 			rows = validatedRows;
 
-			// Validate membership types
+			// Validate membership types (accepts both fi and en names)
 			const invalidTypes = new SvelteSet<string>();
 			for (const row of validatedRows) {
-				if (!data.types.includes(row.membershipType)) {
+				if (!data.typeNames.includes(row.membershipType)) {
 					invalidTypes.add(row.membershipType);
 				}
 			}
 
 			if (invalidTypes.size > 0) {
 				parseErrors.push(
-					`Invalid membership types: ${Array.from(invalidTypes).join(", ")}. Available types: ${data.types.join(", ")}`,
+					`Invalid membership types: ${Array.from(invalidTypes).join(", ")}. Available types: ${data.typeNames.join(", ")}`,
 				);
 			}
 		};
@@ -89,6 +89,16 @@
 	});
 
 	const canImport = $derived(rows.length > 0 && parseErrors.length === 0 && !isImporting);
+
+	// Helper to get localized membership type name
+	function getTypeName(membership: (typeof data.memberships)[number]) {
+		return $locale === "fi" ? membership.membershipType.name.fi : membership.membershipType.name.en;
+	}
+
+	// Helper to check if a membership matches a type name (accepts both fi and en)
+	function matchesTypeName(membership: (typeof data.memberships)[number], typeName: string) {
+		return membership.membershipType.name.fi === typeName || membership.membershipType.name.en === typeName;
+	}
 
 	// Calculate import preview
 	const importPreview = $derived.by(() => {
@@ -104,7 +114,8 @@
 
 		for (const row of rows) {
 			const membership = data.memberships.find(
-				(m) => m.type === row.membershipType && m.startTime.toISOString().split("T")[0] === row.membershipStartDate,
+				(m) =>
+					matchesTypeName(m, row.membershipType) && m.startTime.toISOString().split("T")[0] === row.membershipStartDate,
 			);
 			if (membership) {
 				if (membership.endTime < now) {
@@ -152,7 +163,7 @@
 					<ul class="space-y-2 text-sm text-muted-foreground">
 						{#each data.memberships as membership (membership.id)}
 							<li class="rounded bg-background p-2">
-								<div class="font-medium">{membership.type}</div>
+								<div class="font-medium">{getTypeName(membership)}</div>
 								<div class="text-xs">
 									{$LL.admin.import.start()} <code>{membership.startTime.toISOString().split("T")[0]}</code>
 								</div>

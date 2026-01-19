@@ -43,6 +43,8 @@
 				<form {...payMembership.preflight(payMembershipSchema)} class="flex flex-col gap-4">
 					<div class="space-y-3">
 						{#each filteredMemberships as membership (membership.id)}
+							{@const typeName =
+								$locale === "fi" ? membership.membershipType.name.fi : membership.membershipType.name.en}
 							<label
 								class="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors focus-within:border-primary hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-accent"
 							>
@@ -52,14 +54,14 @@
 										<svelte:boundary>
 											{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
 											<span class="font-medium">
-												{membership.type} ({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
+												{typeName} ({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
 											</span>
 											{#snippet failed()}
 												<span class="font-medium text-destructive">{$LL.admin.memberships.failedToLoadPrice()}</span>
 											{/snippet}
 										</svelte:boundary>
 									{:else}
-										<span class="font-medium">{membership.type}</span>
+										<span class="font-medium">{typeName}</span>
 									{/if}
 									<span class="text-sm text-muted-foreground">
 										{new Date(membership.startTime).toLocaleDateString(`${$locale}-FI`)}

@@ -11,6 +11,7 @@ import Key from "@lucide/svelte/icons/key";
 import Mail from "@lucide/svelte/icons/mail";
 import Users from "@lucide/svelte/icons/users";
 import Tags from "@lucide/svelte/icons/tags";
+import Tag from "@lucide/svelte/icons/tag";
 import UserCog from "@lucide/svelte/icons/user-cog";
 
 export interface NavItem {
@@ -65,6 +66,11 @@ export function getAdminNavItems(locale: Locale, LL: TranslationFunctions): NavI
 			title: LL.nav.admin.memberships(),
 			href: route("/[locale=locale]/admin/memberships", { locale }),
 			icon: Tags,
+		},
+		{
+			title: LL.nav.admin.membershipTypes(),
+			href: route("/[locale=locale]/admin/membership-types", { locale }),
+			icon: Tag,
 		},
 		{
 			title: LL.nav.admin.users(),

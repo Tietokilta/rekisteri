@@ -12,9 +12,10 @@
 	import { formatPrice } from "$lib/utils";
 	import * as Sheet from "$lib/components/ui/sheet";
 	import GraduationCap from "@lucide/svelte/icons/graduation-cap";
+	import type { MembershipType } from "$lib/server/db/schema";
 
 	interface DefaultValues {
-		type: string;
+		membershipTypeId: string;
 		stripePriceId: string;
 		startTime: string;
 		endTime: string;
@@ -23,11 +24,11 @@
 
 	interface Props {
 		defaultValues: DefaultValues;
-		types: Set<string>;
+		membershipTypes: MembershipType[];
 		onClose: () => void;
 	}
 
-	let { defaultValues, types, onClose }: Props = $props();
+	let { defaultValues, membershipTypes, onClose }: Props = $props();
 
 	// Initialize form fields when component mounts
 	$effect(() => {
@@ -88,17 +89,23 @@
 	})}
 	class="flex flex-1 flex-col gap-5 px-4"
 >
-	<!-- Type field -->
+	<!-- Membership Type -->
 	<div class="space-y-2">
-		<Label for="type">{$LL.membership.type()}</Label>
-		<Input {...createMembership.fields.type.as("text")} id="type" list="types" />
-		<p class="text-sm text-muted-foreground">{$LL.membership.continuityNote()}</p>
-		<datalist id="types">
-			{#each types as type (type)}
-				<option value={type}></option>
+		<Label for="membershipTypeId">{$LL.membership.type()}</Label>
+		<select
+			{...createMembership.fields.membershipTypeId.as("select")}
+			id="membershipTypeId"
+			class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+		>
+			<option value="">{$LL.common.select()}</option>
+			{#each membershipTypes as membershipType (membershipType.id)}
+				<option value={membershipType.id}>
+					{$locale === "fi" ? membershipType.name.fi : membershipType.name.en}
+				</option>
 			{/each}
-		</datalist>
-		{#each createMembership.fields.type.issues() as issue, i (i)}
+		</select>
+		<p class="text-sm text-muted-foreground">{$LL.membership.continuityNote()}</p>
+		{#each createMembership.fields.membershipTypeId.issues() as issue, i (i)}
 			<p class="text-sm text-destructive">{issue.message}</p>
 		{/each}
 	</div>

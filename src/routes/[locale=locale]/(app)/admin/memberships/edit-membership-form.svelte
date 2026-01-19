@@ -13,10 +13,11 @@
 	import * as Sheet from "$lib/components/ui/sheet";
 	import Trash2 from "@lucide/svelte/icons/trash-2";
 	import GraduationCap from "@lucide/svelte/icons/graduation-cap";
+	import type { MembershipType } from "$lib/server/db/schema";
 
 	interface Membership {
 		id: string;
-		type: string;
+		membershipTypeId: string;
 		stripePriceId: string | null;
 		startTime: Date;
 		endTime: Date;
@@ -26,11 +27,11 @@
 
 	interface Props {
 		membership: Membership;
-		types: Set<string>;
+		membershipTypes: MembershipType[];
 		onClose: () => void;
 	}
 
-	let { membership, types, onClose }: Props = $props();
+	let { membership, membershipTypes, onClose }: Props = $props();
 
 	const editForm = updateMembership.for(membership.id);
 
@@ -39,7 +40,7 @@
 		untrack(() => {
 			editForm.fields.set({
 				id: membership.id,
-				type: membership.type,
+				membershipTypeId: membership.membershipTypeId,
 				stripePriceId: membership.stripePriceId ?? "",
 				requiresStudentVerification: membership.requiresStudentVerification,
 			});
@@ -100,17 +101,23 @@
 >
 	<input {...editForm.fields.id.as("hidden", membership.id)} />
 
-	<!-- Type field -->
+	<!-- Membership Type -->
 	<div class="space-y-2">
-		<Label for="edit-type">{$LL.membership.type()}</Label>
-		<Input {...editForm.fields.type.as("text")} id="edit-type" list="edit-types" />
-		<p class="text-sm text-muted-foreground">{$LL.membership.continuityNote()}</p>
-		<datalist id="edit-types">
-			{#each types as type (type)}
-				<option value={type}></option>
+		<Label for="edit-membershipTypeId">{$LL.membership.type()}</Label>
+		<select
+			{...editForm.fields.membershipTypeId.as("select")}
+			id="edit-membershipTypeId"
+			class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+		>
+			<option value="">{$LL.common.select()}</option>
+			{#each membershipTypes as membershipType (membershipType.id)}
+				<option value={membershipType.id}>
+					{$locale === "fi" ? membershipType.name.fi : membershipType.name.en}
+				</option>
 			{/each}
-		</datalist>
-		{#each editForm.fields.type.issues() as issue, i (i)}
+		</select>
+		<p class="text-sm text-muted-foreground">{$LL.membership.continuityNote()}</p>
+		{#each editForm.fields.membershipTypeId.issues() as issue, i (i)}
 			<p class="text-sm text-destructive">{issue.message}</p>
 		{/each}
 	</div>

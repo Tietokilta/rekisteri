@@ -3,7 +3,7 @@ import { getStripePriceMetadata } from "$lib/api/stripe.remote";
 
 export const createMembershipSchema = v.pipeAsync(
 	v.object({
-		type: v.pipe(v.string(), v.minLength(1)),
+		membershipTypeId: v.pipe(v.string(), v.minLength(1)),
 		stripePriceId: v.pipe(v.string(), v.minLength(1)),
 		startTime: v.pipe(v.string(), v.minLength(1)),
 		endTime: v.pipe(v.string(), v.minLength(1)),
@@ -28,7 +28,7 @@ export const deleteMembershipSchema = v.object({
 export const updateMembershipSchema = v.pipeAsync(
 	v.object({
 		id: v.pipe(v.string(), v.uuid()),
-		type: v.pipe(v.string(), v.minLength(1)),
+		membershipTypeId: v.pipe(v.string(), v.minLength(1)),
 		// Transform empty strings to undefined so they're treated as "not provided"
 		stripePriceId: v.optional(
 			v.pipe(

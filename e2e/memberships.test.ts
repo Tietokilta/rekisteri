@@ -12,6 +12,10 @@ test.describe("Memberships Admin", () => {
 	// Track test memberships for cleanup
 	let testMembershipIds: string[] = [];
 
+	// Use existing membership type IDs from seed data
+	const membershipTypeId = "varsinainen-jasen";
+	const alternateMembershipTypeId = "ulkojasen";
+
 	test.beforeAll(async () => {
 		const dbUrl = process.env.DATABASE_URL_TEST;
 		if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
@@ -62,16 +66,15 @@ test.describe("Memberships Admin", () => {
 	});
 
 	test("opens edit sheet when clicking a membership", async ({ adminPage }) => {
-		// Create a test membership to click
+		// Create a test membership with a unique date range to identify it
 		const testMembershipId = crypto.randomUUID();
-		const testType = `test-click-${crypto.randomUUID().slice(0, 8)}`;
 
 		await db.insert(table.membership).values({
 			id: testMembershipId,
-			type: testType,
+			membershipTypeId,
 			stripePriceId: null,
-			startTime: new Date(2025, 7, 1),
-			endTime: new Date(2026, 6, 31),
+			startTime: new Date(2030, 7, 1), // Use a far future date to make it unique
+			endTime: new Date(2031, 6, 31),
 			requiresStudentVerification: false,
 		});
 		testMembershipIds.push(testMembershipId);
@@ -80,8 +83,11 @@ test.describe("Memberships Admin", () => {
 			waitUntil: "networkidle",
 		});
 
-		// Click the test membership by its type name
-		await adminPage.getByRole("button", { name: new RegExp(testType) }).click();
+		// Click the test membership (Varsinainen jäsen in 2030-2031)
+		await adminPage
+			.getByRole("button", { name: /Varsinainen jäsen.*2030/ })
+			.first()
+			.click();
 
 		// Verify edit sheet opens
 		await expect(adminPage.getByRole("heading", { name: "Muokkaa jäsenyyttä" })).toBeVisible();
@@ -93,14 +99,13 @@ test.describe("Memberships Admin", () => {
 	test("edit form is pre-populated with membership data", async ({ adminPage }) => {
 		// Create a test membership with known values
 		const testMembershipId = crypto.randomUUID();
-		const testType = `test-prefill-${crypto.randomUUID().slice(0, 8)}`;
 
 		await db.insert(table.membership).values({
 			id: testMembershipId,
-			type: testType,
+			membershipTypeId: alternateMembershipTypeId, // Use ulkojasen to distinguish
 			stripePriceId: null,
-			startTime: new Date(2025, 7, 1),
-			endTime: new Date(2026, 6, 31),
+			startTime: new Date(2031, 7, 1),
+			endTime: new Date(2032, 6, 31),
 			requiresStudentVerification: false,
 		});
 		testMembershipIds.push(testMembershipId);
@@ -109,28 +114,29 @@ test.describe("Memberships Admin", () => {
 			waitUntil: "networkidle",
 		});
 
-		// Click our test membership
-		await adminPage.getByRole("button", { name: new RegExp(testType) }).click();
+		// Click our test membership (Ulkojäsen in 2031-2032)
+		await adminPage
+			.getByRole("button", { name: /Ulkojäsen.*2031/ })
+			.first()
+			.click();
 
 		// Wait for the sheet to open
 		await expect(adminPage.getByRole("heading", { name: "Muokkaa jäsenyyttä" })).toBeVisible();
 
-		// Verify the type field is pre-populated with our test value
-		await expect(adminPage.getByLabel("Tyyppi")).toHaveValue(testType);
+		// Verify the type dropdown has ulkojasen selected
+		await expect(adminPage.getByLabel("Tyyppi")).toHaveValue(alternateMembershipTypeId);
 	});
 
 	test("can update membership type", async ({ adminPage }) => {
 		// Create a test membership to edit
 		const testMembershipId = crypto.randomUUID();
-		const originalType = `test-type-${crypto.randomUUID().slice(0, 8)}`;
-		const newType = `updated-type-${crypto.randomUUID().slice(0, 8)}`;
 
 		await db.insert(table.membership).values({
 			id: testMembershipId,
-			type: originalType,
+			membershipTypeId,
 			stripePriceId: null,
-			startTime: new Date(2025, 7, 1),
-			endTime: new Date(2026, 6, 31),
+			startTime: new Date(2032, 7, 1),
+			endTime: new Date(2033, 6, 31),
 			requiresStudentVerification: false,
 		});
 		testMembershipIds.push(testMembershipId);
@@ -140,15 +146,17 @@ test.describe("Memberships Admin", () => {
 		});
 
 		// Find and click our test membership
-		await adminPage.getByRole("button", { name: new RegExp(originalType) }).click();
+		await adminPage
+			.getByRole("button", { name: /Varsinainen jäsen.*2032/ })
+			.first()
+			.click();
 
 		// Wait for the sheet to open
 		await expect(adminPage.getByRole("heading", { name: "Muokkaa jäsenyyttä" })).toBeVisible();
 
-		// Clear and update the type field
-		const typeInput = adminPage.getByLabel("Tyyppi");
-		await typeInput.clear();
-		await typeInput.fill(newType);
+		// Change the type via the dropdown
+		const typeSelect = adminPage.getByLabel("Tyyppi");
+		await typeSelect.selectOption(alternateMembershipTypeId);
 
 		// Submit the form
 		await adminPage.getByRole("button", { name: "Tallenna" }).click();
@@ -156,21 +164,20 @@ test.describe("Memberships Admin", () => {
 		// Wait for the sheet to close and page to refresh
 		await expect(adminPage.getByRole("heading", { name: "Muokkaa jäsenyyttä" })).not.toBeVisible();
 
-		// Verify the new type appears in the UI
-		await expect(adminPage.getByText(newType)).toBeVisible();
+		// Verify the new type appears in the UI (Ulkojäsen in 2032-2033)
+		await expect(adminPage.getByRole("button", { name: /Ulkojäsen.*2032/ }).first()).toBeVisible();
 	});
 
 	test("can toggle student verification requirement", async ({ adminPage }) => {
 		// Create a test membership
 		const testMembershipId = crypto.randomUUID();
-		const testType = `test-student-${crypto.randomUUID().slice(0, 8)}`;
 
 		await db.insert(table.membership).values({
 			id: testMembershipId,
-			type: testType,
+			membershipTypeId,
 			stripePriceId: null,
-			startTime: new Date(2025, 7, 1),
-			endTime: new Date(2026, 6, 31),
+			startTime: new Date(2033, 7, 1),
+			endTime: new Date(2034, 6, 31),
 			requiresStudentVerification: false,
 		});
 		testMembershipIds.push(testMembershipId);
@@ -180,7 +187,10 @@ test.describe("Memberships Admin", () => {
 		});
 
 		// Find and click our test membership
-		await adminPage.getByRole("button", { name: new RegExp(testType) }).click();
+		await adminPage
+			.getByRole("button", { name: /Varsinainen jäsen.*2033/ })
+			.first()
+			.click();
 
 		// Wait for the sheet to open
 		await expect(adminPage.getByRole("heading", { name: "Muokkaa jäsenyyttä" })).toBeVisible();
@@ -207,14 +217,13 @@ test.describe("Memberships Admin", () => {
 	test("can delete membership with no members", async ({ adminPage }) => {
 		// Create a test membership with no members
 		const testMembershipId = crypto.randomUUID();
-		const testType = `test-delete-${crypto.randomUUID().slice(0, 8)}`;
 
 		await db.insert(table.membership).values({
 			id: testMembershipId,
-			type: testType,
+			membershipTypeId,
 			stripePriceId: null,
-			startTime: new Date(2025, 7, 1),
-			endTime: new Date(2026, 6, 31),
+			startTime: new Date(2034, 7, 1),
+			endTime: new Date(2035, 6, 31),
 			requiresStudentVerification: false,
 		});
 		// Don't add to cleanup array since we're testing delete
@@ -224,7 +233,10 @@ test.describe("Memberships Admin", () => {
 		});
 
 		// Find and click our test membership
-		await adminPage.getByRole("button", { name: new RegExp(testType) }).click();
+		await adminPage
+			.getByRole("button", { name: /Varsinainen jäsen.*2034/ })
+			.first()
+			.click();
 
 		// Wait for the sheet to open
 		await expect(adminPage.getByRole("heading", { name: "Muokkaa jäsenyyttä" })).toBeVisible();
@@ -236,20 +248,19 @@ test.describe("Memberships Admin", () => {
 		await expect(adminPage.getByRole("heading", { name: "Muokkaa jäsenyyttä" })).not.toBeVisible();
 
 		// Verify the membership no longer appears in the UI
-		await expect(adminPage.getByText(testType)).not.toBeVisible();
+		await expect(adminPage.getByRole("button", { name: /Varsinainen jäsen.*2034/ })).not.toBeVisible();
 	});
 
 	test("cancel button closes sheet without saving", async ({ adminPage }) => {
 		// Create a test membership
 		const testMembershipId = crypto.randomUUID();
-		const testType = `test-cancel-${crypto.randomUUID().slice(0, 8)}`;
 
 		await db.insert(table.membership).values({
 			id: testMembershipId,
-			type: testType,
+			membershipTypeId,
 			stripePriceId: null,
-			startTime: new Date(2025, 7, 1),
-			endTime: new Date(2026, 6, 31),
+			startTime: new Date(2035, 7, 1),
+			endTime: new Date(2036, 6, 31),
 			requiresStudentVerification: false,
 		});
 		testMembershipIds.push(testMembershipId);
@@ -259,15 +270,17 @@ test.describe("Memberships Admin", () => {
 		});
 
 		// Find and click our test membership
-		await adminPage.getByRole("button", { name: new RegExp(testType) }).click();
+		await adminPage
+			.getByRole("button", { name: /Varsinainen jäsen.*2035/ })
+			.first()
+			.click();
 
 		// Wait for the sheet to open
 		await expect(adminPage.getByRole("heading", { name: "Muokkaa jäsenyyttä" })).toBeVisible();
 
 		// Change the type field
-		const typeInput = adminPage.getByLabel("Tyyppi");
-		await typeInput.clear();
-		await typeInput.fill("should-not-be-saved");
+		const typeSelect = adminPage.getByLabel("Tyyppi");
+		await typeSelect.selectOption(alternateMembershipTypeId);
 
 		// Click cancel button
 		await adminPage.getByRole("button", { name: "Peruuta" }).click();
@@ -275,7 +288,7 @@ test.describe("Memberships Admin", () => {
 		// Wait for the sheet to close
 		await expect(adminPage.getByRole("heading", { name: "Muokkaa jäsenyyttä" })).not.toBeVisible();
 
-		// Verify the original type is still visible (change was not saved)
-		await expect(adminPage.getByText(testType)).toBeVisible();
+		// Verify the original type is still shown (change was not saved)
+		await expect(adminPage.getByRole("button", { name: /Varsinainen jäsen.*2035/ }).first()).toBeVisible();
 	});
 });

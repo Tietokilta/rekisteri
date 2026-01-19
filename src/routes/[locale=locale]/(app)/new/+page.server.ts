@@ -15,15 +15,26 @@ export const load: PageServerLoad = async (event) => {
 		.select()
 		.from(table.member)
 		.innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
+		.innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
 		.where(eq(table.member.userId, event.locals.user.id))
 		.orderBy(desc(table.membership.startTime));
 
 	const memberships = result.map((m) => ({
 		...m.membership,
+		membershipType: m.membership_type,
 		status: m.member.status,
 	}));
 
-	const availableMemberships = await db.select().from(table.membership).where(gt(table.membership.endTime, new Date()));
+	const availableResult = await db
+		.select()
+		.from(table.membership)
+		.innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
+		.where(gt(table.membership.endTime, new Date()));
+
+	const availableMemberships = availableResult.map((r) => ({
+		...r.membership,
+		membershipType: r.membership_type,
+	}));
 
 	// Check for valid aalto.fi email (primary or secondary)
 	const primaryEmailDomain = event.locals.user.email.split("@")[1]?.toLowerCase();
