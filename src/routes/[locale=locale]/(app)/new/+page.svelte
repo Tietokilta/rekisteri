@@ -13,13 +13,16 @@
 	import { payMembershipSchema } from "./schema";
 	import { getStripePriceMetadata } from "$lib/api/stripe.remote";
 	import { formatPrice } from "$lib/utils";
+	import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
 
 	const { data }: PageProps = $props();
 
 	const { memberships, availableMemberships } = data;
-	// Only show memberships that have a Stripe price ID and user doesn't already have
+	// Only show memberships that have a Stripe price ID
+	// Only block memberships that are active or pending - allow repurchasing cancelled/expired memberships
 	const filteredMemberships = availableMemberships.filter(
-		(a): a is typeof a & { stripePriceId: string } => !!a.stripePriceId && !memberships.some((b) => a.id === b.id),
+		(a): a is typeof a & { stripePriceId: string } =>
+			!!a.stripePriceId && !memberships.some((b) => a.id === b.id && BLOCKING_MEMBER_STATUSES.has(b.status)),
 	);
 
 	// URL for guild bylaws based on locale
