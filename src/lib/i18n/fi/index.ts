@@ -34,6 +34,7 @@ const fi = {
 		viewAll: "Näytä kaikki",
 		purchaseNew: "Osta uusi",
 		renewMembership: "Uusi jäsenyys",
+		completePayment: "Jatka maksua",
 		profileIncomplete: "Täydennä profiilisi",
 		profileIncompleteDescription: "Tarvitsemme nimesi ja kotikuntasi jäsenyyden rekisteröintiä varten.",
 		completeProfile: "Siirry profiiliin",
@@ -471,6 +472,7 @@ const fi = {
 		actions: "Toiminnot",
 		create: "Luo",
 		select: "Valitse",
+		loading: "Ladataan...",
 	},
 
 	// Error page

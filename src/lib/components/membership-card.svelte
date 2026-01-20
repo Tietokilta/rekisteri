@@ -6,6 +6,8 @@
 	import { route } from "$lib/ROUTES";
 	import type { MemberStatus } from "$lib/shared/enums";
 	import type { LocalizedString } from "$lib/server/db/schema";
+	import { retryPayment } from "$lib/api/retry-payment.remote";
+	import { retryPaymentSchema } from "$lib/api/retry-payment.schema";
 
 	// Icons
 	import CircleCheck from "@lucide/svelte/icons/circle-check";
@@ -148,14 +150,27 @@
 				{$LL.dashboard.viewAll()}
 			</Button>
 		{/if}
-		<Button href={route("/[locale=locale]/new", { locale: $locale })} class="flex-1">
-			{#if memberships.length === 0}
-				{$LL.dashboard.getFirstMembership()}
-			{:else if hasActiveMembership}
-				{$LL.dashboard.purchaseNew()}
-			{:else}
-				{$LL.dashboard.renewMembership()}
-			{/if}
-		</Button>
+		{#if currentMembership?.status === "awaiting_payment"}
+			<form {...retryPayment.preflight(retryPaymentSchema)} class="flex-1">
+				<input type="hidden" name="memberId" value={currentMembership.unique_id} />
+				<Button type="submit" class="w-full" disabled={!!retryPayment.pending}>
+					{#if retryPayment.pending}
+						{$LL.common.loading()}
+					{:else}
+						{$LL.dashboard.completePayment()}
+					{/if}
+				</Button>
+			</form>
+		{:else}
+			<Button href={route("/[locale=locale]/new", { locale: $locale })} class="flex-1">
+				{#if memberships.length === 0}
+					{$LL.dashboard.getFirstMembership()}
+				{:else if hasActiveMembership}
+					{$LL.dashboard.purchaseNew()}
+				{:else}
+					{$LL.dashboard.renewMembership()}
+				{/if}
+			</Button>
+		{/if}
 	</Card.Footer>
 </Card.Root>

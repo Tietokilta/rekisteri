@@ -20,3 +20,13 @@ export const MEMBER_STATUS_VALUES = [
 	"cancelled",
 ] as const;
 export type MemberStatus = (typeof MEMBER_STATUS_VALUES)[number];
+
+/**
+ * Member statuses that block purchasing the same membership again.
+ * Users can repurchase cancelled or expired memberships.
+ */
+export const BLOCKING_MEMBER_STATUSES: ReadonlySet<MemberStatus> = new Set([
+	"active",
+	"awaiting_approval",
+	"awaiting_payment",
+]);

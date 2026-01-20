@@ -34,6 +34,7 @@ const en = {
 		viewAll: "View all",
 		purchaseNew: "Purchase new",
 		renewMembership: "Renew membership",
+		completePayment: "Complete payment",
 		profileIncomplete: "Complete your profile",
 		profileIncompleteDescription: "We need your name and home municipality to register your membership.",
 		completeProfile: "Go to profile",
@@ -470,6 +471,7 @@ const en = {
 		actions: "Actions",
 		create: "Create",
 		select: "Select",
+		loading: "Loading...",
 	},
 
 	// Error page
