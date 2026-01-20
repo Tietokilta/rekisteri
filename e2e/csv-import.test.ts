@@ -354,6 +354,248 @@ New,Person,Espoo,${unverifiedEmail},varsinainen-jasen,2025-08-01`;
 		expect(createdMembers.length).toBe(rowCount);
 	});
 
+	test.describe("Legacy Membership Creation", () => {
+		// Track memberships created for cleanup
+		let testMembershipIds: string[] = [];
+
+		test.afterEach(async () => {
+			// Clean up created memberships
+			for (const membershipId of testMembershipIds) {
+				// First delete any member records that reference this membership
+				await db.delete(table.member).where(eq(table.member.membershipId, membershipId));
+				// Then delete the membership
+				await db.delete(table.membership).where(eq(table.membership.id, membershipId));
+			}
+			testMembershipIds = [];
+		});
+
+		test("Quick Create creates legacy membership for unmatched CSV row", async ({ adminPage }) => {
+			// Create a CSV with a membership that doesn't exist (old start date)
+			const tempPath = path.join(process.cwd(), `temp-legacy-${crypto.randomUUID()}.csv`);
+			tempFiles.push(tempPath);
+			const email = getTestEmail("legacy");
+			const csvContent = `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
+Test,User,Helsinki,${email},varsinainen-jasen,2019-08-01`;
+			fs.writeFileSync(tempPath, csvContent);
+
+			await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
+				waitUntil: "networkidle",
+			});
+
+			const fileInput = adminPage.locator('input[type="file"]');
+			await fileInput.setInputFiles(tempPath);
+
+			// Wait for analysis to complete - should show unmatched
+			await expect(adminPage.getByText("Ratkaisua tarvitaan")).toBeVisible({ timeout: 10_000 });
+			await expect(adminPage.getByText("Puuttuvat jäsenyydet")).toBeVisible();
+
+			// Verify the unmatched membership shows the type and start date
+			await expect(adminPage.getByText("Varsinainen jäsen")).toBeVisible();
+			await expect(adminPage.getByText("2019-08-01")).toBeVisible();
+
+			// Click Quick Create button
+			const quickCreateButton = adminPage.getByRole("button", { name: "Pikaluo" });
+			await quickCreateButton.click();
+
+			// Wait for creation to complete - should show "Created!" badge
+			await expect(adminPage.getByText("Luotu!")).toBeVisible({ timeout: 10_000 });
+
+			// Verify the row status changed to OK in the preview table
+			await expect(adminPage.getByRole("cell", { name: "OK" }).first()).toBeVisible();
+
+			// Verify import preview now shows the row is ready
+			await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible();
+
+			// Verify the membership was created in the database as legacy (no Stripe price)
+			const [createdMembership] = await db
+				.select()
+				.from(table.membership)
+				.where(eq(table.membership.startTime, new Date("2019-08-01")));
+
+			expect(createdMembership).toBeDefined();
+			expect(createdMembership?.stripePriceId).toBeNull();
+			expect(createdMembership?.membershipTypeId).toBe("varsinainen-jasen");
+
+			// Track for cleanup
+			if (createdMembership) {
+				testMembershipIds.push(createdMembership.id);
+			}
+
+			// Now execute the import
+			const importButton = adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i });
+			await importButton.click();
+
+			await expect(adminPage.getByText(/tuonti onnistui|import successful/i)).toBeVisible({ timeout: 10_000 });
+
+			// Track created user for cleanup
+			const [createdUser] = await db.select().from(table.user).where(eq(table.user.email, email));
+			if (createdUser) {
+				testUserIds.push(createdUser.id);
+			}
+		});
+
+		test("Create All Missing Memberships batch creates multiple legacy memberships", async ({ adminPage }) => {
+			// Create a CSV with multiple memberships that don't exist
+			const tempPath = path.join(process.cwd(), `temp-batch-legacy-${crypto.randomUUID()}.csv`);
+			tempFiles.push(tempPath);
+			const email1 = getTestEmail("batch1");
+			const email2 = getTestEmail("batch2");
+			const email3 = getTestEmail("batch3");
+			// Use different years that don't exist
+			const csvContent = `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
+Alice,Smith,Helsinki,${email1},varsinainen-jasen,2018-08-01
+Bob,Jones,Tampere,${email2},ulkojasen,2018-08-01
+Charlie,Brown,Espoo,${email3},varsinainen-jasen,2017-08-01`;
+			fs.writeFileSync(tempPath, csvContent);
+
+			await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
+				waitUntil: "networkidle",
+			});
+
+			const fileInput = adminPage.locator('input[type="file"]');
+			await fileInput.setInputFiles(tempPath);
+
+			// Wait for analysis - should show unmatched
+			await expect(adminPage.getByText("Ratkaisua tarvitaan")).toBeVisible({ timeout: 10_000 });
+			await expect(adminPage.getByText("Puuttuvat jäsenyydet")).toBeVisible();
+
+			// Should show "Create All Missing Memberships" button since we have multiple
+			const createAllButton = adminPage.getByRole("button", { name: "Luo kaikki puuttuvat jäsenyydet" });
+			await expect(createAllButton).toBeVisible();
+
+			// Click it
+			await createAllButton.click();
+
+			// Wait for all to be created
+			await expect(adminPage.getByText("Luotu!").first()).toBeVisible({ timeout: 15_000 });
+
+			// Should have multiple "Luotu!" badges (at least 2, since 2 unique type+date combos)
+			// varsinainen-jasen 2018, ulkojasen 2018, varsinainen-jasen 2017 = 3 unique
+			const createdBadges = adminPage.getByText("Luotu!");
+			await expect(createdBadges).toHaveCount(3);
+
+			// Verify memberships were created in database
+			const createdMemberships = await db
+				.select()
+				.from(table.membership)
+				.where(inArray(table.membership.startTime, [new Date("2017-08-01"), new Date("2018-08-01")]));
+
+			// Should have 3 new memberships
+			expect(createdMemberships.length).toBe(3);
+
+			// All should be legacy (no Stripe price)
+			for (const m of createdMemberships) {
+				expect(m.stripePriceId).toBeNull();
+				testMembershipIds.push(m.id);
+			}
+
+			// Now import should work
+			const importButton = adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i });
+			await importButton.click();
+
+			await expect(adminPage.getByText(/tuonti onnistui|import successful/i)).toBeVisible({ timeout: 10_000 });
+
+			// Track created users for cleanup
+			const createdUsers = await db
+				.select()
+				.from(table.user)
+				.where(inArray(table.user.email, [email1, email2, email3]));
+			for (const user of createdUsers) {
+				testUserIds.push(user.id);
+			}
+		});
+
+		test("Link to existing membership resolves unmatched row", async ({ adminPage }) => {
+			// Create a CSV with a membership that doesn't exist exactly but can be linked
+			const tempPath = path.join(process.cwd(), `temp-link-${crypto.randomUUID()}.csv`);
+			tempFiles.push(tempPath);
+			const email = getTestEmail("link");
+			// Use a date that doesn't exist but can be linked to an existing one
+			const csvContent = `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
+Test,User,Helsinki,${email},varsinainen-jasen,2016-08-01`;
+			fs.writeFileSync(tempPath, csvContent);
+
+			await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
+				waitUntil: "networkidle",
+			});
+
+			const fileInput = adminPage.locator('input[type="file"]');
+			await fileInput.setInputFiles(tempPath);
+
+			// Wait for analysis - should show unmatched
+			await expect(adminPage.getByText("Ratkaisua tarvitaan")).toBeVisible({ timeout: 10_000 });
+
+			// Find the dropdown to link to existing membership
+			const selectDropdown = adminPage.locator("select").first();
+			await expect(selectDropdown).toBeVisible();
+
+			// Get all options and select one (not the first "Valitse jäsenyys..." option)
+			// Select an existing membership (2022 varsinainen jäsen)
+			await selectDropdown.selectOption({ index: 1 }); // Select second option (first real membership)
+
+			// Should now show "Linked" badge
+			await expect(adminPage.getByText("Linked")).toBeVisible();
+
+			// The row should now be OK
+			await expect(adminPage.getByRole("cell", { name: "OK" }).first()).toBeVisible();
+
+			// Import should now work
+			const importButton = adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i });
+			await expect(importButton).toBeEnabled();
+
+			// Execute import
+			await importButton.click();
+
+			await expect(adminPage.getByText(/tuonti onnistui|import successful/i)).toBeVisible({ timeout: 10_000 });
+
+			// Track created user for cleanup
+			const [createdUser] = await db.select().from(table.user).where(eq(table.user.email, email));
+			if (createdUser) {
+				testUserIds.push(createdUser.id);
+			}
+		});
+
+		test("Inferred end date uses academic year convention (Aug 1 -> Jul 31)", async ({ adminPage }) => {
+			// Create a CSV with Aug 1 start date
+			const tempPath = path.join(process.cwd(), `temp-infer-${crypto.randomUUID()}.csv`);
+			tempFiles.push(tempPath);
+			const email = getTestEmail("infer");
+			const csvContent = `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
+Test,User,Helsinki,${email},varsinainen-jasen,2015-08-01`;
+			fs.writeFileSync(tempPath, csvContent);
+
+			await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
+				waitUntil: "networkidle",
+			});
+
+			const fileInput = adminPage.locator('input[type="file"]');
+			await fileInput.setInputFiles(tempPath);
+
+			// Wait for analysis
+			await expect(adminPage.getByText("Puuttuvat jäsenyydet")).toBeVisible({ timeout: 10_000 });
+
+			// Quick create the membership
+			const quickCreateButton = adminPage.getByRole("button", { name: "Pikaluo" });
+			await quickCreateButton.click();
+
+			await expect(adminPage.getByText("Luotu!")).toBeVisible({ timeout: 10_000 });
+
+			// Verify the membership was created with correct end date (Jul 31 next year)
+			const [createdMembership] = await db
+				.select()
+				.from(table.membership)
+				.where(eq(table.membership.startTime, new Date("2015-08-01")));
+
+			expect(createdMembership).toBeDefined();
+			expect(createdMembership?.endTime.toISOString().split("T")[0]).toBe("2016-07-31");
+
+			// Track for cleanup
+			if (createdMembership) {
+				testMembershipIds.push(createdMembership.id);
+			}
+		});
+	});
+
 	test("CSV import is idempotent (running twice doesn't duplicate)", async ({ adminPage }) => {
 		// Create a CSV with a few rows
 		const tempPath = path.join(process.cwd(), `temp-idempotent-${crypto.randomUUID()}.csv`);
