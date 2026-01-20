@@ -26,9 +26,17 @@ export const retryPayment = form(retryPaymentSchema, async ({ memberId }) => {
 		error(400, "This membership is not awaiting payment");
 	}
 
-	const result = await resumeOrCreateSession(memberId, event.locals.locale);
-	if (!result?.url) {
-		error(400, "Could not create or resume payment session");
+	try {
+		const result = await resumeOrCreateSession(memberId, event.locals.locale);
+		if (!result?.url) {
+			error(400, "Could not create or resume payment session");
+		}
+		redirect(303, result.url);
+	} catch (e) {
+		// Surface user-friendly error messages from resumeOrCreateSession
+		if (e instanceof Error && e.message.includes("Your payment is being processed")) {
+			error(400, e.message);
+		}
+		throw e;
 	}
-	redirect(303, result.url);
 });
