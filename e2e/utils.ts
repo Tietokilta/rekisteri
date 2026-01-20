@@ -9,7 +9,11 @@ export function loadEnvFile() {
 				const [key, ...valueParts] = trimmed.split("=");
 				const value = valueParts.join("=").replaceAll(/^["']|["']$/g, "");
 				if (key && value) {
-					process.env[key.trim()] = value.trim();
+					const trimmedKey = key.trim();
+					// Don't overwrite existing env vars (CI secrets take precedence)
+					if (!process.env[trimmedKey]) {
+						process.env[trimmedKey] = value.trim();
+					}
 				}
 			}
 		}

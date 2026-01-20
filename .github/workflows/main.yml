@@ -59,6 +59,7 @@ jobs:
     env:
       DATABASE_URL: postgres://root:mysecretpassword@localhost:5432/local
       DATABASE_URL_TEST: postgres://root:mysecretpassword@localhost:5432/local_test
+      STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4
