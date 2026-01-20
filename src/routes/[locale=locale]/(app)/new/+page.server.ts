@@ -26,7 +26,7 @@ export const load: PageServerLoad = async (event) => {
 	}));
 
 	const latestEndTime =
-		memberships.length > 0 ? new Date(Math.max(...memberships.map((m) => m.endTime.getTime()))) : new Date();
+		memberships.length > 0 ? new Date(Math.max(...memberships.map((m) => m.endTime.getTime()))) : new Date(0);
 
 	const availableResult = await db
 		.select()
