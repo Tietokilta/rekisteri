@@ -34,7 +34,7 @@
 	const descriptionFiInputId = $derived(`edit-descriptionFi-${membershipType.id}`);
 	const descriptionEnInputId = $derived(`edit-descriptionEn-${membershipType.id}`);
 
-	const editForm = updateMembershipType.for(membershipType.id);
+	const editForm = $derived(updateMembershipType.for(membershipType.id));
 
 	// Initialize form fields when component mounts
 	$effect(() => {

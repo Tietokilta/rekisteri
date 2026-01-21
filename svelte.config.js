@@ -18,6 +18,13 @@ const config = {
 		experimental: {
 			async: true,
 		},
+		warningFilter: (warning) => {
+			// Suppress warnings from SvelteKit generated files (upstream issue)
+			if (warning.filename?.includes(".svelte-kit/generated")) {
+				return false;
+			}
+			return true;
+		},
 	},
 
 	kit: {

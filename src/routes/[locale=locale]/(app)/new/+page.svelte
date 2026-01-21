@@ -17,12 +17,15 @@
 
 	const { data }: PageProps = $props();
 
-	const { memberships, availableMemberships } = data;
+	const memberships = $derived(data.memberships);
+	const availableMemberships = $derived(data.availableMemberships);
 	// Only show memberships that have a Stripe price ID
 	// Only block memberships that are active or pending - allow repurchasing cancelled/expired memberships
-	const filteredMemberships = availableMemberships.filter(
-		(a): a is typeof a & { stripePriceId: string } =>
-			!!a.stripePriceId && !memberships.some((b) => a.id === b.id && BLOCKING_MEMBER_STATUSES.has(b.status)),
+	const filteredMemberships = $derived(
+		availableMemberships.filter(
+			(a): a is typeof a & { stripePriceId: string } =>
+				!!a.stripePriceId && !memberships.some((b) => a.id === b.id && BLOCKING_MEMBER_STATUSES.has(b.status)),
+		),
 	);
 
 	// URL for guild bylaws based on locale
