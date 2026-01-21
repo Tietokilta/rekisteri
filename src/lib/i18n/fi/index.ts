@@ -243,6 +243,9 @@ const fi = {
 		currentMemberships: "Aktiiviset jäsenyydet",
 		pastMemberships: "Aiemmat jäsenyydet",
 		moreInfoInBylaws: "Lisätietoja jäsenyyksistä killan säännöissä",
+		alreadyHaveMembershipForPeriod: "Sinulla on jo jäsenyys tälle ajanjaksolle",
+		noAvailableMemberships:
+			"Ei ostettavia jäsenyyksiä. Sinulla on jo jäsenyys kaikille saatavilla oleville ajanjaksoille.",
 
 		// Status
 		status: {

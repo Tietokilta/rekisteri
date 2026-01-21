@@ -5,6 +5,7 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, desc, gt, gte, and } from "drizzle-orm";
 import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
+import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
@@ -25,8 +26,13 @@ export const load: PageServerLoad = async (event) => {
 		status: m.member.status,
 	}));
 
+	// Only consider memberships with blocking statuses when calculating the latest end time
+	// This allows users to repurchase memberships if their previous one was cancelled or expired
+	const blockingMemberships = memberships.filter((m) => BLOCKING_MEMBER_STATUSES.has(m.status));
 	const latestEndTime =
-		memberships.length > 0 ? new Date(Math.max(...memberships.map((m) => m.endTime.getTime()))) : new Date(0);
+		blockingMemberships.length > 0
+			? new Date(Math.max(...blockingMemberships.map((m) => m.endTime.getTime())))
+			: new Date(0);
 
 	const availableResult = await db
 		.select()
