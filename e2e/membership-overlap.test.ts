@@ -177,6 +177,41 @@ test.describe("Membership Overlap Blocking", () => {
 		await expect(adminPage.getByText(/2054.*2055/)).not.toBeVisible();
 	});
 
+	test("hides membership when user has awaiting_approval membership for same period", async ({
+		adminPage,
+		adminUser,
+		db,
+	}) => {
+		// Create a test membership
+		const testMembershipId = crypto.randomUUID();
+		await db.insert(table.membership).values({
+			id: testMembershipId,
+			membershipTypeId,
+			stripePriceId: "price_test_overlap_6",
+			startTime: new Date(2055, 7, 1),
+			endTime: new Date(2056, 6, 31),
+			requiresStudentVerification: false,
+		});
+		testMembershipIds.push(testMembershipId);
+
+		// Create an awaiting_approval member record for the admin user
+		const testMemberId = crypto.randomUUID();
+		await db.insert(table.member).values({
+			id: testMemberId,
+			userId: adminUser.id,
+			membershipId: testMembershipId,
+			status: "awaiting_approval",
+		});
+		testMemberIds.push(testMemberId);
+
+		await adminPage.goto(route("/[locale=locale]/new", { locale: "fi" }), {
+			waitUntil: "networkidle",
+		});
+
+		// Verify the membership is NOT shown (awaiting_approval blocks)
+		await expect(adminPage.getByText(/2055.*2056/)).not.toBeVisible();
+	});
+
 	test("shows no memberships message when all are blocked", async ({ adminPage, adminUser, db }) => {
 		// Create a test membership that will be the only available one
 		const testMembershipId = crypto.randomUUID();
