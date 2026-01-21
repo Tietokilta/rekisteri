@@ -10,13 +10,14 @@ This guide provides comprehensive documentation for writing end-to-end tests wit
 4. [Selectors Strategy](#selectors-strategy)
 5. [Internationalization and Selectors](#internationalization-and-selectors)
 6. [Authentication Fixtures](#authentication-fixtures)
-7. [Database Access in Tests](#database-access-in-tests)
-8. [Parallel Test Execution](#parallel-test-execution)
-9. [Setup and Teardown](#setup-and-teardown)
-10. [Common Patterns](#common-patterns)
-11. [Page Object Model](#page-object-model)
-12. [Playwright MCP Integration](#playwright-mcp-integration)
-13. [Debugging and Troubleshooting](#debugging-and-troubleshooting)
+7. [Isolated User Fixture](#isolated-user-fixture)
+8. [Database Access in Tests](#database-access-in-tests)
+9. [Parallel Test Execution](#parallel-test-execution)
+10. [Setup and Teardown](#setup-and-teardown)
+11. [Common Patterns](#common-patterns)
+12. [Page Object Model](#page-object-model)
+13. [Playwright MCP Integration](#playwright-mcp-integration)
+14. [Debugging and Troubleshooting](#debugging-and-troubleshooting)
 
 ---
 
@@ -514,6 +515,117 @@ test("multi-user scenario", async ({ adminPage, browser }) => {
 	}
 });
 ```
+
+---
+
+## Isolated User Fixture
+
+For tests that need to modify user state or create user-specific data, use the **isolated user fixture**. Each test gets its own unique user, ensuring full parallel execution without interference.
+
+### When to Use Isolated Users
+
+Use `isolatedPage` and `isolatedUser` when:
+- Tests create data linked to a specific user (e.g., memberships, orders)
+- Tests modify user settings or state
+- Tests need to verify user-specific behavior
+- You need full test isolation for parallel execution
+
+### Available Fixtures
+
+```typescript
+import { test, expect } from "./fixtures/isolated-user";
+
+test("user-specific test", async ({ isolatedPage, isolatedUser, db }) => {
+	// isolatedPage is already authenticated as isolatedUser
+	// Each test gets a NEW unique user - automatic cleanup on teardown
+
+	// Create test data linked to this user
+	await db.insert(table.member).values({
+		id: crypto.randomUUID(),
+		userId: isolatedUser.id,
+		membershipId: someMembershipId,
+		status: "active",
+	});
+
+	await isolatedPage.goto("/fi/some-page");
+	// Test assertions...
+});
+```
+
+### Fixture Details
+
+| Fixture | Scope | Description |
+|---------|-------|-------------|
+| `isolatedUser` | Test | Unique user created for each test. Auto-cleaned. |
+| `isolatedContext` | Test | Browser context with auth cookie for the user. |
+| `isolatedPage` | Test | Page ready to use, authenticated as the user. |
+| `db` | Test | Database access (inherited from db fixture). |
+
+### How It Works
+
+1. **Before each test**: Creates a unique user with a random email
+2. **Creates session**: Inserts session record and sets auth cookie
+3. **Provides authenticated page**: Ready to use immediately
+4. **After each test**: Automatically deletes user's member records, sessions, and the user
+
+### Example: Testing User-Specific Membership Behavior
+
+```typescript
+import { test, expect } from "./fixtures/isolated-user";
+import * as table from "../src/lib/server/db/schema";
+
+test("hides membership when user already has one for that period", async ({
+	isolatedPage,
+	isolatedUser,
+	db,
+}) => {
+	// Create a membership
+	const membershipId = crypto.randomUUID();
+	await db.insert(table.membership).values({
+		id: membershipId,
+		membershipTypeId: "ulkojasen",
+		stripePriceId: `price_test_${crypto.randomUUID()}`,
+		startTime: new Date(2050, 7, 1),
+		endTime: new Date(2051, 6, 31),
+		requiresStudentVerification: false,
+	});
+
+	// Link user to membership
+	await db.insert(table.member).values({
+		id: crypto.randomUUID(),
+		userId: isolatedUser.id,
+		membershipId,
+		status: "active",
+	});
+
+	// Navigate and verify
+	await isolatedPage.goto("/fi/new");
+	await isolatedPage.waitForLoadState("networkidle");
+
+	// Membership should be hidden for this user
+	await expect(isolatedPage.getByText(/1\.8\.2050/)).not.toBeVisible();
+});
+```
+
+### Comparison: Global vs Isolated Users
+
+| Aspect | `adminPage` (global) | `isolatedPage` (per-test) |
+|--------|---------------------|---------------------------|
+| User | Shared admin user | Unique user per test |
+| Parallel safe | Read-only operations only | Fully parallel safe |
+| Cleanup | None (shared state) | Automatic |
+| Use case | Admin features, read-only tests | User-specific data, state changes |
+
+### Best Practice
+
+**Prefer isolated users** for tests that:
+- Create member/membership records
+- Test user-specific filtering or permissions
+- Modify any user-related state
+
+**Use global admin** only for:
+- Admin-only features (read-only)
+- Tests that don't modify user state
 
 ---
 
