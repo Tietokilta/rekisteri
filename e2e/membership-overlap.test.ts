@@ -2,7 +2,7 @@ import { test as base, expect, type Page, type BrowserContext } from "@playwrigh
 import postgres from "postgres";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as table from "../src/lib/server/db/schema";
-import { eq, like } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { route } from "../src/lib/ROUTES";
 import { generateUserId } from "../src/lib/server/auth/utils";
 import { sha256 } from "@oslojs/crypto/sha2";
@@ -115,23 +115,7 @@ const test = base.extend<TestFixtures, WorkerFixtures>({
 // Use existing membership type from seed data
 const membershipTypeId = "ulkojasen"; // External member - no student verification required
 
-// Pattern to identify test memberships for cleanup
-const testPricePattern = "price_test_overlap_%";
-
 test.describe("Membership Overlap Blocking", () => {
-	test.afterEach(async ({ db }) => {
-		// Clean up test memberships created by this test file
-		const testMemberships = await db
-			.select({ id: table.membership.id })
-			.from(table.membership)
-			.where(like(table.membership.stripePriceId, testPricePattern));
-
-		for (const membership of testMemberships) {
-			await db.delete(table.member).where(eq(table.member.membershipId, membership.id));
-			await db.delete(table.membership).where(eq(table.membership.id, membership.id));
-		}
-	});
-
 	test("shows membership when user has no blocking memberships for that period", async ({ testPage, db }) => {
 		// Create a test membership for a far future period
 		const testMembershipId = crypto.randomUUID();
