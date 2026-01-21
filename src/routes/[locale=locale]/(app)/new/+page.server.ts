@@ -3,7 +3,7 @@ import type { PageServerLoad } from "./$types";
 import { route } from "$lib/ROUTES";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { eq, desc, gt } from "drizzle-orm";
+import { eq, desc, gt, gte, and } from "drizzle-orm";
 import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
 
 export const load: PageServerLoad = async (event) => {
@@ -25,11 +25,14 @@ export const load: PageServerLoad = async (event) => {
 		status: m.member.status,
 	}));
 
+	const latestEndTime =
+		memberships.length > 0 ? new Date(Math.max(...memberships.map((m) => m.endTime.getTime()))) : new Date(0);
+
 	const availableResult = await db
 		.select()
 		.from(table.membership)
 		.innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
-		.where(gt(table.membership.endTime, new Date()));
+		.where(and(gt(table.membership.endTime, new Date()), gte(table.membership.startTime, latestEndTime)));
 
 	const availableMemberships = availableResult.map((r) => ({
 		...r.membership,

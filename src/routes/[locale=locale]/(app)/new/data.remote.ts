@@ -2,7 +2,7 @@ import { error, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { createSession } from "$lib/server/payment/session";
 import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
 import { payMembershipSchema } from "./schema";
@@ -16,6 +16,22 @@ export const payMembership = form(payMembershipSchema, async ({ membershipId }) 
 
 	// Check if membership requires student verification
 	const [membership] = await db.select().from(table.membership).where(eq(table.membership.id, membershipId));
+
+	// Get user's existing memberships to check for overlaps
+	const userMemberships = await db
+		.select()
+		.from(table.member)
+		.innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
+		.where(eq(table.member.userId, event.locals.user.id))
+		.orderBy(desc(table.membership.endTime));
+
+	// Get the latest end date from user's existing memberships
+	const latestEndDate = userMemberships[0]?.membership?.endTime ?? null;
+
+	// Check for overlapping memberships
+	if (latestEndDate && membership && membership.startTime < latestEndDate) {
+		error(400, "You already have a membership during this period");
+	}
 
 	if (membership?.requiresStudentVerification) {
 		// Check primary email domain
