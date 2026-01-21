@@ -5,6 +5,10 @@ import { route } from "../src/lib/ROUTES";
 // Use existing membership type from seed data
 const membershipTypeId = "ulkojasen"; // External member - no student verification required
 
+// Real Stripe test price ID from seed data - this is required because the page
+// fetches price metadata from Stripe API, and fake price IDs will fail
+const realStripePriceId = "price_1Sqs7y2a3B4f6jfhHjnWzk9n";
+
 test.describe("Membership Overlap Blocking", () => {
 	test("shows membership when user has no blocking memberships for that period", async ({ isolatedPage, db }) => {
 		// Create a test membership for a far future period
@@ -12,7 +16,7 @@ test.describe("Membership Overlap Blocking", () => {
 		await db.insert(table.membership).values({
 			id: testMembershipId,
 			membershipTypeId,
-			stripePriceId: `price_test_overlap_visible_${crypto.randomUUID()}`,
+			stripePriceId: realStripePriceId,
 			startTime: new Date(2050, 7, 1),
 			endTime: new Date(2051, 6, 31),
 			requiresStudentVerification: false,
@@ -35,7 +39,7 @@ test.describe("Membership Overlap Blocking", () => {
 		await db.insert(table.membership).values({
 			id: testMembershipId,
 			membershipTypeId,
-			stripePriceId: `price_test_overlap_active_${crypto.randomUUID()}`,
+			stripePriceId: realStripePriceId,
 			startTime: new Date(2051, 7, 1),
 			endTime: new Date(2052, 6, 31),
 			requiresStudentVerification: false,
@@ -66,7 +70,7 @@ test.describe("Membership Overlap Blocking", () => {
 		await db.insert(table.membership).values({
 			id: testMembershipId,
 			membershipTypeId,
-			stripePriceId: `price_test_overlap_cancelled_${crypto.randomUUID()}`,
+			stripePriceId: realStripePriceId,
 			startTime: new Date(2052, 7, 1),
 			endTime: new Date(2053, 6, 31),
 			requiresStudentVerification: false,
@@ -97,7 +101,7 @@ test.describe("Membership Overlap Blocking", () => {
 		await db.insert(table.membership).values({
 			id: testMembershipId,
 			membershipTypeId,
-			stripePriceId: `price_test_overlap_expired_${crypto.randomUUID()}`,
+			stripePriceId: realStripePriceId,
 			startTime: new Date(2053, 7, 1),
 			endTime: new Date(2054, 6, 31),
 			requiresStudentVerification: false,
@@ -128,7 +132,7 @@ test.describe("Membership Overlap Blocking", () => {
 		await db.insert(table.membership).values({
 			id: testMembershipId,
 			membershipTypeId,
-			stripePriceId: `price_test_overlap_awaiting_payment_${crypto.randomUUID()}`,
+			stripePriceId: realStripePriceId,
 			startTime: new Date(2054, 7, 1),
 			endTime: new Date(2055, 6, 31),
 			requiresStudentVerification: false,
@@ -159,7 +163,7 @@ test.describe("Membership Overlap Blocking", () => {
 		await db.insert(table.membership).values({
 			id: testMembershipId,
 			membershipTypeId,
-			stripePriceId: `price_test_overlap_awaiting_approval_${crypto.randomUUID()}`,
+			stripePriceId: realStripePriceId,
 			startTime: new Date(2055, 7, 1),
 			endTime: new Date(2056, 6, 31),
 			requiresStudentVerification: false,
@@ -190,7 +194,7 @@ test.describe("Membership Overlap Blocking", () => {
 		await db.insert(table.membership).values({
 			id: currentMembershipId,
 			membershipTypeId,
-			stripePriceId: `price_test_overlap_current_blocking_${crypto.randomUUID()}`,
+			stripePriceId: realStripePriceId,
 			startTime: new Date(2070, 7, 1),
 			endTime: new Date(2072, 6, 31), // Ends in July 2072
 			requiresStudentVerification: false,
@@ -200,7 +204,7 @@ test.describe("Membership Overlap Blocking", () => {
 		await db.insert(table.membership).values({
 			id: crypto.randomUUID(),
 			membershipTypeId,
-			stripePriceId: `price_test_overlap_future_blocked_${crypto.randomUUID()}`,
+			stripePriceId: realStripePriceId,
 			startTime: new Date(2071, 7, 1), // Starts August 2071, before July 2072 end
 			endTime: new Date(2072, 6, 31),
 			requiresStudentVerification: false,
@@ -232,7 +236,7 @@ test.describe("Membership Overlap Blocking", () => {
 		await db.insert(table.membership).values({
 			id: currentMembershipId,
 			membershipTypeId,
-			stripePriceId: `price_test_overlap_current_nonblocking_${crypto.randomUUID()}`,
+			stripePriceId: realStripePriceId,
 			startTime: new Date(2080, 7, 1),
 			endTime: new Date(2081, 6, 31), // Ends July 2081
 			requiresStudentVerification: false,
@@ -242,7 +246,7 @@ test.describe("Membership Overlap Blocking", () => {
 		await db.insert(table.membership).values({
 			id: crypto.randomUUID(),
 			membershipTypeId,
-			stripePriceId: `price_test_overlap_future_allowed_${crypto.randomUUID()}`,
+			stripePriceId: realStripePriceId,
 			startTime: new Date(2081, 7, 1), // Starts August 2081, after July 2081 end
 			endTime: new Date(2082, 6, 31),
 			requiresStudentVerification: false,
