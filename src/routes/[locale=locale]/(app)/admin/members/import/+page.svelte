@@ -46,7 +46,7 @@
 		inferredEndDate: string;
 		rowCount: number;
 		linkedMembershipId?: string;
-		status: "pending" | "creating" | "created";
+		status: "pending" | "creating" | "created" | "error";
 	};
 
 	let unmatchedMemberships = $state<UnmatchedMembership[]>([]);
@@ -83,7 +83,8 @@
 		const endYear = startDate.getFullYear() + 1;
 		const endMonth = startMonth;
 		const endDay = startDay - 1;
-		// Handle day = 0 by using Date to normalize
+		// When startDay is 1, endDay becomes 0. Date constructor normalizes this
+		// to the last day of the previous month (e.g., March 0 -> Feb 28/29).
 		const endDate = new Date(endYear, endMonth, endDay);
 		return endDate.toISOString().split("T")[0] ?? "";
 	}
@@ -97,10 +98,14 @@
 	}
 
 	// Analyze rows helper function
-	function analyzeRows(rows: CsvRow[]) {
+	// Takes previousUnmatched to preserve linked/created status across re-analysis
+	function analyzeRows(rows: CsvRow[], previousUnmatched: UnmatchedMembership[] = []) {
 		const matched: AnalyzedRow[] = [];
 		const unmatched: AnalyzedRow[] = [];
 		const unmatchedKeys = new SvelteMap<string, UnmatchedMembership>();
+
+		// Build lookup map from previous state to preserve user actions (links, created status)
+		const previousByKey = new Map(previousUnmatched.map((m) => [m.key, m]));
 
 		for (let i = 0; i < rows.length; i++) {
 			const row = rows[i];
@@ -114,19 +119,19 @@
 
 				// Track unique unmatched memberships
 				const key = `${row.membershipTypeId}|${row.membershipStartDate}`;
-				const existing = unmatchedMemberships.find((m) => m.key === key);
 				const existingEntry = unmatchedKeys.get(key);
 				if (existingEntry) {
 					existingEntry.rowCount++;
 				} else {
+					const previous = previousByKey.get(key);
 					unmatchedKeys.set(key, {
 						key,
 						membershipTypeId: row.membershipTypeId,
 						startDate: row.membershipStartDate,
 						inferredEndDate: inferEndDate(row.membershipStartDate),
 						rowCount: 1,
-						linkedMembershipId: existing?.linkedMembershipId,
-						status: existing?.status ?? "pending",
+						linkedMembershipId: previous?.linkedMembershipId,
+						status: previous?.status ?? "pending",
 					});
 				}
 			}
@@ -221,7 +226,8 @@
 		data.memberships; // Track dependency
 		if (validRows.length === 0) return;
 
-		const analysis = analyzeRows(validRows);
+		// Pass current unmatchedMemberships to preserve linked/created status
+		const analysis = analyzeRows(validRows, unmatchedMemberships);
 		matchedRows = analysis.matched;
 		unmatchedRows = analysis.unmatched;
 		unmatchedMemberships = analysis.unmatchedMemberships;
@@ -242,10 +248,14 @@
 			!isImporting,
 	);
 
+	// Helper to update a single membership status immutably
+	function updateMembershipStatus(key: string, status: UnmatchedMembership["status"]) {
+		unmatchedMemberships = unmatchedMemberships.map((m) => (m.key === key ? { ...m, status } : m));
+	}
+
 	// Create a single legacy membership
 	async function handleQuickCreate(membership: UnmatchedMembership) {
-		membership.status = "creating";
-		unmatchedMemberships = [...unmatchedMemberships];
+		updateMembershipStatus(membership.key, "creating");
 
 		try {
 			const result = await createLegacyMembership({
@@ -255,16 +265,13 @@
 			});
 
 			if (result?.success) {
-				membership.status = "created";
-				unmatchedMemberships = [...unmatchedMemberships];
+				updateMembershipStatus(membership.key, "created");
 				await invalidateAll();
 			} else {
-				membership.status = "pending";
-				unmatchedMemberships = [...unmatchedMemberships];
+				updateMembershipStatus(membership.key, "error");
 			}
 		} catch {
-			membership.status = "pending";
-			unmatchedMemberships = [...unmatchedMemberships];
+			updateMembershipStatus(membership.key, "error");
 		}
 	}
 
@@ -277,11 +284,11 @@
 
 		isCreatingAll = true;
 
-		// Mark all as creating
-		for (const m of toCreate) {
-			m.status = "creating";
-		}
-		unmatchedMemberships = [...unmatchedMemberships];
+		// Mark all as creating (immutable update)
+		const keysToCreate = new Set(toCreate.map((m) => m.key));
+		unmatchedMemberships = unmatchedMemberships.map((m) =>
+			keysToCreate.has(m.key) ? { ...m, status: "creating" as const } : m,
+		);
 
 		const membershipsData = toCreate.map((m) => ({
 			membershipTypeId: m.membershipTypeId,
@@ -293,22 +300,19 @@
 			const result = await createLegacyMemberships({ memberships: membershipsData });
 
 			if (result?.success) {
-				for (const m of toCreate) {
-					m.status = "created";
-				}
-				unmatchedMemberships = [...unmatchedMemberships];
+				unmatchedMemberships = unmatchedMemberships.map((m) =>
+					keysToCreate.has(m.key) ? { ...m, status: "created" as const } : m,
+				);
 				await invalidateAll();
 			} else {
-				for (const m of toCreate) {
-					m.status = "pending";
-				}
-				unmatchedMemberships = [...unmatchedMemberships];
+				unmatchedMemberships = unmatchedMemberships.map((m) =>
+					keysToCreate.has(m.key) ? { ...m, status: "error" as const } : m,
+				);
 			}
 		} catch {
-			for (const m of toCreate) {
-				m.status = "pending";
-			}
-			unmatchedMemberships = [...unmatchedMemberships];
+			unmatchedMemberships = unmatchedMemberships.map((m) =>
+				keysToCreate.has(m.key) ? { ...m, status: "error" as const } : m,
+			);
 		}
 
 		isCreatingAll = false;
@@ -316,8 +320,9 @@
 
 	// Link to existing membership
 	function handleLinkToExisting(membership: UnmatchedMembership, membershipId: string) {
-		membership.linkedMembershipId = membershipId || undefined;
-		unmatchedMemberships = [...unmatchedMemberships];
+		unmatchedMemberships = unmatchedMemberships.map((m) =>
+			m.key === membership.key ? { ...m, linkedMembershipId: membershipId || undefined } : m,
+		);
 	}
 
 	// Calculate import preview (for matched + linked rows)
@@ -559,10 +564,15 @@
 										<Badge variant="secondary">
 											{$LL.admin.import.creating()}
 										</Badge>
+									{:else if membership.status === "error"}
+										<Badge variant="destructive">
+											<CircleAlert class="mr-1 size-3" />
+											{$LL.admin.import.createFailed()}
+										</Badge>
 									{:else if membership.linkedMembershipId}
 										<Badge variant="secondary">
 											<CircleCheck class="mr-1 size-3" />
-											Linked
+											{$LL.admin.import.linked()}
 										</Badge>
 									{:else}
 										<div class="flex flex-wrap items-center gap-2">

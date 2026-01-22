@@ -433,6 +433,8 @@ const en = {
 			createAllMissing: "Create All Missing Memberships",
 			creating: "Creating...",
 			created: "Created!",
+			linked: "Linked",
+			createFailed: "Failed to create membership",
 			rowsAffected: "{count} {{row|rows}} affected",
 			resolveToImport: "Resolve all unmatched rows to enable import",
 		},

@@ -555,6 +555,143 @@ Test,User,Helsinki,${email},varsinainen-jasen,2016-08-01`;
 			}
 		});
 
+		test("imports members with memberships spanning 2018-2026 including outside seeded data", async ({ adminPage }) => {
+			// Generate unique emails for this test run to ensure parallel safety
+			const testId = crypto.randomUUID().slice(0, 8);
+			const testEmails = [
+				`testi-${testId}@example.com`,
+				`vanha-${testId}@example.com`,
+				`alumni-${testId}@example.com`,
+				`kannattaja-${testId}@example.com`,
+				`uusi-${testId}@example.com`,
+				`pitka-${testId}@example.com`,
+			];
+
+			// Create a dynamic CSV with memberships spanning 2018-2026:
+			// - Memberships that exist (2022-2025 varsinainen/ulkojasen)
+			// - Memberships that DON'T exist (2018-2021 varsinainen, 2019-2021 ulkojasen)
+			// - alumnijasen for 2023-2025 (only 2026 exists in seed)
+			// - kannatusjasen for 2021-2023 (only 2024-2025 exists in seed)
+			const csvContent = `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
+Testi,Henkilö,Helsinki,${testEmails[0]},varsinainen-jasen,2020-08-01
+Testi,Henkilö,Helsinki,${testEmails[0]},varsinainen-jasen,2021-08-01
+Testi,Henkilö,Helsinki,${testEmails[0]},varsinainen-jasen,2023-08-01
+Testi,Henkilö,Helsinki,${testEmails[0]},varsinainen-jasen,2024-08-01
+Testi,Henkilö,Helsinki,${testEmails[0]},varsinainen-jasen,2025-08-01
+Vanha,Jäsen,Espoo,${testEmails[1]},ulkojasen,2019-08-01
+Vanha,Jäsen,Espoo,${testEmails[1]},ulkojasen,2020-08-01
+Vanha,Jäsen,Espoo,${testEmails[1]},ulkojasen,2021-08-01
+Vanha,Jäsen,Espoo,${testEmails[1]},varsinainen-jasen,2022-08-01
+Vanha,Jäsen,Espoo,${testEmails[1]},varsinainen-jasen,2023-08-01
+Alumni,Testaaja,Tampere,${testEmails[2]},alumnijasen,2023-08-01
+Alumni,Testaaja,Tampere,${testEmails[2]},alumnijasen,2024-08-01
+Alumni,Testaaja,Tampere,${testEmails[2]},alumnijasen,2025-08-01
+Kannattaja,Tuki,Turku,${testEmails[3]},kannatusjasen,2021-08-01
+Kannattaja,Tuki,Turku,${testEmails[3]},kannatusjasen,2022-08-01
+Kannattaja,Tuki,Turku,${testEmails[3]},kannatusjasen,2023-08-01
+Kannattaja,Tuki,Turku,${testEmails[3]},kannatusjasen,2024-08-01
+Kannattaja,Tuki,Turku,${testEmails[3]},kannatusjasen,2025-08-01
+Uusi,Käyttäjä,Vantaa,${testEmails[4]},varsinainen-jasen,2025-08-01
+Uusi,Käyttäjä,Vantaa,${testEmails[4]},varsinainen-jasen,2026-08-01
+Pitkä,Historia,Oulu,${testEmails[5]},varsinainen-jasen,2018-08-01
+Pitkä,Historia,Oulu,${testEmails[5]},varsinainen-jasen,2019-08-01
+Pitkä,Historia,Oulu,${testEmails[5]},varsinainen-jasen,2020-08-01
+Pitkä,Historia,Oulu,${testEmails[5]},varsinainen-jasen,2021-08-01
+Pitkä,Historia,Oulu,${testEmails[5]},varsinainen-jasen,2022-08-01
+Pitkä,Historia,Oulu,${testEmails[5]},varsinainen-jasen,2023-08-01
+Pitkä,Historia,Oulu,${testEmails[5]},varsinainen-jasen,2024-08-01
+Pitkä,Historia,Oulu,${testEmails[5]},varsinainen-jasen,2025-08-01`;
+
+			const csvPath = path.join(process.cwd(), `temp-legacy-full-${testId}.csv`);
+			tempFiles.push(csvPath); // Track for cleanup
+			fs.writeFileSync(csvPath, csvContent);
+
+			await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
+				waitUntil: "networkidle",
+			});
+
+			const fileInput = adminPage.locator('input[type="file"]');
+			await fileInput.setInputFiles(csvPath);
+
+			// Wait for analysis - should show some unmatched
+			await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
+
+			// Should have unmatched memberships needing resolution
+			// The CSV has memberships from 2018-2021 that don't exist
+			const needsResolution = adminPage.getByText("Ratkaisua tarvitaan");
+			if (await needsResolution.isVisible()) {
+				await expect(adminPage.getByText("Puuttuvat jäsenyydet")).toBeVisible();
+
+				// Create all missing memberships at once
+				const createAllButton = adminPage.getByRole("button", { name: "Luo kaikki puuttuvat jäsenyydet" });
+				await expect(createAllButton).toBeVisible();
+				await createAllButton.click();
+
+				// Wait for all to be created - should see multiple "Luotu!" badges
+				await expect(adminPage.getByText("Luotu!").first()).toBeVisible({ timeout: 30_000 });
+			}
+
+			// After resolution, matched rows should show "Yhdistetty" status
+			await expect(adminPage.getByText("Yhdistetty")).toBeVisible();
+
+			// Import should now be enabled
+			const importButton = adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i });
+			await expect(importButton).toBeEnabled();
+
+			// Execute import
+			await importButton.click();
+
+			// Wait for success
+			await expect(adminPage.getByText(/tuonti onnistui|import successful/i)).toBeVisible({ timeout: 30_000 });
+
+			// Verify users were created (using testEmails defined at start of test)
+			const createdUsers = await db.select().from(table.user).where(inArray(table.user.email, testEmails));
+
+			// All 6 users should be created
+			expect(createdUsers.length).toBe(6);
+
+			// Track for cleanup
+			for (const user of createdUsers) {
+				testUserIds.push(user.id);
+			}
+
+			// Verify member records were created
+			const createdMembers = await db
+				.select()
+				.from(table.member)
+				.where(
+					inArray(
+						table.member.userId,
+						createdUsers.map((u) => u.id),
+					),
+				);
+
+			// The CSV has 28 rows, so 28 member records should be created
+			expect(createdMembers.length).toBe(28);
+
+			// Verify some newly created legacy memberships exist
+			const legacyMemberships = await db
+				.select()
+				.from(table.membership)
+				.where(
+					inArray(table.membership.startTime, [
+						new Date("2018-08-01"),
+						new Date("2019-08-01"),
+						new Date("2020-08-01"),
+						new Date("2021-08-01"),
+					]),
+				);
+
+			// Should have created memberships for years that didn't exist
+			expect(legacyMemberships.length).toBeGreaterThan(0);
+
+			// All legacy memberships should have no Stripe price
+			for (const m of legacyMemberships) {
+				expect(m.stripePriceId).toBeNull();
+				testMembershipIds.push(m.id);
+			}
+		});
+
 		test("Inferred end date uses academic year convention (Aug 1 -> Jul 31)", async ({ adminPage }) => {
 			// Create a CSV with Aug 1 start date
 			const tempPath = path.join(process.cwd(), `temp-infer-${crypto.randomUUID()}.csv`);

@@ -433,6 +433,8 @@ const fi = {
 			createAllMissing: "Luo kaikki puuttuvat jäsenyydet",
 			creating: "Luodaan...",
 			created: "Luotu!",
+			linked: "Yhdistetty",
+			createFailed: "Jäsenyyden luonti epäonnistui",
 			rowsAffected: "{count} {{rivi|riviä}} vaikutetaan",
 			resolveToImport: "Ratkaise kaikki puuttuvat rivit mahdollistaaksesi tuonnin",
 		},
