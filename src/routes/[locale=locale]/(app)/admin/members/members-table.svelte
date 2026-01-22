@@ -4,6 +4,7 @@
 	import { Badge } from "$lib/components/ui/badge";
 	import { Button } from "$lib/components/ui/button";
 	import { Input } from "$lib/components/ui/input";
+	import { Checkbox } from "$lib/components/ui/checkbox";
 	import {
 		getCoreRowModel,
 		getFilteredRowModel,
@@ -12,6 +13,7 @@
 		type ColumnDef,
 		type SortingState,
 		type ColumnFiltersState,
+		type RowSelectionState,
 		type Row as TanStackRow,
 	} from "@tanstack/table-core";
 	import ChevronDown from "@lucide/svelte/icons/chevron-down";
@@ -20,12 +22,23 @@
 	import Copy from "@lucide/svelte/icons/copy";
 	import Check from "@lucide/svelte/icons/check";
 	import Download from "@lucide/svelte/icons/download";
-	import { goto } from "$app/navigation";
+	import { goto, invalidateAll } from "$app/navigation";
 	import { page } from "$app/state";
 	import { SvelteURLSearchParams } from "svelte/reactivity";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import { isNonEmpty } from "$lib/utils";
-	import { approveMember, rejectMember, markMemberExpired, cancelMember, reactivateMember } from "./data.remote";
+	import {
+		approveMember,
+		rejectMember,
+		markMemberExpired,
+		cancelMember,
+		reactivateMember,
+		bulkApproveMembers,
+		bulkRejectMembers,
+		bulkMarkMembersExpired,
+		bulkCancelMembers,
+		bulkReactivateMembers,
+	} from "./data.remote";
 	import { memberIdSchema } from "./schema";
 	import type { LocalizedString, MembershipType } from "$lib/server/db/schema";
 
@@ -98,6 +111,10 @@
 		pageIndex: Number.parseInt(urlParams.get("page") ?? "0"),
 		pageSize: Number.parseInt(urlParams.get("pageSize") ?? "100"),
 	});
+	let rowSelection = $state<RowSelectionState>({});
+
+	// Bulk action state
+	let bulkActionLoading = $state(false);
 
 	// Filter state - synced with URL
 	let selectedYear = $state<string>(urlParams.get("year") ?? "all");
@@ -320,6 +337,12 @@
 	// Column definitions
 	const columns = $derived<ColumnDef<MemberRow>[]>([
 		{
+			id: "select",
+			header: "",
+			cell: ({ row }) => row.original.id,
+			enableSorting: false,
+		},
+		{
 			id: "expand",
 			header: "",
 			cell: ({ row }) => row.original.id,
@@ -417,6 +440,9 @@
 				get pagination() {
 					return pagination;
 				},
+				get rowSelection() {
+					return rowSelection;
+				},
 			},
 			onSortingChange: (updater) => {
 				sorting = typeof updater === "function" ? updater(sorting) : updater;
@@ -433,6 +459,11 @@
 			onPaginationChange: (updater) => {
 				pagination = typeof updater === "function" ? updater(pagination) : updater;
 			},
+			onRowSelectionChange: (updater) => {
+				rowSelection = typeof updater === "function" ? updater(rowSelection) : updater;
+			},
+			enableRowSelection: true,
+			getRowId: (row) => row.id,
 			getCoreRowModel: getCoreRowModel(),
 			getSortedRowModel: getSortedRowModel(),
 			getFilteredRowModel: getFilteredRowModel(),
@@ -453,6 +484,131 @@
 			},
 		}),
 	);
+
+	// Helper to get selected member IDs
+	function getSelectedMemberIds(): string[] {
+		return Object.keys(rowSelection).filter((id) => rowSelection[id]);
+	}
+
+	// Helper to get the count of selected members by status
+	function getSelectedMembersByStatus() {
+		const selectedIds = getSelectedMemberIds();
+		const selectedRows = table.getRowModel().rows.filter((row) => selectedIds.includes(row.id));
+
+		const counts = {
+			awaitingApproval: 0,
+			active: 0,
+			awaitingPayment: 0,
+			expired: 0,
+			cancelled: 0,
+		};
+
+		for (const row of selectedRows) {
+			switch (row.original.status) {
+				case "awaiting_approval":
+					counts.awaitingApproval++;
+					break;
+				case "active":
+					counts.active++;
+					break;
+				case "awaiting_payment":
+					counts.awaitingPayment++;
+					break;
+				case "expired":
+					counts.expired++;
+					break;
+				case "cancelled":
+					counts.cancelled++;
+					break;
+			}
+		}
+
+		return counts;
+	}
+
+	// Bulk action handlers
+	async function handleBulkApprove() {
+		const memberIds = getSelectedMemberIds();
+		if (memberIds.length === 0) return;
+
+		bulkActionLoading = true;
+		try {
+			await bulkApproveMembers({ memberIds });
+			rowSelection = {};
+			await invalidateAll();
+		} finally {
+			bulkActionLoading = false;
+		}
+	}
+
+	async function handleBulkReject() {
+		const memberIds = getSelectedMemberIds();
+		if (memberIds.length === 0) return;
+
+		bulkActionLoading = true;
+		try {
+			await bulkRejectMembers({ memberIds });
+			rowSelection = {};
+			await invalidateAll();
+		} finally {
+			bulkActionLoading = false;
+		}
+	}
+
+	async function handleBulkMarkExpired() {
+		const memberIds = getSelectedMemberIds();
+		if (memberIds.length === 0) return;
+
+		bulkActionLoading = true;
+		try {
+			await bulkMarkMembersExpired({ memberIds });
+			rowSelection = {};
+			await invalidateAll();
+		} finally {
+			bulkActionLoading = false;
+		}
+	}
+
+	async function handleBulkCancel() {
+		const memberIds = getSelectedMemberIds();
+		if (memberIds.length === 0) return;
+
+		bulkActionLoading = true;
+		try {
+			await bulkCancelMembers({ memberIds });
+			rowSelection = {};
+			await invalidateAll();
+		} finally {
+			bulkActionLoading = false;
+		}
+	}
+
+	async function handleBulkReactivate() {
+		const memberIds = getSelectedMemberIds();
+		if (memberIds.length === 0) return;
+
+		bulkActionLoading = true;
+		try {
+			await bulkReactivateMembers({ memberIds });
+			rowSelection = {};
+			await invalidateAll();
+		} finally {
+			bulkActionLoading = false;
+		}
+	}
+
+	function clearSelection() {
+		rowSelection = {};
+	}
+
+	// Derived values for bulk action visibility
+	const selectedCount = $derived(getSelectedMemberIds().length);
+	const statusCounts = $derived(getSelectedMembersByStatus());
+	const canApprove = $derived(statusCounts.awaitingApproval > 0);
+	const canReject = $derived(statusCounts.awaitingApproval > 0);
+	const canMarkExpired = $derived(statusCounts.active + statusCounts.awaitingPayment > 0);
+	const canCancel = $derived(statusCounts.active + statusCounts.awaitingPayment > 0);
+	const canReactivate = $derived(statusCounts.expired + statusCounts.cancelled > 0);
 </script>
 
 <div class="space-y-4">
@@ -580,6 +736,75 @@
 		</div>
 	</div>
 
+	<!-- Bulk Action Toolbar -->
+	{#if selectedCount > 0}
+		<div class="flex flex-wrap items-center gap-2 rounded-md border bg-muted/50 p-3" data-testid="bulk-action-toolbar">
+			<span class="text-sm font-medium">
+				{$LL.admin.members.table.selectedCount({ count: selectedCount })}
+			</span>
+			<div class="flex flex-wrap gap-2">
+				{#if canApprove}
+					<Button
+						size="sm"
+						variant="default"
+						onclick={handleBulkApprove}
+						disabled={bulkActionLoading}
+						data-testid="bulk-approve-button"
+					>
+						{$LL.admin.members.table.bulkApprove({ count: statusCounts.awaitingApproval })}
+					</Button>
+				{/if}
+				{#if canReject}
+					<Button
+						size="sm"
+						variant="destructive"
+						onclick={handleBulkReject}
+						disabled={bulkActionLoading}
+						data-testid="bulk-reject-button"
+					>
+						{$LL.admin.members.table.bulkReject({ count: statusCounts.awaitingApproval })}
+					</Button>
+				{/if}
+				{#if canMarkExpired}
+					<Button
+						size="sm"
+						variant="outline"
+						onclick={handleBulkMarkExpired}
+						disabled={bulkActionLoading}
+						data-testid="bulk-expire-button"
+					>
+						{$LL.admin.members.table.bulkMarkExpired({ count: statusCounts.active + statusCounts.awaitingPayment })}
+					</Button>
+				{/if}
+				{#if canCancel}
+					<Button
+						size="sm"
+						variant="destructive"
+						onclick={handleBulkCancel}
+						disabled={bulkActionLoading}
+						data-testid="bulk-cancel-button"
+					>
+						{$LL.admin.members.table.bulkCancel({ count: statusCounts.active + statusCounts.awaitingPayment })}
+					</Button>
+				{/if}
+				{#if canReactivate}
+					<Button
+						size="sm"
+						variant="default"
+						onclick={handleBulkReactivate}
+						disabled={bulkActionLoading}
+						data-testid="bulk-reactivate-button"
+					>
+						{$LL.admin.members.table.bulkReactivate({ count: statusCounts.expired + statusCounts.cancelled })}
+					</Button>
+				{/if}
+			</div>
+			<Button size="sm" variant="ghost" onclick={clearSelection} disabled={bulkActionLoading}>
+				{$LL.admin.members.table.clearSelection()}
+			</Button>
+		</div>
+	{/if}
+
 	<!-- Table -->
 	<div class="rounded-md border">
 		<Table.Root>
@@ -588,7 +813,15 @@
 					<Table.Row>
 						{#each headerGroup.headers as header (header.id)}
 							<Table.Head>
-								{#if !header.isPlaceholder}
+								{#if header.column.id === "select"}
+									<Checkbox
+										checked={table.getIsAllPageRowsSelected()}
+										indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
+										onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+										aria-label={$LL.admin.members.table.selectAll()}
+										data-testid="select-all-checkbox"
+									/>
+								{:else if !header.isPlaceholder}
 									{#if header.column.getCanSort()}
 										<Button
 											variant="ghost"
@@ -610,17 +843,23 @@
 			</Table.Header>
 			<Table.Body>
 				{#each table.getRowModel().rows as row (row.id)}
-					<Table.Row>
+					<Table.Row data-state={row.getIsSelected() ? "selected" : undefined}>
 						{#each row.getVisibleCells() as cell (cell.id)}
 							<Table.Cell>
-								{#if cell.column.id === "expand"}
+								{#if cell.column.id === "select"}
+									<Checkbox
+										checked={row.getIsSelected()}
+										onCheckedChange={(value) => row.toggleSelected(!!value)}
+										aria-label={$LL.admin.members.table.selectRow()}
+										data-testid="row-select-checkbox"
+									/>
+								{:else if cell.column.id === "expand"}
 									<Button
 										variant="ghost"
 										size="sm"
 										onclick={() => {
 											const userId = row.original.userId;
 											if (expandedRows.has(userId)) {
-												// eslint-disable-next-line svelte/prefer-svelte-reactivity
 												const newSet = new Set(expandedRows);
 												newSet.delete(userId);
 												expandedRows = newSet;

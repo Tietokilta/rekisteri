@@ -15,6 +15,11 @@ export type AuditAction =
 	| "member.cancel"
 	| "member.reactivate"
 	| "member.create"
+	| "member.bulk_approve"
+	| "member.bulk_reject"
+	| "member.bulk_expire"
+	| "member.bulk_cancel"
+	| "member.bulk_reactivate"
 	| "membership.create"
 	| "membership.delete";
 
@@ -122,6 +127,33 @@ export async function auditMemberAction(
 		targetType: "member",
 		targetId: memberId,
 		metadata,
+	});
+}
+
+/**
+ * Audit a bulk member status change
+ */
+export async function auditBulkMemberAction(
+	event: RequestEvent,
+	action: Extract<
+		AuditAction,
+		| "member.bulk_approve"
+		| "member.bulk_reject"
+		| "member.bulk_expire"
+		| "member.bulk_cancel"
+		| "member.bulk_reactivate"
+	>,
+	memberIds: string[],
+	metadata?: Record<string, unknown>,
+): Promise<void> {
+	await auditFromEvent(event, action, {
+		targetType: "member",
+		targetId: memberIds.join(","),
+		metadata: {
+			...metadata,
+			memberIds,
+			count: memberIds.length,
+		},
 	});
 }
 

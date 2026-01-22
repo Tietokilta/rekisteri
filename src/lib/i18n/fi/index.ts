@@ -366,6 +366,17 @@ const fi = {
 				showing: "Näytetään {current} / {total} jäsentä",
 				previous: "Edellinen",
 				next: "Seuraava",
+
+				// Bulk actions
+				selectAll: "Valitse kaikki",
+				selectRow: "Valitse rivi",
+				selectedCount: "{count} valittu",
+				bulkApprove: "Hyväksy ({count})",
+				bulkReject: "Hylkää ({count})",
+				bulkMarkExpired: "Merkitse vanhentuneeksi ({count})",
+				bulkCancel: "Peruuta ({count})",
+				bulkReactivate: "Aktivoi uudelleen ({count})",
+				clearSelection: "Tyhjennä valinta",
 			},
 		},
 
