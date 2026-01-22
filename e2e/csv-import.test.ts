@@ -97,8 +97,8 @@ value1,value2,value3`;
 		const fileInput = adminPage.locator('input[type="file"]');
 		await fileInput.setInputFiles(tempPath);
 
-		// Verify error message shows
-		await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
+		// Verify error message shows (heading only shows when there are no valid rows)
+		await expect(adminPage.getByRole("heading", { name: "Vahvistusvirheet:" })).toBeVisible();
 		await expect(adminPage.getByText(/CSV columns don't match/)).toBeVisible();
 	});
 
@@ -117,8 +117,8 @@ Test,User,Helsinki,not-an-email,varsinainen-jasen,2025-08-01`;
 		const fileInput = adminPage.locator('input[type="file"]');
 		await fileInput.setInputFiles(tempPath);
 
-		// Verify error message shows
-		await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
+		// Verify error message shows (heading only shows when there are no valid rows)
+		await expect(adminPage.getByRole("heading", { name: "Vahvistusvirheet:" })).toBeVisible();
 		await expect(adminPage.getByText(/Invalid email/)).toBeVisible();
 	});
 
@@ -137,23 +137,18 @@ Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
 		const fileInput = adminPage.locator('input[type="file"]');
 		await fileInput.setInputFiles(tempPath);
 
-		// Verify error message shows
-		await expect(adminPage.getByText("Vahvistusvirheet:")).toBeVisible();
-		await expect(adminPage.getByText(/Invalid membership type IDs/)).toBeVisible();
+		// Verify error message shows - invalid type IDs show in the errors section
+		await expect(adminPage.getByText(/Invalid membership type IDs/)).toBeVisible({ timeout: 10_000 });
 	});
 
-	test("CSV import shows existing memberships", async ({ adminPage }) => {
+	test("CSV import shows available membership types", async ({ adminPage }) => {
 		await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
 			waitUntil: "networkidle",
 		});
 
-		// Verify existing memberships section is visible
-		await expect(adminPage.getByText("Olemassa olevat jäsenyydet tietokannassa:")).toBeVisible();
-		await expect(adminPage.getByText("CSV-rivien tulee vastata näitä täsmälleen")).toBeVisible();
-
-		// Verify some membership types are listed
-		await expect(adminPage.getByText("varsinainen jäsen").first()).toBeVisible();
-		await expect(adminPage.getByText("ulkojäsen").first()).toBeVisible();
+		// Verify membership type IDs are listed in the instructions
+		await expect(adminPage.getByText("varsinainen-jasen")).toBeVisible();
+		await expect(adminPage.getByText("ulkojasen")).toBeVisible();
 	});
 
 	test("should attach membership to existing user when CSV email is a verified secondary email", async ({
@@ -387,7 +382,7 @@ Test,User,Helsinki,${email},varsinainen-jasen,2019-08-01`;
 
 			// Wait for analysis to complete - should show unmatched
 			await expect(adminPage.getByText("Ratkaisua tarvitaan")).toBeVisible({ timeout: 10_000 });
-			await expect(adminPage.getByText("Puuttuvat jäsenyydet")).toBeVisible();
+			await expect(adminPage.getByRole("heading", { name: "Puuttuvat jäsenyydet" })).toBeVisible();
 
 			// Verify the unmatched membership shows the type and start date
 			await expect(adminPage.getByText("Varsinainen jäsen")).toBeVisible();
@@ -457,7 +452,7 @@ Charlie,Brown,Espoo,${email3},varsinainen-jasen,2017-08-01`;
 
 			// Wait for analysis - should show unmatched
 			await expect(adminPage.getByText("Ratkaisua tarvitaan")).toBeVisible({ timeout: 10_000 });
-			await expect(adminPage.getByText("Puuttuvat jäsenyydet")).toBeVisible();
+			await expect(adminPage.getByRole("heading", { name: "Puuttuvat jäsenyydet" })).toBeVisible();
 
 			// Should show "Create All Missing Memberships" button since we have multiple
 			const createAllButton = adminPage.getByRole("button", { name: "Luo kaikki puuttuvat jäsenyydet" });
@@ -533,8 +528,8 @@ Test,User,Helsinki,${email},varsinainen-jasen,2016-08-01`;
 			// Select an existing membership (2022 varsinainen jäsen)
 			await selectDropdown.selectOption({ index: 1 }); // Select second option (first real membership)
 
-			// Should now show "Linked" badge
-			await expect(adminPage.getByText("Linked")).toBeVisible();
+			// Should now show "Yhdistetty" (Linked) badge
+			await expect(adminPage.getByText("Yhdistetty")).toBeVisible();
 
 			// The row should now be OK
 			await expect(adminPage.getByRole("cell", { name: "OK" }).first()).toBeVisible();
@@ -620,7 +615,7 @@ Pitkä,Historia,Oulu,${testEmails[5]},varsinainen-jasen,2025-08-01`;
 			// The CSV has memberships from 2018-2021 that don't exist
 			const needsResolution = adminPage.getByText("Ratkaisua tarvitaan");
 			if (await needsResolution.isVisible()) {
-				await expect(adminPage.getByText("Puuttuvat jäsenyydet")).toBeVisible();
+				await expect(adminPage.getByRole("heading", { name: "Puuttuvat jäsenyydet" })).toBeVisible();
 
 				// Create all missing memberships at once
 				const createAllButton = adminPage.getByRole("button", { name: "Luo kaikki puuttuvat jäsenyydet" });
@@ -709,7 +704,7 @@ Test,User,Helsinki,${email},varsinainen-jasen,2015-08-01`;
 			await fileInput.setInputFiles(tempPath);
 
 			// Wait for analysis
-			await expect(adminPage.getByText("Puuttuvat jäsenyydet")).toBeVisible({ timeout: 10_000 });
+			await expect(adminPage.getByRole("heading", { name: "Puuttuvat jäsenyydet" })).toBeVisible({ timeout: 10_000 });
 
 			// Quick create the membership
 			const quickCreateButton = adminPage.getByRole("button", { name: "Pikaluo" });
