@@ -57,6 +57,12 @@
 			<!-- Show membership options when profile is complete -->
 			<Card.Content>
 				<form {...payMembership.preflight(payMembershipSchema)} class="flex flex-col gap-4">
+					{#if filteredMemberships.length === 0}
+						<Alert.Root>
+							<CircleAlert class="h-4 w-4" />
+							<Alert.Description>{$LL.membership.noAvailableMemberships()}</Alert.Description>
+						</Alert.Root>
+					{/if}
 					<div class="space-y-3">
 						{#each filteredMemberships as membership (membership.id)}
 							{@const typeName =

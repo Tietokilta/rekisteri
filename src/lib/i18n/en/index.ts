@@ -243,6 +243,9 @@ const en = {
 		currentMemberships: "Active memberships",
 		pastMemberships: "Past memberships",
 		moreInfoInBylaws: "More information about memberships in the guild bylaws",
+		alreadyHaveMembershipForPeriod: "You already have a membership for this period",
+		noAvailableMemberships:
+			"No memberships available for purchase. You already have a membership for all available periods.",
 
 		// Status
 		status: {
