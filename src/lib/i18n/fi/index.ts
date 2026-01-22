@@ -391,7 +391,7 @@ const fi = {
 			existingMemberships: "Olemassa olevat jäsenyydet tietokannassa:",
 			matchNote: "CSV-rivit yhdistetään tyypin + alkamispäivän perusteella. Puuttuvat jäsenyydet voidaan luoda alla.",
 			availableTypeIds: "Käytettävissä olevat jäsenyystyyppitunnisteet:",
-			start: "Alku:",
+			start: "Alkaa:",
 			end: "Loppu:",
 			validationErrors: "Vahvistusvirheet:",
 			success: "Tuonti onnistui!",
@@ -435,7 +435,7 @@ const fi = {
 			created: "Luotu!",
 			linked: "Yhdistetty",
 			createFailed: "Jäsenyyden luonti epäonnistui",
-			rowsAffected: "{count} {{rivi|riviä}} vaikutetaan",
+			rowsAffected: "koskee {count:number} {{riviä|riviä}}",
 			resolveToImport: "Ratkaise kaikki puuttuvat rivit mahdollistaaksesi tuonnin",
 		},
 

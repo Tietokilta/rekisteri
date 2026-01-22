@@ -8,7 +8,7 @@
 	import { importMembers, createLegacyMembership, createLegacyMemberships } from "./data.remote";
 	import { csvRowSchema, importMembersSchema } from "./schema";
 	import type { PageData } from "./$types";
-	import { SvelteSet, SvelteMap } from "svelte/reactivity";
+	import { untrack } from "svelte";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import * as v from "valibot";
 	import AdminPageHeader from "$lib/components/admin-page-header.svelte";
@@ -99,18 +99,32 @@
 
 	// Analyze rows helper function
 	// Takes previousUnmatched to preserve linked/created status across re-analysis
-	function analyzeRows(rows: CsvRow[], previousUnmatched: UnmatchedMembership[] = []) {
+	// Takes memberships explicitly to avoid implicit reactive dependencies
+	function analyzeRows(
+		rows: CsvRow[],
+		memberships: typeof data.memberships,
+		previousUnmatched: UnmatchedMembership[] = [],
+	) {
 		const matched: AnalyzedRow[] = [];
 		const unmatched: AnalyzedRow[] = [];
-		const unmatchedKeys = new SvelteMap<string, UnmatchedMembership>();
+		// Use regular Map instead of SvelteMap to avoid reactive tracking issues
+		const unmatchedKeys = new Map<string, UnmatchedMembership>();
 
 		// Build lookup map from previous state to preserve user actions (links, created status)
 		const previousByKey = new Map(previousUnmatched.map((m) => [m.key, m]));
 
+		// Local helper to find membership (avoids reading reactive state)
+		const findMembershipLocal = (membershipTypeId: string, startDateStr: string) => {
+			const startDate = new Date(startDateStr);
+			return memberships.find(
+				(m) => m.membershipTypeId === membershipTypeId && m.startTime.getTime() === startDate.getTime(),
+			);
+		};
+
 		for (let i = 0; i < rows.length; i++) {
 			const row = rows[i];
 			if (!row) continue;
-			const membership = findMembership(row.membershipTypeId, row.membershipStartDate);
+			const membership = findMembershipLocal(row.membershipTypeId, row.membershipStartDate);
 
 			if (membership) {
 				matched.push({ ...row, rowIndex: i, matchedMembershipId: membership.id });
@@ -148,6 +162,9 @@
 
 	// Analyze CSV when file changes
 	$effect(() => {
+		// Only track csvFile as dependency
+		const file = csvFile;
+
 		// Reset state
 		validRows = [];
 		validationErrors = [];
@@ -155,9 +172,13 @@
 		unmatchedRows = [];
 		unmatchedMemberships = [];
 
-		if (!csvFile || csvFile.type !== "text/csv") return;
+		if (!file || file.type !== "text/csv") return;
 
-		const readFile = async (file: File) => {
+		// Capture current memberships snapshot to avoid reactive reads in async callback
+		const membershipsSnapshot = untrack(() => data.memberships);
+		const typeIdsSnapshot = untrack(() => data.typeIds);
+
+		const readFile = async () => {
 			const csvString = (await file.text()).trim();
 			const csv = Papa.parse(csvString, { header: true });
 
@@ -193,9 +214,9 @@
 			validationErrors = errors;
 
 			// Validate membership type IDs
-			const invalidTypes = new SvelteSet<string>();
+			const invalidTypes = new Set<string>();
 			for (const row of validated) {
-				if (!data.typeIds.includes(row.membershipTypeId)) {
+				if (!typeIdsSnapshot.includes(row.membershipTypeId)) {
 					invalidTypes.add(row.membershipTypeId);
 				}
 			}
@@ -205,29 +226,33 @@
 					...validationErrors,
 					{
 						row: 0,
-						message: `Invalid membership type IDs: ${Array.from(invalidTypes).join(", ")}. Available IDs: ${data.typeIds.join(", ")}`,
+						message: `Invalid membership type IDs: ${Array.from(invalidTypes).join(", ")}. Available IDs: ${typeIdsSnapshot.join(", ")}`,
 					},
 				];
 			}
 
 			// Analyze rows (even if there are type ID errors, to show helpful info)
-			const analysis = analyzeRows(validated);
+			const analysis = analyzeRows(validated, membershipsSnapshot);
 			matchedRows = analysis.matched;
 			unmatchedRows = analysis.unmatched;
 			unmatchedMemberships = analysis.unmatchedMemberships;
 		};
 
-		void readFile(csvFile);
+		void readFile();
 	});
 
 	// Reanalyze when memberships data changes (after creating new ones)
 	$effect(() => {
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-		data.memberships; // Track dependency
-		if (validRows.length === 0) return;
+		// Explicitly track only data.memberships
+		const memberships = data.memberships;
+
+		// Read other state without tracking
+		const rows = untrack(() => validRows);
+		if (rows.length === 0) return;
 
 		// Pass current unmatchedMemberships to preserve linked/created status
-		const analysis = analyzeRows(validRows, unmatchedMemberships);
+		const currentUnmatched = untrack(() => unmatchedMemberships);
+		const analysis = analyzeRows(rows, memberships, currentUnmatched);
 		matchedRows = analysis.matched;
 		unmatchedRows = analysis.unmatched;
 		unmatchedMemberships = analysis.unmatchedMemberships;
@@ -397,26 +422,36 @@
 		});
 	}
 
-	// Sort memberships for dropdown (same type first, then by date proximity)
-	function sortedMembershipsForRow(membershipTypeId: string, startDate: string) {
-		const targetDate = new Date(startDate).getTime();
-		return [...data.memberships].toSorted((a, b) => {
-			// Same type first
-			const aTypeMatch = a.membershipTypeId === membershipTypeId ? 0 : 1;
-			const bTypeMatch = b.membershipTypeId === membershipTypeId ? 0 : 1;
-			if (aTypeMatch !== bTypeMatch) return aTypeMatch - bTypeMatch;
+	// Group memberships by type for dropdown, with matching type first
+	function groupedMembershipsForRow(membershipTypeId: string) {
+		// Group by type
+		const groups = new Map<string, { typeId: string; typeName: string; memberships: typeof data.memberships }>();
 
-			// Then by date proximity
-			const aDistance = Math.abs(a.startTime.getTime() - targetDate);
-			const bDistance = Math.abs(b.startTime.getTime() - targetDate);
-			return aDistance - bDistance;
+		for (const m of data.memberships) {
+			const existing = groups.get(m.membershipTypeId);
+			if (existing) {
+				existing.memberships.push(m);
+			} else {
+				groups.set(m.membershipTypeId, {
+					typeId: m.membershipTypeId,
+					typeName: getTypeName(m.membershipTypeId),
+					memberships: [m],
+				});
+			}
+		}
+
+		// Sort memberships within each group by date (newest first)
+		for (const group of groups.values()) {
+			group.memberships.sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
+		}
+
+		// Convert to array and sort: matching type first, then alphabetically by type name
+		return Array.from(groups.values()).toSorted((a, b) => {
+			const aMatch = a.typeId === membershipTypeId ? 0 : 1;
+			const bMatch = b.typeId === membershipTypeId ? 0 : 1;
+			if (aMatch !== bMatch) return aMatch - bMatch;
+			return a.typeName.localeCompare(b.typeName);
 		});
-	}
-
-	// Get display name for membership in dropdown
-	function getMembershipDisplayName(membership: (typeof data.memberships)[number]) {
-		const typeName = getTypeName(membership.membershipTypeId);
-		return `${typeName} (${membership.startTime.toISOString().split("T")[0]})`;
 	}
 </script>
 
@@ -584,16 +619,20 @@
 											<span class="text-sm text-muted-foreground">or</span>
 
 											<NativeSelect.Root
-												class="w-48"
+												class="w-56"
 												value={membership.linkedMembershipId ?? ""}
 												onchange={(e: Event & { currentTarget: HTMLSelectElement }) =>
 													handleLinkToExisting(membership, e.currentTarget.value)}
 											>
 												<NativeSelect.Option value="">{$LL.admin.import.selectMembership()}</NativeSelect.Option>
-												{#each sortedMembershipsForRow(membership.membershipTypeId, membership.startDate) as m (m.id)}
-													<NativeSelect.Option value={m.id}>
-														{getMembershipDisplayName(m)}
-													</NativeSelect.Option>
+												{#each groupedMembershipsForRow(membership.membershipTypeId) as group (group.typeId)}
+													<NativeSelect.OptGroup label={group.typeName}>
+														{#each group.memberships as m (m.id)}
+															<NativeSelect.Option value={m.id}>
+																{m.startTime.toISOString().split("T")[0]} – {m.endTime.toISOString().split("T")[0]}
+															</NativeSelect.Option>
+														{/each}
+													</NativeSelect.OptGroup>
 												{/each}
 											</NativeSelect.Root>
 										</div>
