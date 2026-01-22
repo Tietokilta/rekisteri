@@ -108,6 +108,7 @@
 		const matched: AnalyzedRow[] = [];
 		const unmatched: AnalyzedRow[] = [];
 		// Use regular Map instead of SvelteMap to avoid reactive tracking issues
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- intentionally non-reactive to prevent infinite loops
 		const unmatchedKeys = new Map<string, UnmatchedMembership>();
 
 		// Build lookup map from previous state to preserve user actions (links, created status)
@@ -214,6 +215,7 @@
 			validationErrors = errors;
 
 			// Validate membership type IDs
+			// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local variable in async callback, not state
 			const invalidTypes = new Set<string>();
 			for (const row of validated) {
 				if (!typeIdsSnapshot.includes(row.membershipTypeId)) {
@@ -425,6 +427,7 @@
 	// Group memberships by type for dropdown, with matching type first
 	function groupedMembershipsForRow(membershipTypeId: string) {
 		// Group by type
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local variable in function, not state
 		const groups = new Map<string, { typeId: string; typeName: string; memberships: typeof data.memberships }>();
 
 		for (const m of data.memberships) {
