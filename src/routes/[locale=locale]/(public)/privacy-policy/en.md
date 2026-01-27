@@ -9,7 +9,7 @@ This is a registry and privacy statement in accordance with the EU General Data 
 _Note: The legally binding version of this document is in Finnish. This English translation is provided for convenience only._
 
 **Created:** May 22, 2018
-**Last updated:** January 8, 2026
+**Last updated:** January 27, 2026
 
 ---
 
@@ -150,7 +150,7 @@ All transfers use encrypted connections (HTTPS/TLS). Data is not sold, rented, o
 
 **Technical safeguards:**
 
-- Database protected by firewall; access restricted to authorized systems
+- Database access restricted by authentication
 - All traffic encrypted (HTTPS/TLS)
 - No passwords – email-based OTP and passkeys used
 - Session tokens stored hashed
@@ -194,11 +194,11 @@ Data subjects can correct and update their information by logging into the syste
 
 **Supervisory authority in Finland:**
 
-Office of the Data Protection Ombudsman
-Visiting address: Lintulahdenkuja 4, 00530 Helsinki
-Postal address: P.O. Box 800, 00531 Helsinki
-Phone: +358 29 56 66700
-Email: tietosuoja@om.fi
+Office of the Data Protection Ombudsman\
+Visiting address: Lintulahdenkuja 4, 00530 Helsinki\
+Postal address: P.O. Box 800, 00531 Helsinki\
+Phone: +358 29 56 66700\
+Email: tietosuoja@om.fi\
 Website: [https://tietosuoja.fi/en/](https://tietosuoja.fi/en/)
 
 ## 12. Automated Decision-Making

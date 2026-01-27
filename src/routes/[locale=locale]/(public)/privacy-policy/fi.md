@@ -7,7 +7,7 @@ title: Jäsenrekisterin rekisteri- ja tietosuojaseloste
 Tämä on EU:n yleisen tietosuoja-asetuksen (GDPR) sekä yhdistyslain (503/1989) mukainen rekisteri- ja tietosuojaseloste.
 
 **Laatimispäivämäärä:** 22.5.2018
-**Viimeisin muutos:** 8.1.2026
+**Viimeisin muutos:** 27.1.2026
 
 ---
 
@@ -148,7 +148,7 @@ Kaikki tiedonsiirrot tapahtuvat salattuja yhteyksiä (HTTPS/TLS) käyttäen. Tie
 
 **Tekniset suojatoimet:**
 
-- Tietokanta suojattu palomuurilla, pääsy rajattu valtuutetuille järjestelmille
+- Tietokannan pääsy rajattu autentikaatiolla
 - Kaikki tietoliikenne salattu (HTTPS/TLS)
 - Ei salasanoja – sähköpostipohjainen kertakäyttökoodi ja avainkoodit
 - Istuntotunnisteet tallennetaan hajautettuna (hashed)
@@ -192,11 +192,11 @@ Rekisteröity voi itse korjata ja päivittää tietojaan kirjautumalla järjeste
 
 **Valvontaviranomainen Suomessa:**
 
-Tietosuojavaltuutetun toimisto
-Käyntiosoite: Lintulahdenkuja 4, 00530 Helsinki
-Postiosoite: PL 800, 00531 Helsinki
-Puhelinvaihde: 029 56 66700
-Sähköposti: tietosuoja@om.fi
+Tietosuojavaltuutetun toimisto\
+Käyntiosoite: Lintulahdenkuja 4, 00530 Helsinki\
+Postiosoite: PL 800, 00531 Helsinki\
+Puhelinvaihde: 029 56 66700\
+Sähköposti: tietosuoja@om.fi\
 Verkkosivu: [https://tietosuoja.fi](https://tietosuoja.fi)
 
 ## 12. Automaattinen päätöksenteko
