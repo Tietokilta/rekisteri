@@ -23,7 +23,12 @@ export async function createSession(token: string, userId: string) {
 		userId,
 		expiresAt: new Date(Date.now() + DAY_IN_MS * 30),
 	};
-	await db.insert(table.session).values(session);
+	const now = new Date();
+	await Promise.all([
+		db.insert(table.session).values(session),
+		// Update lastActiveAt for GDPR tracking when user logs in
+		db.update(table.user).set({ lastActiveAt: now }).where(eq(table.user.id, userId)),
+	]);
 	return session;
 }
 
@@ -62,7 +67,12 @@ export async function validateSessionToken(token: string) {
 	const renewSession = Date.now() >= session.expiresAt.getTime() - DAY_IN_MS * 15;
 	if (renewSession) {
 		session.expiresAt = new Date(Date.now() + DAY_IN_MS * 30);
-		await db.update(table.session).set({ expiresAt: session.expiresAt }).where(eq(table.session.id, session.id));
+		const now = new Date();
+		await Promise.all([
+			db.update(table.session).set({ expiresAt: session.expiresAt }).where(eq(table.session.id, session.id)),
+			// Update lastActiveAt for GDPR tracking when session is renewed
+			db.update(table.user).set({ lastActiveAt: now }).where(eq(table.user.id, user.id)),
+		]);
 	}
 
 	return { session, user };
