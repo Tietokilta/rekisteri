@@ -98,6 +98,20 @@ const privateEnvSchema = v.pipe(
 		RP_NAME: v.pipe(v.string(), v.minLength(1)),
 		RP_ID: v.pipe(v.string(), v.minLength(1)),
 		RP_ORIGIN: v.pipe(v.string(), v.url(), v.regex(/^https?:\/\/.+/, "RP_ORIGIN must use http or https protocol")),
+
+		// Telegram (optional - for feedback reporting)
+		TELEGRAM_BOT_TOKEN: v.optional(
+			v.pipe(
+				v.string(),
+				v.transform((val) => (val === "" ? undefined : val)),
+			),
+		),
+		TELEGRAM_CHAT_ID: v.optional(
+			v.pipe(
+				v.string(),
+				v.transform((val) => (val === "" ? undefined : val)),
+			),
+		),
 	}),
 	// In production, Mailgun is required
 	v.check((data) => {
@@ -131,6 +145,8 @@ const parsed = v.safeParse(privateEnvSchema, {
 	RP_NAME: privateEnv.RP_NAME,
 	RP_ID: privateEnv.RP_ID,
 	RP_ORIGIN: privateEnv.RP_ORIGIN,
+	TELEGRAM_BOT_TOKEN: privateEnv.TELEGRAM_BOT_TOKEN,
+	TELEGRAM_CHAT_ID: privateEnv.TELEGRAM_CHAT_ID,
 });
 
 if (!parsed.success) {

@@ -500,6 +500,20 @@ const en = {
 		tryAgain: "Try again",
 	},
 
+	// Feedback
+	feedback: {
+		reportIssue: "Report an issue",
+		close: "Close",
+		message: "Message",
+		placeholder: "Describe the issue or give feedback...",
+		send: "Send",
+		sending: "Sending...",
+		thankYou: "Thank you for your feedback!",
+		sendAnother: "Send another",
+		submitError: "Failed to submit feedback. Please try again later.",
+		rateLimited: "Too many requests. Please try again later.",
+	},
+
 	// Documents & Legal
 	documents: {
 		footer: {

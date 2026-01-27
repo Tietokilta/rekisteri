@@ -4,6 +4,7 @@
 	import { route } from "$lib/ROUTES";
 	import * as Card from "$lib/components/ui/card/index.js";
 	import { Button } from "$lib/components/ui/button/index.js";
+	import FeedbackForm from "$lib/components/feedback-form.svelte";
 
 	const is404 = $derived(page.status === 404);
 	const is5xx = $derived(page.status >= 500 && page.status < 600);
@@ -53,6 +54,8 @@
 					<pre class="mt-2 overflow-auto rounded-lg bg-muted p-4 text-xs">{JSON.stringify(page.error, null, 2)}</pre>
 				</details>
 			{/if}
+
+			<FeedbackForm errorCode={page.status} />
 		</Card.Content>
 	</Card.Root>
 </div>
