@@ -15,6 +15,7 @@ import {
 import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
 import { route } from "$lib/ROUTES";
 import { getUserSecondaryEmails, markSecondaryEmailVerified } from "$lib/server/auth/secondary-email";
+import { getAndDeleteReturnToCookie } from "$lib/server/redirect";
 import { verifyCodeSchema } from "./schema";
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
@@ -75,6 +76,12 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
 	deleteEmailOTP(otp.id);
 	deleteEmailOTPCookie(event);
 
+	// Check for return URL (e.g., from purchase flow)
+	const returnTo = getAndDeleteReturnToCookie(event.cookies);
+	if (returnTo) {
+		redirect(302, returnTo);
+	}
+
 	redirect(302, route("/[locale=locale]/settings/emails", { locale: event.locals.locale }));
 });
 
@@ -118,6 +125,12 @@ export const cancelVerification = form(async () => {
 	// Clear cookies
 	deleteEmailCookie(event);
 	deleteEmailOTPCookie(event);
+
+	// Check for return URL (e.g., from purchase flow)
+	const returnTo = getAndDeleteReturnToCookie(event.cookies);
+	if (returnTo) {
+		redirect(303, returnTo);
+	}
 
 	// Redirect back to management page
 	redirect(303, route("/[locale=locale]/settings/emails", { locale: event.locals.locale }));

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageProps } from "./$types";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
-	import { route } from "$lib/ROUTES";
+	import { route, appendSp } from "$lib/ROUTES";
 	import * as Alert from "$lib/components/ui/alert/index.js";
 	import * as Card from "$lib/components/ui/card/index.js";
 	import { Button } from "$lib/components/ui/button";
@@ -16,6 +16,27 @@
 	import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
 
 	const { data }: PageProps = $props();
+
+	/**
+	 * Constructs the URL for redirecting to email settings with return info.
+	 * After email verification, user will be redirected back to /new with the
+	 * selected membership pre-selected.
+	 */
+	function getEmailSettingsUrl(action: "add" | "manage"): string {
+		const selectedMembershipId = payMembership.fields.membershipId.value();
+		const baseUrl =
+			action === "add"
+				? route("/[locale=locale]/settings/emails/add", { locale: $locale })
+				: route("/[locale=locale]/settings/emails", { locale: $locale });
+
+		// Build return URL with membership selection preserved
+		let returnTo = route("/[locale=locale]/new", { locale: $locale });
+		if (selectedMembershipId) {
+			returnTo += appendSp({ membershipId: selectedMembershipId });
+		}
+
+		return baseUrl + appendSp({ returnTo });
+	}
 
 	const { memberships, availableMemberships } = data;
 	// Only show memberships that have a Stripe price ID
@@ -75,7 +96,12 @@
 							<label
 								class="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors focus-within:border-primary hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-accent"
 							>
-								<input {...payMembership.fields.membershipId.as("radio", membership.id)} required class="mt-1" />
+								<input
+									{...payMembership.fields.membershipId.as("radio", membership.id)}
+									required
+									class="mt-1"
+									checked={data.preselectedMembershipId === membership.id}
+								/>
 								<div class="flex flex-col gap-1">
 									<svelte:boundary>
 										{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
@@ -137,10 +163,7 @@
 									<CircleAlert class="h-4 w-4" />
 									<Alert.Description>
 										{$LL.secondaryEmail.expiredMessage()}
-										<a
-											href={route("/[locale=locale]/settings/emails", { locale: $locale })}
-											class="ml-1 font-medium underline"
-										>
+										<a href={getEmailSettingsUrl("manage")} class="ml-1 font-medium underline">
 											{$LL.secondaryEmail.reverifyNow()}
 										</a>
 									</Alert.Description>
@@ -150,10 +173,7 @@
 									<CircleAlert class="h-4 w-4" />
 									<Alert.Description>
 										{$LL.secondaryEmail.notVerifiedMessage()}
-										<a
-											href={route("/[locale=locale]/settings/emails", { locale: $locale })}
-											class="ml-1 font-medium underline"
-										>
+										<a href={getEmailSettingsUrl("add")} class="ml-1 font-medium underline">
 											{$LL.secondaryEmail.addDomainEmail({ domain: "aalto.fi" })}
 										</a>
 									</Alert.Description>

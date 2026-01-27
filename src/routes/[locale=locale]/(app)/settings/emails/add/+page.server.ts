@@ -1,25 +1,17 @@
-import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { getUserSecondaryEmails } from "$lib/server/auth/secondary-email";
 import { validateReturnUrl, setReturnToCookie } from "$lib/server/redirect";
 
 export const load: PageServerLoad = async (event) => {
-	if (!event.locals.user) {
-		return error(401, "Not authenticated");
-	}
-
-	// Read returnTo from URL params (used when coming from purchase flow for reverification)
+	// Read returnTo from URL params
 	const returnTo = event.url.searchParams.get("returnTo");
+
+	// Validate and store in cookie if valid
 	const validReturnTo = validateReturnUrl(returnTo);
 	if (validReturnTo) {
 		setReturnToCookie(event.cookies, validReturnTo);
 	}
 
-	const emails = await getUserSecondaryEmails(event.locals.user.id);
-
 	return {
-		emails,
-		primaryEmail: event.locals.user.email,
 		returnTo: validReturnTo,
 	};
 };

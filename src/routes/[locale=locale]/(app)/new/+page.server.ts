@@ -59,6 +59,9 @@ export const load: PageServerLoad = async (event) => {
 	const hasValidAaltoEmail = isPrimaryAalto || hasValidSecondaryAalto;
 	const hasExpiredAaltoEmail = !isPrimaryAalto && hasExpiredSecondaryAalto;
 
+	// Read membershipId from URL params (used when returning from email verification)
+	const preselectedMembershipId = event.url.searchParams.get("membershipId");
+
 	return {
 		user: event.locals.user,
 		memberships,
@@ -66,5 +69,6 @@ export const load: PageServerLoad = async (event) => {
 		hasValidAaltoEmail,
 		hasExpiredAaltoEmail,
 		aaltoEmailExpiry: isPrimaryAalto ? null : aaltoSecondaryEmail?.expiresAt,
+		preselectedMembershipId,
 	};
 };
