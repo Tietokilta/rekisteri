@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageProps } from "./$types";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
-	import { route } from "$lib/ROUTES";
+	import { route, appendSp } from "$lib/ROUTES";
 	import * as Alert from "$lib/components/ui/alert/index.js";
 	import * as Card from "$lib/components/ui/card/index.js";
 	import { Button } from "$lib/components/ui/button";
@@ -35,7 +35,8 @@
 	// Check if profile is complete
 	const isProfileComplete = $derived(Boolean(data.user.firstNames && data.user.lastName && data.user.homeMunicipality));
 
-	let isStudent = $state(false);
+	// Initialize isStudent from restored state (query params)
+	let isStudent = $state(data.restoredIsStudent ?? false);
 	let requireStudentVerification = $derived(
 		availableMemberships.find((e) => e.id === payMembership.fields.membershipId.value())?.requiresStudentVerification ??
 			false,
@@ -43,6 +44,14 @@
 	let disableForm = $derived(
 		(requireStudentVerification && (!isStudent || !data.hasValidAaltoEmail)) || filteredMemberships.length === 0,
 	);
+
+	// Build returnTo URL with form state for email verification flow
+	// Format: /new?membershipId=xxx&isStudent=true
+	const emailSettingsUrl = $derived(() => {
+		const selectedMembershipId = payMembership.fields.membershipId.value();
+		const returnToPath = "/new" + appendSp({ membershipId: selectedMembershipId, isStudent: isStudent || undefined });
+		return route("/[locale=locale]/settings/emails", { locale: $locale }) + appendSp({ returnTo: returnToPath }, "?");
+	});
 </script>
 
 <div class="container mx-auto max-w-2xl px-4 py-8">
@@ -75,7 +84,12 @@
 							<label
 								class="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors focus-within:border-primary hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-accent"
 							>
-								<input {...payMembership.fields.membershipId.as("radio", membership.id)} required class="mt-1" />
+								<input
+									{...payMembership.fields.membershipId.as("radio", membership.id)}
+									checked={data.restoredMembershipId === membership.id}
+									required
+									class="mt-1"
+								/>
 								<div class="flex flex-col gap-1">
 									<svelte:boundary>
 										{@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
@@ -137,10 +151,7 @@
 									<CircleAlert class="h-4 w-4" />
 									<Alert.Description>
 										{$LL.secondaryEmail.expiredMessage()}
-										<a
-											href={route("/[locale=locale]/settings/emails", { locale: $locale })}
-											class="ml-1 font-medium underline"
-										>
+										<a href={emailSettingsUrl()} class="ml-1 font-medium underline">
 											{$LL.secondaryEmail.reverifyNow()}
 										</a>
 									</Alert.Description>
@@ -150,10 +161,7 @@
 									<CircleAlert class="h-4 w-4" />
 									<Alert.Description>
 										{$LL.secondaryEmail.notVerifiedMessage()}
-										<a
-											href={route("/[locale=locale]/settings/emails", { locale: $locale })}
-											class="ml-1 font-medium underline"
-										>
+										<a href={emailSettingsUrl()} class="ml-1 font-medium underline">
 											{$LL.secondaryEmail.addDomainEmail({ domain: "aalto.fi" })}
 										</a>
 									</Alert.Description>

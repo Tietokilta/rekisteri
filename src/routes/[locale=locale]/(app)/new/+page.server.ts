@@ -59,6 +59,10 @@ export const load: PageServerLoad = async (event) => {
 	const hasValidAaltoEmail = isPrimaryAalto || hasValidSecondaryAalto;
 	const hasExpiredAaltoEmail = !isPrimaryAalto && hasExpiredSecondaryAalto;
 
+	// Parse restored form state from query params (after email verification redirect)
+	const restoredMembershipId = event.url.searchParams.get("membershipId");
+	const restoredIsStudent = event.url.searchParams.get("isStudent") === "true";
+
 	return {
 		user: event.locals.user,
 		memberships,
@@ -66,5 +70,7 @@ export const load: PageServerLoad = async (event) => {
 		hasValidAaltoEmail,
 		hasExpiredAaltoEmail,
 		aaltoEmailExpiry: isPrimaryAalto ? null : aaltoSecondaryEmail?.expiresAt,
+		restoredMembershipId,
+		restoredIsStudent,
 	};
 };

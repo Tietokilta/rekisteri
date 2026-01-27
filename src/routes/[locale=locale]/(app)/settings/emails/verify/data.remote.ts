@@ -15,6 +15,7 @@ import {
 import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
 import { route } from "$lib/ROUTES";
 import { getUserSecondaryEmails, markSecondaryEmailVerified } from "$lib/server/auth/secondary-email";
+import { getSafeRedirectUrl, returnToCookieName } from "$lib/server/redirect";
 import { verifyCodeSchema } from "./schema";
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
@@ -75,7 +76,13 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
 	deleteEmailOTP(otp.id);
 	deleteEmailOTPCookie(event);
 
-	redirect(302, route("/[locale=locale]/settings/emails", { locale: event.locals.locale }));
+	// Get returnTo from cookie and clear it
+	const returnTo = event.cookies.get(returnToCookieName);
+	event.cookies.delete(returnToCookieName, { path: "/" });
+
+	// Redirect to the safe return URL (validates against whitelist)
+	const redirectUrl = getSafeRedirectUrl(returnTo, event.locals.locale);
+	redirect(302, redirectUrl);
 });
 
 export const resendEmail = form(async () => {
@@ -118,6 +125,7 @@ export const cancelVerification = form(async () => {
 	// Clear cookies
 	deleteEmailCookie(event);
 	deleteEmailOTPCookie(event);
+	event.cookies.delete(returnToCookieName, { path: "/" });
 
 	// Redirect back to management page
 	redirect(303, route("/[locale=locale]/settings/emails", { locale: event.locals.locale }));
