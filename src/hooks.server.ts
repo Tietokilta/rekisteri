@@ -5,7 +5,7 @@ import * as auth from "$lib/server/auth/session.js";
 import { baseLocale, locales, preferredLanguageToLocale, type Locale } from "$lib/i18n/routing";
 import { dev } from "$app/environment";
 import cron from "node-cron";
-import { cleanupExpiredTokens, cleanupOldAuditLogs } from "$lib/server/db/cleanup";
+import { cleanupExpiredTokens, cleanupInactiveUsers, cleanupOldAuditLogs } from "$lib/server/db/cleanup";
 import { createInitialModeExpression } from "mode-watcher";
 
 const handleAuth: Handle = async ({ event, resolve }) => {
@@ -131,6 +131,17 @@ export const init: ServerInit = () => {
 			await cleanupOldAuditLogs(); // 90 day retention (default)
 		} catch (error) {
 			console.error("[Cron] Database cleanup failed:", error);
+		}
+	});
+
+	// Run GDPR cleanup weekly on Sundays at 4 AM
+	// Removes users inactive for 6+ years per GDPR data minimization requirements
+	cron.schedule("0 4 * * 0", async () => {
+		console.log("[Cron] Running weekly GDPR cleanup...");
+		try {
+			await cleanupInactiveUsers(); // 6 year retention (default)
+		} catch (error) {
+			console.error("[Cron] GDPR cleanup failed:", error);
 		}
 	});
 };

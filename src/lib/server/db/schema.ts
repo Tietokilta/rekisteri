@@ -43,6 +43,7 @@ export const user = pgTable("user", {
 	preferredLanguage: preferredLanguageEnum().notNull().default("unspecified"),
 	isAllowedEmails: boolean().notNull().default(false),
 	stripeCustomerId: text(),
+	lastActiveAt: timestamp({ withTimezone: true }), // GDPR: tracks last user activity for cleanup
 	...timestamps,
 });
 
