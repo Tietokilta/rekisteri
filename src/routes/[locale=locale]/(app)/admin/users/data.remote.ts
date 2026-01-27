@@ -6,6 +6,7 @@ import { eq, sql } from "drizzle-orm";
 import { auditLog } from "$lib/server/db/schema";
 import { isNonEmpty } from "$lib/utils";
 import { promoteToAdminSchema, demoteFromAdminSchema, mergeUsersSchema } from "./schema";
+import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
 
 export const promoteToAdmin = form(promoteToAdminSchema, async ({ userId }) => {
 	const event = getRequestEvent();
@@ -150,9 +151,13 @@ export const mergeUsers = command(
 			}),
 		]);
 
-		// Check for overlapping membership periods
-		for (const secondaryMember of secondaryMembers) {
-			for (const primaryMember of primaryMembers) {
+		// Check for overlapping membership periods (only blocking statuses)
+		// Filter out cancelled and expired memberships as they should not block merge
+		const activeSecondaryMembers = secondaryMembers.filter((m) => BLOCKING_MEMBER_STATUSES.has(m.status));
+		const activePrimaryMembers = primaryMembers.filter((m) => BLOCKING_MEMBER_STATUSES.has(m.status));
+
+		for (const secondaryMember of activeSecondaryMembers) {
+			for (const primaryMember of activePrimaryMembers) {
 				// Check if same membership type and overlapping periods
 				if (secondaryMember.membershipId === primaryMember.membershipId) {
 					error(

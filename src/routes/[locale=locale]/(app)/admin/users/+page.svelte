@@ -100,7 +100,14 @@
 				await invalidateAll();
 			}
 		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : "Unknown error";
+			// Handle SvelteKit error responses
+			let errorMessage = "Unknown error";
+			if (err && typeof err === "object" && "error" in err) {
+				const errorObj = err.error as { message?: string };
+				errorMessage = errorObj.message ?? "Unknown error";
+			} else if (err instanceof Error) {
+				errorMessage = err.message;
+			}
 			toast.error(errorMessage);
 		} finally {
 			mergeInProgress = false;
@@ -291,14 +298,6 @@
 									<li>{$LL.admin.users.merge.passkeys()}</li>
 									<li>{$LL.admin.users.merge.sessions()}</li>
 								</ul>
-							</Alert.Description>
-						</Alert.Root>
-
-						<Alert.Root variant="default">
-							<AlertCircle class="size-4" />
-							<Alert.Title>{$LL.admin.users.merge.noOverlappingMemberships()}</Alert.Title>
-							<Alert.Description>
-								{$LL.admin.users.merge.checkingMemberships()}
 							</Alert.Description>
 						</Alert.Root>
 
