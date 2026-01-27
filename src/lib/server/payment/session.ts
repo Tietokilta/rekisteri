@@ -4,6 +4,97 @@ import { db } from "$lib/server/db";
 import { eq } from "drizzle-orm";
 import { env } from "$lib/server/env";
 import type { Locale } from "$lib/i18n/routing";
+import Stripe from "stripe";
+
+/**
+ * Checks if a Stripe error is due to a non-existent customer.
+ * This typically happens after migrating from Stripe sandbox to production,
+ * where sandbox customer IDs are stored but no longer valid.
+ *
+ * Uses Stripe's own error types for proper type checking.
+ */
+function isNoSuchCustomerError(error: unknown): error is Stripe.errors.StripeInvalidRequestError {
+	// Use instanceof to check if error is a Stripe invalid request error
+	// This is more robust than checking constructor.name which can fail with minification
+	return error instanceof Stripe.errors.StripeInvalidRequestError && error.message.includes("No such customer");
+}
+
+/**
+ * Creates a new Stripe customer for the user and updates the database.
+ * This is used when creating a checkout session and also when recovering from invalid customer IDs.
+ */
+async function createStripeCustomer(userId: string, email: string, name: string): Promise<string> {
+	const customer = await stripe.customers.create({
+		email,
+		name,
+		metadata: { userId },
+	});
+
+	await db.update(table.user).set({ stripeCustomerId: customer.id }).where(eq(table.user.id, userId));
+
+	return customer.id;
+}
+
+/**
+ * Handles the case where a stored Stripe customer ID is no longer valid in Stripe.
+ * This nulls out the invalid ID in the database and creates a new customer.
+ */
+async function handleInvalidCustomerId(userId: string, invalidCustomerId: string): Promise<void> {
+	console.error(
+		`[Stripe Customer Recovery] Invalid customer ID detected: ${invalidCustomerId} for user ${userId}. ` +
+			`This likely occurred due to a Stripe environment migration (sandbox -> production). ` +
+			`Nulling the invalid customer ID and creating a new customer.`,
+	);
+
+	// Null out the invalid customer ID
+	await db.update(table.user).set({ stripeCustomerId: null }).where(eq(table.user.id, userId));
+}
+
+/**
+ * Creates a Stripe checkout session with automatic retry on invalid customer ID.
+ * If the customer ID is invalid (e.g., after Stripe environment migration), it automatically
+ * creates a new customer and retries the session creation.
+ */
+async function createCheckoutSessionWithRetry(
+	userId: string,
+	email: string,
+	name: string,
+	customerId: string,
+	stripePriceId: string,
+	locale: Locale,
+	memberId: string,
+): Promise<Stripe.Response<Stripe.Checkout.Session>> {
+	const publicUrl = env.PUBLIC_URL;
+	const sessionConfig: Stripe.Checkout.SessionCreateParams = {
+		line_items: [
+			{
+				price: stripePriceId,
+				quantity: 1,
+			},
+		],
+		mode: "payment",
+		customer: customerId,
+		success_url: `${publicUrl}/${locale}?stripeStatus=success`,
+		cancel_url: `${publicUrl}/${locale}?stripeStatus=cancel`,
+		metadata: { memberId },
+	};
+
+	try {
+		return await stripe.checkout.sessions.create(sessionConfig);
+	} catch (error) {
+		// Handle case where stored customer ID is invalid (e.g., after Stripe environment migration)
+		if (isNoSuchCustomerError(error)) {
+			await handleInvalidCustomerId(userId, customerId);
+			// Create a new customer and retry
+			const newCustomerId = await createStripeCustomer(userId, email, name);
+			// Retry session creation with new customer ID
+			sessionConfig.customer = newCustomerId;
+			return await stripe.checkout.sessions.create(sessionConfig);
+		}
+		// Re-throw other errors
+		throw error;
+	}
+}
 
 /**
  * Start and return a Stripe payment session. Creates a customer in Stripe if one does not exist for
@@ -28,33 +119,21 @@ export async function createSession(userId: string, membershipId: string, locale
 	let stripeCustomerId = user.stripeCustomerId;
 	if (!stripeCustomerId) {
 		// https://docs.stripe.com/api/customers/create
-		const customer = await stripe.customers.create({
-			email: user.email,
-			name: `${user.firstNames} ${user.lastName}`,
-			metadata: { userId },
-		});
-		stripeCustomerId = customer.id;
-
-		await db.update(table.user).set({ stripeCustomerId }).where(eq(table.user.id, userId));
+		stripeCustomerId = await createStripeCustomer(userId, user.email, `${user.firstNames} ${user.lastName}`);
 	}
 
 	const memberId = crypto.randomUUID();
-	const publicUrl = env.PUBLIC_URL;
 
 	// https://docs.stripe.com/api/checkout/sessions/create
-	const session = await stripe.checkout.sessions.create({
-		line_items: [
-			{
-				price: membership.stripePriceId,
-				quantity: 1,
-			},
-		],
-		mode: "payment",
-		customer: stripeCustomerId,
-		success_url: `${publicUrl}/${locale}?stripeStatus=success`,
-		cancel_url: `${publicUrl}/${locale}?stripeStatus=cancel`,
-		metadata: { memberId },
-	});
+	const session = await createCheckoutSessionWithRetry(
+		userId,
+		user.email,
+		`${user.firstNames} ${user.lastName}`,
+		stripeCustomerId,
+		membership.stripePriceId,
+		locale,
+		memberId,
+	);
 	await db.insert(table.member).values({
 		id: memberId,
 		userId: userId,
@@ -121,29 +200,18 @@ export async function resumeOrCreateSession(memberId: string, locale: Locale) {
 
 	let stripeCustomerId = user.stripeCustomerId;
 	if (!stripeCustomerId) {
-		const customer = await stripe.customers.create({
-			email: user.email,
-			name: `${user.firstNames} ${user.lastName}`,
-			metadata: { userId: user.id },
-		});
-		stripeCustomerId = customer.id;
-		await db.update(table.user).set({ stripeCustomerId }).where(eq(table.user.id, user.id));
+		stripeCustomerId = await createStripeCustomer(user.id, user.email, `${user.firstNames} ${user.lastName}`);
 	}
 
-	const publicUrl = env.PUBLIC_URL;
-	const session = await stripe.checkout.sessions.create({
-		line_items: [
-			{
-				price: membership.stripePriceId,
-				quantity: 1,
-			},
-		],
-		mode: "payment",
-		customer: stripeCustomerId,
-		success_url: `${publicUrl}/${locale}?stripeStatus=success`,
-		cancel_url: `${publicUrl}/${locale}?stripeStatus=cancel`,
-		metadata: { memberId },
-	});
+	const session = await createCheckoutSessionWithRetry(
+		user.id,
+		user.email,
+		`${user.firstNames} ${user.lastName}`,
+		stripeCustomerId,
+		membership.stripePriceId,
+		locale,
+		memberId,
+	);
 
 	if (!session.url) {
 		throw new Error("Stripe checkout session was created without a URL");
