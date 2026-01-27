@@ -15,7 +15,7 @@ describe("GDPR - lastActiveAt trigger", () => {
 
 	beforeAll(async () => {
 		testDb = await createTestDatabase();
-	}, 120000); // 2 min timeout for container startup
+	}, 120_000); // 2 min timeout for container startup
 
 	afterAll(async () => {
 		await stopTestDatabase(testDb);
@@ -41,7 +41,7 @@ describe("GDPR - lastActiveAt trigger", () => {
 			.from(table.user)
 			.where(eq(table.user.id, userId));
 		expect(userBefore).toBeDefined();
-		expect(userBefore!.lastActiveAt).toBeNull();
+		expect(userBefore?.lastActiveAt).toBeNull();
 
 		// Create a session - this should trigger the lastActiveAt update
 		const sessionToken = generateSessionToken();
@@ -61,9 +61,9 @@ describe("GDPR - lastActiveAt trigger", () => {
 			.where(eq(table.user.id, userId));
 
 		expect(userAfter).toBeDefined();
-		expect(userAfter!.lastActiveAt).not.toBeNull();
+		expect(userAfter?.lastActiveAt).not.toBeNull();
 		// Should be within the last 5 seconds
-		expect(userAfter!.lastActiveAt!.getTime()).toBeGreaterThan(Date.now() - 5000);
+		expect(userAfter?.lastActiveAt?.getTime()).toBeGreaterThan(Date.now() - 5000);
 	});
 
 	it("should update lastActiveAt when a session is updated", async () => {
@@ -101,7 +101,7 @@ describe("GDPR - lastActiveAt trigger", () => {
 			.from(table.user)
 			.where(eq(table.user.id, userId));
 		expect(userBefore).toBeDefined();
-		expect(userBefore!.lastActiveAt?.getTime()).toBe(oldDate.getTime());
+		expect(userBefore?.lastActiveAt?.getTime()).toBe(oldDate.getTime());
 
 		// Update the session (simulating session renewal)
 		const newExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 60);
@@ -114,9 +114,9 @@ describe("GDPR - lastActiveAt trigger", () => {
 			.where(eq(table.user.id, userId));
 
 		expect(userAfter).toBeDefined();
-		expect(userAfter!.lastActiveAt).not.toBeNull();
-		expect(userAfter!.lastActiveAt!.getTime()).toBeGreaterThan(oldDate.getTime());
+		expect(userAfter?.lastActiveAt).not.toBeNull();
+		expect(userAfter?.lastActiveAt?.getTime()).toBeGreaterThan(oldDate.getTime());
 		// Should be within the last 5 seconds
-		expect(userAfter!.lastActiveAt!.getTime()).toBeGreaterThan(Date.now() - 5000);
+		expect(userAfter?.lastActiveAt?.getTime()).toBeGreaterThan(Date.now() - 5000);
 	});
 });
