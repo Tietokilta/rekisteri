@@ -93,19 +93,19 @@ export async function cleanupInactiveUsers(retentionYears: number = 6): Promise<
 
 		const userIds = inactiveUsers.map((u) => u.id);
 
-		// Delete related records that don't have CASCADE on delete
-		// (passkey and secondaryEmail have CASCADE and will be auto-deleted)
-		await db.delete(table.session).where(inArray(table.session.userId, userIds));
-		await db.delete(table.member).where(inArray(table.member.userId, userIds));
-		await db.delete(table.auditLog).where(inArray(table.auditLog.userId, userIds));
+		// Use transaction to ensure all deletions succeed or none do
+		await db.transaction(async (tx) => {
+			// Delete related records that don't have CASCADE on delete
+			// (passkey and secondaryEmail have CASCADE and will be auto-deleted)
+			await tx.delete(table.session).where(inArray(table.session.userId, userIds));
+			await tx.delete(table.member).where(inArray(table.member.userId, userIds));
+			await tx.delete(table.auditLog).where(inArray(table.auditLog.userId, userIds));
 
-		// Delete the users (this will cascade delete passkeys and secondary emails)
-		const deletedUsers = await db
-			.delete(table.user)
-			.where(inArray(table.user.id, userIds))
-			.returning({ id: table.user.id });
+			// Delete the users (this will cascade delete passkeys and secondary emails)
+			await tx.delete(table.user).where(inArray(table.user.id, userIds));
+		});
 
-		console.log(`[GDPR Cleanup] Removed ${deletedUsers.length} users inactive for ${retentionYears}+ years`);
+		console.log(`[GDPR Cleanup] Removed ${userIds.length} users inactive for ${retentionYears}+ years`);
 	} catch (error) {
 		console.error("[GDPR Cleanup] Error during inactive user cleanup:", error);
 		throw error;
