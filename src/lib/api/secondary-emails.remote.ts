@@ -14,6 +14,10 @@ import { route } from "$lib/ROUTES";
 import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
 import { addSecondaryEmailSchema } from "./secondary-emails.schema";
 import { env } from "$lib/server/env";
+import { validateRedirectUrl } from "$lib/utils";
+
+// Cookie name for storing the post-verification redirect URL
+export const emailVerifyRedirectCookieName = "email_verify_redirect";
 
 // Rate limit: 10 add attempts per user per hour in production, 1000 in test mode
 // SECURITY: Prevents email enumeration attacks
@@ -69,8 +73,10 @@ export const deleteSecondaryEmailForm = form(
 export const reverifySecondaryEmailForm = form(
 	v.object({
 		emailId: v.pipe(v.string(), v.minLength(1)),
+		// Optional redirect URL for returning to the original page after verification
+		redirect: v.optional(v.pipe(v.string(), v.minLength(1))),
 	}),
-	async ({ emailId }) => {
+	async ({ emailId, redirect: redirectParam }) => {
 		const { locals, cookies } = getRequestEvent();
 
 		if (!locals.user) {
@@ -104,6 +110,18 @@ export const reverifySecondaryEmailForm = form(
 			sameSite: "lax",
 		});
 
+		// Store validated redirect URL in cookie if provided
+		const validatedRedirect = validateRedirectUrl(redirectParam);
+		if (validatedRedirect) {
+			cookies.set(emailVerifyRedirectCookieName, validatedRedirect, {
+				expires: otp.expiresAt,
+				path: "/",
+				httpOnly: true,
+				secure: !dev,
+				sameSite: "lax",
+			});
+		}
+
 		// Server-side redirect ensures cookies are properly set before navigation
 		redirect(303, route("/[locale=locale]/settings/emails/verify", { locale: locals.locale }));
 	},
@@ -134,57 +152,72 @@ export const changePrimaryEmailForm = form(
 /**
  * Add a new secondary email via form submission
  */
-export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ email }, invalid) => {
-	const { locals, cookies } = getRequestEvent();
+export const addSecondaryEmailForm = form(
+	addSecondaryEmailSchema,
+	async ({ email, redirect: redirectParam }, invalid) => {
+		const { locals, cookies } = getRequestEvent();
 
-	// Lazy cleanup to prevent memory leaks
-	addEmailBucket.cleanup();
+		// Lazy cleanup to prevent memory leaks
+		addEmailBucket.cleanup();
 
-	if (!locals.user) {
-		throw error(401, "Not authenticated");
-	}
-
-	// Rate limit by user ID to prevent enumeration
-	if (!addEmailBucket.consume(locals.user.id, 1)) {
-		throw error(429, "Too many attempts. Please try again later.");
-	}
-
-	try {
-		// Create unverified secondary email
-		await createSecondaryEmail(locals.user.id, email);
-
-		// Create OTP and send
-		const otp = await createEmailOTP(email);
-		sendOTPEmail(email, otp.code, locals.locale);
-
-		// Set cookies for verification (matching email.ts pattern)
-		cookies.set(emailCookieName, email, {
-			expires: otp.expiresAt,
-			path: "/",
-			httpOnly: true,
-			secure: !dev,
-			sameSite: "lax",
-		});
-
-		// Set OTP cookie (otp.id is already encoded, don't double-encode it)
-		cookies.set(emailOTPCookieName, otp.id, {
-			expires: otp.expiresAt,
-			path: "/",
-			httpOnly: true,
-			secure: !dev,
-			sameSite: "lax",
-		});
-
-		redirect(303, route("/[locale=locale]/settings/emails/verify", { locale: locals.locale }));
-	} catch (err) {
-		// Re-throw SvelteKit errors (redirect, error, etc.)
-		if (isRedirect(err) || isHttpError(err)) {
-			throw err;
+		if (!locals.user) {
+			throw error(401, "Not authenticated");
 		}
-		// Use invalid.email() to attach error to the email field
-		if (err instanceof Error) {
-			return invalid(invalid.email(err.message));
+
+		// Rate limit by user ID to prevent enumeration
+		if (!addEmailBucket.consume(locals.user.id, 1)) {
+			throw error(429, "Too many attempts. Please try again later.");
 		}
-		return invalid(invalid.email("An error occurred"));
-	}
-});
+
+		try {
+			// Create unverified secondary email
+			await createSecondaryEmail(locals.user.id, email);
+
+			// Create OTP and send
+			const otp = await createEmailOTP(email);
+			sendOTPEmail(email, otp.code, locals.locale);
+
+			// Set cookies for verification (matching email.ts pattern)
+			cookies.set(emailCookieName, email, {
+				expires: otp.expiresAt,
+				path: "/",
+				httpOnly: true,
+				secure: !dev,
+				sameSite: "lax",
+			});
+
+			// Set OTP cookie (otp.id is already encoded, don't double-encode it)
+			cookies.set(emailOTPCookieName, otp.id, {
+				expires: otp.expiresAt,
+				path: "/",
+				httpOnly: true,
+				secure: !dev,
+				sameSite: "lax",
+			});
+
+			// Store validated redirect URL in cookie if provided
+			const validatedRedirect = validateRedirectUrl(redirectParam);
+			if (validatedRedirect) {
+				cookies.set(emailVerifyRedirectCookieName, validatedRedirect, {
+					expires: otp.expiresAt,
+					path: "/",
+					httpOnly: true,
+					secure: !dev,
+					sameSite: "lax",
+				});
+			}
+
+			redirect(303, route("/[locale=locale]/settings/emails/verify", { locale: locals.locale }));
+		} catch (err) {
+			// Re-throw SvelteKit errors (redirect, error, etc.)
+			if (isRedirect(err) || isHttpError(err)) {
+				throw err;
+			}
+			// Use invalid.email() to attach error to the email field
+			if (err instanceof Error) {
+				return invalid(invalid.email(err.message));
+			}
+			return invalid(invalid.email("An error occurred"));
+		}
+	},
+);

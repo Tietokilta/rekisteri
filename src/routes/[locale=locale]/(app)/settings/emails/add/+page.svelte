@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { PageProps } from "./$types";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
 	import { route } from "$lib/ROUTES";
 	import { Input } from "$lib/components/ui/input";
@@ -8,6 +9,8 @@
 	import * as Card from "$lib/components/ui/card/index.js";
 	import { addSecondaryEmailForm } from "$lib/api/secondary-emails.remote";
 	import { addSecondaryEmailSchema } from "$lib/api/secondary-emails.schema";
+
+	const { data }: PageProps = $props();
 
 	// Track if form has been validated (after first blur or submit attempt)
 	let hasValidated = $state(false);
@@ -35,6 +38,9 @@
 		</Alert.Root>
 
 		<form {...addSecondaryEmailForm.preflight(addSecondaryEmailSchema)} class="space-y-4">
+			{#if data.redirect}
+				<input type="hidden" name="redirect" value={data.redirect} />
+			{/if}
 			<div class="space-y-2">
 				<Label for="email">{$LL.secondaryEmail.emailAddress()}</Label>
 				<Input

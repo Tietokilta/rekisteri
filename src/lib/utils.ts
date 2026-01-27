@@ -47,3 +47,36 @@ export function formatShortDateRange(start: Date, end: Date, locale: string): st
 	const endStr = end.toLocaleDateString(`${locale}-FI`, { day: "numeric", month: "numeric", year: "numeric" });
 	return `${startStr} – ${endStr}`;
 }
+
+/**
+ * Validate a redirect URL to ensure it's a safe pathname-only redirect within the same origin.
+ * Returns the validated pathname (with optional query string) or null if invalid.
+ *
+ * Security: Only allows pathname-only redirects to prevent open redirect vulnerabilities.
+ * - Must start with a single forward slash
+ * - Cannot start with // (protocol-relative URL)
+ * - Cannot contain protocol (http:, https:, etc.)
+ * - Cannot contain backslashes (can be used to bypass checks in some browsers)
+ */
+export function validateRedirectUrl(url: string | null | undefined): string | null {
+	if (!url || typeof url !== "string") {
+		return null;
+	}
+
+	// Must start with exactly one forward slash (pathname)
+	if (!url.startsWith("/") || url.startsWith("//")) {
+		return null;
+	}
+
+	// Block backslashes (can be interpreted as forward slashes in some browsers)
+	if (url.includes("\\")) {
+		return null;
+	}
+
+	// Block protocol handlers
+	if (url.includes(":")) {
+		return null;
+	}
+
+	return url;
+}

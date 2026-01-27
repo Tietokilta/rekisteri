@@ -1,6 +1,7 @@
 import { error, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
 import { timingSafeEqual } from "node:crypto";
+import { dev } from "$app/environment";
 import {
 	createEmailOTP,
 	deleteEmailCookie,
@@ -15,9 +16,23 @@ import {
 import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
 import { route } from "$lib/ROUTES";
 import { getUserSecondaryEmails, markSecondaryEmailVerified } from "$lib/server/auth/secondary-email";
+import { emailVerifyRedirectCookieName } from "$lib/api/secondary-emails.remote";
+import { validateRedirectUrl } from "$lib/utils";
 import { verifyCodeSchema } from "./schema";
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
+
+/**
+ * Delete the redirect cookie after verification
+ */
+function deleteRedirectCookie(event: ReturnType<typeof getRequestEvent>) {
+	event.cookies.delete(emailVerifyRedirectCookieName, {
+		path: "/",
+		httpOnly: true,
+		secure: !dev,
+		sameSite: "lax",
+	});
+}
 
 export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
 	const event = getRequestEvent();
@@ -71,11 +86,18 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
 	// Mark as verified
 	await markSecondaryEmailVerified(emailToVerify.id, event.locals.user.id);
 
+	// Get the redirect URL from cookie before deleting cookies
+	const redirectCookie = event.cookies.get(emailVerifyRedirectCookieName);
+	const validatedRedirect = validateRedirectUrl(redirectCookie);
+
 	deleteEmailCookie(event);
 	deleteEmailOTP(otp.id);
 	deleteEmailOTPCookie(event);
+	deleteRedirectCookie(event);
 
-	redirect(302, route("/[locale=locale]/settings/emails", { locale: event.locals.locale }));
+	// Redirect to the stored redirect URL or fall back to emails page
+	const redirectUrl = validatedRedirect ?? route("/[locale=locale]/settings/emails", { locale: event.locals.locale });
+	redirect(302, redirectUrl);
 });
 
 export const resendEmail = form(async () => {
@@ -115,10 +137,11 @@ export const cancelVerification = form(async () => {
 		deleteEmailOTP(otp.id);
 	}
 
-	// Clear cookies
+	// Clear cookies (including redirect cookie)
 	deleteEmailCookie(event);
 	deleteEmailOTPCookie(event);
+	deleteRedirectCookie(event);
 
-	// Redirect back to management page
+	// Redirect back to management page (ignore redirect cookie on cancel)
 	redirect(303, route("/[locale=locale]/settings/emails", { locale: event.locals.locale }));
 });

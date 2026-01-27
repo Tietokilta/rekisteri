@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from "$app/navigation";
 	import { LL, locale } from "$lib/i18n/i18n-svelte";
-	import { route } from "$lib/ROUTES";
+	import { route, appendSp } from "$lib/ROUTES";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import * as Item from "$lib/components/ui/item/index.js";
 	import * as Card from "$lib/components/ui/card/index.js";
@@ -35,6 +35,15 @@
 		if (!date) return "";
 		return new Date(date).toLocaleDateString();
 	}
+
+	// Build add email URL with redirect param if present
+	const addEmailHref = $derived(() => {
+		const baseUrl = route("/[locale=locale]/settings/emails/add", { locale: $locale });
+		if (data.redirect) {
+			return baseUrl + appendSp({ redirect: data.redirect });
+		}
+		return baseUrl;
+	});
 </script>
 
 <Card.Root>
@@ -42,10 +51,7 @@
 		<Card.Title>{$LL.settings.emails.title()}</Card.Title>
 		<Card.Description>{$LL.secondaryEmail.manageDescription()}</Card.Description>
 		<Card.Action>
-			<Button
-				href={route("/[locale=locale]/settings/emails/add", { locale: $locale })}
-				data-testid="add-secondary-email"
-			>
+			<Button href={addEmailHref()} data-testid="add-secondary-email">
 				+ {$LL.secondaryEmail.addEmail()}
 			</Button>
 		</Card.Action>
@@ -156,6 +162,9 @@
 								{#if status === "expired" || status === "unverified"}
 									<form class="contents" {...reverifyForm}>
 										<input type="hidden" name="emailId" value={email.id} />
+										{#if data.redirect}
+											<input type="hidden" name="redirect" value={data.redirect} />
+										{/if}
 										<DropdownMenu.Item
 											disabled={!!reverifyForm.pending}
 											data-testid="reverify-email"
