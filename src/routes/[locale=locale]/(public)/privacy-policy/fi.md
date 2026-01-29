@@ -13,9 +13,9 @@ Tämä on EU:n yleisen tietosuoja-asetuksen (GDPR) sekä yhdistyslain (503/1989)
 
 ## 1. Rekisterinpitäjä
 
-**Tietokilta ry**
-Y-tunnus: 1790346-8
-Osoite: Konemiehentie 2, 02150 Espoo
+**Tietokilta ry**<br />
+Y-tunnus: 1790346-8<br />
+Osoite: Konemiehentie 2, 02150 Espoo<br />
 Sähköposti: hallitus@tietokilta.fi
 
 ## 2. Yhteyshenkilö tietosuoja-asioissa
@@ -192,11 +192,11 @@ Rekisteröity voi itse korjata ja päivittää tietojaan kirjautumalla järjeste
 
 **Valvontaviranomainen Suomessa:**
 
-Tietosuojavaltuutetun toimisto\
-Käyntiosoite: Lintulahdenkuja 4, 00530 Helsinki\
-Postiosoite: PL 800, 00531 Helsinki\
-Puhelinvaihde: 029 56 66700\
-Sähköposti: tietosuoja@om.fi\
+Tietosuojavaltuutetun toimisto<br />
+Käyntiosoite: Lintulahdenkuja 4, 00530 Helsinki<br />
+Postiosoite: PL 800, 00531 Helsinki<br />
+Puhelinvaihde: 029 56 66700<br />
+Sähköposti: tietosuoja@om.fi<br />
 Verkkosivu: [https://tietosuoja.fi](https://tietosuoja.fi)
 
 ## 12. Automaattinen päätöksenteko

@@ -15,9 +15,9 @@ _Note: The legally binding version of this document is in Finnish. This English 
 
 ## 1. Data Controller
 
-**Computer Science Guild of Aalto University (Tietokilta ry)**
-Business ID: 1790346-8
-Address: Konemiehentie 2, 02150 Espoo, Finland
+**Computer Science Guild of Aalto University (Tietokilta ry)**<br />
+Business ID: 1790346-8<br />
+Address: Konemiehentie 2, 02150 Espoo, Finland<br />
 Email: hallitus@tietokilta.fi
 
 ## 2. Contact Person for Data Protection Matters
@@ -194,11 +194,11 @@ Data subjects can correct and update their information by logging into the syste
 
 **Supervisory authority in Finland:**
 
-Office of the Data Protection Ombudsman\
-Visiting address: Lintulahdenkuja 4, 00530 Helsinki\
-Postal address: P.O. Box 800, 00531 Helsinki\
-Phone: +358 29 56 66700\
-Email: tietosuoja@om.fi\
+Office of the Data Protection Ombudsman<br />
+Visiting address: Lintulahdenkuja 4, 00530 Helsinki<br />
+Postal address: P.O. Box 800, 00531 Helsinki<br />
+Phone: +358 29 56 66700<br />
+Email: tietosuoja@om.fi<br />
 Website: [https://tietosuoja.fi/en/](https://tietosuoja.fi/en/)
 
 ## 12. Automated Decision-Making
