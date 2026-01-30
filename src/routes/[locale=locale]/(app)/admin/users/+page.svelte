@@ -147,18 +147,10 @@
 		userPage = 0;
 	});
 
-	// Format last sign-in
-	function formatLastSignIn(expiresAt: Date | null) {
-		if (!expiresAt) return "-";
-		const now = new Date();
-		if (expiresAt < now) return $LL.admin.users.table.sessionExpired();
-		return expiresAt.toLocaleString();
-	}
-
-	// Check if session is active
-	function hasActiveSession(expiresAt: Date | null) {
-		if (!expiresAt) return false;
-		return expiresAt > new Date();
+	// Format last active date
+	function formatLastActive(lastActiveAt: Date | null) {
+		if (!lastActiveAt) return $LL.admin.users.table.never();
+		return lastActiveAt.toLocaleString();
 	}
 
 	// Check if user is the last admin (use total admins, not filtered)
@@ -376,7 +368,7 @@
 							<Table.Head class="w-[200px]">{$LL.admin.users.table.email()}</Table.Head>
 							<Table.Head class="w-[150px]">{$LL.admin.users.table.name()}</Table.Head>
 							<Table.Head class="w-[80px]">{$LL.admin.users.table.role()}</Table.Head>
-							<Table.Head class="w-[200px]">{$LL.admin.users.table.lastSession()}</Table.Head>
+							<Table.Head class="w-[200px]">{$LL.admin.users.table.lastActive()}</Table.Head>
 							<Table.Head class="w-[220px] text-right">{$LL.admin.users.table.actions()}</Table.Head>
 						</Table.Row>
 					</Table.Header>
@@ -396,16 +388,9 @@
 									<Badge variant="default">ADMIN</Badge>
 								</Table.Cell>
 								<Table.Cell class="w-[250px]">
-									{#if hasActiveSession(user.lastSessionExpiresAt)}
-										<Badge variant="secondary">{$LL.admin.users.table.active()}</Badge>
-										<span class="ml-2 text-sm text-muted-foreground">
-											{formatLastSignIn(user.lastSessionExpiresAt)}
-										</span>
-									{:else}
-										<span class="text-sm text-muted-foreground">
-											{formatLastSignIn(user.lastSessionExpiresAt)}
-										</span>
-									{/if}
+									<span class="text-sm text-muted-foreground">
+										{formatLastActive(user.lastActiveAt)}
+									</span>
 								</Table.Cell>
 								<Table.Cell class="w-[220px] text-right">
 									<div class="flex justify-end gap-2">
@@ -466,7 +451,7 @@
 						<Table.Head class="w-[200px]">{$LL.admin.users.table.email()}</Table.Head>
 						<Table.Head class="w-[150px]">{$LL.admin.users.table.name()}</Table.Head>
 						<Table.Head class="w-[80px]">{$LL.admin.users.table.role()}</Table.Head>
-						<Table.Head class="w-[200px]">{$LL.admin.users.table.lastSession()}</Table.Head>
+						<Table.Head class="w-[200px]">{$LL.admin.users.table.lastActive()}</Table.Head>
 						<Table.Head class="w-[220px] text-right">{$LL.admin.users.table.actions()}</Table.Head>
 					</Table.Row>
 				</Table.Header>
@@ -491,16 +476,9 @@
 								</Table.Cell>
 								<Table.Cell class="w-[100px]">-</Table.Cell>
 								<Table.Cell class="w-[250px]">
-									{#if hasActiveSession(user.lastSessionExpiresAt)}
-										<Badge variant="secondary">{$LL.admin.users.table.active()}</Badge>
-										<span class="ml-2 text-sm text-muted-foreground">
-											{formatLastSignIn(user.lastSessionExpiresAt)}
-										</span>
-									{:else}
-										<span class="text-sm text-muted-foreground">
-											{formatLastSignIn(user.lastSessionExpiresAt)}
-										</span>
-									{/if}
+									<span class="text-sm text-muted-foreground">
+										{formatLastActive(user.lastActiveAt)}
+									</span>
 								</Table.Cell>
 								<Table.Cell class="w-[220px] text-right">
 									<div class="flex justify-end gap-2">
