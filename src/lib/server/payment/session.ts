@@ -4,6 +4,8 @@ import { db } from "$lib/server/db";
 import { eq } from "drizzle-orm";
 import { env } from "$lib/server/env";
 import type { Locale } from "$lib/i18n/routing";
+import { sendMemberEmail } from "$lib/server/emails";
+import { getMembershipName } from "$lib/server/utils/membership";
 
 /**
  * Start and return a Stripe payment session. Creates a customer in Stripe if one does not exist for
@@ -174,6 +176,7 @@ export async function fulfillSession(sessionId: string) {
 	}
 
 	// Use transaction to prevent race condition if multiple webhooks arrive simultaneously
+	let wasUpdated = false;
 	await db.transaction(async (tx) => {
 		const member = await tx.query.member.findFirst({
 			where: eq(table.member.id, memberId),
@@ -183,7 +186,42 @@ export async function fulfillSession(sessionId: string) {
 			return;
 		}
 		await tx.update(table.member).set({ status: "awaiting_approval" }).where(eq(table.member.id, member.id));
+		wasUpdated = true;
 	});
+
+	// Send payment success email if status was updated
+	if (wasUpdated) {
+		try {
+			const memberWithDetails = await db.query.member.findFirst({
+				where: eq(table.member.id, memberId),
+				with: {
+					user: true,
+					membership: {
+						with: { membershipType: true },
+					},
+				},
+			});
+
+			if (memberWithDetails && session.amount_total && session.currency) {
+				const userLocale: "fi" | "en" =
+					memberWithDetails.user.preferredLanguage === "english" ? "en" : "fi";
+
+				await sendMemberEmail({
+					recipientEmail: memberWithDetails.user.email,
+					emailType: "payment_success",
+					metadata: {
+						membershipName: getMembershipName(memberWithDetails.membership, userLocale),
+						amount: session.amount_total,
+						currency: session.currency,
+					},
+					locale: userLocale,
+				});
+			}
+		} catch (emailError) {
+			// Log but don't fail the fulfillment if email fails
+			console.error("[fulfillSession] Failed to send payment success email:", emailError);
+		}
+	}
 }
 
 /**
