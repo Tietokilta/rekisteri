@@ -138,6 +138,41 @@ const en = {
     },
   },
 
+  // Emails
+  emails: {
+    otp: {
+      subject: "CSG Membership Registry Sign In Code",
+    },
+    paymentSuccess: {
+      subject: "Payment received - Awaiting board approval",
+      body: `Thank you for your {membershipName} membership payment ({amount})!
+
+Your payment has been received and your membership application is awaiting approval at the next board meeting.
+
+You will receive an email once your membership is approved.
+
+Best regards,
+Computer Science Guild`,
+    },
+    membershipApproved: {
+      subject: "Welcome to the Computer Science Guild!",
+      body: `Hi {firstName}!
+
+Your membership application has been approved. Welcome as a member of the Computer Science Guild!
+
+Membership details:
+- Type: {membershipName}
+- Valid: {startDate} - {endDate}
+
+You can now participate in guild activities and enjoy member benefits.
+
+See you at events!
+
+Best regards,
+Computer Science Guild`,
+    },
+  },
+
   // User
   user: {
     welcome: "Welcome {firstNames} {lastName}!",

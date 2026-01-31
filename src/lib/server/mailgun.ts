@@ -6,6 +6,8 @@ interface SendEmailOptions {
   to: string;
   subject: string;
   text: string;
+  html?: string;
+  headers?: Record<string, string>;
 }
 
 export const sendEmail = async (options: SendEmailOptions): Promise<MessagesSendResult> => {
@@ -20,12 +22,27 @@ export const sendEmail = async (options: SendEmailOptions): Promise<MessagesSend
     url: env.MAILGUN_URL,
   });
 
-  return await mg.messages.create(env.MAILGUN_DOMAIN, {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const message: any = {
     from: env.MAILGUN_SENDER,
     to: options.to,
     subject: options.subject,
     text: options.text,
-  });
+  };
+
+  // Add optional HTML content
+  if (options.html) {
+    message.html = options.html;
+  }
+
+  // Add custom headers (e.g., for OTP auto-extraction)
+  if (options.headers) {
+    for (const [key, value] of Object.entries(options.headers)) {
+      message[`h:${key}`] = value;
+    }
+  }
+
+  return await mg.messages.create(env.MAILGUN_DOMAIN, message);
 };
 
 /**

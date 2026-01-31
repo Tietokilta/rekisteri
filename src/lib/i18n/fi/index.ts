@@ -138,6 +138,41 @@ const fi = {
     },
   },
 
+  // Emails
+  emails: {
+    otp: {
+      subject: "Tietokillan jäsenrekisterin sisäänkirjautumiskoodi",
+    },
+    paymentSuccess: {
+      subject: "Maksu vastaanotettu - Odottaa hallituksen hyväksyntää",
+      body: `Kiitos {membershipName}-jäsenyytesi maksusta ({amount})!
+
+Maksusi on vastaanotettu ja jäsenhakemuksesi odottaa hallituksen hyväksyntää seuraavassa kokouksessa.
+
+Saat sähköpostiviestin, kun jäsenyytesi on hyväksytty.
+
+Terveisin,
+Tietokilta`,
+    },
+    membershipApproved: {
+      subject: "Tervetuloa Tietokiltaan!",
+      body: `Hei {firstName}!
+
+Jäsenhakemuksesi on hyväksytty. Tervetuloa Tietokillan jäseneksi!
+
+Jäsenyystiedot:
+- Jäsenyystyyppi: {membershipName}
+- Voimassa: {startDate} - {endDate}
+
+Voit nyt osallistua killan toimintaan ja hyödyntää jäsenetuja.
+
+Nähdään tapahtumissa!
+
+Terveisin,
+Tietokilta`,
+    },
+  },
+
   // User
   user: {
     welcome: "Tervetuloa {firstNames} {lastName}!",
