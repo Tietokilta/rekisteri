@@ -31,10 +31,9 @@
 
   interface Props {
     memberships: Membership[];
-    userName: string;
   }
 
-  let { memberships, userName }: Props = $props();
+  let { memberships }: Props = $props();
 
   // Helper to get localized membership type name
   function getTypeName(membershipType: MembershipType): string {
@@ -127,7 +126,6 @@
   <Card.Content class="space-y-4">
     {#if currentMembership}
       <div class="space-y-1">
-        <p class="text-lg font-medium">{userName}</p>
         <p class="text-2xl font-semibold">{getTypeName(currentMembership.membershipType)}</p>
         <p class="text-sm text-muted-foreground">
           <time datetime={currentMembership.startTime.toISOString()}>

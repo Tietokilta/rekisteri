@@ -122,6 +122,41 @@ const fi = {
     },
   },
 
+  // Emails
+  emails: {
+    otp: {
+      subject: "Tietokillan jäsenrekisterin sisäänkirjautumiskoodi",
+    },
+    paymentSuccess: {
+      subject: "Maksu vastaanotettu - Odottaa hallituksen hyväksyntää",
+      body: `Kiitos {membershipName}-jäsenyytesi maksusta ({amount})!
+
+Maksusi on vastaanotettu ja jäsenhakemuksesi odottaa hallituksen hyväksyntää seuraavassa kokouksessa.
+
+Saat sähköpostiviestin, kun jäsenyytesi on hyväksytty.
+
+Terveisin,
+Tietokilta`,
+    },
+    membershipApproved: {
+      subject: "Tervetuloa Tietokiltaan!",
+      body: `Hei {firstName}!
+
+Jäsenhakemuksesi on hyväksytty. Tervetuloa Tietokillan jäseneksi!
+
+Jäsenyystiedot:
+- Jäsenyystyyppi: {membershipName}
+- Voimassa: {startDate} - {endDate}
+
+Voit nyt osallistua killan toimintaan ja hyödyntää jäsenetuja.
+
+Nähdään tapahtumissa!
+
+Terveisin,
+Tietokilta`,
+    },
+  },
+
   // User
   user: {
     welcome: "Tervetuloa {firstNames} {lastName}!",
@@ -239,9 +274,6 @@ const fi = {
     noMembership: "Ei jäsenyyttä",
     requiresStudentVerification: "Edellyttää opiskelijastatusta",
     isStudent: "Olen opiskelija Aalto-yliopistossa",
-    description: "Perustelut jäsenhakemukselle",
-    descriptionPlaceholder: "Kerro, miksi haet jäsenyyttä...",
-    descriptionRequired: "Perustelut jäsenhakemukselle vaaditaan",
     getStarted: "Osta jäsenyys päästäksesi alkuun",
     currentMemberships: "Aktiiviset jäsenyydet",
     pastMemberships: "Aiemmat jäsenyydet",
@@ -357,7 +389,6 @@ const fi = {
         statusLabel: "Tila:",
         createdLabel: "Luotu:",
         stripeSessionLabel: "Stripe-istunto:",
-        descriptionLabel: "Perustelut:",
 
         // Actions
         approve: "Hyväksy",
@@ -432,9 +463,10 @@ const fi = {
         email: "Sähköposti",
         name: "Nimi",
         role: "Rooli",
-        lastActive: "Viimeksi aktiivinen",
+        lastSession: "Viimeisin istunto",
         actions: "Toiminnot",
-        never: "Ei koskaan",
+        active: "Aktiivinen",
+        sessionExpired: "Vanhentunut",
         promote: "Ylennä ylläpitäjäksi",
         demote: "Poista ylläpitäjyys",
         merge: "Yhdistä käyttäjät",
@@ -490,7 +522,6 @@ const fi = {
     create: "Luo",
     select: "Valitse",
     loading: "Ladataan...",
-    optional: "valinnainen",
   },
 
   // Error page

@@ -5,6 +5,8 @@ import * as table from "$lib/server/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { auditMemberAction, auditBulkMemberAction } from "$lib/server/audit";
 import { memberIdSchema, bulkMemberIdsSchema } from "./schema";
+import { sendMemberEmail } from "$lib/server/emails";
+import { getMembershipName } from "$lib/server/utils/membership";
 
 export const approveMember = form(memberIdSchema, async ({ memberId }) => {
   const event = getRequestEvent();
@@ -30,6 +32,38 @@ export const approveMember = form(memberIdSchema, async ({ memberId }) => {
   await auditMemberAction(event, "member.approve", memberId, {
     previousStatus: member.status,
   });
+
+  // Send membership approved email
+  try {
+    const memberWithDetails = await db.query.member.findFirst({
+      where: eq(table.member.id, memberId),
+      with: {
+        user: true,
+        membership: {
+          with: { membershipType: true },
+        },
+      },
+    });
+
+    if (memberWithDetails && memberWithDetails.user.firstNames) {
+      const userLocale: "fi" | "en" = memberWithDetails.user.preferredLanguage === "english" ? "en" : "fi";
+
+      await sendMemberEmail({
+        recipientEmail: memberWithDetails.user.email,
+        emailType: "membership_approved",
+        metadata: {
+          firstName: memberWithDetails.user.firstNames.split(" ")[0] || "",
+          membershipName: getMembershipName(memberWithDetails.membership, userLocale),
+          startDate: memberWithDetails.membership.startTime,
+          endDate: memberWithDetails.membership.endTime,
+        },
+        locale: userLocale,
+      });
+    }
+  } catch (emailError) {
+    // Log but don't fail the approval if email fails
+    console.error("[approveMember] Failed to send membership approved email:", emailError);
+  }
 
   return { success: true, message: "Member approved successfully" };
 });

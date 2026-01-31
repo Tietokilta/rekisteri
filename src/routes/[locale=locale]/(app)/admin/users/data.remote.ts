@@ -3,10 +3,9 @@ import { form, getRequestEvent, command } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, sql } from "drizzle-orm";
+import { auditLog } from "$lib/server/db/schema";
 import { isNonEmpty } from "$lib/utils";
 import { promoteToAdminSchema, demoteFromAdminSchema, mergeUsersSchema } from "./schema";
-import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
-import { auditUserAdminAction } from "$lib/server/audit";
 
 export const promoteToAdmin = form(promoteToAdminSchema, async ({ userId }) => {
   const event = getRequestEvent();
@@ -30,8 +29,17 @@ export const promoteToAdmin = form(promoteToAdminSchema, async ({ userId }) => {
   await db.update(table.user).set({ isAdmin: true }).where(eq(table.user.id, userId));
 
   // Log the action
-  await auditUserAdminAction(event, "user.promote_to_admin", userId, {
-    promotedUserEmail: user.email,
+  await db.insert(auditLog).values({
+    id: crypto.randomUUID(),
+    userId: event.locals.user.id,
+    action: "user.promote_to_admin",
+    targetType: "user",
+    targetId: userId,
+    metadata: {
+      promotedUserEmail: user.email,
+    },
+    ipAddress: event.getClientAddress(),
+    userAgent: event.request.headers.get("user-agent") ?? undefined,
   });
 
   return { success: true, message: "User promoted to admin successfully" };
@@ -74,8 +82,17 @@ export const demoteFromAdmin = form(demoteFromAdminSchema, async ({ userId }) =>
   await db.update(table.user).set({ isAdmin: false }).where(eq(table.user.id, userId));
 
   // Log the action
-  await auditUserAdminAction(event, "user.demote_from_admin", userId, {
-    demotedUserEmail: user.email,
+  await db.insert(auditLog).values({
+    id: crypto.randomUUID(),
+    userId: event.locals.user.id,
+    action: "user.demote_from_admin",
+    targetType: "user",
+    targetId: userId,
+    metadata: {
+      demotedUserEmail: user.email,
+    },
+    ipAddress: event.getClientAddress(),
+    userAgent: event.request.headers.get("user-agent") ?? undefined,
   });
 
   return { success: true, message: "User demoted from admin successfully" };
@@ -133,13 +150,9 @@ export const mergeUsers = command(
       }),
     ]);
 
-    // Check for overlapping membership periods (only blocking statuses)
-    // Filter out cancelled and expired memberships as they should not block merge
-    const activeSecondaryMembers = secondaryMembers.filter((m) => BLOCKING_MEMBER_STATUSES.has(m.status));
-    const activePrimaryMembers = primaryMembers.filter((m) => BLOCKING_MEMBER_STATUSES.has(m.status));
-
-    for (const secondaryMember of activeSecondaryMembers) {
-      for (const primaryMember of activePrimaryMembers) {
+    // Check for overlapping membership periods
+    for (const secondaryMember of secondaryMembers) {
+      for (const primaryMember of primaryMembers) {
         // Check if same membership type and overlapping periods
         if (secondaryMember.membershipId === primaryMember.membershipId) {
           error(
@@ -197,12 +210,9 @@ export const mergeUsers = command(
       // 7. Delete the secondary user (cascades will clean up any remaining references)
       await tx.delete(table.user).where(eq(table.user.id, secondaryUserId));
 
-      // 8. Log the merge action within the transaction
-      // We need to use tx.insert directly here since we're inside a transaction
-      // and auditUserAdminAction would use the outer db instance
-      const auditId = crypto.randomUUID();
-      await tx.insert(table.auditLog).values({
-        id: auditId,
+      // 8. Log the merge action
+      await tx.insert(auditLog).values({
+        id: crypto.randomUUID(),
         userId: adminUser.id,
         action: "user.merge",
         targetType: "user",
@@ -217,8 +227,6 @@ export const mergeUsers = command(
         },
         ipAddress: event.getClientAddress(),
         userAgent: event.request.headers.get("user-agent") ?? undefined,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       });
     });
 

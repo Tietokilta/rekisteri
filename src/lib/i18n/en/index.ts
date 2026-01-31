@@ -122,6 +122,41 @@ const en = {
     },
   },
 
+  // Emails
+  emails: {
+    otp: {
+      subject: "CSG Membership Registry Sign In Code",
+    },
+    paymentSuccess: {
+      subject: "Payment received - Awaiting board approval",
+      body: `Thank you for your {membershipName} membership payment ({amount})!
+
+Your payment has been received and your membership application is awaiting approval at the next board meeting.
+
+You will receive an email once your membership is approved.
+
+Best regards,
+Computer Science Guild`,
+    },
+    membershipApproved: {
+      subject: "Welcome to the Computer Science Guild!",
+      body: `Hi {firstName}!
+
+Your membership application has been approved. Welcome as a member of the Computer Science Guild!
+
+Membership details:
+- Type: {membershipName}
+- Valid: {startDate} - {endDate}
+
+You can now participate in guild activities and enjoy member benefits.
+
+See you at events!
+
+Best regards,
+Computer Science Guild`,
+    },
+  },
+
   // User
   user: {
     welcome: "Welcome {firstNames} {lastName}!",
@@ -239,9 +274,6 @@ const en = {
     noMembership: "No membership",
     requiresStudentVerification: "Requires student verification",
     isStudent: "I am a student in Aalto University",
-    description: "Motivation for applying for membership",
-    descriptionPlaceholder: "Describe why you are applying for membership...",
-    descriptionRequired: "Motivation for applying for membership is required",
     getStarted: "Purchase a membership to get started",
     currentMemberships: "Active memberships",
     pastMemberships: "Past memberships",
@@ -357,7 +389,6 @@ const en = {
         statusLabel: "Status:",
         createdLabel: "Created:",
         stripeSessionLabel: "Stripe Session:",
-        descriptionLabel: "Motivation:",
 
         // Actions
         approve: "Approve",
@@ -432,9 +463,10 @@ const en = {
         email: "Email",
         name: "Name",
         role: "Role",
-        lastActive: "Last active",
+        lastSession: "Last session",
         actions: "Actions",
-        never: "Never",
+        active: "Active",
+        sessionExpired: "Expired",
         promote: "Promote to admin",
         demote: "Remove admin",
         merge: "Merge users",
@@ -489,7 +521,6 @@ const en = {
     create: "Create",
     select: "Select",
     loading: "Loading...",
-    optional: "optional",
   },
 
   // Error page
