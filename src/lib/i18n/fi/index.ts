@@ -239,6 +239,9 @@ const fi = {
 		noMembership: "Ei jäsenyyttä",
 		requiresStudentVerification: "Edellyttää opiskelijastatusta",
 		isStudent: "Olen opiskelija Aalto-yliopistossa",
+		description: "Perustelut jäsenhakemukselle",
+		descriptionPlaceholder: "Kerro, miksi haet jäsenyyttä...",
+		descriptionRequired: "Perustelut jäsenhakemukselle vaaditaan",
 		getStarted: "Osta jäsenyys päästäksesi alkuun",
 		currentMemberships: "Aktiiviset jäsenyydet",
 		pastMemberships: "Aiemmat jäsenyydet",
@@ -354,6 +357,7 @@ const fi = {
 				statusLabel: "Tila:",
 				createdLabel: "Luotu:",
 				stripeSessionLabel: "Stripe-istunto:",
+				descriptionLabel: "Perustelut:",
 
 				// Actions
 				approve: "Hyväksy",
@@ -486,6 +490,7 @@ const fi = {
 		create: "Luo",
 		select: "Valitse",
 		loading: "Ladataan...",
+		optional: "valinnainen",
 	},
 
 	// Error page

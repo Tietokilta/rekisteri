@@ -132,6 +132,7 @@ export const member = pgTable("member", {
 		.references(() => membership.id),
 	status: memberStatusEnum().notNull(),
 	stripeSessionId: text(),
+	description: text(),
 	...timestamps,
 });
 

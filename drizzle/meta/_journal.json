@@ -64,6 +64,13 @@
       "when": 1769500800000,
       "tag": "0008_gdpr_last_active_at",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1770132677940,
+      "tag": "0009_amused_sumo",
+      "breakpoints": true
     }
   ]
 }
