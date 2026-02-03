@@ -1,28 +1,35 @@
 import { relations, sql } from "drizzle-orm";
 import {
-  boolean,
-  index,
-  integer,
-  json,
-  jsonb,
-  pgEnum,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
+	boolean,
+	index,
+	integer,
+	json,
+	jsonb,
+	pgEnum,
+	pgTable,
+	text,
+	timestamp,
+	uniqueIndex,
 } from "drizzle-orm/pg-core";
 import * as v from "valibot";
-import { MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
+import {
+	MEMBER_STATUS_VALUES,
+	PREFERRED_LANGUAGE_VALUES,
+	MEETING_STATUS_VALUES,
+	MEETING_EVENT_TYPE_VALUES,
+	ATTENDANCE_EVENT_TYPE_VALUES,
+	SCAN_METHOD_VALUES,
+} from "../../shared/enums";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 
 export type LocalizedString = { fi: string; en: string };
 
 const timestamps = {
-  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp({ withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdateFn(() => new Date()),
+	createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp({ withTimezone: true })
+		.notNull()
+		.defaultNow()
+		.$onUpdateFn(() => new Date()),
 };
 
 export const preferredLanguageEnum = pgEnum("preferred_language", PREFERRED_LANGUAGE_VALUES);
@@ -33,151 +40,245 @@ export const memberStatusEnum = pgEnum("member_status", MEMBER_STATUS_VALUES);
 
 export const memberStatusEnumSchema = v.picklist(MEMBER_STATUS_VALUES);
 
+export const meetingStatusEnum = pgEnum("meeting_status", MEETING_STATUS_VALUES);
+
+export const meetingStatusEnumSchema = v.picklist(MEETING_STATUS_VALUES);
+
+export const meetingEventTypeEnum = pgEnum("meeting_event_type", MEETING_EVENT_TYPE_VALUES);
+
+export const meetingEventTypeEnumSchema = v.picklist(MEETING_EVENT_TYPE_VALUES);
+
+export const attendanceEventTypeEnum = pgEnum("attendance_event_type", ATTENDANCE_EVENT_TYPE_VALUES);
+
+export const attendanceEventTypeEnumSchema = v.picklist(ATTENDANCE_EVENT_TYPE_VALUES);
+
+export const scanMethodEnum = pgEnum("scan_method", SCAN_METHOD_VALUES);
+
+export const scanMethodEnumSchema = v.picklist(SCAN_METHOD_VALUES);
+
 export const user = pgTable("user", {
-  id: text().primaryKey(),
-  email: text().notNull().unique(),
-  isAdmin: boolean().notNull().default(false),
-  firstNames: text(),
-  lastName: text(),
-  homeMunicipality: text(),
-  preferredLanguage: preferredLanguageEnum().notNull().default("unspecified"),
-  isAllowedEmails: boolean().notNull().default(false),
-  stripeCustomerId: text(),
-  lastActiveAt: timestamp({ withTimezone: true }), // GDPR: tracks last user activity for cleanup
-  ...timestamps,
+	id: text().primaryKey(),
+	email: text().notNull().unique(),
+	isAdmin: boolean().notNull().default(false),
+	firstNames: text(),
+	lastName: text(),
+	homeMunicipality: text(),
+	preferredLanguage: preferredLanguageEnum().notNull().default("unspecified"),
+	isAllowedEmails: boolean().notNull().default(false),
+	stripeCustomerId: text(),
+	attendanceQrToken: text().unique(), // Static QR token for member verification (meetings, events, discounts, etc.)
+	...timestamps,
 });
 
 export const session = pgTable("session", {
-  id: text().primaryKey(),
-  userId: text()
-    .notNull()
-    .references(() => user.id),
-  expiresAt: timestamp({ withTimezone: true, mode: "date" }).notNull(),
+	id: text().primaryKey(),
+	userId: text()
+		.notNull()
+		.references(() => user.id),
+	expiresAt: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 });
 
 export const emailOTP = pgTable("email_otp", {
-  id: text().primaryKey(),
-  code: text().notNull(),
-  email: text().notNull(),
-  expiresAt: timestamp({ withTimezone: true, mode: "date" }).notNull(),
+	id: text().primaryKey(),
+	code: text().notNull(),
+	email: text().notNull(),
+	expiresAt: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 });
 
 export const passkey = pgTable(
-  "passkey",
-  {
-    id: text().primaryKey(), // credentialId from WebAuthn (base64url encoded)
-    userId: text()
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    publicKey: text().notNull(), // Public key for verification (base64url encoded)
-    counter: integer().notNull().default(0), // Signature counter for replay protection
-    deviceName: text(), // User-friendly device name (e.g., "iPhone 15", "YubiKey 5")
-    transports: json().$type<AuthenticatorTransportFuture[]>(), // Authenticator transports
-    backedUp: boolean().notNull().default(false), // Whether passkey is synced (e.g., iCloud Keychain)
-    lastUsedAt: timestamp({ withTimezone: true }),
-    ...timestamps,
-  },
-  (table) => [index("idx_passkey_user_id").on(table.userId)],
+	"passkey",
+	{
+		id: text().primaryKey(), // credentialId from WebAuthn (base64url encoded)
+		userId: text()
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		publicKey: text().notNull(), // Public key for verification (base64url encoded)
+		counter: integer().notNull().default(0), // Signature counter for replay protection
+		deviceName: text(), // User-friendly device name (e.g., "iPhone 15", "YubiKey 5")
+		transports: json().$type<AuthenticatorTransportFuture[]>(), // Authenticator transports
+		backedUp: boolean().notNull().default(false), // Whether passkey is synced (e.g., iCloud Keychain)
+		lastUsedAt: timestamp({ withTimezone: true }),
+		...timestamps,
+	},
+	(table) => [index("idx_passkey_user_id").on(table.userId)],
 );
 
 export const secondaryEmail = pgTable(
-  "secondary_email",
-  {
-    id: text().primaryKey(),
-    userId: text()
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    email: text().notNull(), // Uniqueness enforced via partial index on verified emails only
-    domain: text().notNull(), // Extracted domain (e.g., "aalto.fi") for filtering
-    verifiedAt: timestamp({ withTimezone: true }), // null if not yet verified
-    expiresAt: timestamp({ withTimezone: true }), // null for domains that never expire
-    ...timestamps,
-  },
-  (table) => [
-    index("idx_secondary_email_user_id").on(table.userId),
-    index("idx_secondary_email_domain").on(table.domain),
-    // Partial unique index: only verified emails must be globally unique
-    // This prevents email squatting - unverified emails don't block others
-    uniqueIndex("unique_verified_secondary_email")
-      .on(table.email)
-      .where(sql`${table.verifiedAt} IS NOT NULL`),
-  ],
+	"secondary_email",
+	{
+		id: text().primaryKey(),
+		userId: text()
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		email: text().notNull(), // Uniqueness enforced via partial index on verified emails only
+		domain: text().notNull(), // Extracted domain (e.g., "aalto.fi") for filtering
+		verifiedAt: timestamp({ withTimezone: true }), // null if not yet verified
+		expiresAt: timestamp({ withTimezone: true }), // null for domains that never expire
+		...timestamps,
+	},
+	(table) => [
+		index("idx_secondary_email_user_id").on(table.userId),
+		index("idx_secondary_email_domain").on(table.domain),
+		// Partial unique index: only verified emails must be globally unique
+		// This prevents email squatting - unverified emails don't block others
+		uniqueIndex("unique_verified_secondary_email")
+			.on(table.email)
+			.where(sql`${table.verifiedAt} IS NOT NULL`),
+	],
 );
 
 export const membershipType = pgTable("membership_type", {
-  id: text().primaryKey(),
-  name: jsonb("name").$type<LocalizedString>().notNull(),
-  description: jsonb("description").$type<LocalizedString>(),
-  ...timestamps,
+	id: text().primaryKey(),
+	name: jsonb("name").$type<LocalizedString>().notNull(),
+	description: jsonb("description").$type<LocalizedString>(),
+	...timestamps,
 });
 
 export const membership = pgTable("membership", {
-  id: text().primaryKey(),
-  membershipTypeId: text()
-    .notNull()
-    .references(() => membershipType.id),
-  stripePriceId: text(), // null for legacy memberships (pre-2025)
-  startTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
-  endTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
-  requiresStudentVerification: boolean().notNull().default(false),
+	id: text().primaryKey(),
+	membershipTypeId: text()
+		.notNull()
+		.references(() => membershipType.id),
+	stripePriceId: text(), // null for legacy memberships (pre-2025)
+	startTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
+	endTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
+	requiresStudentVerification: boolean().notNull().default(false),
 });
 
 export const member = pgTable("member", {
-  id: text().primaryKey(),
-  userId: text()
-    .notNull()
-    .references(() => user.id),
-  membershipId: text()
-    .notNull()
-    .references(() => membership.id),
-  status: memberStatusEnum().notNull(),
-  stripeSessionId: text(),
-  description: text(),
-  ...timestamps,
+	id: text().primaryKey(),
+	userId: text()
+		.notNull()
+		.references(() => user.id),
+	membershipId: text()
+		.notNull()
+		.references(() => membership.id),
+	status: memberStatusEnum().notNull(),
+	stripeSessionId: text(),
+	...timestamps,
 });
 
-export const memberRelations = relations(member, ({ one }) => ({
-  user: one(user, {
-    fields: [member.userId],
-    references: [user.id],
-  }),
-  membership: one(membership, {
-    fields: [member.membershipId],
-    references: [membership.id],
-  }),
-}));
-
 export const membershipTypeRelations = relations(membershipType, ({ many }) => ({
-  memberships: many(membership),
+	memberships: many(membership),
 }));
 
 export const membershipRelations = relations(membership, ({ one, many }) => ({
-  membershipType: one(membershipType, {
-    fields: [membership.membershipTypeId],
-    references: [membershipType.id],
-  }),
-  members: many(member),
+	membershipType: one(membershipType, {
+		fields: [membership.membershipTypeId],
+		references: [membershipType.id],
+	}),
+	members: many(member),
+}));
+
+export const memberRelations = relations(member, ({ one }) => ({
+	user: one(user, {
+		fields: [member.userId],
+		references: [user.id],
+	}),
+	membership: one(membership, {
+		fields: [member.membershipId],
+		references: [membership.id],
+	}),
 }));
 
 export const auditLog = pgTable("audit_log", {
-  id: text().primaryKey(),
-  userId: text().references(() => user.id),
-  action: text().notNull(),
-  targetType: text(),
-  targetId: text(),
-  metadata: json(),
-  ipAddress: text(),
-  userAgent: text(),
-  ...timestamps,
+	id: text().primaryKey(),
+	userId: text().references(() => user.id),
+	action: text().notNull(),
+	targetType: text(),
+	targetId: text(),
+	metadata: json(),
+	ipAddress: text(),
+	userAgent: text(),
+	...timestamps,
 });
+
+/**
+ * Meeting table - represents guild meetings, assemblies, events, etc.
+ */
+export const meeting = pgTable("meeting", {
+	id: text().primaryKey(),
+	name: text().notNull(),
+	description: text(),
+	status: meetingStatusEnum().notNull().default("upcoming"),
+	startedAt: timestamp({ withTimezone: true }),
+	finishedAt: timestamp({ withTimezone: true }),
+	shareToken: text().unique(), // For shareable view-only links (secretary, chair)
+	...timestamps,
+});
+
+/**
+ * Meeting event table - tracks state transitions (start, recess, resume, finish)
+ */
+export const meetingEvent = pgTable(
+	"meeting_event",
+	{
+		id: text().primaryKey(),
+		meetingId: text()
+			.notNull()
+			.references(() => meeting.id, { onDelete: "cascade" }),
+		eventType: meetingEventTypeEnum().notNull(),
+		notes: text(), // Optional notes (e.g., "Lunch break", "Day 2 continuation")
+		timestamp: timestamp({ withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [index("idx_meeting_event_meeting_id").on(table.meetingId)],
+);
+
+/**
+ * Attendance table - tracks check-in/out events for meetings
+ */
+export const attendance = pgTable(
+	"attendance",
+	{
+		id: text().primaryKey(),
+		meetingId: text()
+			.notNull()
+			.references(() => meeting.id, { onDelete: "cascade" }),
+		userId: text()
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		eventType: attendanceEventTypeEnum().notNull(),
+		scanMethod: scanMethodEnum().notNull(),
+		scannedBy: text()
+			.notNull()
+			.references(() => user.id), // Admin who performed the scan
+		timestamp: timestamp({ withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [index("idx_attendance_meeting_id").on(table.meetingId), index("idx_attendance_user_id").on(table.userId)],
+);
+
+export const meetingRelations = relations(meeting, ({ many }) => ({
+	events: many(meetingEvent),
+	attendances: many(attendance),
+}));
+
+export const meetingEventRelations = relations(meetingEvent, ({ one }) => ({
+	meeting: one(meeting, {
+		fields: [meetingEvent.meetingId],
+		references: [meeting.id],
+	}),
+}));
+
+export const attendanceRelations = relations(attendance, ({ one }) => ({
+	meeting: one(meeting, {
+		fields: [attendance.meetingId],
+		references: [meeting.id],
+	}),
+	user: one(user, {
+		fields: [attendance.userId],
+		references: [user.id],
+	}),
+	scannedByUser: one(user, {
+		fields: [attendance.scannedBy],
+		references: [user.id],
+	}),
+}));
 
 export type Member = typeof member.$inferSelect;
 
 export type MemberStatus = v.InferOutput<typeof memberStatusEnumSchema>;
 
 export type PreferredLanguage = v.InferOutput<typeof preferredLanguageEnumSchema>;
-
-export type MembershipType = typeof membershipType.$inferSelect;
 
 export type Membership = typeof membership.$inferSelect;
 
@@ -192,3 +293,17 @@ export type AuditLog = typeof auditLog.$inferSelect;
 export type Passkey = typeof passkey.$inferSelect;
 
 export type SecondaryEmail = typeof secondaryEmail.$inferSelect;
+
+export type Meeting = typeof meeting.$inferSelect;
+
+export type MeetingEvent = typeof meetingEvent.$inferSelect;
+
+export type Attendance = typeof attendance.$inferSelect;
+
+export type MeetingStatus = v.InferOutput<typeof meetingStatusEnumSchema>;
+
+export type MeetingEventType = v.InferOutput<typeof meetingEventTypeEnumSchema>;
+
+export type AttendanceEventType = v.InferOutput<typeof attendanceEventTypeEnumSchema>;
+
+export type ScanMethod = v.InferOutput<typeof scanMethodEnumSchema>;

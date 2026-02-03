@@ -9,15 +9,15 @@ This is a registry and privacy statement in accordance with the EU General Data 
 _Note: The legally binding version of this document is in Finnish. This English translation is provided for convenience only._
 
 **Created:** May 22, 2018
-**Last updated:** February 3, 2026
+**Last updated:** January 8, 2026
 
 ---
 
 ## 1. Data Controller
 
-**Computer Science Guild of Aalto University (Tietokilta ry)**<br />
-Business ID: 1790346-8<br />
-Address: Konemiehentie 2, 02150 Espoo, Finland<br />
+**Computer Science Guild of Aalto University (Tietokilta ry)**
+Business ID: 1790346-8
+Address: Konemiehentie 2, 02150 Espoo, Finland
 Email: hallitus@tietokilta.fi
 
 ## 2. Contact Person for Data Protection Matters
@@ -82,11 +82,8 @@ _Note: Secondary emails are entirely optional, except for aalto.fi email verific
 **Technical data:**
 
 - Session tokens, login codes
-- Audit logs with tiered retention periods:
-  - Security events (logins, failed attempts): 6 months
-  - Membership and payment events: approximately 7 years (Accounting Act)
-  - User data changes (email, admin rights): 3 years
-- IP addresses and browser information: retained with audit logs
+- Audit logs of administrative actions (90 days)
+- IP addresses and browser information from login attempts (90 days)
 - Rate limiting data (in memory only)
 
 ## 6. Regular Sources of Data
@@ -116,10 +113,7 @@ No personal data is retained for users who do not complete the registration proc
 - Passkeys: until deleted by user or account is removed
 - Secondary emails: until deleted by user or account is removed
 - Aalto.fi email verification: valid for 6 months, then requires re-verification
-- Audit logs:
-  - Security events (logins, etc.): 6 months
-  - Membership and payment events: approximately 7 years (Accounting Act)
-  - User data changes: 3 years
+- IP addresses, browser info, audit logs: 90 days
 - Rate limiting data: in memory only
 
 **Statutory retention obligations:**
@@ -128,10 +122,6 @@ No personal data is retained for users who do not complete the registration proc
 - **Associations Act:** Member data retained to fulfill legal obligations
 
 **In practice after membership ends:** Technical data is automatically deleted when it expires. Member registry data and accounting records are retained in accordance with statutory obligations.
-
-**Automatic deletion of inactive users (GDPR):**
-
-User accounts that have been inactive for more than 7 years are automatically deleted in accordance with GDPR data minimization principles. A user is considered inactive if they have not logged into the system for 7 years. The retention period matches the longest audit log retention requirement under the Finnish Accounting Act. Deletion includes all user-related data (memberships, sessions, logs, passkeys, emails).
 
 ## 8. Data Disclosure and Transfers
 
@@ -160,7 +150,7 @@ All transfers use encrypted connections (HTTPS/TLS). Data is not sold, rented, o
 
 **Technical safeguards:**
 
-- Database access restricted by authentication
+- Database protected by firewall; access restricted to authorized systems
 - All traffic encrypted (HTTPS/TLS)
 - No passwords – email-based OTP and passkeys used
 - Session tokens stored hashed
@@ -204,11 +194,11 @@ Data subjects can correct and update their information by logging into the syste
 
 **Supervisory authority in Finland:**
 
-Office of the Data Protection Ombudsman<br />
-Visiting address: Lintulahdenkuja 4, 00530 Helsinki<br />
-Postal address: P.O. Box 800, 00531 Helsinki<br />
-Phone: +358 29 56 66700<br />
-Email: tietosuoja@om.fi<br />
+Office of the Data Protection Ombudsman
+Visiting address: Lintulahdenkuja 4, 00530 Helsinki
+Postal address: P.O. Box 800, 00531 Helsinki
+Phone: +358 29 56 66700
+Email: tietosuoja@om.fi
 Website: [https://tietosuoja.fi/en/](https://tietosuoja.fi/en/)
 
 ## 12. Automated Decision-Making

@@ -1,0 +1,29 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+
+# Spawn the drizzle-kit generate command
+spawn pnpm db:generate
+
+# Wait for any prompt and send enter (selecting the default option)
+expect {
+    "attendance" {
+        send "\r"
+        exp_continue
+    }
+    "meeting_event" {
+        send "\r"
+        exp_continue
+    }
+    "meeting" {
+        send "\r"
+        exp_continue
+    }
+    "created or renamed" {
+        send "\r"
+        exp_continue
+    }
+    eof
+}
+
+wait
