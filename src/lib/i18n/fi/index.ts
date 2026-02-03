@@ -500,6 +500,20 @@ const fi = {
 		tryAgain: "Yritä uudelleen",
 	},
 
+	// Feedback
+	feedback: {
+		reportIssue: "Ilmoita ongelmasta",
+		close: "Sulje",
+		message: "Viesti",
+		placeholder: "Kuvaile ongelma tai anna palautetta...",
+		send: "Lähetä",
+		sending: "Lähetetään...",
+		thankYou: "Kiitos palautteestasi!",
+		sendAnother: "Lähetä uusi",
+		submitError: "Palautteen lähetys epäonnistui. Yritä myöhemmin uudelleen.",
+		rateLimited: "Liian monta pyyntöä. Yritä myöhemmin uudelleen.",
+	},
+
 	// Documents & Legal
 	documents: {
 		footer: {
