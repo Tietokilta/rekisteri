@@ -1,6 +1,6 @@
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { and, inArray, isNull, lt, or } from "drizzle-orm";
+import { and, inArray, isNull, like, lt, or } from "drizzle-orm";
 
 /**
  * Clean up expired sessions and OTP codes from the database.
@@ -33,23 +33,72 @@ export async function cleanupExpiredTokens(): Promise<void> {
 }
 
 /**
- * Clean up old audit logs from the database.
- * This ensures GDPR compliance by not retaining audit logs indefinitely.
- * Default retention period is 90 days for security and compliance balance.
- *
- * @param retentionDays - Number of days to retain audit logs (default: 90)
+ * Retention policy for audit logs
+ * Different log categories have different retention requirements based on:
+ * - Finnish Accounting Act (Kirjanpitolaki): 6-10 years for financial records
+ * - GDPR: Data minimization for security logs
+ * - Best practices: Accountability for administrative actions
  */
-export async function cleanupOldAuditLogs(retentionDays: number = 90): Promise<void> {
-	const cutoffDate = new Date();
-	cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+export interface RetentionPolicy {
+	pattern: string;
+	days: number;
+	description: string;
+}
 
+const RETENTION_POLICIES: RetentionPolicy[] = [
+	{
+		pattern: "auth.",
+		days: 180, // 6 months
+		description: "Security and authentication events",
+	},
+	{
+		pattern: "member.",
+		days: 2555, // ~7 years
+		description: "Financial and membership events (accounting compliance)",
+	},
+	{
+		pattern: "membership.",
+		days: 2555, // ~7 years
+		description: "Membership product events (accounting compliance)",
+	},
+	{
+		pattern: "user.",
+		days: 1095, // 3 years
+		description: "User data changes and administrative actions",
+	},
+];
+
+/**
+ * Clean up old audit logs based on retention policies.
+ * Different log types have different retention requirements:
+ * - Security logs (auth.*): 180 days (6 months) - GDPR minimization
+ * - Financial/membership logs (member.*, membership.*): 2555 days (~7 years) - Finnish Accounting Act
+ * - User data changes (user.*): 1095 days (3 years) - GDPR accountability & dispute resolution
+ *
+ * Action prefixes determine retention period automatically.
+ */
+export async function cleanupOldAuditLogs(): Promise<void> {
 	try {
-		const deletedLogs = await db
-			.delete(table.auditLog)
-			.where(lt(table.auditLog.createdAt, cutoffDate))
-			.returning({ id: table.auditLog.id });
+		let totalDeleted = 0;
 
-		console.log(`[DB Cleanup] Removed ${deletedLogs.length} audit logs older than ${retentionDays} days`);
+		for (const policy of RETENTION_POLICIES) {
+			const cutoffDate = new Date();
+			cutoffDate.setDate(cutoffDate.getDate() - policy.days);
+
+			const deletedLogs = await db
+				.delete(table.auditLog)
+				.where(and(lt(table.auditLog.createdAt, cutoffDate), like(table.auditLog.action, `${policy.pattern}%`)))
+				.returning({ id: table.auditLog.id });
+
+			totalDeleted += deletedLogs.length;
+
+			console.log(
+				`[DB Cleanup] Removed ${deletedLogs.length} ${policy.description} ` +
+					`older than ${policy.days} days (${policy.pattern}*)`,
+			);
+		}
+
+		console.log(`[DB Cleanup] Total audit logs removed: ${totalDeleted}`);
 	} catch (error) {
 		console.error("[DB Cleanup] Error during audit log cleanup:", error);
 		throw error;
@@ -67,9 +116,12 @@ const YEARS_IN_MS = 1000 * 60 * 60 * 24 * 365;
  * - lastActiveAt is older than the retention period, OR
  * - lastActiveAt is null AND createdAt is older than the retention period
  *
- * @param retentionYears - Number of years of inactivity before cleanup (default: 6)
+ * Retention period set to 7 years to match the longest audit log retention
+ * requirement (financial/membership events per Finnish Accounting Act).
+ *
+ * @param retentionYears - Number of years of inactivity before cleanup (default: 7)
  */
-export async function cleanupInactiveUsers(retentionYears: number = 6): Promise<void> {
+export async function cleanupInactiveUsers(retentionYears: number = 7): Promise<void> {
 	const cutoffDate = new Date(Date.now() - retentionYears * YEARS_IN_MS);
 
 	try {

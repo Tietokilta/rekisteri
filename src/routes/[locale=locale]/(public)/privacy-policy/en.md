@@ -9,7 +9,7 @@ This is a registry and privacy statement in accordance with the EU General Data 
 _Note: The legally binding version of this document is in Finnish. This English translation is provided for convenience only._
 
 **Created:** May 22, 2018
-**Last updated:** January 27, 2026
+**Last updated:** February 3, 2026
 
 ---
 
@@ -82,8 +82,11 @@ _Note: Secondary emails are entirely optional, except for aalto.fi email verific
 **Technical data:**
 
 - Session tokens, login codes
-- Audit logs of administrative actions (90 days)
-- IP addresses and browser information from login attempts (90 days)
+- Audit logs with tiered retention periods:
+  - Security events (logins, failed attempts): 6 months
+  - Membership and payment events: approximately 7 years (Accounting Act)
+  - User data changes (email, admin rights): 3 years
+- IP addresses and browser information: retained with audit logs
 - Rate limiting data (in memory only)
 
 ## 6. Regular Sources of Data
@@ -113,7 +116,10 @@ No personal data is retained for users who do not complete the registration proc
 - Passkeys: until deleted by user or account is removed
 - Secondary emails: until deleted by user or account is removed
 - Aalto.fi email verification: valid for 6 months, then requires re-verification
-- IP addresses, browser info, audit logs: 90 days
+- Audit logs:
+  - Security events (logins, etc.): 6 months
+  - Membership and payment events: approximately 7 years (Accounting Act)
+  - User data changes: 3 years
 - Rate limiting data: in memory only
 
 **Statutory retention obligations:**
@@ -122,6 +128,10 @@ No personal data is retained for users who do not complete the registration proc
 - **Associations Act:** Member data retained to fulfill legal obligations
 
 **In practice after membership ends:** Technical data is automatically deleted when it expires. Member registry data and accounting records are retained in accordance with statutory obligations.
+
+**Automatic deletion of inactive users (GDPR):**
+
+User accounts that have been inactive for more than 7 years are automatically deleted in accordance with GDPR data minimization principles. A user is considered inactive if they have not logged into the system for 7 years. The retention period matches the longest audit log retention requirement under the Finnish Accounting Act. Deletion includes all user-related data (memberships, sessions, logs, passkeys, emails).
 
 ## 8. Data Disclosure and Transfers
 
