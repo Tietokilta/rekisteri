@@ -14,6 +14,9 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   globalTeardown: "./e2e/global-teardown.ts",
 
+  // Longer timeout for global setup (testcontainer startup + migrations + seeding)
+  globalTimeout: process.env.CI ? 300_000 : 180_000,
+
   use: {
     baseURL: "http://localhost:4173",
     locale: "fi-FI",
