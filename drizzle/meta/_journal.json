@@ -57,6 +57,13 @@
       "when": 1768820967444,
       "tag": "0007_condemned_silver_sable",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1769500800000,
+      "tag": "0008_gdpr_last_active_at",
+      "breakpoints": true
     }
   ]
 }
