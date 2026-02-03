@@ -7,11 +7,15 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import { createTestDatabase, saveContainerState } from "./testcontainer";
 
+// Top-level log to verify module is being loaded
+console.log("✓ Global setup module loaded");
+
 async function globalSetup(_config: FullConfig) {
-  console.log("✓ Global setup starting...");
+  console.log("✓ Global setup function called");
 
   try {
     // Start PostgreSQL container and run migrations
+    console.log("✓ Starting testcontainer...");
     const testDb = await createTestDatabase();
     const { db, container, connectionUri, client } = testDb;
 
