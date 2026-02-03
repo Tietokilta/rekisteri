@@ -3,7 +3,7 @@ import type { PageServerLoad } from "./$types";
 import { route } from "$lib/ROUTES";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { eq, desc, gt, gte, and } from "drizzle-orm";
+import { eq, desc, gt, gte, and, isNotNull } from "drizzle-orm";
 import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
 import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
 
@@ -34,11 +34,18 @@ export const load: PageServerLoad = async (event) => {
       ? new Date(Math.max(...blockingMemberships.map((m) => m.endTime.getTime())))
       : new Date(0);
 
+  // Only show purchasable memberships (non-expired, non-overlapping, with Stripe price)
   const availableResult = await db
     .select()
     .from(table.membership)
     .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
-    .where(and(gt(table.membership.endTime, new Date()), gte(table.membership.startTime, latestEndTime)));
+    .where(
+      and(
+        gt(table.membership.endTime, new Date()),
+        gte(table.membership.startTime, latestEndTime),
+        isNotNull(table.membership.stripePriceId),
+      ),
+    );
 
   const availableMemberships = availableResult.map((r) => ({
     ...r.membership,
