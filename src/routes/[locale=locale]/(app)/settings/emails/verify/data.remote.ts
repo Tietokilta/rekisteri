@@ -75,6 +75,20 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
   deleteEmailOTP(otp.id);
   deleteEmailOTPCookie(event);
 
+  // If the user was redirected here from another page (e.g. purchase flow),
+  // redirect back there instead of the default emails management page.
+  const redirectTo = event.cookies.get("email_redirect_to");
+  if (redirectTo) {
+    event.cookies.delete("email_redirect_to", { path: "/" });
+    try {
+      // Resolve against our origin to guarantee a same-origin path redirect
+      const safePath = new URL(redirectTo, event.url.origin).pathname;
+      redirect(302, safePath);
+    } catch {
+      // Invalid URL value — fall through to default redirect
+    }
+  }
+
   redirect(302, route("/[locale=locale]/settings/emails", { locale: event.locals.locale }));
 });
 

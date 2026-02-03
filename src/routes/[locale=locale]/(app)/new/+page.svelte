@@ -15,6 +15,16 @@
   import { formatPrice } from "$lib/utils";
   import { Textarea } from "$lib/components/ui/textarea";
   import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
+  import { PersistedState } from "runed";
+  import { onMount, tick } from "svelte";
+
+  interface PurchaseFormState {
+    membershipId: string;
+    description: string;
+    isStudent: boolean;
+  }
+
+  const formPersist = new PersistedState<PurchaseFormState | null>("purchase-form-state", null);
 
   const { data }: PageProps = $props();
 
@@ -44,6 +54,56 @@
   let disableForm = $derived(
     (requireStudentVerification && (!isStudent || !data.hasValidAaltoEmail)) || filteredMemberships.length === 0,
   );
+
+  /**
+   * Save form state to localStorage and set a redirect cookie so the
+   * email verification flow redirects back here after completion.
+   */
+  function saveFormAndSetRedirect() {
+    const textarea = document.querySelector<HTMLTextAreaElement>('textarea[name="description"]');
+    formPersist.current = {
+      membershipId: payMembership.fields.membershipId.value() ?? "",
+      description: textarea?.value ?? "",
+      isStudent,
+    };
+    const returnPath = route("/[locale=locale]/new", { locale: $locale });
+    // eslint-disable-next-line unicorn/no-document-cookie -- simple one-shot cookie set for redirect
+    document.cookie = `email_redirect_to=${encodeURIComponent(returnPath)}; path=/; SameSite=Lax; max-age=3600`;
+  }
+
+  /**
+   * On mount, restore form state from localStorage if available (e.g. after
+   * returning from the email verification flow).
+   */
+  onMount(async () => {
+    const saved = formPersist.current;
+    if (!saved) return;
+    formPersist.current = null;
+
+    isStudent = saved.isStudent;
+    await tick();
+
+    if (saved.membershipId) {
+      const radio = document.querySelector<HTMLInputElement>(
+        `input[type="radio"][name="membershipId"][value="${CSS.escape(saved.membershipId)}"]`,
+      );
+      if (radio) {
+        radio.checked = true;
+        radio.dispatchEvent(new Event("input", { bubbles: true }));
+        radio.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    }
+
+    await tick();
+
+    if (saved.description) {
+      const textarea = document.querySelector<HTMLTextAreaElement>('textarea[name="description"]');
+      if (textarea) {
+        textarea.value = saved.description;
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }
+  });
 </script>
 
 <div class="container mx-auto max-w-2xl px-4 py-8">
@@ -159,6 +219,7 @@
                     <a
                       href={route("/[locale=locale]/settings/emails", { locale: $locale })}
                       class="ml-1 font-medium underline"
+                      onclick={saveFormAndSetRedirect}
                     >
                       {$LL.secondaryEmail.reverifyNow()}
                     </a>
@@ -172,6 +233,7 @@
                     <a
                       href={route("/[locale=locale]/settings/emails", { locale: $locale })}
                       class="ml-1 font-medium underline"
+                      onclick={saveFormAndSetRedirect}
                     >
                       {$LL.secondaryEmail.addDomainEmail({ domain: "aalto.fi" })}
                     </a>
