@@ -1,57 +1,34 @@
 import { chromium, type FullConfig } from "@playwright/test";
-import postgres from "postgres";
-import { drizzle } from "drizzle-orm/postgres-js";
 import * as table from "../src/lib/server/db/schema";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeBase64url, encodeHexLowerCase } from "@oslojs/encoding";
 import { eq } from "drizzle-orm";
 import { execSync } from "node:child_process";
-import { loadEnvFile } from "./utils";
+import fs from "node:fs";
+import { createTestDatabase, saveContainerState } from "./testcontainer";
 
 async function globalSetup(_config: FullConfig) {
-  loadEnvFile();
+  // Start PostgreSQL container and run migrations
+  const testDb = await createTestDatabase();
+  const { db, container, connectionUri, client } = testDb;
 
-  const dbUrl = process.env.DATABASE_URL_TEST;
-  if (!dbUrl) {
-    throw new Error("DATABASE_URL_TEST not set. Make sure .env file exists with DATABASE_URL_TEST.");
-  }
+  // Save container state for teardown and fixtures
+  saveContainerState(container.getId(), connectionUri);
 
-  const url = new URL(dbUrl);
-  const testDbName = url.pathname.slice(1);
+  // Seed the database
+  console.log("✓ Seeding test database...");
+  execSync(`DATABASE_URL="${connectionUri}" pnpm tsx --env-file=.env src/lib/server/db/seed.ts`, {
+    stdio: "inherit",
+  });
 
-  const baseDbUrl = new URL(dbUrl);
-  baseDbUrl.pathname = "/postgres";
-  const adminClient = postgres(baseDbUrl.toString());
-
-  try {
-    const result = await adminClient`SELECT 1 FROM pg_database WHERE datname = ${testDbName}`;
-    if (result.length === 0) {
-      await adminClient.unsafe(`CREATE DATABASE ${testDbName}`);
-      console.log(`✓ Created test database: ${testDbName}`);
-    }
-  } finally {
-    await adminClient.end();
-  }
-
-  const client = postgres(dbUrl);
-  const db = drizzle(client, { schema: table, casing: "snake_case" });
-
-  console.log("✓ Pushing schema to test database...");
-  execSync(`DATABASE_URL="${dbUrl}" pnpm drizzle-kit push --force`, { stdio: "inherit" });
-
-  let [adminUser] = await db.select().from(table.user).where(eq(table.user.email, "root@tietokilta.fi")).limit(1);
+  // Get the admin user
+  const [adminUser] = await db.select().from(table.user).where(eq(table.user.email, "root@tietokilta.fi")).limit(1);
 
   if (!adminUser) {
-    console.log("✓ Seeding test database...");
-    execSync(`DATABASE_URL="${dbUrl}" pnpm tsx --env-file=.env src/lib/server/db/seed.ts`, {
-      stdio: "inherit",
-    });
-    [adminUser] = await db.select().from(table.user).where(eq(table.user.email, "root@tietokilta.fi")).limit(1);
-    if (!adminUser) {
-      throw new Error("Failed to seed admin user");
-    }
+    throw new Error("Failed to seed admin user");
   }
 
+  // Create admin session
   const sessionToken = generateSessionToken();
   const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(sessionToken)));
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
@@ -62,6 +39,7 @@ async function globalSetup(_config: FullConfig) {
     expiresAt,
   });
 
+  // Create browser context and save storage state
   const browser = await chromium.launch();
   const context = await browser.newContext();
 
@@ -78,6 +56,12 @@ async function globalSetup(_config: FullConfig) {
     },
   ]);
 
+  // Ensure auth directory exists
+  const authDir = "e2e/.auth";
+  if (!fs.existsSync(authDir)) {
+    fs.mkdirSync(authDir, { recursive: true });
+  }
+
   await context.storageState({ path: "e2e/.auth/admin.json" });
 
   // Write admin user info to a file for the auth fixture to read
@@ -86,13 +70,13 @@ async function globalSetup(_config: FullConfig) {
     email: adminUser.email,
     isAdmin: adminUser.isAdmin,
   };
-  const fs = await import("node:fs");
   fs.writeFileSync("e2e/.auth/admin-user.json", JSON.stringify(userInfo, null, 2));
 
   await browser.close();
   await client.end();
 
   console.log("✓ Created authenticated admin session for tests");
+  console.log(`✓ Test container running on: ${connectionUri}`);
 }
 
 function generateSessionToken() {

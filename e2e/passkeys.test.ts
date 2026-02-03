@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import path from "node:path";
 import fs from "node:fs";
 import { route } from "../src/lib/ROUTES";
+import { getDatabaseUrl } from "./testcontainer";
 
 /**
  * Passkey E2E Tests
@@ -28,8 +29,7 @@ test.describe("Passkey Management", () => {
   let adminUser: UserInfo;
 
   test.beforeAll(async () => {
-    const dbUrl = process.env.DATABASE_URL_TEST;
-    if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
+    const dbUrl = getDatabaseUrl();
     client = postgres(dbUrl);
     db = drizzle(client, { schema: table, casing: "snake_case" });
 
@@ -150,8 +150,7 @@ test.describe("Passkey Authentication", () => {
   let adminUser: UserInfo;
 
   test.beforeAll(async () => {
-    const dbUrl = process.env.DATABASE_URL_TEST;
-    if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
+    const dbUrl = getDatabaseUrl();
     client = postgres(dbUrl);
     db = drizzle(client, { schema: table, casing: "snake_case" });
 

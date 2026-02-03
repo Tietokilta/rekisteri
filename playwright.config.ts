@@ -1,32 +1,18 @@
 import { defineConfig } from "@playwright/test";
-import { loadEnvFile } from "./e2e/utils";
-
-loadEnvFile();
-const testDbUrl = process.env.DATABASE_URL_TEST;
-
-if (!testDbUrl) {
-  throw new Error("DATABASE_URL_TEST not found in environment. Make sure .env file exists.");
-}
 
 export default defineConfig({
   webServer: {
-    command: "pnpm build && pnpm preview",
+    command: "pnpm tsx e2e/start-server.ts",
     port: 4173,
     reuseExistingServer: !process.env.CI,
-    env: {
-      DATABASE_URL: testDbUrl,
-      UNSAFE_DISABLE_RATE_LIMITS: "true",
-      TEST: "true",
-      // WebAuthn/Passkey configuration for test environment
-      RP_ORIGIN: "http://localhost:4173",
-      RP_ID: "localhost",
-      RP_NAME: "Tietokilta Rekisteri",
-    },
+    // Longer timeout for container startup + build
+    timeout: 180_000,
   },
 
   testDir: "e2e",
 
   globalSetup: "./e2e/global-setup.ts",
+  globalTeardown: "./e2e/global-teardown.ts",
 
   use: {
     baseURL: "http://localhost:4173",
@@ -38,6 +24,9 @@ export default defineConfig({
 
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "html" : "list",
+
+  // Longer timeout for tests since container startup can be slow
+  timeout: 60_000,
 
   // Configure projects to handle CDP-based tests (passkeys) that can't run in parallel
   projects: [
