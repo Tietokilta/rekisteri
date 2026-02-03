@@ -14,9 +14,9 @@ import Stripe from "stripe";
  * Uses Stripe's own error types for proper type checking.
  */
 function isNoSuchCustomerError(error: unknown): error is Stripe.errors.StripeInvalidRequestError {
-	// Use instanceof to check if error is a Stripe invalid request error
-	// This is more robust than checking constructor.name which can fail with minification
-	return error instanceof Stripe.errors.StripeInvalidRequestError && error.message.includes("No such customer");
+  // Use instanceof to check if error is a Stripe invalid request error
+  // This is more robust than checking constructor.name which can fail with minification
+  return error instanceof Stripe.errors.StripeInvalidRequestError && error.message.includes("No such customer");
 }
 
 /**
@@ -24,15 +24,15 @@ function isNoSuchCustomerError(error: unknown): error is Stripe.errors.StripeInv
  * This is used when creating a checkout session and also when recovering from invalid customer IDs.
  */
 async function createStripeCustomer(userId: string, email: string, name: string): Promise<string> {
-	const customer = await stripe.customers.create({
-		email,
-		name,
-		metadata: { userId },
-	});
+  const customer = await stripe.customers.create({
+    email,
+    name,
+    metadata: { userId },
+  });
 
-	await db.update(table.user).set({ stripeCustomerId: customer.id }).where(eq(table.user.id, userId));
+  await db.update(table.user).set({ stripeCustomerId: customer.id }).where(eq(table.user.id, userId));
 
-	return customer.id;
+  return customer.id;
 }
 
 /**
@@ -40,14 +40,14 @@ async function createStripeCustomer(userId: string, email: string, name: string)
  * This nulls out the invalid ID in the database and creates a new customer.
  */
 async function handleInvalidCustomerId(userId: string, invalidCustomerId: string): Promise<void> {
-	console.error(
-		`[Stripe Customer Recovery] Invalid customer ID detected: ${invalidCustomerId} for user ${userId}. ` +
-			`This likely occurred due to a Stripe environment migration (sandbox -> production). ` +
-			`Nulling the invalid customer ID and creating a new customer.`,
-	);
+  console.error(
+    `[Stripe Customer Recovery] Invalid customer ID detected: ${invalidCustomerId} for user ${userId}. ` +
+      `This likely occurred due to a Stripe environment migration (sandbox -> production). ` +
+      `Nulling the invalid customer ID and creating a new customer.`,
+  );
 
-	// Null out the invalid customer ID
-	await db.update(table.user).set({ stripeCustomerId: null }).where(eq(table.user.id, userId));
+  // Null out the invalid customer ID
+  await db.update(table.user).set({ stripeCustomerId: null }).where(eq(table.user.id, userId));
 }
 
 /**
@@ -56,44 +56,44 @@ async function handleInvalidCustomerId(userId: string, invalidCustomerId: string
  * creates a new customer and retries the session creation.
  */
 async function createCheckoutSessionWithRetry(
-	userId: string,
-	email: string,
-	name: string,
-	customerId: string,
-	stripePriceId: string,
-	locale: Locale,
-	memberId: string,
+  userId: string,
+  email: string,
+  name: string,
+  customerId: string,
+  stripePriceId: string,
+  locale: Locale,
+  memberId: string,
 ): Promise<Stripe.Response<Stripe.Checkout.Session>> {
-	const publicUrl = env.PUBLIC_URL;
-	const sessionConfig: Stripe.Checkout.SessionCreateParams = {
-		line_items: [
-			{
-				price: stripePriceId,
-				quantity: 1,
-			},
-		],
-		mode: "payment",
-		customer: customerId,
-		success_url: `${publicUrl}/${locale}?stripeStatus=success`,
-		cancel_url: `${publicUrl}/${locale}?stripeStatus=cancel`,
-		metadata: { memberId },
-	};
+  const publicUrl = env.PUBLIC_URL;
+  const sessionConfig: Stripe.Checkout.SessionCreateParams = {
+    line_items: [
+      {
+        price: stripePriceId,
+        quantity: 1,
+      },
+    ],
+    mode: "payment",
+    customer: customerId,
+    success_url: `${publicUrl}/${locale}?stripeStatus=success`,
+    cancel_url: `${publicUrl}/${locale}?stripeStatus=cancel`,
+    metadata: { memberId },
+  };
 
-	try {
-		return await stripe.checkout.sessions.create(sessionConfig);
-	} catch (error) {
-		// Handle case where stored customer ID is invalid (e.g., after Stripe environment migration)
-		if (isNoSuchCustomerError(error)) {
-			await handleInvalidCustomerId(userId, customerId);
-			// Create a new customer and retry
-			const newCustomerId = await createStripeCustomer(userId, email, name);
-			// Retry session creation with new customer ID
-			sessionConfig.customer = newCustomerId;
-			return await stripe.checkout.sessions.create(sessionConfig);
-		}
-		// Re-throw other errors
-		throw error;
-	}
+  try {
+    return await stripe.checkout.sessions.create(sessionConfig);
+  } catch (error) {
+    // Handle case where stored customer ID is invalid (e.g., after Stripe environment migration)
+    if (isNoSuchCustomerError(error)) {
+      await handleInvalidCustomerId(userId, customerId);
+      // Create a new customer and retry
+      const newCustomerId = await createStripeCustomer(userId, email, name);
+      // Retry session creation with new customer ID
+      sessionConfig.customer = newCustomerId;
+      return await stripe.checkout.sessions.create(sessionConfig);
+    }
+    // Re-throw other errors
+    throw error;
+  }
 }
 
 /**
@@ -103,47 +103,47 @@ async function createCheckoutSessionWithRetry(
  * @see {@link https://docs.stripe.com/checkout/quickstart}
  */
 export async function createSession(userId: string, membershipId: string, locale: Locale, description?: string | null) {
-	const membership = await db.query.membership.findFirst({
-		where: eq(table.membership.id, membershipId),
-	});
-	const user = await db.query.user.findFirst({
-		where: eq(table.user.id, userId),
-	});
-	if (!membership || !user) {
-		throw new Error("Membership or user not found");
-	}
-	if (!membership.stripePriceId) {
-		throw new Error("Membership has no Stripe price ID (legacy membership)");
-	}
+  const membership = await db.query.membership.findFirst({
+    where: eq(table.membership.id, membershipId),
+  });
+  const user = await db.query.user.findFirst({
+    where: eq(table.user.id, userId),
+  });
+  if (!membership || !user) {
+    throw new Error("Membership or user not found");
+  }
+  if (!membership.stripePriceId) {
+    throw new Error("Membership has no Stripe price ID (legacy membership)");
+  }
 
-	let stripeCustomerId = user.stripeCustomerId;
-	if (!stripeCustomerId) {
-		// https://docs.stripe.com/api/customers/create
-		stripeCustomerId = await createStripeCustomer(userId, user.email, `${user.firstNames} ${user.lastName}`);
-	}
+  let stripeCustomerId = user.stripeCustomerId;
+  if (!stripeCustomerId) {
+    // https://docs.stripe.com/api/customers/create
+    stripeCustomerId = await createStripeCustomer(userId, user.email, `${user.firstNames} ${user.lastName}`);
+  }
 
-	const memberId = crypto.randomUUID();
+  const memberId = crypto.randomUUID();
 
-	// https://docs.stripe.com/api/checkout/sessions/create
-	const session = await createCheckoutSessionWithRetry(
-		userId,
-		user.email,
-		`${user.firstNames} ${user.lastName}`,
-		stripeCustomerId,
-		membership.stripePriceId,
-		locale,
-		memberId,
-	);
-	await db.insert(table.member).values({
-		id: memberId,
-		userId: userId,
-		membershipId: membershipId,
-		stripeSessionId: session.id,
-		status: "awaiting_payment",
-		description: description ?? null,
-	});
+  // https://docs.stripe.com/api/checkout/sessions/create
+  const session = await createCheckoutSessionWithRetry(
+    userId,
+    user.email,
+    `${user.firstNames} ${user.lastName}`,
+    stripeCustomerId,
+    membership.stripePriceId,
+    locale,
+    memberId,
+  );
+  await db.insert(table.member).values({
+    id: memberId,
+    userId: userId,
+    membershipId: membershipId,
+    stripeSessionId: session.id,
+    status: "awaiting_payment",
+    description: description ?? null,
+  });
 
-	return session;
+  return session;
 }
 
 /**
@@ -151,77 +151,77 @@ export async function createSession(userId: string, membershipId: string, locale
  * This is used when a user with "awaiting_payment" status wants to complete their payment.
  */
 export async function resumeOrCreateSession(memberId: string, locale: Locale) {
-	const member = await db.query.member.findFirst({
-		where: eq(table.member.id, memberId),
-		with: {
-			membership: true,
-			user: true,
-		},
-	});
+  const member = await db.query.member.findFirst({
+    where: eq(table.member.id, memberId),
+    with: {
+      membership: true,
+      user: true,
+    },
+  });
 
-	if (!member || member.status !== "awaiting_payment") {
-		throw new Error("Member not found or not in awaiting_payment status");
-	}
+  if (!member || member.status !== "awaiting_payment") {
+    throw new Error("Member not found or not in awaiting_payment status");
+  }
 
-	// Check if membership period is still valid (not expired)
-	if (member.membership.endTime < new Date()) {
-		throw new Error("Cannot resume payment for an expired membership period");
-	}
+  // Check if membership period is still valid (not expired)
+  if (member.membership.endTime < new Date()) {
+    throw new Error("Cannot resume payment for an expired membership period");
+  }
 
-	// Try to retrieve existing Stripe session
-	if (member.stripeSessionId) {
-		try {
-			const existingSession = await stripe.checkout.sessions.retrieve(member.stripeSessionId);
+  // Try to retrieve existing Stripe session
+  if (member.stripeSessionId) {
+    try {
+      const existingSession = await stripe.checkout.sessions.retrieve(member.stripeSessionId);
 
-			// If session is still open, return its URL
-			if (existingSession.status === "open" && existingSession.url) {
-				return { url: existingSession.url, isNew: false };
-			}
+      // If session is still open, return its URL
+      if (existingSession.status === "open" && existingSession.url) {
+        return { url: existingSession.url, isNew: false };
+      }
 
-			// If payment was already completed, don't create a new session.
-			// The webhook will process the payment shortly.
-			if (existingSession.payment_status === "paid") {
-				throw new Error("Your payment is being processed. Your membership will be activated shortly.");
-			}
-		} catch (error) {
-			// Re-throw our custom error about payment being processed
-			if (error instanceof Error && error.message.includes("Your payment is being processed")) {
-				throw error;
-			}
-			// Session doesn't exist or is expired, will create a new one
-			console.warn("Failed to retrieve existing Stripe session, creating new:", error);
-		}
-	}
+      // If payment was already completed, don't create a new session.
+      // The webhook will process the payment shortly.
+      if (existingSession.payment_status === "paid") {
+        throw new Error("Your payment is being processed. Your membership will be activated shortly.");
+      }
+    } catch (error) {
+      // Re-throw our custom error about payment being processed
+      if (error instanceof Error && error.message.includes("Your payment is being processed")) {
+        throw error;
+      }
+      // Session doesn't exist or is expired, will create a new one
+      console.warn("Failed to retrieve existing Stripe session, creating new:", error);
+    }
+  }
 
-	// Create a new Stripe session
-	const { membership, user } = member;
-	if (!membership.stripePriceId) {
-		throw new Error("Membership has no Stripe price ID");
-	}
+  // Create a new Stripe session
+  const { membership, user } = member;
+  if (!membership.stripePriceId) {
+    throw new Error("Membership has no Stripe price ID");
+  }
 
-	let stripeCustomerId = user.stripeCustomerId;
-	if (!stripeCustomerId) {
-		stripeCustomerId = await createStripeCustomer(user.id, user.email, `${user.firstNames} ${user.lastName}`);
-	}
+  let stripeCustomerId = user.stripeCustomerId;
+  if (!stripeCustomerId) {
+    stripeCustomerId = await createStripeCustomer(user.id, user.email, `${user.firstNames} ${user.lastName}`);
+  }
 
-	const session = await createCheckoutSessionWithRetry(
-		user.id,
-		user.email,
-		`${user.firstNames} ${user.lastName}`,
-		stripeCustomerId,
-		membership.stripePriceId,
-		locale,
-		memberId,
-	);
+  const session = await createCheckoutSessionWithRetry(
+    user.id,
+    user.email,
+    `${user.firstNames} ${user.lastName}`,
+    stripeCustomerId,
+    membership.stripePriceId,
+    locale,
+    memberId,
+  );
 
-	if (!session.url) {
-		throw new Error("Stripe checkout session was created without a URL");
-	}
+  if (!session.url) {
+    throw new Error("Stripe checkout session was created without a URL");
+  }
 
-	// Update member record with new session ID
-	await db.update(table.member).set({ stripeSessionId: session.id }).where(eq(table.member.id, memberId));
+  // Update member record with new session ID
+  await db.update(table.member).set({ stripeSessionId: session.id }).where(eq(table.member.id, memberId));
 
-	return { url: session.url, isNew: true };
+  return { url: session.url, isNew: true };
 }
 
 /**
@@ -229,30 +229,30 @@ export async function resumeOrCreateSession(memberId: string, locale: Locale) {
  * @see {@link https://docs.stripe.com/checkout/fulfillment}
  */
 export async function fulfillSession(sessionId: string) {
-	const session = await stripe.checkout.sessions.retrieve(sessionId);
-	if (session.payment_status === "unpaid") {
-		return;
-	}
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  if (session.payment_status === "unpaid") {
+    return;
+  }
 
-	// Get memberId from session metadata - this is more reliable than stripeSessionId
-	// because stripeSessionId can be overwritten if user retries payment
-	const memberId = session.metadata?.memberId;
-	if (!memberId) {
-		console.error(`[fulfillSession] No memberId in session metadata for session ${sessionId}`);
-		return;
-	}
+  // Get memberId from session metadata - this is more reliable than stripeSessionId
+  // because stripeSessionId can be overwritten if user retries payment
+  const memberId = session.metadata?.memberId;
+  if (!memberId) {
+    console.error(`[fulfillSession] No memberId in session metadata for session ${sessionId}`);
+    return;
+  }
 
-	// Use transaction to prevent race condition if multiple webhooks arrive simultaneously
-	await db.transaction(async (tx) => {
-		const member = await tx.query.member.findFirst({
-			where: eq(table.member.id, memberId),
-		});
-		if (!member || member.status !== "awaiting_payment") {
-			// Already processed or not found
-			return;
-		}
-		await tx.update(table.member).set({ status: "awaiting_approval" }).where(eq(table.member.id, member.id));
-	});
+  // Use transaction to prevent race condition if multiple webhooks arrive simultaneously
+  await db.transaction(async (tx) => {
+    const member = await tx.query.member.findFirst({
+      where: eq(table.member.id, memberId),
+    });
+    if (!member || member.status !== "awaiting_payment") {
+      // Already processed or not found
+      return;
+    }
+    await tx.update(table.member).set({ status: "awaiting_approval" }).where(eq(table.member.id, member.id));
+  });
 }
 
 /**
@@ -260,28 +260,28 @@ export async function fulfillSession(sessionId: string) {
  * @see {@link https://docs.stripe.com/checkout/fulfillment}
  */
 export async function cancelSession(sessionId: string) {
-	const session = await stripe.checkout.sessions.retrieve(sessionId);
-	if (session.payment_status !== "unpaid") {
-		return;
-	}
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  if (session.payment_status !== "unpaid") {
+    return;
+  }
 
-	// Get memberId from session metadata - this is more reliable than stripeSessionId
-	// because stripeSessionId can be overwritten if user retries payment
-	const memberId = session.metadata?.memberId;
-	if (!memberId) {
-		console.error(`[cancelSession] No memberId in session metadata for session ${sessionId}`);
-		return;
-	}
+  // Get memberId from session metadata - this is more reliable than stripeSessionId
+  // because stripeSessionId can be overwritten if user retries payment
+  const memberId = session.metadata?.memberId;
+  if (!memberId) {
+    console.error(`[cancelSession] No memberId in session metadata for session ${sessionId}`);
+    return;
+  }
 
-	// Use transaction to prevent race condition if multiple webhooks arrive simultaneously
-	await db.transaction(async (tx) => {
-		const member = await tx.query.member.findFirst({
-			where: eq(table.member.id, memberId),
-		});
-		if (!member || member.status !== "awaiting_payment") {
-			// Already processed or not found
-			return;
-		}
-		await tx.update(table.member).set({ status: "cancelled" }).where(eq(table.member.id, member.id));
-	});
+  // Use transaction to prevent race condition if multiple webhooks arrive simultaneously
+  await db.transaction(async (tx) => {
+    const member = await tx.query.member.findFirst({
+      where: eq(table.member.id, memberId),
+    });
+    if (!member || member.status !== "awaiting_payment") {
+      // Already processed or not found
+      return;
+    }
+    await tx.update(table.member).set({ status: "cancelled" }).where(eq(table.member.id, member.id));
+  });
 }

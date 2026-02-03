@@ -9,24 +9,24 @@ import { cleanupExpiredTokens, cleanupInactiveUsers, cleanupOldAuditLogs } from 
 import { createInitialModeExpression } from "mode-watcher";
 
 const handleAuth: Handle = async ({ event, resolve }) => {
-	const sessionToken = event.cookies.get(auth.sessionCookieName);
-	if (!sessionToken) {
-		event.locals.user = null;
-		event.locals.session = null;
-		return resolve(event);
-	}
+  const sessionToken = event.cookies.get(auth.sessionCookieName);
+  if (!sessionToken) {
+    event.locals.user = null;
+    event.locals.session = null;
+    return resolve(event);
+  }
 
-	const { session, user } = await auth.validateSessionToken(sessionToken);
-	if (session) {
-		auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
-	} else {
-		auth.deleteSessionTokenCookie(event);
-	}
+  const { session, user } = await auth.validateSessionToken(sessionToken);
+  if (session) {
+    auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
+  } else {
+    auth.deleteSessionTokenCookie(event);
+  }
 
-	event.locals.user = user;
-	event.locals.session = session;
+  event.locals.user = user;
+  event.locals.session = session;
 
-	return resolve(event);
+  return resolve(event);
 };
 
 /**
@@ -35,113 +35,113 @@ const handleAuth: Handle = async ({ event, resolve }) => {
  * Respects explicit locale in URL - only redirects when NO locale is present.
  */
 const handleLocaleRedirect: Handle = ({ event, resolve }) => {
-	const pathname = event.url.pathname;
+  const pathname = event.url.pathname;
 
-	// Only redirect GET requests - other methods (POST, PUT, DELETE, etc.) should handle their own responses
-	if (event.request.method !== "GET") {
-		return resolve(event);
-	}
+  // Only redirect GET requests - other methods (POST, PUT, DELETE, etc.) should handle their own responses
+  if (event.request.method !== "GET") {
+    return resolve(event);
+  }
 
-	// Skip redirect for API routes, static assets, and SvelteKit internals
-	if (
-		pathname.startsWith("/api/") ||
-		pathname.startsWith("/_app/") ||
-		/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/.test(pathname)
-	) {
-		return resolve(event);
-	}
+  // Skip redirect for API routes, static assets, and SvelteKit internals
+  if (
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/_app/") ||
+    /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/.test(pathname)
+  ) {
+    return resolve(event);
+  }
 
-	const segments = pathname.split("/");
-	const maybeLocale = segments[1];
+  const segments = pathname.split("/");
+  const maybeLocale = segments[1];
 
-	// If already has a valid locale or is root path (handled by +page.server.ts), don't redirect
-	// This allows users to explicitly choose a locale in the URL
-	if (!maybeLocale || locales.includes(maybeLocale as Locale)) {
-		return resolve(event);
-	}
+  // If already has a valid locale or is root path (handled by +page.server.ts), don't redirect
+  // This allows users to explicitly choose a locale in the URL
+  if (!maybeLocale || locales.includes(maybeLocale as Locale)) {
+    return resolve(event);
+  }
 
-	// Path has no locale - determine which locale to use
-	let targetLocale: Locale = baseLocale;
+  // Path has no locale - determine which locale to use
+  let targetLocale: Locale = baseLocale;
 
-	if (event.locals.user?.preferredLanguage) {
-		// Use user's preferred language if they have one
-		const preferredLocale = preferredLanguageToLocale(event.locals.user.preferredLanguage);
-		targetLocale = preferredLocale || baseLocale;
-	}
+  if (event.locals.user?.preferredLanguage) {
+    // Use user's preferred language if they have one
+    const preferredLocale = preferredLanguageToLocale(event.locals.user.preferredLanguage);
+    targetLocale = preferredLocale || baseLocale;
+  }
 
-	// Redirect to the same path with locale prepended
-	redirect(302, `/${targetLocale}${pathname}${event.url.search}`);
+  // Redirect to the same path with locale prepended
+  redirect(302, `/${targetLocale}${pathname}${event.url.search}`);
 };
 
 const handleI18n: Handle = ({ event, resolve }) => {
-	const locale = (event.params.locale as string) || baseLocale;
-	event.locals.locale = locale as typeof baseLocale;
+  const locale = (event.params.locale as string) || baseLocale;
+  event.locals.locale = locale as typeof baseLocale;
 
-	return resolve(event, {
-		transformPageChunk: ({ html }) => {
-			return html
-				.replace("%lang%", event.locals.locale)
-				.replace("%modewatcher.snippet%", createInitialModeExpression());
-		},
-	});
+  return resolve(event, {
+    transformPageChunk: ({ html }) => {
+      return html
+        .replace("%lang%", event.locals.locale)
+        .replace("%modewatcher.snippet%", createInitialModeExpression());
+    },
+  });
 };
 
 const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
-	const response = await resolve(event);
+  const response = await resolve(event);
 
-	// Set additional security headers not covered by CSP config in `svelte.config.js`
-	response.headers.set("X-Frame-Options", "DENY");
-	response.headers.set("X-Content-Type-Options", "nosniff");
-	response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-	response.headers.set("X-XSS-Protection", "1; mode=block");
+  // Set additional security headers not covered by CSP config in `svelte.config.js`
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("X-XSS-Protection", "1; mode=block");
 
-	// Enable HSTS in production to enforce HTTPS
-	if (!dev) {
-		response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-	}
+  // Enable HSTS in production to enforce HTTPS
+  if (!dev) {
+    response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
 
-	return response;
+  return response;
 };
 
 const handleAdminAuthorization: Handle = async ({ event, resolve }) => {
-	// Protect all admin routes - requires authenticated admin user
-	// Using route.id is more robust than pathname matching
-	if (event.route.id?.includes("/admin/") && (!event.locals.session || !event.locals.user?.isAdmin)) {
-		return new Response("Not found", { status: 404 });
-	}
+  // Protect all admin routes - requires authenticated admin user
+  // Using route.id is more robust than pathname matching
+  if (event.route.id?.includes("/admin/") && (!event.locals.session || !event.locals.user?.isAdmin)) {
+    return new Response("Not found", { status: 404 });
+  }
 
-	return resolve(event);
+  return resolve(event);
 };
 
 export const handle: Handle = sequence(
-	handleAuth,
-	handleLocaleRedirect,
-	handleAdminAuthorization,
-	handleSecurityHeaders,
-	handleI18n,
+  handleAuth,
+  handleLocaleRedirect,
+  handleAdminAuthorization,
+  handleSecurityHeaders,
+  handleI18n,
 );
 
 export const init: ServerInit = () => {
-	// Schedule cleanup tasks
-	// Run database cleanup daily at 3 AM (when traffic is typically lowest)
-	cron.schedule("0 3 * * *", async () => {
-		console.log("[Cron] Running daily database cleanup...");
-		try {
-			await cleanupExpiredTokens();
-			await cleanupOldAuditLogs(); // 90 day retention (default)
-		} catch (error) {
-			console.error("[Cron] Database cleanup failed:", error);
-		}
-	});
+  // Schedule cleanup tasks
+  // Run database cleanup daily at 3 AM (when traffic is typically lowest)
+  cron.schedule("0 3 * * *", async () => {
+    console.log("[Cron] Running daily database cleanup...");
+    try {
+      await cleanupExpiredTokens();
+      await cleanupOldAuditLogs(); // 90 day retention (default)
+    } catch (error) {
+      console.error("[Cron] Database cleanup failed:", error);
+    }
+  });
 
-	// Run GDPR cleanup weekly on Sundays at 4 AM
-	// Removes users inactive for 6+ years per GDPR data minimization requirements
-	cron.schedule("0 4 * * 0", async () => {
-		console.log("[Cron] Running weekly GDPR cleanup...");
-		try {
-			await cleanupInactiveUsers(); // 6 year retention (default)
-		} catch (error) {
-			console.error("[Cron] GDPR cleanup failed:", error);
-		}
-	});
+  // Run GDPR cleanup weekly on Sundays at 4 AM
+  // Removes users inactive for 6+ years per GDPR data minimization requirements
+  cron.schedule("0 4 * * 0", async () => {
+    console.log("[Cron] Running weekly GDPR cleanup...");
+    try {
+      await cleanupInactiveUsers(); // 6 year retention (default)
+    } catch (error) {
+      console.error("[Cron] GDPR cleanup failed:", error);
+    }
+  });
 };

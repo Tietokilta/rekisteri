@@ -4,14 +4,14 @@ import * as auth from "$lib/server/auth/session";
 import { route } from "$lib/ROUTES";
 
 export const signOut = form(async () => {
-	const event = getRequestEvent();
+  const event = getRequestEvent();
 
-	if (!event.locals.session) {
-		redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
-	}
+  if (!event.locals.session) {
+    redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
+  }
 
-	await auth.invalidateSession(event.locals.session.id);
-	auth.deleteSessionTokenCookie(event);
+  await auth.invalidateSession(event.locals.session.id);
+  auth.deleteSessionTokenCookie(event);
 
-	redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
+  redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
 });

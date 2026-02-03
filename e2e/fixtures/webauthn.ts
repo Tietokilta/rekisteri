@@ -7,70 +7,70 @@ import type { Page, CDPSession } from "@playwright/test";
  * Uses Chrome DevTools Protocol to simulate WebAuthn hardware.
  */
 export class WebAuthnHelper {
-	private cdpSession: CDPSession | null = null;
-	private authenticatorId: string | null = null;
-	private page: Page;
+  private cdpSession: CDPSession | null = null;
+  private authenticatorId: string | null = null;
+  private page: Page;
 
-	constructor(page: Page) {
-		this.page = page;
-	}
+  constructor(page: Page) {
+    this.page = page;
+  }
 
-	/**
-	 * Enable virtual authenticator with passkey-compatible defaults
-	 * (CTAP2, internal transport, resident keys, automatic presence)
-	 */
-	async enable(): Promise<void> {
-		this.cdpSession = await this.page.context().newCDPSession(this.page);
-		await this.cdpSession.send("WebAuthn.enable");
+  /**
+   * Enable virtual authenticator with passkey-compatible defaults
+   * (CTAP2, internal transport, resident keys, automatic presence)
+   */
+  async enable(): Promise<void> {
+    this.cdpSession = await this.page.context().newCDPSession(this.page);
+    await this.cdpSession.send("WebAuthn.enable");
 
-		const result = await this.cdpSession.send("WebAuthn.addVirtualAuthenticator", {
-			options: {
-				protocol: "ctap2",
-				transport: "internal",
-				hasResidentKey: true,
-				hasUserVerification: true,
-				isUserVerified: true,
-				automaticPresenceSimulation: true,
-			},
-		});
+    const result = await this.cdpSession.send("WebAuthn.addVirtualAuthenticator", {
+      options: {
+        protocol: "ctap2",
+        transport: "internal",
+        hasResidentKey: true,
+        hasUserVerification: true,
+        isUserVerified: true,
+        automaticPresenceSimulation: true,
+      },
+    });
 
-		this.authenticatorId = result.authenticatorId;
-	}
+    this.authenticatorId = result.authenticatorId;
+  }
 
-	/**
-	 * Disable authenticator and clean up resources
-	 * Handles cleanup gracefully even if page/context is already closing
-	 */
-	async disable(): Promise<void> {
-		try {
-			if (this.cdpSession && this.authenticatorId) {
-				await this.cdpSession.send("WebAuthn.removeVirtualAuthenticator", {
-					authenticatorId: this.authenticatorId,
-				});
-				this.authenticatorId = null;
-			}
-		} catch (error) {
-			// Ignore errors during cleanup - context might be closing
-			console.warn("WebAuthn cleanup warning (removeVirtualAuthenticator):", error);
-		}
+  /**
+   * Disable authenticator and clean up resources
+   * Handles cleanup gracefully even if page/context is already closing
+   */
+  async disable(): Promise<void> {
+    try {
+      if (this.cdpSession && this.authenticatorId) {
+        await this.cdpSession.send("WebAuthn.removeVirtualAuthenticator", {
+          authenticatorId: this.authenticatorId,
+        });
+        this.authenticatorId = null;
+      }
+    } catch (error) {
+      // Ignore errors during cleanup - context might be closing
+      console.warn("WebAuthn cleanup warning (removeVirtualAuthenticator):", error);
+    }
 
-		try {
-			if (this.cdpSession) {
-				await this.cdpSession.send("WebAuthn.disable");
-			}
-		} catch (error) {
-			// Ignore errors during cleanup
-			console.warn("WebAuthn cleanup warning (disable):", error);
-		}
+    try {
+      if (this.cdpSession) {
+        await this.cdpSession.send("WebAuthn.disable");
+      }
+    } catch (error) {
+      // Ignore errors during cleanup
+      console.warn("WebAuthn cleanup warning (disable):", error);
+    }
 
-		try {
-			if (this.cdpSession) {
-				await this.cdpSession.detach();
-				this.cdpSession = null;
-			}
-		} catch (error) {
-			// Ignore errors during cleanup
-			console.warn("WebAuthn cleanup warning (detach):", error);
-		}
-	}
+    try {
+      if (this.cdpSession) {
+        await this.cdpSession.detach();
+        this.cdpSession = null;
+      }
+    } catch (error) {
+      // Ignore errors during cleanup
+      console.warn("WebAuthn cleanup warning (detach):", error);
+    }
+  }
 }

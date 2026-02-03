@@ -13,11 +13,11 @@ export type PreferredLanguage = (typeof PREFERRED_LANGUAGE_VALUES)[number];
  * Available member status values
  */
 export const MEMBER_STATUS_VALUES = [
-	"awaiting_payment",
-	"awaiting_approval",
-	"active",
-	"expired",
-	"cancelled",
+  "awaiting_payment",
+  "awaiting_approval",
+  "active",
+  "expired",
+  "cancelled",
 ] as const;
 export type MemberStatus = (typeof MEMBER_STATUS_VALUES)[number];
 
@@ -26,7 +26,7 @@ export type MemberStatus = (typeof MEMBER_STATUS_VALUES)[number];
  * Users can repurchase cancelled or expired memberships.
  */
 export const BLOCKING_MEMBER_STATUSES: ReadonlySet<MemberStatus> = new Set([
-	"active",
-	"awaiting_approval",
-	"awaiting_payment",
+  "active",
+  "awaiting_approval",
+  "awaiting_payment",
 ]);

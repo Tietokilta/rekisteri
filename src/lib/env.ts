@@ -6,22 +6,22 @@ import * as v from "valibot";
  * These variables are available on both client and server.
  */
 const publicEnvSchema = v.object({
-	// Public URL (required for Stripe redirects and other use cases)
-	PUBLIC_URL: v.pipe(v.string(), v.url(), v.regex(/^https?:\/\/.+/, "PUBLIC_URL must use http or https protocol")),
-	// Git commit SHA for version display (optional, baked in at build time)
-	PUBLIC_GIT_COMMIT_SHA: v.optional(v.string()),
+  // Public URL (required for Stripe redirects and other use cases)
+  PUBLIC_URL: v.pipe(v.string(), v.url(), v.regex(/^https?:\/\/.+/, "PUBLIC_URL must use http or https protocol")),
+  // Git commit SHA for version display (optional, baked in at build time)
+  PUBLIC_GIT_COMMIT_SHA: v.optional(v.string()),
 });
 
 // Validate public environment variables at module load (fail fast)
 const parsed = v.safeParse(publicEnvSchema, {
-	PUBLIC_URL: publicEnv.PUBLIC_URL,
-	PUBLIC_GIT_COMMIT_SHA: publicEnv.PUBLIC_GIT_COMMIT_SHA || undefined,
+  PUBLIC_URL: publicEnv.PUBLIC_URL,
+  PUBLIC_GIT_COMMIT_SHA: publicEnv.PUBLIC_GIT_COMMIT_SHA || undefined,
 });
 
 if (!parsed.success) {
-	console.error("❌ Invalid public environment variables:");
-	console.error(JSON.stringify(v.flatten(parsed.issues), null, 2));
-	throw new Error("Public environment validation failed. Check the errors above.");
+  console.error("❌ Invalid public environment variables:");
+  console.error(JSON.stringify(v.flatten(parsed.issues), null, 2));
+  throw new Error("Public environment validation failed. Check the errors above.");
 }
 
 /**

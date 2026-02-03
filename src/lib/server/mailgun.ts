@@ -3,29 +3,29 @@ import type { MessagesSendResult } from "mailgun.js/definitions";
 import { env } from "$lib/server/env";
 
 interface SendEmailOptions {
-	to: string;
-	subject: string;
-	text: string;
+  to: string;
+  subject: string;
+  text: string;
 }
 
 export const sendEmail = async (options: SendEmailOptions): Promise<MessagesSendResult> => {
-	if (!env.MAILGUN_API_KEY || !env.MAILGUN_DOMAIN || !env.MAILGUN_SENDER) {
-		throw new Error("Mailgun is not properly configured.");
-	}
-	const mailgun = new Mailgun(FormData);
+  if (!env.MAILGUN_API_KEY || !env.MAILGUN_DOMAIN || !env.MAILGUN_SENDER) {
+    throw new Error("Mailgun is not properly configured.");
+  }
+  const mailgun = new Mailgun(FormData);
 
-	const mg = mailgun.client({
-		username: "api",
-		key: env.MAILGUN_API_KEY,
-		url: env.MAILGUN_URL,
-	});
+  const mg = mailgun.client({
+    username: "api",
+    key: env.MAILGUN_API_KEY,
+    url: env.MAILGUN_URL,
+  });
 
-	return await mg.messages.create(env.MAILGUN_DOMAIN, {
-		from: env.MAILGUN_SENDER,
-		to: options.to,
-		subject: options.subject,
-		text: options.text,
-	});
+  return await mg.messages.create(env.MAILGUN_DOMAIN, {
+    from: env.MAILGUN_SENDER,
+    to: options.to,
+    subject: options.subject,
+    text: options.text,
+  });
 };
 
 /**
@@ -36,26 +36,26 @@ export const sendEmail = async (options: SendEmailOptions): Promise<MessagesSend
  * Errors are logged server-side only and not exposed to clients
  */
 export const checkMailgunHealth = async (): Promise<"ok" | "not_configured" | "error"> => {
-	// If running in CI or Mailgun is not configured (dev or missing credentials), skip validation
-	if (env.CI || !env.MAILGUN_API_KEY || !env.MAILGUN_DOMAIN || !env.MAILGUN_SENDER) {
-		return "not_configured";
-	}
+  // If running in CI or Mailgun is not configured (dev or missing credentials), skip validation
+  if (env.CI || !env.MAILGUN_API_KEY || !env.MAILGUN_DOMAIN || !env.MAILGUN_SENDER) {
+    return "not_configured";
+  }
 
-	try {
-		const mailgun = new Mailgun(FormData);
-		const mg = mailgun.client({
-			username: "api",
-			key: env.MAILGUN_API_KEY,
-			url: env.MAILGUN_URL,
-		});
+  try {
+    const mailgun = new Mailgun(FormData);
+    const mg = mailgun.client({
+      username: "api",
+      key: env.MAILGUN_API_KEY,
+      url: env.MAILGUN_URL,
+    });
 
-		// Verify domain exists and is accessible
-		// This is a lightweight check that doesn't send emails
-		await mg.domains.get(env.MAILGUN_DOMAIN);
+    // Verify domain exists and is accessible
+    // This is a lightweight check that doesn't send emails
+    await mg.domains.get(env.MAILGUN_DOMAIN);
 
-		return "ok";
-	} catch (error) {
-		console.error("[Health] Mailgun health check failed:", error);
-		return "error";
-	}
+    return "ok";
+  } catch (error) {
+    console.error("[Health] Mailgun health check failed:", error);
+    return "error";
+  }
 };

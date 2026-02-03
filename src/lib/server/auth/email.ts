@@ -17,108 +17,108 @@ export const emailCookieName = "email";
 export const emailOTPCookieName = "email_otp";
 
 export function setEmailCookie(event: RequestEvent, email: string, expiresAt: Date): void {
-	event.cookies.set(emailCookieName, email, {
-		expires: expiresAt,
-		path: "/",
-		httpOnly: true,
-		secure: !dev,
-		sameSite: "lax",
-	});
+  event.cookies.set(emailCookieName, email, {
+    expires: expiresAt,
+    path: "/",
+    httpOnly: true,
+    secure: !dev,
+    sameSite: "lax",
+  });
 }
 
 export function deleteEmailCookie(event: RequestEvent): void {
-	event.cookies.delete(emailCookieName, {
-		path: "/",
-	});
+  event.cookies.delete(emailCookieName, {
+    path: "/",
+  });
 }
 
 export async function getEmailOTP(id: string): Promise<EmailOTP | null> {
-	const [result] = await db.select().from(table.emailOTP).where(eq(table.emailOTP.id, id));
-	return result ?? null;
+  const [result] = await db.select().from(table.emailOTP).where(eq(table.emailOTP.id, id));
+  return result ?? null;
 }
 
 export async function createEmailOTP(email: string): Promise<EmailOTP> {
-	// Normalize email to lowercase for consistent storage and lookup
-	const normalizedEmail = email.toLowerCase();
+  // Normalize email to lowercase for consistent storage and lookup
+  const normalizedEmail = email.toLowerCase();
 
-	// Delete any existing OTPs for this email to prevent accumulation
-	// This ensures only one valid OTP exists at a time
-	await db.delete(table.emailOTP).where(eq(table.emailOTP.email, normalizedEmail));
+  // Delete any existing OTPs for this email to prevent accumulation
+  // This ensures only one valid OTP exists at a time
+  await db.delete(table.emailOTP).where(eq(table.emailOTP.email, normalizedEmail));
 
-	const idBytes = new Uint8Array(20);
-	crypto.getRandomValues(idBytes);
-	const id = encodeBase32LowerCaseNoPadding(idBytes);
+  const idBytes = new Uint8Array(20);
+  crypto.getRandomValues(idBytes);
+  const id = encodeBase32LowerCaseNoPadding(idBytes);
 
-	const code = generateRandomOTP();
-	const expiresAt = new Date(Date.now() + 1000 * 60 * 10);
+  const code = generateRandomOTP();
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 10);
 
-	const otp: EmailOTP = {
-		id,
-		code,
-		email: normalizedEmail,
-		expiresAt,
-	};
+  const otp: EmailOTP = {
+    id,
+    code,
+    email: normalizedEmail,
+    expiresAt,
+  };
 
-	await db.insert(table.emailOTP).values(otp);
-	return otp;
+  await db.insert(table.emailOTP).values(otp);
+  return otp;
 }
 
 export async function deleteEmailOTP(id: string): Promise<void> {
-	await db.delete(table.emailOTP).where(eq(table.emailOTP.id, id));
+  await db.delete(table.emailOTP).where(eq(table.emailOTP.id, id));
 }
 
 export function sendOTPEmail(email: string, code: string, locale: "fi" | "en" = "fi"): void {
-	loadLocale(locale);
-	const LL = i18nObject(locale);
+  loadLocale(locale);
+  const LL = i18nObject(locale);
 
-	const emailOptions = {
-		to: email,
-		subject: LL.auth.emailSubject(),
-		text: LL.auth.emailBody({ code }),
-	};
+  const emailOptions = {
+    to: email,
+    subject: LL.auth.emailSubject(),
+    text: LL.auth.emailBody({ code }),
+  };
 
-	if (dev || env.TEST) {
-		const mode = dev ? "dev" : "test";
-		console.log(`[Email] OTP email (${mode} mode):`, emailOptions);
-	} else {
-		sendEmail(emailOptions).catch((err) => {
-			// Critical: OTP emails are essential for authentication
-			// Log with high severity and consider alerting in production monitoring
-			console.error("[Email] CRITICAL: Failed to send OTP email to", email, ":", err);
-		});
-	}
+  if (dev || env.TEST) {
+    const mode = dev ? "dev" : "test";
+    console.log(`[Email] OTP email (${mode} mode):`, emailOptions);
+  } else {
+    sendEmail(emailOptions).catch((err) => {
+      // Critical: OTP emails are essential for authentication
+      // Log with high severity and consider alerting in production monitoring
+      console.error("[Email] CRITICAL: Failed to send OTP email to", email, ":", err);
+    });
+  }
 }
 
 export function setEmailOTPCookie(event: RequestEvent, otp: EmailOTP): void {
-	event.cookies.set(emailOTPCookieName, otp.id, {
-		httpOnly: true,
-		path: "/",
-		secure: !dev,
-		sameSite: "lax",
-		expires: otp.expiresAt,
-	});
+  event.cookies.set(emailOTPCookieName, otp.id, {
+    httpOnly: true,
+    path: "/",
+    secure: !dev,
+    sameSite: "lax",
+    expires: otp.expiresAt,
+  });
 }
 
 export function deleteEmailOTPCookie(event: RequestEvent): void {
-	event.cookies.delete(emailOTPCookieName, {
-		httpOnly: true,
-		path: "/",
-		secure: !dev,
-		sameSite: "lax",
-		maxAge: 0,
-	});
+  event.cookies.delete(emailOTPCookieName, {
+    httpOnly: true,
+    path: "/",
+    secure: !dev,
+    sameSite: "lax",
+    maxAge: 0,
+  });
 }
 
 export async function getEmailOTPFromRequest(event: RequestEvent): Promise<EmailOTP | null> {
-	const id = event.cookies.get("email_otp") ?? null;
-	if (id === null) {
-		return null;
-	}
-	const otp = await getEmailOTP(id);
-	if (otp === null) {
-		deleteEmailOTPCookie(event);
-	}
-	return otp;
+  const id = event.cookies.get("email_otp") ?? null;
+  if (id === null) {
+    return null;
+  }
+  const otp = await getEmailOTP(id);
+  if (otp === null) {
+    deleteEmailOTPCookie(event);
+  }
+  return otp;
 }
 
 export const sendOTPBucket = new ExpiringTokenBucket<string>(3, 60 * 10);

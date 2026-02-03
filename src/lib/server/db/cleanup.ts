@@ -8,28 +8,28 @@ import { and, inArray, isNull, like, lt, or } from "drizzle-orm";
  * retaining unnecessary authentication data.
  */
 export async function cleanupExpiredTokens(): Promise<void> {
-	const now = new Date();
+  const now = new Date();
 
-	try {
-		// Delete expired email OTP codes
-		const deletedOTPs = await db
-			.delete(table.emailOTP)
-			.where(lt(table.emailOTP.expiresAt, now))
-			.returning({ id: table.emailOTP.id });
+  try {
+    // Delete expired email OTP codes
+    const deletedOTPs = await db
+      .delete(table.emailOTP)
+      .where(lt(table.emailOTP.expiresAt, now))
+      .returning({ id: table.emailOTP.id });
 
-		// Delete expired sessions
-		const deletedSessions = await db
-			.delete(table.session)
-			.where(lt(table.session.expiresAt, now))
-			.returning({ id: table.session.id });
+    // Delete expired sessions
+    const deletedSessions = await db
+      .delete(table.session)
+      .where(lt(table.session.expiresAt, now))
+      .returning({ id: table.session.id });
 
-		console.log(
-			`[DB Cleanup] Removed ${deletedOTPs.length} expired OTP codes and ${deletedSessions.length} expired sessions`,
-		);
-	} catch (error) {
-		console.error("[DB Cleanup] Error during cleanup:", error);
-		throw error;
-	}
+    console.log(
+      `[DB Cleanup] Removed ${deletedOTPs.length} expired OTP codes and ${deletedSessions.length} expired sessions`,
+    );
+  } catch (error) {
+    console.error("[DB Cleanup] Error during cleanup:", error);
+    throw error;
+  }
 }
 
 /**
@@ -40,32 +40,32 @@ export async function cleanupExpiredTokens(): Promise<void> {
  * - Best practices: Accountability for administrative actions
  */
 export interface RetentionPolicy {
-	pattern: string;
-	days: number;
-	description: string;
+  pattern: string;
+  days: number;
+  description: string;
 }
 
 const RETENTION_POLICIES: RetentionPolicy[] = [
-	{
-		pattern: "auth.",
-		days: 180, // 6 months
-		description: "Security and authentication events",
-	},
-	{
-		pattern: "member.",
-		days: 2555, // ~7 years
-		description: "Financial and membership events (accounting compliance)",
-	},
-	{
-		pattern: "membership.",
-		days: 2555, // ~7 years
-		description: "Membership product events (accounting compliance)",
-	},
-	{
-		pattern: "user.",
-		days: 1095, // 3 years
-		description: "User data changes and administrative actions",
-	},
+  {
+    pattern: "auth.",
+    days: 180, // 6 months
+    description: "Security and authentication events",
+  },
+  {
+    pattern: "member.",
+    days: 2555, // ~7 years
+    description: "Financial and membership events (accounting compliance)",
+  },
+  {
+    pattern: "membership.",
+    days: 2555, // ~7 years
+    description: "Membership product events (accounting compliance)",
+  },
+  {
+    pattern: "user.",
+    days: 1095, // 3 years
+    description: "User data changes and administrative actions",
+  },
 ];
 
 /**
@@ -78,31 +78,31 @@ const RETENTION_POLICIES: RetentionPolicy[] = [
  * Action prefixes determine retention period automatically.
  */
 export async function cleanupOldAuditLogs(): Promise<void> {
-	try {
-		let totalDeleted = 0;
+  try {
+    let totalDeleted = 0;
 
-		for (const policy of RETENTION_POLICIES) {
-			const cutoffDate = new Date();
-			cutoffDate.setDate(cutoffDate.getDate() - policy.days);
+    for (const policy of RETENTION_POLICIES) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - policy.days);
 
-			const deletedLogs = await db
-				.delete(table.auditLog)
-				.where(and(lt(table.auditLog.createdAt, cutoffDate), like(table.auditLog.action, `${policy.pattern}%`)))
-				.returning({ id: table.auditLog.id });
+      const deletedLogs = await db
+        .delete(table.auditLog)
+        .where(and(lt(table.auditLog.createdAt, cutoffDate), like(table.auditLog.action, `${policy.pattern}%`)))
+        .returning({ id: table.auditLog.id });
 
-			totalDeleted += deletedLogs.length;
+      totalDeleted += deletedLogs.length;
 
-			console.log(
-				`[DB Cleanup] Removed ${deletedLogs.length} ${policy.description} ` +
-					`older than ${policy.days} days (${policy.pattern}*)`,
-			);
-		}
+      console.log(
+        `[DB Cleanup] Removed ${deletedLogs.length} ${policy.description} ` +
+          `older than ${policy.days} days (${policy.pattern}*)`,
+      );
+    }
 
-		console.log(`[DB Cleanup] Total audit logs removed: ${totalDeleted}`);
-	} catch (error) {
-		console.error("[DB Cleanup] Error during audit log cleanup:", error);
-		throw error;
-	}
+    console.log(`[DB Cleanup] Total audit logs removed: ${totalDeleted}`);
+  } catch (error) {
+    console.error("[DB Cleanup] Error during audit log cleanup:", error);
+    throw error;
+  }
 }
 
 const YEARS_IN_MS = 1000 * 60 * 60 * 24 * 365;
@@ -122,44 +122,44 @@ const YEARS_IN_MS = 1000 * 60 * 60 * 24 * 365;
  * @param retentionYears - Number of years of inactivity before cleanup (default: 7)
  */
 export async function cleanupInactiveUsers(retentionYears: number = 7): Promise<void> {
-	const cutoffDate = new Date(Date.now() - retentionYears * YEARS_IN_MS);
+  const cutoffDate = new Date(Date.now() - retentionYears * YEARS_IN_MS);
 
-	try {
-		// Find inactive users
-		const inactiveUsers = await db
-			.select({ id: table.user.id, email: table.user.email })
-			.from(table.user)
-			.where(
-				or(
-					// lastActiveAt is set and older than cutoff
-					and(lt(table.user.lastActiveAt, cutoffDate)),
-					// lastActiveAt is null and createdAt is older than cutoff (legacy users)
-					and(isNull(table.user.lastActiveAt), lt(table.user.createdAt, cutoffDate)),
-				),
-			);
+  try {
+    // Find inactive users
+    const inactiveUsers = await db
+      .select({ id: table.user.id, email: table.user.email })
+      .from(table.user)
+      .where(
+        or(
+          // lastActiveAt is set and older than cutoff
+          and(lt(table.user.lastActiveAt, cutoffDate)),
+          // lastActiveAt is null and createdAt is older than cutoff (legacy users)
+          and(isNull(table.user.lastActiveAt), lt(table.user.createdAt, cutoffDate)),
+        ),
+      );
 
-		if (inactiveUsers.length === 0) {
-			console.log("[GDPR Cleanup] No inactive users to clean up");
-			return;
-		}
+    if (inactiveUsers.length === 0) {
+      console.log("[GDPR Cleanup] No inactive users to clean up");
+      return;
+    }
 
-		const userIds = inactiveUsers.map((u) => u.id);
+    const userIds = inactiveUsers.map((u) => u.id);
 
-		// Use transaction to ensure all deletions succeed or none do
-		await db.transaction(async (tx) => {
-			// Delete related records that don't have CASCADE on delete
-			// (passkey and secondaryEmail have CASCADE and will be auto-deleted)
-			await tx.delete(table.session).where(inArray(table.session.userId, userIds));
-			await tx.delete(table.member).where(inArray(table.member.userId, userIds));
-			await tx.delete(table.auditLog).where(inArray(table.auditLog.userId, userIds));
+    // Use transaction to ensure all deletions succeed or none do
+    await db.transaction(async (tx) => {
+      // Delete related records that don't have CASCADE on delete
+      // (passkey and secondaryEmail have CASCADE and will be auto-deleted)
+      await tx.delete(table.session).where(inArray(table.session.userId, userIds));
+      await tx.delete(table.member).where(inArray(table.member.userId, userIds));
+      await tx.delete(table.auditLog).where(inArray(table.auditLog.userId, userIds));
 
-			// Delete the users (this will cascade delete passkeys and secondary emails)
-			await tx.delete(table.user).where(inArray(table.user.id, userIds));
-		});
+      // Delete the users (this will cascade delete passkeys and secondary emails)
+      await tx.delete(table.user).where(inArray(table.user.id, userIds));
+    });
 
-		console.log(`[GDPR Cleanup] Removed ${userIds.length} users inactive for ${retentionYears}+ years`);
-	} catch (error) {
-		console.error("[GDPR Cleanup] Error during inactive user cleanup:", error);
-		throw error;
-	}
+    console.log(`[GDPR Cleanup] Removed ${userIds.length} users inactive for ${retentionYears}+ years`);
+  } catch (error) {
+    console.error("[GDPR Cleanup] Error during inactive user cleanup:", error);
+    throw error;
+  }
 }
