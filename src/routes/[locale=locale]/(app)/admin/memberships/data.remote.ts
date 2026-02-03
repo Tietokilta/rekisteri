@@ -17,7 +17,7 @@ export const createMembership = form(createMembershipSchema, async (data) => {
     .values({
       id: crypto.randomUUID(),
       membershipTypeId: data.membershipTypeId,
-      stripePriceId: data.stripePriceId,
+      stripePriceId: data.stripePriceId ?? null,
       startTime: new Date(data.startTime),
       endTime: new Date(data.endTime),
       requiresStudentVerification: data.requiresStudentVerification,

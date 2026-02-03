@@ -1,12 +1,18 @@
 import { error } from "@sveltejs/kit";
-import { form, getRequestEvent } from "$app/server";
+import { form, command, getRequestEvent } from "$app/server";
 import * as v from "valibot";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { generateUserId } from "$lib/server/auth/utils";
 import { getUsersByEmails } from "$lib/server/auth/secondary-email";
-import { csvRowSchema, importMembersSchema, type CsvRow } from "./schema";
+import {
+  csvRowSchema,
+  importMembersSchema,
+  createLegacyMembershipSchema,
+  createLegacyMembershipsBatchSchema,
+  type CsvRow,
+} from "./schema";
 
 export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }) => {
   const event = getRequestEvent();
@@ -322,4 +328,52 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
     totalRows: rows.length,
     errors,
   };
+});
+
+// Create a single legacy membership (no Stripe price)
+export const createLegacyMembership = command(createLegacyMembershipSchema, async (data) => {
+  const event = getRequestEvent();
+
+  if (!event.locals.session || !event.locals.user?.isAdmin) {
+    error(404, "Not found");
+  }
+
+  const membership = await db
+    .insert(table.membership)
+    .values({
+      id: crypto.randomUUID(),
+      membershipTypeId: data.membershipTypeId,
+      stripePriceId: null,
+      startTime: new Date(data.startTime),
+      endTime: new Date(data.endTime),
+      requiresStudentVerification: false,
+    })
+    .returning();
+
+  return { success: true, membership: membership[0] };
+});
+
+// Batch create multiple legacy memberships
+export const createLegacyMemberships = command(createLegacyMembershipsBatchSchema, async ({ memberships }) => {
+  const event = getRequestEvent();
+
+  if (!event.locals.session || !event.locals.user?.isAdmin) {
+    error(404, "Not found");
+  }
+
+  const created = await db
+    .insert(table.membership)
+    .values(
+      memberships.map((m) => ({
+        id: crypto.randomUUID(),
+        membershipTypeId: m.membershipTypeId,
+        stripePriceId: null,
+        startTime: new Date(m.startTime),
+        endTime: new Date(m.endTime),
+        requiresStudentVerification: false,
+      })),
+    )
+    .returning();
+
+  return { success: true, count: created.length };
 });

@@ -13,4 +13,16 @@ export const importMembersSchema = v.object({
   rows: v.pipe(v.string(), v.minLength(1)),
 });
 
+// Schema for creating a legacy membership during import
+export const createLegacyMembershipSchema = v.object({
+  membershipTypeId: v.pipe(v.string(), v.minLength(1)),
+  startTime: v.pipe(v.string(), v.minLength(1)),
+  endTime: v.pipe(v.string(), v.minLength(1)),
+});
+
+// Schema for batch creating multiple legacy memberships (command)
+export const createLegacyMembershipsBatchSchema = v.object({
+  memberships: v.array(createLegacyMembershipSchema),
+});
+
 export type CsvRow = v.InferOutput<typeof csvRowSchema>;

@@ -4,7 +4,13 @@ import { getStripePriceMetadata } from "$lib/api/stripe.remote";
 export const createMembershipSchema = v.pipeAsync(
   v.object({
     membershipTypeId: v.pipe(v.string(), v.minLength(1)),
-    stripePriceId: v.pipe(v.string(), v.minLength(1)),
+    // Transform empty strings to undefined so they're treated as "not provided" (legacy membership)
+    stripePriceId: v.optional(
+      v.pipe(
+        v.string(),
+        v.transform((s) => s.trim() || undefined),
+      ),
+    ),
     startTime: v.pipe(v.string(), v.minLength(1)),
     endTime: v.pipe(v.string(), v.minLength(1)),
     // For checkbox inputs in remote forms, use optional boolean with default
@@ -12,6 +18,10 @@ export const createMembershipSchema = v.pipeAsync(
     requiresStudentVerification: v.optional(v.boolean(), false),
   }),
   v.checkAsync(async (input) => {
+    // If no stripePriceId provided (legacy membership), skip validation
+    if (!input.stripePriceId) {
+      return true;
+    }
     try {
       await getStripePriceMetadata(input.stripePriceId);
       return true;

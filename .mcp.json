@@ -6,11 +6,11 @@
       "env": {},
       "args": ["@sveltejs/mcp@latest"]
     },
-    "playwright": {
+    "chrome-devtools": {
       "type": "stdio",
       "command": "pnpx",
       "env": {},
-      "args": ["@playwright/mcp@latest"]
+      "args": ["chrome-devtools-mcp@latest"]
     }
   }
 }
