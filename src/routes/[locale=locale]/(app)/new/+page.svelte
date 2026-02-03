@@ -108,6 +108,23 @@
 						</a>
 					</div>
 
+					<div class="space-y-2">
+						<label for="description" class="text-sm font-medium">
+							{$LL.membership.description()}
+							{#if requireStudentVerification}
+								<span class="font-normal text-muted-foreground">({$LL.common.optional()})</span>
+							{/if}
+						</label>
+						<textarea
+							id="description"
+							name="description"
+							rows="3"
+							required={!requireStudentVerification}
+							placeholder={$LL.membership.descriptionPlaceholder()}
+							class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+						></textarea>
+					</div>
+
 					{#if requireStudentVerification}
 						<div class="space-y-3">
 							<div class="rounded-lg border p-4">

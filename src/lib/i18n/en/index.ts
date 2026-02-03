@@ -239,6 +239,9 @@ const en = {
 		noMembership: "No membership",
 		requiresStudentVerification: "Requires student verification",
 		isStudent: "I am a student in Aalto University",
+		description: "Motivation for applying for membership",
+		descriptionPlaceholder: "Describe why you are applying for membership...",
+		descriptionRequired: "Motivation for applying for membership is required",
 		getStarted: "Purchase a membership to get started",
 		currentMemberships: "Active memberships",
 		pastMemberships: "Past memberships",
@@ -354,6 +357,7 @@ const en = {
 				statusLabel: "Status:",
 				createdLabel: "Created:",
 				stripeSessionLabel: "Stripe Session:",
+				descriptionLabel: "Motivation:",
 
 				// Actions
 				approve: "Approve",
@@ -485,6 +489,7 @@ const en = {
 		create: "Create",
 		select: "Select",
 		loading: "Loading...",
+		optional: "optional",
 	},
 
 	// Error page

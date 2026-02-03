@@ -48,6 +48,7 @@
 		membershipId: string;
 		status: "awaiting_payment" | "awaiting_approval" | "active" | "expired" | "cancelled";
 		stripeSessionId: string | null;
+		description: string | null;
 		createdAt: Date;
 		updatedAt: Date;
 		email: string | null;
@@ -67,6 +68,7 @@
 			membershipId: string;
 			status: "awaiting_payment" | "awaiting_approval" | "active" | "expired" | "cancelled";
 			stripeSessionId: string | null;
+			description: string | null;
 			createdAt: Date;
 			updatedAt: Date;
 			membershipTypeId: string | null;
@@ -985,6 +987,12 @@
 															<div>
 																<dt class="text-muted-foreground">{$LL.admin.members.table.stripeSessionLabel()}</dt>
 																<dd class="font-mono text-xs">{membership.stripeSessionId}</dd>
+															</div>
+														{/if}
+														{#if membership.description}
+															<div class="md:col-span-3">
+																<dt class="text-muted-foreground">{$LL.admin.members.table.descriptionLabel()}</dt>
+																<dd class="whitespace-pre-wrap">{membership.description}</dd>
 															</div>
 														{/if}
 													</div>
