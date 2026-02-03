@@ -9,7 +9,7 @@
   const is5xx = $derived(page.status >= 500 && page.status < 600);
 </script>
 
-<div class="container mx-auto flex min-h-[calc(100vh-14rem)] max-w-2xl items-center justify-center px-4 py-12">
+<div class="container mx-auto flex min-h-[calc(100svh-14rem)] max-w-2xl items-center justify-center px-4 py-12">
   <Card.Root class="w-full">
     <Card.Header class="text-center">
       <div class="mb-4 text-6xl font-bold text-muted-foreground">
