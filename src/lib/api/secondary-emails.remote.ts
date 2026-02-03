@@ -3,11 +3,11 @@ import { getRequestEvent, query, form } from "$app/server";
 import * as v from "valibot";
 import { dev } from "$app/environment";
 import {
-	getUserSecondaryEmails,
-	deleteSecondaryEmail,
-	getSecondaryEmailById,
-	createSecondaryEmail,
-	changePrimaryEmail,
+  getUserSecondaryEmails,
+  deleteSecondaryEmail,
+  getSecondaryEmailById,
+  createSecondaryEmail,
+  changePrimaryEmail,
 } from "$lib/server/auth/secondary-email";
 import { createEmailOTP, sendOTPEmail, emailCookieName, emailOTPCookieName } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
@@ -25,166 +25,166 @@ const addEmailBucket = new ExpiringTokenBucket<string>(isRateLimitDisabled ? 100
  * List all secondary emails for the authenticated user
  */
 export const listSecondaryEmails = query(async () => {
-	const { locals } = getRequestEvent();
+  const { locals } = getRequestEvent();
 
-	if (!locals.user) {
-		throw error(401, "Not authenticated");
-	}
+  if (!locals.user) {
+    throw error(401, "Not authenticated");
+  }
 
-	const emails = await getUserSecondaryEmails(locals.user.id);
+  const emails = await getUserSecondaryEmails(locals.user.id);
 
-	return { emails };
+  return { emails };
 });
 
 /**
  * Delete a secondary email via form submission
  */
 export const deleteSecondaryEmailForm = form(
-	v.object({
-		emailId: v.pipe(v.string(), v.minLength(1)),
-	}),
-	async ({ emailId }) => {
-		const { locals } = getRequestEvent();
+  v.object({
+    emailId: v.pipe(v.string(), v.minLength(1)),
+  }),
+  async ({ emailId }) => {
+    const { locals } = getRequestEvent();
 
-		if (!locals.user) {
-			throw error(401, "Not authenticated");
-		}
+    if (!locals.user) {
+      throw error(401, "Not authenticated");
+    }
 
-		const success = await deleteSecondaryEmail(emailId, locals.user.id);
+    const success = await deleteSecondaryEmail(emailId, locals.user.id);
 
-		if (!success) {
-			throw error(404, "Email not found or does not belong to user");
-		}
+    if (!success) {
+      throw error(404, "Email not found or does not belong to user");
+    }
 
-		// Refresh the email list
-		await listSecondaryEmails().refresh();
+    // Refresh the email list
+    await listSecondaryEmails().refresh();
 
-		return { success: true };
-	},
+    return { success: true };
+  },
 );
 
 /**
  * Re-verify an expired or unverified email
  */
 export const reverifySecondaryEmailForm = form(
-	v.object({
-		emailId: v.pipe(v.string(), v.minLength(1)),
-	}),
-	async ({ emailId }) => {
-		const { locals, cookies } = getRequestEvent();
+  v.object({
+    emailId: v.pipe(v.string(), v.minLength(1)),
+  }),
+  async ({ emailId }) => {
+    const { locals, cookies } = getRequestEvent();
 
-		if (!locals.user) {
-			throw error(401, "Not authenticated");
-		}
+    if (!locals.user) {
+      throw error(401, "Not authenticated");
+    }
 
-		const email = await getSecondaryEmailById(emailId, locals.user.id);
-		if (!email) {
-			throw error(404, "Email not found");
-		}
+    const email = await getSecondaryEmailById(emailId, locals.user.id);
+    if (!email) {
+      throw error(404, "Email not found");
+    }
 
-		// Create OTP and send email
-		const otp = await createEmailOTP(email.email);
-		sendOTPEmail(email.email, otp.code, locals.locale);
+    // Create OTP and send email
+    const otp = await createEmailOTP(email.email);
+    sendOTPEmail(email.email, otp.code, locals.locale);
 
-		// Set cookies for verification flow (matching email.ts pattern)
-		cookies.set(emailCookieName, email.email, {
-			expires: otp.expiresAt,
-			path: "/",
-			httpOnly: true,
-			secure: !dev,
-			sameSite: "lax",
-		});
+    // Set cookies for verification flow (matching email.ts pattern)
+    cookies.set(emailCookieName, email.email, {
+      expires: otp.expiresAt,
+      path: "/",
+      httpOnly: true,
+      secure: !dev,
+      sameSite: "lax",
+    });
 
-		// Set OTP cookie (otp.id is already encoded, don't double-encode it)
-		cookies.set(emailOTPCookieName, otp.id, {
-			expires: otp.expiresAt,
-			path: "/",
-			httpOnly: true,
-			secure: !dev,
-			sameSite: "lax",
-		});
+    // Set OTP cookie (otp.id is already encoded, don't double-encode it)
+    cookies.set(emailOTPCookieName, otp.id, {
+      expires: otp.expiresAt,
+      path: "/",
+      httpOnly: true,
+      secure: !dev,
+      sameSite: "lax",
+    });
 
-		// Server-side redirect ensures cookies are properly set before navigation
-		redirect(303, route("/[locale=locale]/settings/emails/verify", { locale: locals.locale }));
-	},
+    // Server-side redirect ensures cookies are properly set before navigation
+    redirect(303, route("/[locale=locale]/settings/emails/verify", { locale: locals.locale }));
+  },
 );
 
 /**
  * Change primary email via form submission
  */
 export const changePrimaryEmailForm = form(
-	v.object({
-		emailId: v.pipe(v.string(), v.minLength(1, "Email ID is required")),
-	}),
-	async ({ emailId }) => {
-		const event = getRequestEvent();
+  v.object({
+    emailId: v.pipe(v.string(), v.minLength(1, "Email ID is required")),
+  }),
+  async ({ emailId }) => {
+    const event = getRequestEvent();
 
-		if (!event.locals.user) {
-			throw error(401, "Not authenticated");
-		}
+    if (!event.locals.user) {
+      throw error(401, "Not authenticated");
+    }
 
-		const success = await changePrimaryEmail(emailId, event.locals.user.id, event);
+    const success = await changePrimaryEmail(emailId, event.locals.user.id, event);
 
-		if (!success) {
-			throw error(400, "Could not change primary email. Email must be verified and not expired.");
-		}
-	},
+    if (!success) {
+      throw error(400, "Could not change primary email. Email must be verified and not expired.");
+    }
+  },
 );
 
 /**
  * Add a new secondary email via form submission
  */
 export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ email }, invalid) => {
-	const { locals, cookies } = getRequestEvent();
+  const { locals, cookies } = getRequestEvent();
 
-	// Lazy cleanup to prevent memory leaks
-	addEmailBucket.cleanup();
+  // Lazy cleanup to prevent memory leaks
+  addEmailBucket.cleanup();
 
-	if (!locals.user) {
-		throw error(401, "Not authenticated");
-	}
+  if (!locals.user) {
+    throw error(401, "Not authenticated");
+  }
 
-	// Rate limit by user ID to prevent enumeration
-	if (!addEmailBucket.consume(locals.user.id, 1)) {
-		throw error(429, "Too many attempts. Please try again later.");
-	}
+  // Rate limit by user ID to prevent enumeration
+  if (!addEmailBucket.consume(locals.user.id, 1)) {
+    throw error(429, "Too many attempts. Please try again later.");
+  }
 
-	try {
-		// Create unverified secondary email
-		await createSecondaryEmail(locals.user.id, email);
+  try {
+    // Create unverified secondary email
+    await createSecondaryEmail(locals.user.id, email);
 
-		// Create OTP and send
-		const otp = await createEmailOTP(email);
-		sendOTPEmail(email, otp.code, locals.locale);
+    // Create OTP and send
+    const otp = await createEmailOTP(email);
+    sendOTPEmail(email, otp.code, locals.locale);
 
-		// Set cookies for verification (matching email.ts pattern)
-		cookies.set(emailCookieName, email, {
-			expires: otp.expiresAt,
-			path: "/",
-			httpOnly: true,
-			secure: !dev,
-			sameSite: "lax",
-		});
+    // Set cookies for verification (matching email.ts pattern)
+    cookies.set(emailCookieName, email, {
+      expires: otp.expiresAt,
+      path: "/",
+      httpOnly: true,
+      secure: !dev,
+      sameSite: "lax",
+    });
 
-		// Set OTP cookie (otp.id is already encoded, don't double-encode it)
-		cookies.set(emailOTPCookieName, otp.id, {
-			expires: otp.expiresAt,
-			path: "/",
-			httpOnly: true,
-			secure: !dev,
-			sameSite: "lax",
-		});
+    // Set OTP cookie (otp.id is already encoded, don't double-encode it)
+    cookies.set(emailOTPCookieName, otp.id, {
+      expires: otp.expiresAt,
+      path: "/",
+      httpOnly: true,
+      secure: !dev,
+      sameSite: "lax",
+    });
 
-		redirect(303, route("/[locale=locale]/settings/emails/verify", { locale: locals.locale }));
-	} catch (err) {
-		// Re-throw SvelteKit errors (redirect, error, etc.)
-		if (isRedirect(err) || isHttpError(err)) {
-			throw err;
-		}
-		// Use invalid.email() to attach error to the email field
-		if (err instanceof Error) {
-			return invalid(invalid.email(err.message));
-		}
-		return invalid(invalid.email("An error occurred"));
-	}
+    redirect(303, route("/[locale=locale]/settings/emails/verify", { locale: locals.locale }));
+  } catch (err) {
+    // Re-throw SvelteKit errors (redirect, error, etc.)
+    if (isRedirect(err) || isHttpError(err)) {
+      throw err;
+    }
+    // Use invalid.email() to attach error to the email field
+    if (err instanceof Error) {
+      return invalid(invalid.email(err.message));
+    }
+    return invalid(invalid.email("An error occurred"));
+  }
 });

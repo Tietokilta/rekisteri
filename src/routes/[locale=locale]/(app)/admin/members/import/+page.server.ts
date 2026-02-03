@@ -5,33 +5,33 @@ import * as table from "$lib/server/db/schema";
 import { eq, asc, sql } from "drizzle-orm";
 
 export const load: PageServerLoad = async (event) => {
-	if (!event.locals.session || !event.locals.user?.isAdmin) {
-		return error(404, "Not found");
-	}
+  if (!event.locals.session || !event.locals.user?.isAdmin) {
+    return error(404, "Not found");
+  }
 
-	// Fetch membership types for validation
-	const membershipTypes = await db
-		.select()
-		.from(table.membershipType)
-		.orderBy(asc(sql`${table.membershipType.name}->>'fi'`));
+  // Fetch membership types for validation
+  const membershipTypes = await db
+    .select()
+    .from(table.membershipType)
+    .orderBy(asc(sql`${table.membershipType.name}->>'fi'`));
 
-	// Fetch memberships with their type info
-	const membershipResult = await db
-		.select()
-		.from(table.membership)
-		.innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id));
+  // Fetch memberships with their type info
+  const membershipResult = await db
+    .select()
+    .from(table.membership)
+    .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id));
 
-	const memberships = membershipResult.map((r) => ({
-		...r.membership,
-		membershipType: r.membership_type,
-	}));
+  const memberships = membershipResult.map((r) => ({
+    ...r.membership,
+    membershipType: r.membership_type,
+  }));
 
-	// Build a list of valid type IDs
-	const typeIds = membershipTypes.map((t) => t.id);
+  // Build a list of valid type IDs
+  const typeIds = membershipTypes.map((t) => t.id);
 
-	return {
-		membershipTypes,
-		typeIds,
-		memberships,
-	};
+  return {
+    membershipTypes,
+    typeIds,
+    memberships,
+  };
 };

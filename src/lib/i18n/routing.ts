@@ -7,14 +7,14 @@ export const baseLocale = "fi" as const satisfies Locales;
 export type Locale = (typeof locales)[number];
 
 export function stripLocaleFromPathname(pathname: string): string {
-	const segments = pathname.split("/");
-	const maybeLocale = segments[1];
+  const segments = pathname.split("/");
+  const maybeLocale = segments[1];
 
-	if (maybeLocale && locales.includes(maybeLocale as Locale)) {
-		return "/" + segments.slice(2).join("/");
-	}
+  if (maybeLocale && locales.includes(maybeLocale as Locale)) {
+    return "/" + segments.slice(2).join("/");
+  }
 
-	return pathname;
+  return pathname;
 }
 
 /**
@@ -22,14 +22,14 @@ export function stripLocaleFromPathname(pathname: string): string {
  * Returns null if language is unspecified or unknown.
  */
 export function preferredLanguageToLocale(preferredLanguage: PreferredLanguage): Locale | null {
-	switch (preferredLanguage) {
-		case "finnish":
-			return "fi";
-		case "english":
-			return "en";
-		case "unspecified":
-			return null;
-		default:
-			return null;
-	}
+  switch (preferredLanguage) {
+    case "finnish":
+      return "fi";
+    case "english":
+      return "en";
+    case "unspecified":
+      return null;
+    default:
+      return null;
+  }
 }

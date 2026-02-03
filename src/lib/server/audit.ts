@@ -4,61 +4,61 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { encodeBase32LowerCase } from "@oslojs/encoding";
 
 export type AuditAction =
-	| "auth.login"
-	| "auth.login_failed"
-	| "auth.logout"
-	| "auth.passkey_registered"
-	| "auth.passkey_deleted"
-	| "member.approve"
-	| "member.reject"
-	| "member.expire"
-	| "member.cancel"
-	| "member.reactivate"
-	| "member.create"
-	| "member.bulk_approve"
-	| "member.bulk_reject"
-	| "member.bulk_expire"
-	| "member.bulk_cancel"
-	| "member.bulk_reactivate"
-	| "membership.create"
-	| "membership.delete"
-	| "user.promote_to_admin"
-	| "user.demote_from_admin"
-	| "user.merge"
-	| "user.change_primary_email"
-	| "user.update_profile";
+  | "auth.login"
+  | "auth.login_failed"
+  | "auth.logout"
+  | "auth.passkey_registered"
+  | "auth.passkey_deleted"
+  | "member.approve"
+  | "member.reject"
+  | "member.expire"
+  | "member.cancel"
+  | "member.reactivate"
+  | "member.create"
+  | "member.bulk_approve"
+  | "member.bulk_reject"
+  | "member.bulk_expire"
+  | "member.bulk_cancel"
+  | "member.bulk_reactivate"
+  | "membership.create"
+  | "membership.delete"
+  | "user.promote_to_admin"
+  | "user.demote_from_admin"
+  | "user.merge"
+  | "user.change_primary_email"
+  | "user.update_profile";
 
 export interface AuditLogParams {
-	userId?: string;
-	action: AuditAction;
-	targetType?: string;
-	targetId?: string;
-	metadata?: Record<string, unknown>;
-	ipAddress?: string;
-	userAgent?: string;
+  userId?: string;
+  action: AuditAction;
+  targetType?: string;
+  targetId?: string;
+  metadata?: Record<string, unknown>;
+  ipAddress?: string;
+  userAgent?: string;
 }
 
 /**
  * Create an audit log entry
  */
 export async function createAuditLog(params: AuditLogParams): Promise<void> {
-	try {
-		const id = encodeBase32LowerCase(crypto.getRandomValues(new Uint8Array(16)));
+  try {
+    const id = encodeBase32LowerCase(crypto.getRandomValues(new Uint8Array(16)));
 
-		await db.insert(table.auditLog).values({
-			id,
-			userId: params.userId || null,
-			action: params.action,
-			targetType: params.targetType || null,
-			targetId: params.targetId || null,
-			metadata: params.metadata || null,
-			ipAddress: params.ipAddress || null,
-			userAgent: params.userAgent || null,
-		});
-	} catch (error) {
-		// Don't fail the operation if audit logging fails, but log the error
-		console.error("[Audit] Failed to create audit log:", error);
-	}
+    await db.insert(table.auditLog).values({
+      id,
+      userId: params.userId || null,
+      action: params.action,
+      targetType: params.targetType || null,
+      targetId: params.targetId || null,
+      metadata: params.metadata || null,
+      ipAddress: params.ipAddress || null,
+      userAgent: params.userAgent || null,
+    });
+  } catch (error) {
+    // Don't fail the operation if audit logging fails, but log the error
+    console.error("[Audit] Failed to create audit log:", error);
+  }
 }
 
 /**
@@ -68,186 +68,186 @@ export async function createAuditLog(params: AuditLogParams): Promise<void> {
  * See: https://github.com/Azure/app-service-linux-docs/blob/master/Things_You_Should_Know/headers.md
  */
 export async function auditFromEvent(
-	event: RequestEvent,
-	action: AuditAction,
-	options?: {
-		targetType?: string;
-		targetId?: string;
-		metadata?: Record<string, unknown>;
-	},
+  event: RequestEvent,
+  action: AuditAction,
+  options?: {
+    targetType?: string;
+    targetId?: string;
+    metadata?: Record<string, unknown>;
+  },
 ): Promise<void> {
-	await createAuditLog({
-		userId: event.locals.user?.id,
-		action,
-		targetType: options?.targetType,
-		targetId: options?.targetId,
-		metadata: options?.metadata,
-		ipAddress: event.getClientAddress(),
-		userAgent: event.request.headers.get("user-agent") || undefined,
-	});
+  await createAuditLog({
+    userId: event.locals.user?.id,
+    action,
+    targetType: options?.targetType,
+    targetId: options?.targetId,
+    metadata: options?.metadata,
+    ipAddress: event.getClientAddress(),
+    userAgent: event.request.headers.get("user-agent") || undefined,
+  });
 }
 
 /**
  * Audit a successful login
  */
 export async function auditLogin(event: RequestEvent, userId: string): Promise<void> {
-	await auditFromEvent(event, "auth.login", {
-		targetType: "user",
-		targetId: userId,
-	});
+  await auditFromEvent(event, "auth.login", {
+    targetType: "user",
+    targetId: userId,
+  });
 }
 
 /**
  * Audit a failed login attempt
  */
 export async function auditLoginFailed(event: RequestEvent, email: string): Promise<void> {
-	await createAuditLog({
-		action: "auth.login_failed",
-		metadata: { email },
-		ipAddress: event.getClientAddress(),
-		userAgent: event.request.headers.get("user-agent") || undefined,
-	});
+  await createAuditLog({
+    action: "auth.login_failed",
+    metadata: { email },
+    ipAddress: event.getClientAddress(),
+    userAgent: event.request.headers.get("user-agent") || undefined,
+  });
 }
 
 /**
  * Audit a logout
  */
 export async function auditLogout(event: RequestEvent): Promise<void> {
-	await auditFromEvent(event, "auth.logout");
+  await auditFromEvent(event, "auth.logout");
 }
 
 /**
  * Audit a member status change
  */
 export async function auditMemberAction(
-	event: RequestEvent,
-	action: Extract<
-		AuditAction,
-		"member.approve" | "member.reject" | "member.expire" | "member.cancel" | "member.reactivate"
-	>,
-	memberId: string,
-	metadata?: Record<string, unknown>,
+  event: RequestEvent,
+  action: Extract<
+    AuditAction,
+    "member.approve" | "member.reject" | "member.expire" | "member.cancel" | "member.reactivate"
+  >,
+  memberId: string,
+  metadata?: Record<string, unknown>,
 ): Promise<void> {
-	await auditFromEvent(event, action, {
-		targetType: "member",
-		targetId: memberId,
-		metadata,
-	});
+  await auditFromEvent(event, action, {
+    targetType: "member",
+    targetId: memberId,
+    metadata,
+  });
 }
 
 /**
  * Audit a bulk member status change
  */
 export async function auditBulkMemberAction(
-	event: RequestEvent,
-	action: Extract<
-		AuditAction,
-		| "member.bulk_approve"
-		| "member.bulk_reject"
-		| "member.bulk_expire"
-		| "member.bulk_cancel"
-		| "member.bulk_reactivate"
-	>,
-	memberIds: string[],
-	metadata?: Record<string, unknown>,
+  event: RequestEvent,
+  action: Extract<
+    AuditAction,
+    | "member.bulk_approve"
+    | "member.bulk_reject"
+    | "member.bulk_expire"
+    | "member.bulk_cancel"
+    | "member.bulk_reactivate"
+  >,
+  memberIds: string[],
+  metadata?: Record<string, unknown>,
 ): Promise<void> {
-	await auditFromEvent(event, action, {
-		targetType: "member",
-		targetId: memberIds.join(","),
-		metadata: {
-			...metadata,
-			memberIds,
-			count: memberIds.length,
-		},
-	});
+  await auditFromEvent(event, action, {
+    targetType: "member",
+    targetId: memberIds.join(","),
+    metadata: {
+      ...metadata,
+      memberIds,
+      count: memberIds.length,
+    },
+  });
 }
 
 /**
  * Audit a passkey registration
  */
 export async function auditPasskeyRegistered(
-	userId: string,
-	passkeyId: string,
-	ipAddress?: string,
-	userAgent?: string,
-	metadata?: Record<string, unknown>,
+  userId: string,
+  passkeyId: string,
+  ipAddress?: string,
+  userAgent?: string,
+  metadata?: Record<string, unknown>,
 ): Promise<void> {
-	await createAuditLog({
-		userId,
-		action: "auth.passkey_registered",
-		targetType: "passkey",
-		targetId: passkeyId,
-		metadata,
-		ipAddress,
-		userAgent,
-	});
+  await createAuditLog({
+    userId,
+    action: "auth.passkey_registered",
+    targetType: "passkey",
+    targetId: passkeyId,
+    metadata,
+    ipAddress,
+    userAgent,
+  });
 }
 
 /**
  * Audit a passkey deletion
  */
 export async function auditPasskeyDeleted(
-	userId: string,
-	passkeyId: string,
-	ipAddress?: string,
-	userAgent?: string,
+  userId: string,
+  passkeyId: string,
+  ipAddress?: string,
+  userAgent?: string,
 ): Promise<void> {
-	await createAuditLog({
-		userId,
-		action: "auth.passkey_deleted",
-		targetType: "passkey",
-		targetId: passkeyId,
-		ipAddress,
-		userAgent,
-	});
+  await createAuditLog({
+    userId,
+    action: "auth.passkey_deleted",
+    targetType: "passkey",
+    targetId: passkeyId,
+    ipAddress,
+    userAgent,
+  });
 }
 
 /**
  * Audit a user administrative action (promote, demote, merge)
  */
 export async function auditUserAdminAction(
-	event: RequestEvent,
-	action: Extract<AuditAction, "user.promote_to_admin" | "user.demote_from_admin" | "user.merge">,
-	targetUserId: string,
-	metadata?: Record<string, unknown>,
+  event: RequestEvent,
+  action: Extract<AuditAction, "user.promote_to_admin" | "user.demote_from_admin" | "user.merge">,
+  targetUserId: string,
+  metadata?: Record<string, unknown>,
 ): Promise<void> {
-	await auditFromEvent(event, action, {
-		targetType: "user",
-		targetId: targetUserId,
-		metadata,
-	});
+  await auditFromEvent(event, action, {
+    targetType: "user",
+    targetId: targetUserId,
+    metadata,
+  });
 }
 
 /**
  * Audit a primary email change
  */
 export async function auditEmailChange(
-	event: RequestEvent,
-	userId: string,
-	oldEmail: string,
-	newEmail: string,
+  event: RequestEvent,
+  userId: string,
+  oldEmail: string,
+  newEmail: string,
 ): Promise<void> {
-	await auditFromEvent(event, "user.change_primary_email", {
-		targetType: "user",
-		targetId: userId,
-		metadata: {
-			oldEmail,
-			newEmail,
-		},
-	});
+  await auditFromEvent(event, "user.change_primary_email", {
+    targetType: "user",
+    targetId: userId,
+    metadata: {
+      oldEmail,
+      newEmail,
+    },
+  });
 }
 
 /**
  * Audit user profile changes (name, municipality, etc.)
  */
 export async function auditProfileChange(
-	event: RequestEvent,
-	userId: string,
-	changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>,
+  event: RequestEvent,
+  userId: string,
+  changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>,
 ): Promise<void> {
-	await auditFromEvent(event, "user.update_profile", {
-		targetType: "user",
-		targetId: userId,
-		metadata: { changes },
-	});
+  await auditFromEvent(event, "user.update_profile", {
+    targetType: "user",
+    targetId: userId,
+    metadata: { changes },
+  });
 }

@@ -1,16 +1,16 @@
 {
-	"mcpServers": {
-		"svelte": {
-			"type": "stdio",
-			"command": "pnpx",
-			"env": {},
-			"args": ["@sveltejs/mcp@latest"]
-		},
-		"playwright": {
-			"type": "stdio",
-			"command": "pnpx",
-			"env": {},
-			"args": ["@playwright/mcp@latest"]
-		}
-	}
+  "mcpServers": {
+    "svelte": {
+      "type": "stdio",
+      "command": "pnpx",
+      "env": {},
+      "args": ["@sveltejs/mcp@latest"]
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "pnpx",
+      "env": {},
+      "args": ["@playwright/mcp@latest"]
+    }
+  }
 }
