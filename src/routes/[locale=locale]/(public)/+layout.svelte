@@ -15,7 +15,7 @@
   }
 </script>
 
-<div class="relative flex min-h-screen flex-col bg-background">
+<div class="relative flex min-h-svh flex-col bg-background">
   <header
     class="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60"
   >
