@@ -35,7 +35,7 @@
 
 <div class="container mx-auto max-w-2xl px-4 py-8">
 	{#if isProfileComplete}
-		<MembershipCard memberships={data.memberships} />
+		<MembershipCard memberships={data.memberships} userName="{data.user.firstNames} {data.user.lastName}" />
 	{:else}
 		<ProfileIncompleteCard />
 	{/if}
