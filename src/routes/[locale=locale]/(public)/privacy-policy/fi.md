@@ -7,15 +7,15 @@ title: Jäsenrekisterin rekisteri- ja tietosuojaseloste
 Tämä on EU:n yleisen tietosuoja-asetuksen (GDPR) sekä yhdistyslain (503/1989) mukainen rekisteri- ja tietosuojaseloste.
 
 **Laatimispäivämäärä:** 22.5.2018
-**Viimeisin muutos:** 3.2.2026
+**Viimeisin muutos:** 8.1.2026
 
 ---
 
 ## 1. Rekisterinpitäjä
 
-**Tietokilta ry**<br />
-Y-tunnus: 1790346-8<br />
-Osoite: Konemiehentie 2, 02150 Espoo<br />
+**Tietokilta ry**
+Y-tunnus: 1790346-8
+Osoite: Konemiehentie 2, 02150 Espoo
 Sähköposti: hallitus@tietokilta.fi
 
 ## 2. Yhteyshenkilö tietosuoja-asioissa
@@ -80,11 +80,8 @@ _Huom: Toissijaiset sähköpostit ovat täysin vapaaehtoisia, lukuun ottamatta a
 **Tekniset tiedot:**
 
 - Istuntotunnisteet, kirjautumiskoodit
-- Tarkastusloki (audit log) eri säilytysajoilla:
-  - Turvallisuustapahtumat (kirjautumiset, epäonnistuneet yritykset): 6 kuukautta
-  - Jäsenyys- ja maksutapahtumat: noin 7 vuotta (kirjanpitolaki)
-  - Käyttäjätietojen muutokset (sähköposti, ylläpitäjäoikeudet): 3 vuotta
-- IP-osoitteet ja selaintiedot (user agent): säilytetään lokien mukana
+- Tarkastusloki (audit log) hallinnollisista toimenpiteistä (90 pv)
+- IP-osoitteet ja selaintiedot (user agent) kirjautumisyrityksistä (90 pv)
 - Kuormituksenrajoitustiedot (rate limiting) (vain muistissa)
 
 ## 6. Säännönmukaiset tietolähteet
@@ -114,10 +111,7 @@ Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröit
 - Avainkoodit: kunnes käyttäjä poistaa tai tili poistetaan
 - Toissijaiset sähköpostit: kunnes käyttäjä poistaa tai tili poistetaan
 - Aalto.fi-sähköpostin vahvistus: voimassa 6 kuukautta, jonka jälkeen vaaditaan uudelleenvahvistus
-- Tarkastusloki (audit log):
-  - Turvallisuustapahtumat (kirjautumiset yms.): 6 kuukautta
-  - Jäsenyys- ja maksutapahtumat: noin 7 vuotta (kirjanpitolaki)
-  - Käyttäjätietojen muutokset: 3 vuotta
+- IP-osoitteet, selaintiedot, tarkastusloki: 90 päivää
 - Kuormituksenrajoitustiedot: vain muistissa
 
 **Lakisääteiset säilytysvelvoitteet:**
@@ -126,10 +120,6 @@ Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröit
 - **Yhdistyslaki:** Jäsentiedot säilytetään lakisääteisten velvoitteiden täyttämiseksi
 
 **Käytännössä jäsenyyden päätyttyä:** Tekniset tiedot poistetaan automaattisesti niiden vanhennuttua. Jäsenrekisteritiedot ja kirjanpitotiedot säilytetään lakisääteisten velvoitteiden mukaisesti.
-
-**Passiivisten käyttäjien automaattinen poisto (GDPR):**
-
-Käyttäjätilit, jotka ovat olleet passiivisia yli 7 vuotta, poistetaan automaattisesti GDPR:n tietojen minimointi -periaatteen mukaisesti. Käyttäjä katsotaan passiiviseksi, jos hän ei ole kirjautunut järjestelmään 7 vuoteen. Säilytysaika vastaa kirjanpitolain mukaista pitkintä säilytysaikaa. Poisto sisältää kaikki käyttäjään liittyvät tiedot (jäsenyydet, istunnot, lokit, avaimet, sähköpostit).
 
 ## 8. Tietojen luovutus ja siirrot
 
@@ -158,7 +148,7 @@ Kaikki tiedonsiirrot tapahtuvat salattuja yhteyksiä (HTTPS/TLS) käyttäen. Tie
 
 **Tekniset suojatoimet:**
 
-- Tietokannan pääsy rajattu autentikaatiolla
+- Tietokanta suojattu palomuurilla, pääsy rajattu valtuutetuille järjestelmille
 - Kaikki tietoliikenne salattu (HTTPS/TLS)
 - Ei salasanoja – sähköpostipohjainen kertakäyttökoodi ja avainkoodit
 - Istuntotunnisteet tallennetaan hajautettuna (hashed)
@@ -202,11 +192,11 @@ Rekisteröity voi itse korjata ja päivittää tietojaan kirjautumalla järjeste
 
 **Valvontaviranomainen Suomessa:**
 
-Tietosuojavaltuutetun toimisto<br />
-Käyntiosoite: Lintulahdenkuja 4, 00530 Helsinki<br />
-Postiosoite: PL 800, 00531 Helsinki<br />
-Puhelinvaihde: 029 56 66700<br />
-Sähköposti: tietosuoja@om.fi<br />
+Tietosuojavaltuutetun toimisto
+Käyntiosoite: Lintulahdenkuja 4, 00530 Helsinki
+Postiosoite: PL 800, 00531 Helsinki
+Puhelinvaihde: 029 56 66700
+Sähköposti: tietosuoja@om.fi
 Verkkosivu: [https://tietosuoja.fi](https://tietosuoja.fi)
 
 ## 12. Automaattinen päätöksenteko

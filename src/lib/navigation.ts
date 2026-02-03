@@ -11,71 +11,71 @@ import Key from "@lucide/svelte/icons/key";
 import Mail from "@lucide/svelte/icons/mail";
 import Users from "@lucide/svelte/icons/users";
 import Tags from "@lucide/svelte/icons/tags";
-import Tag from "@lucide/svelte/icons/tag";
 import UserCog from "@lucide/svelte/icons/user-cog";
+import Calendar from "@lucide/svelte/icons/calendar";
 
 export interface NavItem {
-  title: string;
-  href: string;
-  icon: Component;
+	title: string;
+	href: string;
+	icon: Component;
 }
 
 export function getMainNavItems(locale: Locale, LL: TranslationFunctions): NavItem[] {
-  return [
-    {
-      title: LL.nav.dashboard(),
-      href: route("/[locale=locale]", { locale }),
-      icon: Home,
-    },
-    {
-      title: LL.nav.membership(),
-      href: route("/[locale=locale]/membership", { locale }),
-      icon: CreditCard,
-    },
-  ];
+	return [
+		{
+			title: LL.nav.dashboard(),
+			href: route("/[locale=locale]", { locale }),
+			icon: Home,
+		},
+		{
+			title: LL.nav.membership(),
+			href: route("/[locale=locale]/membership", { locale }),
+			icon: CreditCard,
+		},
+	];
 }
 
 export function getSettingsNavItems(locale: Locale, LL: TranslationFunctions): NavItem[] {
-  return [
-    {
-      title: LL.nav.profile(),
-      href: route("/[locale=locale]/settings/profile", { locale }),
-      icon: User,
-    },
-    {
-      title: LL.nav.passkeys(),
-      href: route("/[locale=locale]/settings/passkeys", { locale }),
-      icon: Key,
-    },
-    {
-      title: LL.nav.emails(),
-      href: route("/[locale=locale]/settings/emails", { locale }),
-      icon: Mail,
-    },
-  ];
+	return [
+		{
+			title: LL.nav.profile(),
+			href: route("/[locale=locale]/settings/profile", { locale }),
+			icon: User,
+		},
+		{
+			title: LL.nav.passkeys(),
+			href: route("/[locale=locale]/settings/passkeys", { locale }),
+			icon: Key,
+		},
+		{
+			title: LL.nav.emails(),
+			href: route("/[locale=locale]/settings/emails", { locale }),
+			icon: Mail,
+		},
+	];
 }
 
 export function getAdminNavItems(locale: Locale, LL: TranslationFunctions): NavItem[] {
-  return [
-    {
-      title: LL.nav.admin.members(),
-      href: route("/[locale=locale]/admin/members", { locale }),
-      icon: Users,
-    },
-    {
-      title: LL.nav.admin.memberships(),
-      href: route("/[locale=locale]/admin/memberships", { locale }),
-      icon: Tags,
-    },
-    {
-      title: LL.nav.admin.membershipTypes(),
-      href: route("/[locale=locale]/admin/membership-types", { locale }),
-      icon: Tag,
-    },
-    {
-      title: LL.nav.admin.users(),
-      href: route("/[locale=locale]/admin/users", { locale }),
-      icon: UserCog,
-    },
-  ];
+	return [
+		{
+			title: LL.nav.admin.members(),
+			href: route("/[locale=locale]/admin/members", { locale }),
+			icon: Users,
+		},
+		{
+			title: LL.nav.admin.memberships(),
+			href: route("/[locale=locale]/admin/memberships", { locale }),
+			icon: Tags,
+		},
+		{
+			title: LL.nav.admin.meetings(),
+			href: `/${locale}/admin/meetings`,
+			icon: Calendar,
+		},
+		{
+			title: LL.nav.admin.users(),
+			href: route("/[locale=locale]/admin/users", { locale }),
+			icon: UserCog,
+		},
+	];
 }

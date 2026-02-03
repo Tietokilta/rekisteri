@@ -71,6 +71,20 @@
       "when": 1770132677940,
       "tag": "0009_amused_sumo",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1770136611093,
+      "tag": "0010_milky_human_torch",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1770137388456,
+      "tag": "0011_nasty_bulldozer",
+      "breakpoints": true
     }
   ]
 }
