@@ -13,6 +13,7 @@
   import { payMembershipSchema } from "./schema";
   import { getStripePriceMetadata } from "$lib/api/stripe.remote";
   import { formatPrice } from "$lib/utils";
+  import { Textarea } from "$lib/components/ui/textarea";
   import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
 
   const { data }: PageProps = $props();
@@ -108,22 +109,23 @@
             </a>
           </div>
 
-          <div class="space-y-2">
-            <label for="description" class="text-sm font-medium">
-              {$LL.membership.description()}
-              {#if requireStudentVerification}
-                <span class="font-normal text-muted-foreground">({$LL.common.optional()})</span>
-              {/if}
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              rows="3"
-              required={!requireStudentVerification}
-              placeholder={$LL.membership.descriptionPlaceholder()}
-              class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-            ></textarea>
-          </div>
+          {#if payMembership.fields.membershipId.value()}
+            <div class="space-y-2">
+              <label for="description" class="text-sm font-medium">
+                {$LL.membership.description()}
+                {#if requireStudentVerification}
+                  <span class="font-normal text-muted-foreground">({$LL.common.optional()})</span>
+                {/if}
+              </label>
+              <Textarea
+                id="description"
+                name="description"
+                rows={3}
+                required={!requireStudentVerification}
+                placeholder={$LL.membership.descriptionPlaceholder()}
+              />
+            </div>
+          {/if}
 
           {#if requireStudentVerification}
             <div class="space-y-3">
