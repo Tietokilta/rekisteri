@@ -91,19 +91,24 @@ Configuration is defined in `playwright.config.ts`:
 - **Base URL**: `http://localhost:4173`
 - **Locale**: Finnish (`fi-FI`) - **locked for test stability**
 - **Timezone**: `Europe/Helsinki`
-- **Database**: Isolated test database (`DATABASE_URL_TEST`)
+- **Database**: Isolated test database via testcontainers (PostgreSQL)
 
 ### Global Setup
 
 The `global-setup.ts` file runs **once** before all tests:
 
-1. Creates/validates test database
-2. Pushes schema to test database
-3. Seeds with initial data (admin user)
-4. Creates authenticated admin session
-5. Saves session storage state to `e2e/.auth/admin.json`
+1. **Starts PostgreSQL testcontainer** - Spins up an isolated PostgreSQL container
+2. **Runs migrations** - Applies database schema via Drizzle migrations
+3. **Seeds with initial data** - Creates admin user and membership types
+4. **Creates authenticated admin session** - Sets up admin auth state
+5. **Saves session storage state** - Writes to `e2e/.auth/admin.json`
+6. **Saves container state** - Writes connection info to `e2e/.testcontainer-state.json`
 
-This allows tests to start authenticated without repeating login flows.
+The `global-teardown.ts` file runs **once** after all tests:
+1. Stops the PostgreSQL testcontainer
+2. Cleans up the container state file
+
+This allows tests to start authenticated without repeating login flows, and ensures a completely isolated database for each test run.
 
 ---
 
@@ -682,14 +687,15 @@ test("should create item", async ({ adminPage }) => {
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as table from "../src/lib/server/db/schema";
+import { getDatabaseUrl } from "./testcontainer";
 
 test.describe("Feature Tests", () => {
 	let client: ReturnType<typeof postgres>;
 	let db: ReturnType<typeof drizzle>;
 
 	test.beforeAll(async () => {
-		const dbUrl = process.env.DATABASE_URL_TEST;
-		if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
+		// Get database URL from testcontainer state (created by global-setup)
+		const dbUrl = getDatabaseUrl();
 
 		client = postgres(dbUrl);
 		db = drizzle(client, { schema: table, casing: "snake_case" });
