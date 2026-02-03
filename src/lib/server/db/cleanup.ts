@@ -116,9 +116,12 @@ const YEARS_IN_MS = 1000 * 60 * 60 * 24 * 365;
  * - lastActiveAt is older than the retention period, OR
  * - lastActiveAt is null AND createdAt is older than the retention period
  *
- * @param retentionYears - Number of years of inactivity before cleanup (default: 6)
+ * Retention period set to 7 years to match the longest audit log retention
+ * requirement (financial/membership events per Finnish Accounting Act).
+ *
+ * @param retentionYears - Number of years of inactivity before cleanup (default: 7)
  */
-export async function cleanupInactiveUsers(retentionYears: number = 6): Promise<void> {
+export async function cleanupInactiveUsers(retentionYears: number = 7): Promise<void> {
 	const cutoffDate = new Date(Date.now() - retentionYears * YEARS_IN_MS);
 
 	try {

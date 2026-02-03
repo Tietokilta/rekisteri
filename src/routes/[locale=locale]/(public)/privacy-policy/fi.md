@@ -129,7 +129,7 @@ Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröit
 
 **Passiivisten käyttäjien automaattinen poisto (GDPR):**
 
-Käyttäjätilit, jotka ovat olleet passiivisia yli 6 vuotta, poistetaan automaattisesti GDPR:n tietojen minimointi -periaatteen mukaisesti. Käyttäjä katsotaan passiiviseksi, jos hän ei ole kirjautunut järjestelmään 6 vuoteen. Poisto sisältää kaikki käyttäjään liittyvät tiedot (jäsenyydet, istunnot, lokit, avaimet, sähköpostit).
+Käyttäjätilit, jotka ovat olleet passiivisia yli 7 vuotta, poistetaan automaattisesti GDPR:n tietojen minimointi -periaatteen mukaisesti. Käyttäjä katsotaan passiiviseksi, jos hän ei ole kirjautunut järjestelmään 7 vuoteen. Säilytysaika vastaa kirjanpitolain mukaista pitkintä säilytysaikaa. Poisto sisältää kaikki käyttäjään liittyvät tiedot (jäsenyydet, istunnot, lokit, avaimet, sähköpostit).
 
 ## 8. Tietojen luovutus ja siirrot
 

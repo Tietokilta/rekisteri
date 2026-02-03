@@ -131,7 +131,7 @@ No personal data is retained for users who do not complete the registration proc
 
 **Automatic deletion of inactive users (GDPR):**
 
-User accounts that have been inactive for more than 6 years are automatically deleted in accordance with GDPR data minimization principles. A user is considered inactive if they have not logged into the system for 6 years. Deletion includes all user-related data (memberships, sessions, logs, passkeys, emails).
+User accounts that have been inactive for more than 7 years are automatically deleted in accordance with GDPR data minimization principles. A user is considered inactive if they have not logged into the system for 7 years. The retention period matches the longest audit log retention requirement under the Finnish Accounting Act. Deletion includes all user-related data (memberships, sessions, logs, passkeys, emails).
 
 ## 8. Data Disclosure and Transfers
 
