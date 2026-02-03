@@ -9,7 +9,7 @@ This is a registry and privacy statement in accordance with the EU General Data 
 _Note: The legally binding version of this document is in Finnish. This English translation is provided for convenience only._
 
 **Created:** May 22, 2018
-**Last updated:** January 27, 2026
+**Last updated:** February 3, 2026
 
 ---
 
@@ -128,6 +128,10 @@ No personal data is retained for users who do not complete the registration proc
 - **Associations Act:** Member data retained to fulfill legal obligations
 
 **In practice after membership ends:** Technical data is automatically deleted when it expires. Member registry data and accounting records are retained in accordance with statutory obligations.
+
+**Automatic deletion of inactive users (GDPR):**
+
+User accounts that have been inactive for more than 6 years are automatically deleted in accordance with GDPR data minimization principles. A user is considered inactive if they have not logged into the system for 6 years. Deletion includes all user-related data (memberships, sessions, logs, passkeys, emails).
 
 ## 8. Data Disclosure and Transfers
 

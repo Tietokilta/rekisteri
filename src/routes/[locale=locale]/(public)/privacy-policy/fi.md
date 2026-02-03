@@ -7,7 +7,7 @@ title: Jäsenrekisterin rekisteri- ja tietosuojaseloste
 Tämä on EU:n yleisen tietosuoja-asetuksen (GDPR) sekä yhdistyslain (503/1989) mukainen rekisteri- ja tietosuojaseloste.
 
 **Laatimispäivämäärä:** 22.5.2018
-**Viimeisin muutos:** 27.1.2026
+**Viimeisin muutos:** 3.2.2026
 
 ---
 
@@ -126,6 +126,10 @@ Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröit
 - **Yhdistyslaki:** Jäsentiedot säilytetään lakisääteisten velvoitteiden täyttämiseksi
 
 **Käytännössä jäsenyyden päätyttyä:** Tekniset tiedot poistetaan automaattisesti niiden vanhennuttua. Jäsenrekisteritiedot ja kirjanpitotiedot säilytetään lakisääteisten velvoitteiden mukaisesti.
+
+**Passiivisten käyttäjien automaattinen poisto (GDPR):**
+
+Käyttäjätilit, jotka ovat olleet passiivisia yli 6 vuotta, poistetaan automaattisesti GDPR:n tietojen minimointi -periaatteen mukaisesti. Käyttäjä katsotaan passiiviseksi, jos hän ei ole kirjautunut järjestelmään 6 vuoteen. Poisto sisältää kaikki käyttäjään liittyvät tiedot (jäsenyydet, istunnot, lokit, avaimet, sähköpostit).
 
 ## 8. Tietojen luovutus ja siirrot
 
