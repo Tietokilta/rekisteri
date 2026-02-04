@@ -15,6 +15,18 @@
   import { formatPrice } from "$lib/utils";
   import { Textarea } from "$lib/components/ui/textarea";
   import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
+  import { PersistedState } from "runed";
+  import { onMount, tick } from "svelte";
+
+  interface PurchaseFormState {
+    membershipId: string;
+    description: string;
+    isStudent: boolean;
+  }
+
+  const formPersist = new PersistedState<PurchaseFormState | null>("purchase-form-state", null, {
+    storage: "session",
+  });
 
   const { data }: PageProps = $props();
 
@@ -37,6 +49,7 @@
   const isProfileComplete = $derived(Boolean(data.user.firstNames && data.user.lastName && data.user.homeMunicipality));
 
   let isStudent = $state(false);
+  let restored = $state(false);
   let requireStudentVerification = $derived(
     availableMemberships.find((e) => e.id === payMembership.fields.membershipId.value())?.requiresStudentVerification ??
       false,
@@ -44,6 +57,63 @@
   let disableForm = $derived(
     (requireStudentVerification && (!isStudent || !data.hasValidAaltoEmail)) || filteredMemberships.length === 0,
   );
+
+  // Build the URL to the emails page with a ?next= param so the email
+  // verification flow redirects back here after completion.
+  const emailsUrlWithNext = $derived(
+    `${route("/[locale=locale]/settings/emails", { locale: $locale })}?next=${encodeURIComponent(route("/[locale=locale]/new", { locale: $locale }))}`,
+  );
+
+  // Auto-save form state to sessionStorage whenever values change.
+  // Guard: skip until onMount restore completes to avoid overwriting saved state.
+  $effect(() => {
+    if (!restored) return;
+    const textarea = document.querySelector<HTMLTextAreaElement>('textarea[name="description"]');
+    formPersist.current = {
+      membershipId: payMembership.fields.membershipId.value() ?? "",
+      description: textarea?.value ?? "",
+      isStudent,
+    };
+  });
+
+  /**
+   * On mount, restore form state from sessionStorage if available (e.g. after
+   * returning from the email verification flow).
+   */
+  onMount(async () => {
+    const saved = formPersist.current;
+    if (!saved) {
+      restored = true;
+      return;
+    }
+    formPersist.current = null;
+
+    isStudent = saved.isStudent;
+    await tick();
+
+    if (saved.membershipId) {
+      const radio = document.querySelector<HTMLInputElement>(
+        `input[type="radio"][name="membershipId"][value="${CSS.escape(saved.membershipId)}"]`,
+      );
+      if (radio) {
+        radio.checked = true;
+        radio.dispatchEvent(new Event("input", { bubbles: true }));
+        radio.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    }
+
+    await tick();
+
+    if (saved.description) {
+      const textarea = document.querySelector<HTMLTextAreaElement>('textarea[name="description"]');
+      if (textarea) {
+        textarea.value = saved.description;
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }
+
+    restored = true;
+  });
 </script>
 
 <div class="container mx-auto max-w-2xl px-4 py-8">
@@ -156,10 +226,7 @@
                   <CircleAlert class="h-4 w-4" />
                   <Alert.Description>
                     {$LL.secondaryEmail.expiredMessage()}
-                    <a
-                      href={route("/[locale=locale]/settings/emails", { locale: $locale })}
-                      class="ml-1 font-medium underline"
-                    >
+                    <a href={emailsUrlWithNext} class="ml-1 font-medium underline">
                       {$LL.secondaryEmail.reverifyNow()}
                     </a>
                   </Alert.Description>
@@ -169,10 +236,7 @@
                   <CircleAlert class="h-4 w-4" />
                   <Alert.Description>
                     {$LL.secondaryEmail.notVerifiedMessage()}
-                    <a
-                      href={route("/[locale=locale]/settings/emails", { locale: $locale })}
-                      class="ml-1 font-medium underline"
-                    >
+                    <a href={emailsUrlWithNext} class="ml-1 font-medium underline">
                       {$LL.secondaryEmail.addDomainEmail({ domain: "aalto.fi" })}
                     </a>
                   </Alert.Description>

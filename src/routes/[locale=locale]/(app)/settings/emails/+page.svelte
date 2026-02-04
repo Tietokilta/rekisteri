@@ -1,5 +1,6 @@
 <script lang="ts">
   import { invalidateAll } from "$app/navigation";
+  import { page } from "$app/stores";
   import { LL, locale } from "$lib/i18n/i18n-svelte";
   import { route } from "$lib/ROUTES";
   import { Button } from "$lib/components/ui/button/index.js";
@@ -25,6 +26,8 @@
 
   let { data }: { data: PageData } = $props();
 
+  const next = $derived($page.url.searchParams.get("next") ?? "");
+
   function getEmailStatus(email: SecondaryEmail): "unverified" | "expired" | "verified" {
     if (!email.verifiedAt) return "unverified";
     if (email.expiresAt && email.expiresAt < new Date()) return "expired";
@@ -43,7 +46,7 @@
     <Card.Description>{$LL.secondaryEmail.manageDescription()}</Card.Description>
     <Card.Action>
       <Button
-        href={route("/[locale=locale]/settings/emails/add", { locale: $locale })}
+        href={`${route("/[locale=locale]/settings/emails/add", { locale: $locale })}${next ? `?next=${encodeURIComponent(next)}` : ""}`}
         data-testid="add-secondary-email"
       >
         + {$LL.secondaryEmail.addEmail()}
@@ -156,6 +159,7 @@
                 {#if status === "expired" || status === "unverified"}
                   <form class="contents" {...reverifyForm}>
                     <input type="hidden" name="emailId" value={email.id} />
+                    {#if next}<input type="hidden" name="next" value={next} />{/if}
                     <DropdownMenu.Item
                       disabled={!!reverifyForm.pending}
                       data-testid="reverify-email"
