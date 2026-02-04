@@ -31,6 +31,7 @@
             name={verifyCode.fields.code.as("text").name}
             required
             class="justify-center capitalize"
+            data-testid="otp-input"
             onComplete={() => verifyFormEl.requestSubmit()}
           >
             {#snippet children({ cells })}
