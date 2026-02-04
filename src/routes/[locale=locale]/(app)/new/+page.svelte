@@ -24,7 +24,9 @@
     isStudent: boolean;
   }
 
-  const formPersist = new PersistedState<PurchaseFormState | null>("purchase-form-state", null);
+  const formPersist = new PersistedState<PurchaseFormState | null>("purchase-form-state", null, {
+    storage: "session",
+  });
 
   const { data }: PageProps = $props();
 
@@ -55,24 +57,24 @@
     (requireStudentVerification && (!isStudent || !data.hasValidAaltoEmail)) || filteredMemberships.length === 0,
   );
 
-  /**
-   * Save form state to localStorage and set a redirect cookie so the
-   * email verification flow redirects back here after completion.
-   */
-  function saveFormAndSetRedirect() {
+  // Build the URL to the emails page with a ?next= param so the email
+  // verification flow redirects back here after completion.
+  const emailsUrlWithNext = $derived(
+    `${route("/[locale=locale]/settings/emails", { locale: $locale })}?next=${encodeURIComponent(route("/[locale=locale]/new", { locale: $locale }))}`,
+  );
+
+  // Auto-save form state to sessionStorage whenever values change
+  $effect(() => {
     const textarea = document.querySelector<HTMLTextAreaElement>('textarea[name="description"]');
     formPersist.current = {
       membershipId: payMembership.fields.membershipId.value() ?? "",
       description: textarea?.value ?? "",
       isStudent,
     };
-    const returnPath = route("/[locale=locale]/new", { locale: $locale });
-    // eslint-disable-next-line unicorn/no-document-cookie -- simple one-shot cookie set for redirect
-    document.cookie = `email_redirect_to=${encodeURIComponent(returnPath)}; path=/; SameSite=Lax; max-age=3600`;
-  }
+  });
 
   /**
-   * On mount, restore form state from localStorage if available (e.g. after
+   * On mount, restore form state from sessionStorage if available (e.g. after
    * returning from the email verification flow).
    */
   onMount(async () => {
@@ -216,11 +218,7 @@
                   <CircleAlert class="h-4 w-4" />
                   <Alert.Description>
                     {$LL.secondaryEmail.expiredMessage()}
-                    <a
-                      href={route("/[locale=locale]/settings/emails", { locale: $locale })}
-                      class="ml-1 font-medium underline"
-                      onclick={saveFormAndSetRedirect}
-                    >
+                    <a href={emailsUrlWithNext} class="ml-1 font-medium underline">
                       {$LL.secondaryEmail.reverifyNow()}
                     </a>
                   </Alert.Description>
@@ -230,11 +228,7 @@
                   <CircleAlert class="h-4 w-4" />
                   <Alert.Description>
                     {$LL.secondaryEmail.notVerifiedMessage()}
-                    <a
-                      href={route("/[locale=locale]/settings/emails", { locale: $locale })}
-                      class="ml-1 font-medium underline"
-                      onclick={saveFormAndSetRedirect}
-                    >
+                    <a href={emailsUrlWithNext} class="ml-1 font-medium underline">
                       {$LL.secondaryEmail.addDomainEmail({ domain: "aalto.fi" })}
                     </a>
                   </Alert.Description>

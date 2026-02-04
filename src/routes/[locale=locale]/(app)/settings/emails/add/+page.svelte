@@ -1,5 +1,6 @@
 <script lang="ts">
   import { LL, locale } from "$lib/i18n/i18n-svelte";
+  import { page } from "$app/stores";
   import { route } from "$lib/ROUTES";
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
@@ -8,6 +9,8 @@
   import * as Card from "$lib/components/ui/card/index.js";
   import { addSecondaryEmailForm } from "$lib/api/secondary-emails.remote";
   import { addSecondaryEmailSchema } from "$lib/api/secondary-emails.schema";
+
+  const next = $derived($page.url.searchParams.get("next") ?? "");
 
   // Track if form has been validated (after first blur or submit attempt)
   let hasValidated = $state(false);
@@ -35,6 +38,7 @@
     </Alert.Root>
 
     <form {...addSecondaryEmailForm.preflight(addSecondaryEmailSchema)} class="space-y-4">
+      {#if next}<input type="hidden" name="next" value={next} />{/if}
       <div class="space-y-2">
         <Label for="email">{$LL.secondaryEmail.emailAddress()}</Label>
         <Input
@@ -56,7 +60,11 @@
         {$LL.secondaryEmail.addAndVerify()}
       </Button>
 
-      <Button variant="outline" href={route("/[locale=locale]/settings/emails", { locale: $locale })} class="w-full">
+      <Button
+        variant="outline"
+        href={`${route("/[locale=locale]/settings/emails", { locale: $locale })}${next ? `?next=${encodeURIComponent(next)}` : ""}`}
+        class="w-full"
+      >
         {$LL.auth.passkey.cancel()}
       </Button>
     </form>

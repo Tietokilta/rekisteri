@@ -1,4 +1,4 @@
-import { error, isRedirect, redirect } from "@sveltejs/kit";
+import { error, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
 import { timingSafeEqual } from "node:crypto";
 import {
@@ -19,7 +19,7 @@ import { verifyCodeSchema } from "./schema";
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
 
-export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
+export const verifyCode = form(verifyCodeSchema, async ({ code, next }) => {
   const event = getRequestEvent();
 
   // Lazy cleanup to prevent memory leaks
@@ -77,17 +77,10 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
 
   // If the user was redirected here from another page (e.g. purchase flow),
   // redirect back there instead of the default emails management page.
-  const redirectTo = event.cookies.get("email_redirect_to");
-  if (redirectTo) {
-    event.cookies.delete("email_redirect_to", { path: "/" });
-    try {
-      // Resolve against our origin to guarantee a same-origin path redirect
-      const safePath = new URL(redirectTo, event.url.origin).pathname;
-      redirect(302, safePath);
-    } catch (err) {
-      if (isRedirect(err)) throw err;
-      // Invalid URL value — fall through to default redirect
-    }
+  if (next) {
+    // Resolve against our origin to guarantee a same-origin path redirect
+    const safePath = new URL(next, event.url.origin).pathname;
+    redirect(302, safePath);
   }
 
   redirect(302, route("/[locale=locale]/settings/emails", { locale: event.locals.locale }));

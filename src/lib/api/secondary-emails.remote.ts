@@ -69,8 +69,9 @@ export const deleteSecondaryEmailForm = form(
 export const reverifySecondaryEmailForm = form(
   v.object({
     emailId: v.pipe(v.string(), v.minLength(1)),
+    next: v.optional(v.string()),
   }),
-  async ({ emailId }) => {
+  async ({ emailId, next }) => {
     const { locals, cookies } = getRequestEvent();
 
     if (!locals.user) {
@@ -105,7 +106,8 @@ export const reverifySecondaryEmailForm = form(
     });
 
     // Server-side redirect ensures cookies are properly set before navigation
-    redirect(303, route("/[locale=locale]/settings/emails/verify", { locale: locals.locale }));
+    const verifyUrl = route("/[locale=locale]/settings/emails/verify", { locale: locals.locale });
+    redirect(303, next ? `${verifyUrl}?next=${encodeURIComponent(next)}` : verifyUrl);
   },
 );
 
@@ -134,7 +136,7 @@ export const changePrimaryEmailForm = form(
 /**
  * Add a new secondary email via form submission
  */
-export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ email }, invalid) => {
+export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ email, next }, invalid) => {
   const { locals, cookies } = getRequestEvent();
 
   // Lazy cleanup to prevent memory leaks
@@ -175,7 +177,8 @@ export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ emai
       sameSite: "lax",
     });
 
-    redirect(303, route("/[locale=locale]/settings/emails/verify", { locale: locals.locale }));
+    const verifyUrl = route("/[locale=locale]/settings/emails/verify", { locale: locals.locale });
+    redirect(303, next ? `${verifyUrl}?next=${encodeURIComponent(next)}` : verifyUrl);
   } catch (err) {
     // Re-throw SvelteKit errors (redirect, error, etc.)
     if (isRedirect(err) || isHttpError(err)) {

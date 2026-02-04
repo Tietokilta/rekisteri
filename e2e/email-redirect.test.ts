@@ -38,15 +38,16 @@ test.describe("Aalto email redirect flow", () => {
       // Check "I am a student" checkbox
       await isolatedPage.locator('input[name="isStudent"]').check();
 
-      // The "add aalto.fi email" alert link should be visible — click it
-      // (this saves form state to localStorage and sets the redirect cookie)
-      // Must target the specific alert link, not the sidebar navigation link
+      // The "add aalto.fi email" alert link should be visible — click it.
+      // The link carries ?next= so the email flow redirects back here.
+      // Form state is auto-saved to sessionStorage via $effect.
+      // Must target the specific alert link, not the sidebar navigation link.
       await isolatedPage.getByRole("link", { name: /Lisää.*aalto\.fi/i }).click();
-      await isolatedPage.waitForURL(/settings\/emails$/);
+      await isolatedPage.waitForURL(/settings\/emails\?next=/);
 
-      // Navigate to add email page
+      // Navigate to add email page (link forwards ?next=)
       await isolatedPage.getByTestId("add-secondary-email").click();
-      await isolatedPage.waitForURL(/settings\/emails\/add/);
+      await isolatedPage.waitForURL(/settings\/emails\/add\?next=/);
 
       // Enter an aalto.fi email and submit
       await isolatedPage.fill('input[type="email"]', testEmail);
@@ -62,7 +63,7 @@ test.describe("Aalto email redirect flow", () => {
       // Should be redirected back to /fi/new (NOT /fi/settings/emails)
       await isolatedPage.waitForURL(/\/fi\/new/);
 
-      // Verify form state was restored
+      // Verify form state was restored from sessionStorage
       await expect(isolatedPage.locator(`input[type="radio"][value="${membership.id}"]`)).toBeChecked();
       await expect(isolatedPage.locator('input[name="isStudent"]')).toBeChecked();
 

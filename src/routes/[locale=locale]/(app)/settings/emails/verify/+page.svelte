@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Label } from "$lib/components/ui/label/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
+  import { page } from "$app/stores";
   import { LL } from "$lib/i18n/i18n-svelte";
   import * as InputOTP from "$lib/components/ui/input-otp/index.js";
   import * as Card from "$lib/components/ui/card/index.js";
@@ -9,6 +10,8 @@
   import { verifyCodeSchema } from "./schema";
 
   let { data }: { data: PageData } = $props();
+
+  const next = $derived($page.url.searchParams.get("next") ?? "");
 
   let verifyFormEl: HTMLFormElement;
 </script>
@@ -23,6 +26,7 @@
   <Card.Content>
     <div class="flex w-full flex-col gap-4">
       <form bind:this={verifyFormEl} {...verifyCode.preflight(verifyCodeSchema)} class="contents">
+        {#if next}<input type="hidden" name="next" value={next} />{/if}
         <div class="flex flex-col gap-2">
           <Label for="code">{$LL.secondaryEmail.code()}</Label>
           <InputOTP.Root
