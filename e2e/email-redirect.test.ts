@@ -40,7 +40,8 @@ test.describe("Aalto email redirect flow", () => {
 
       // The "add aalto.fi email" alert link should be visible — click it
       // (this saves form state to localStorage and sets the redirect cookie)
-      await isolatedPage.locator('a[href*="/settings/emails"]').first().click();
+      // Must target the specific alert link, not the sidebar navigation link
+      await isolatedPage.getByRole("link", { name: /Lisää.*aalto\.fi/i }).click();
       await isolatedPage.waitForURL(/settings\/emails$/);
 
       // Navigate to add email page

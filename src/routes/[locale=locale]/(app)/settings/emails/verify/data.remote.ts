@@ -1,4 +1,4 @@
-import { error, redirect } from "@sveltejs/kit";
+import { error, isRedirect, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
 import { timingSafeEqual } from "node:crypto";
 import {
@@ -84,7 +84,8 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
       // Resolve against our origin to guarantee a same-origin path redirect
       const safePath = new URL(redirectTo, event.url.origin).pathname;
       redirect(302, safePath);
-    } catch {
+    } catch (err) {
+      if (isRedirect(err)) throw err;
       // Invalid URL value — fall through to default redirect
     }
   }
