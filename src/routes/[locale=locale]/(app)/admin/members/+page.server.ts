@@ -17,7 +17,6 @@ export const load: PageServerLoad = async (event) => {
       membershipId: table.member.membershipId,
       status: table.member.status,
       stripeSessionId: table.member.stripeSessionId,
-      description: table.member.description,
       createdAt: table.member.createdAt,
       updatedAt: table.member.updatedAt,
       email: table.user.email,

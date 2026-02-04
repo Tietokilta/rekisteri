@@ -5,9 +5,7 @@ import { encodeBase32LowerCaseNoPadding } from "@oslojs/encoding";
 import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { dev } from "$app/environment";
-import { sendEmail } from "$lib/server/mailgun";
-import { i18nObject } from "$lib/i18n/i18n-util";
-import { loadLocale } from "$lib/i18n/i18n-util.sync";
+import { sendMemberEmail } from "$lib/server/emails";
 import { env } from "$lib/server/env";
 
 import type { EmailOTP } from "$lib/server/db/schema";
@@ -68,20 +66,22 @@ export async function deleteEmailOTP(id: string): Promise<void> {
 }
 
 export function sendOTPEmail(email: string, code: string, locale: "fi" | "en" = "fi"): void {
-  loadLocale(locale);
-  const LL = i18nObject(locale);
-
-  const emailOptions = {
-    to: email,
-    subject: LL.auth.emailSubject(),
-    text: LL.auth.emailBody({ code }),
-  };
-
   if (dev || env.TEST) {
     const mode = dev ? "dev" : "test";
-    console.log(`[Email] OTP email (${mode} mode):`, emailOptions);
+    console.log(`[Email] OTP email (${mode} mode):`, { to: email, code, locale });
   } else {
-    sendEmail(emailOptions).catch((err) => {
+    sendMemberEmail({
+      recipientEmail: email,
+      emailType: "otp",
+      metadata: { code },
+      locale,
+      headers: {
+        // Apple domain-bound codes
+        "X-Apple-DBC": "1",
+        // Help email clients identify OTP
+        "X-Entity-Ref-ID": crypto.randomUUID(),
+      },
+    }).catch((err) => {
       // Critical: OTP emails are essential for authentication
       // Log with high severity and consider alerting in production monitoring
       console.error("[Email] CRITICAL: Failed to send OTP email to", email, ":", err);

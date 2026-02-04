@@ -13,7 +13,6 @@
   import { payMembershipSchema } from "./schema";
   import { getStripePriceMetadata } from "$lib/api/stripe.remote";
   import { formatPrice } from "$lib/utils";
-  import { Textarea } from "$lib/components/ui/textarea";
   import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
   import { PersistedState } from "runed";
   import { onMount, tick } from "svelte";
@@ -178,24 +177,6 @@
               {$LL.membership.moreInfoInBylaws()}
             </a>
           </div>
-
-          {#if payMembership.fields.membershipId.value()}
-            <div class="space-y-2">
-              <label for="description" class="text-sm font-medium">
-                {$LL.membership.description()}
-                {#if requireStudentVerification}
-                  <span class="font-normal text-muted-foreground">({$LL.common.optional()})</span>
-                {/if}
-              </label>
-              <Textarea
-                id="description"
-                name="description"
-                rows={3}
-                required={!requireStudentVerification}
-                placeholder={$LL.membership.descriptionPlaceholder()}
-              />
-            </div>
-          {/if}
 
           {#if requireStudentVerification}
             <div class="space-y-3">

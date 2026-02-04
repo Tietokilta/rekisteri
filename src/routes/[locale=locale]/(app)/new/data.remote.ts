@@ -10,7 +10,7 @@ import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
 import { i18nObject } from "$lib/i18n/i18n-util";
 import { loadLocale } from "$lib/i18n/i18n-util.sync";
 
-export const payMembership = form(payMembershipSchema, async ({ membershipId, description }) => {
+export const payMembership = form(payMembershipSchema, async ({ membershipId }) => {
   const event = getRequestEvent();
 
   if (!event.locals.user) {
@@ -41,12 +41,6 @@ export const payMembership = form(payMembershipSchema, async ({ membershipId, de
     error(400, LL.membership.alreadyHaveMembershipForPeriod());
   }
 
-  // Description is required for memberships without student verification
-  const trimmedDescription = description?.trim() || null;
-  if (!membership?.requiresStudentVerification && !trimmedDescription) {
-    error(400, LL.membership.descriptionRequired());
-  }
-
   if (membership?.requiresStudentVerification) {
     // Check primary email domain
     const primaryEmailDomain = event.locals.user.email.split("@")[1]?.toLowerCase();
@@ -65,12 +59,7 @@ export const payMembership = form(payMembershipSchema, async ({ membershipId, de
     }
   }
 
-  const paymentSession = await createSession(
-    event.locals.user.id,
-    membershipId,
-    event.locals.locale,
-    trimmedDescription,
-  );
+  const paymentSession = await createSession(event.locals.user.id, membershipId, event.locals.locale);
   if (!paymentSession?.url) {
     error(400, "Could not create payment session");
   }
