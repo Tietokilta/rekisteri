@@ -49,6 +49,7 @@
   const isProfileComplete = $derived(Boolean(data.user.firstNames && data.user.lastName && data.user.homeMunicipality));
 
   let isStudent = $state(false);
+  let restored = $state(false);
   let requireStudentVerification = $derived(
     availableMemberships.find((e) => e.id === payMembership.fields.membershipId.value())?.requiresStudentVerification ??
       false,
@@ -63,8 +64,10 @@
     `${route("/[locale=locale]/settings/emails", { locale: $locale })}?next=${encodeURIComponent(route("/[locale=locale]/new", { locale: $locale }))}`,
   );
 
-  // Auto-save form state to sessionStorage whenever values change
+  // Auto-save form state to sessionStorage whenever values change.
+  // Guard: skip until onMount restore completes to avoid overwriting saved state.
   $effect(() => {
+    if (!restored) return;
     const textarea = document.querySelector<HTMLTextAreaElement>('textarea[name="description"]');
     formPersist.current = {
       membershipId: payMembership.fields.membershipId.value() ?? "",
@@ -79,7 +82,10 @@
    */
   onMount(async () => {
     const saved = formPersist.current;
-    if (!saved) return;
+    if (!saved) {
+      restored = true;
+      return;
+    }
     formPersist.current = null;
 
     isStudent = saved.isStudent;
@@ -105,6 +111,8 @@
         textarea.dispatchEvent(new Event("input", { bubbles: true }));
       }
     }
+
+    restored = true;
   });
 </script>
 
