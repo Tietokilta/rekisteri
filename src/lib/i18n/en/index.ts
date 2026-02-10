@@ -249,6 +249,10 @@ const en = {
     alreadyHaveMembershipForPeriod: "You already have a membership for this period",
     noAvailableMemberships:
       "No memberships available for purchase. You already have a membership for all available periods.",
+    willAutoApprove: "Will be automatically approved after payment",
+    willRequireApproval: "Will require board approval after payment",
+    autoApprovalAdminNote:
+      "Members who had an approved membership of the same type in the immediately preceding period will be automatically approved upon renewal. For student memberships, a valid aalto.fi email is also required.",
 
     // Status
     status: {

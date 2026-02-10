@@ -77,6 +77,8 @@
     {/snippet}
   </AdminPageHeader>
 
+  <p class="mb-6 text-sm text-muted-foreground">{$LL.membership.autoApprovalAdminNote()}</p>
+
   {#if data.memberships.length === 0}
     <!-- Empty state -->
     <Empty.Root class="border">

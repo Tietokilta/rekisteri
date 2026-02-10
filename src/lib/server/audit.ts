@@ -10,6 +10,7 @@ export type AuditAction =
   | "auth.passkey_registered"
   | "auth.passkey_deleted"
   | "member.approve"
+  | "member.auto_approve"
   | "member.reject"
   | "member.expire"
   | "member.cancel"

@@ -249,6 +249,10 @@ const fi = {
     alreadyHaveMembershipForPeriod: "Sinulla on jo jäsenyys tälle ajanjaksolle",
     noAvailableMemberships:
       "Ei ostettavia jäsenyyksiä. Sinulla on jo jäsenyys kaikille saatavilla oleville ajanjaksoille.",
+    willAutoApprove: "Hyväksytään automaattisesti maksun jälkeen",
+    willRequireApproval: "Vaatii hallituksen hyväksynnän maksun jälkeen",
+    autoApprovalAdminNote:
+      "Jäsenet, joilla on hyväksytty jäsenyys samaa tyyppiä edellisellä kaudella, hyväksytään automaattisesti uusiessaan jäsenyytensä. Opiskelijajäsenyyksien automaattinen hyväksyntä edellyttää myös voimassa olevaa aalto.fi-sähköpostia.",
 
     // Status
     status: {

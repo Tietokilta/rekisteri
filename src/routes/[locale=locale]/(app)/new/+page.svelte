@@ -164,6 +164,11 @@
                     {new Date(membership.startTime).toLocaleDateString(`${$locale}-FI`)}
                     – {new Date(membership.endTime).toLocaleDateString(`${$locale}-FI`)}
                   </span>
+                  {#if membership.willAutoApprove}
+                    <span class="text-xs text-green-600 dark:text-green-400">{$LL.membership.willAutoApprove()}</span>
+                  {:else}
+                    <span class="text-xs text-muted-foreground">{$LL.membership.willRequireApproval()}</span>
+                  {/if}
                   {#if typeDescription}
                     <span class="text-sm text-muted-foreground">{typeDescription}</span>
                   {/if}
