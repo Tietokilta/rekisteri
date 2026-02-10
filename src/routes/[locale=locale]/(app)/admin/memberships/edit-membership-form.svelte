@@ -40,7 +40,7 @@
   const stripePriceInputId = $derived(`edit-stripePriceId-${membership.id}`);
   const studentVerificationInputId = $derived(`edit-requiresStudentVerification-${membership.id}`);
 
-  const editForm = updateMembership.for(membership.id);
+  const editForm = $derived(updateMembership.for(membership.id));
 
   // Initialize form fields when component mounts
   $effect(() => {
