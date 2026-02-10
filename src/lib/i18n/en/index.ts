@@ -42,6 +42,16 @@ const en = {
     paymentSuccessDescription: "Your membership will be updated shortly.",
   },
 
+  // Member Card
+  memberCard: {
+    title: "Member Card",
+    show: "Show Member Card",
+    close: "Close",
+    qrAlt: "Member verification QR code",
+    instructions: "Show this code for member verification. Can be used at meetings, events, discounts, etc.",
+    brightnessNotice: "Please maximize your screen brightness for best scanning",
+  },
+
   // Settings
   settings: {
     title: "Settings",
