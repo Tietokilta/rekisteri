@@ -4,6 +4,7 @@ import { route } from "$lib/ROUTES";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { ensureUserHasQrToken } from "$lib/server/attendance/qr-token";
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.user) {
@@ -25,5 +26,13 @@ export const load: PageServerLoad = async (event) => {
     unique_id: m.member.id,
   }));
 
-  return { user: event.locals.user, memberships };
+  // Load QR token if user has active or expired membership
+  let qrToken: string | null = null;
+  const hasValidMembership = memberships.some((m) => m.status === "active" || m.status === "expired");
+
+  if (hasValidMembership) {
+    qrToken = await ensureUserHasQrToken(event.locals.user.id);
+  }
+
+  return { user: event.locals.user, memberships, qrToken };
 };
