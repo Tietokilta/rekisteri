@@ -1,6 +1,6 @@
 import type { TranslationFunctions } from "$lib/i18n/i18n-types";
 
-export type EmailType = "otp" | "payment_success" | "membership_approved";
+export type EmailType = "otp" | "payment_success" | "membership_approved" | "membership_renewed";
 
 export interface EmailContent {
   subject: string;

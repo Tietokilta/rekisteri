@@ -171,6 +171,21 @@ See you at events!
 Best regards,
 Computer Science Guild`,
     },
+    membershipRenewed: {
+      subject: "Your membership has been renewed!",
+      body: `Hi {firstName}!
+
+Your membership has been automatically renewed after payment.
+
+Membership details:
+- Type: {membershipName}
+- Valid: {startDate} - {endDate}
+
+Thank you for continuing as a member!
+
+Best regards,
+Computer Science Guild`,
+    },
   },
 
   // User

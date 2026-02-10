@@ -303,11 +303,11 @@ export async function fulfillSession(sessionId: string) {
       const userLocale: "fi" | "en" = memberWithDetails.user.preferredLanguage === "english" ? "en" : "fi";
 
       if (newStatus === "active") {
-        // Auto-approved: send membership approved email immediately
+        // Auto-approved (renewal): send membership renewed email immediately
         if (memberWithDetails.user.firstNames) {
           await sendMemberEmail({
             recipientEmail: memberWithDetails.user.email,
-            emailType: "membership_approved",
+            emailType: "membership_renewed",
             metadata: {
               firstName: memberWithDetails.user.firstNames.split(" ")[0] || "",
               membershipName: getMembershipName(memberWithDetails.membership, userLocale),

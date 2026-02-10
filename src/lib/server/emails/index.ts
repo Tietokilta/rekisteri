@@ -5,11 +5,13 @@ import type { EmailType, OTPMetadata, PaymentSuccessMetadata, MembershipApproved
 import { otpTemplate } from "./templates/otp";
 import { paymentSuccessTemplate } from "./templates/payment-success";
 import { membershipApprovedTemplate } from "./templates/membership-approved";
+import { membershipRenewedTemplate } from "./templates/membership-renewed";
 
 const templates = {
   otp: otpTemplate,
   payment_success: paymentSuccessTemplate,
   membership_approved: membershipApprovedTemplate,
+  membership_renewed: membershipRenewedTemplate,
 } as const;
 
 type EmailMetadata<T extends EmailType> = T extends "otp"
@@ -18,7 +20,9 @@ type EmailMetadata<T extends EmailType> = T extends "otp"
     ? PaymentSuccessMetadata
     : T extends "membership_approved"
       ? MembershipApprovedMetadata
-      : never;
+      : T extends "membership_renewed"
+        ? MembershipApprovedMetadata
+        : never;
 
 export async function sendMemberEmail<T extends EmailType>({
   recipientEmail,

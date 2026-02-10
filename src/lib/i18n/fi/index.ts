@@ -171,6 +171,21 @@ Nähdään tapahtumissa!
 Terveisin,
 Tietokilta`,
     },
+    membershipRenewed: {
+      subject: "Jäsenyytesi on uusittu!",
+      body: `Hei {firstName}!
+
+Jäsenyytesi on uusittu automaattisesti maksun jälkeen.
+
+Jäsenyystiedot:
+- Jäsenyystyyppi: {membershipName}
+- Voimassa: {startDate} - {endDate}
+
+Kiitos, että jatkat jäsenenämme!
+
+Terveisin,
+Tietokilta`,
+    },
   },
 
   // User
