@@ -20,7 +20,7 @@
   let errorMessage = $state("");
 
   // Type-safe persisted state for tracking last used sign-in method per email
-  const lastUsedMethod = new PersistedState<"passkey" | "email" | null>(`signInMethod:${data.email}`, null);
+  const lastUsedMethod = $derived(new PersistedState<"passkey" | "email" | null>(`signInMethod:${data.email}`, null));
 
   async function handlePasskeyAuth() {
     isAuthenticating = true;

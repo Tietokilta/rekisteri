@@ -34,7 +34,7 @@
   const descriptionFiInputId = $derived(`edit-descriptionFi-${membershipType.id}`);
   const descriptionEnInputId = $derived(`edit-descriptionEn-${membershipType.id}`);
 
-  const editForm = updateMembershipType.for(membershipType.id);
+  const editForm = $derived(updateMembershipType.for(membershipType.id));
 
   // Initialize form fields when component mounts
   $effect(() => {
@@ -93,7 +93,7 @@
       {...editForm.fields.descriptionFi.as("text")}
       id={descriptionFiInputId}
       rows={3}
-      class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+      class="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
     ></textarea>
     {#each editForm.fields.descriptionFi.issues() as issue, i (i)}
       <p class="text-sm text-destructive">{issue.message}</p>
@@ -107,7 +107,7 @@
       {...editForm.fields.descriptionEn.as("text")}
       id={descriptionEnInputId}
       rows={3}
-      class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+      class="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
     ></textarea>
     {#each editForm.fields.descriptionEn.issues() as issue, i (i)}
       <p class="text-sm text-destructive">{issue.message}</p>

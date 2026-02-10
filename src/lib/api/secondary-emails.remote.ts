@@ -1,4 +1,4 @@
-import { error, redirect, isRedirect, isHttpError } from "@sveltejs/kit";
+import { error, redirect, isRedirect, isHttpError, invalid } from "@sveltejs/kit";
 import { getRequestEvent, query, form } from "$app/server";
 import * as v from "valibot";
 import { dev } from "$app/environment";
@@ -136,7 +136,7 @@ export const changePrimaryEmailForm = form(
 /**
  * Add a new secondary email via form submission
  */
-export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ email, next }, invalid) => {
+export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ email, next }, issue) => {
   const { locals, cookies } = getRequestEvent();
 
   // Lazy cleanup to prevent memory leaks
@@ -186,8 +186,8 @@ export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ emai
     }
     // Use invalid.email() to attach error to the email field
     if (err instanceof Error) {
-      return invalid(invalid.email(err.message));
+      return invalid(issue.email(err.message));
     }
-    return invalid(invalid.email("An error occurred"));
+    return invalid(issue.email("An error occurred"));
   }
 });
