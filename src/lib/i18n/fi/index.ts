@@ -481,6 +481,14 @@ const fi = {
       rowsAffected: "koskee {count:number} {{riviä|riviä}}",
       resolveToImport: "Ratkaise kaikki puuttuvat rivit mahdollistaaksesi tuonnin",
       invalidDataFormat: "Virheellinen datamuoto",
+      csvColumnsMismatch: "CSV-sarakkeet eivät vastaa odotettuja: {columns:string}",
+      invalidTypeIdsError:
+        "Virheelliset jäsenyystyyppitunnisteet: {invalidTypes:string}. Käytettävissä: {availableIds:string}",
+      rowError: "Rivi {row:number}: {message:string}",
+      rowErrorDetail: "Rivi {row:number} ({email:string}): {error:string}",
+      or: "tai",
+      statusHeader: "Tila",
+      pending: "Odottaa",
     },
 
     users: {

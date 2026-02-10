@@ -479,6 +479,13 @@ const en = {
       rowsAffected: "{count} {{row|rows}} affected",
       resolveToImport: "Resolve all unmatched rows to enable import",
       invalidDataFormat: "Invalid data format",
+      csvColumnsMismatch: "CSV columns don't match expected: {columns}",
+      invalidTypeIdsError: "Invalid membership type IDs: {invalidTypes}. Available IDs: {availableIds}",
+      rowError: "Row {row}: {message}",
+      rowErrorDetail: "Row {row} ({email}): {error}",
+      or: "or",
+      statusHeader: "Status",
+      pending: "Pending",
     },
 
     users: {

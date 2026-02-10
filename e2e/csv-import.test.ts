@@ -99,7 +99,7 @@ value1,value2,value3`;
 
     // Verify error message shows (heading only shows when there are no valid rows)
     await expect(adminPage.getByRole("heading", { name: "Vahvistusvirheet:" })).toBeVisible();
-    await expect(adminPage.getByText(/CSV columns don't match/)).toBeVisible();
+    await expect(adminPage.getByTestId("validation-error")).toBeVisible();
   });
 
   test("CSV import validates invalid email format", async ({ adminPage }) => {
@@ -119,7 +119,7 @@ Test,User,Helsinki,not-an-email,varsinainen-jasen,2025-08-01`;
 
     // Verify error message shows (heading only shows when there are no valid rows)
     await expect(adminPage.getByRole("heading", { name: "Vahvistusvirheet:" })).toBeVisible();
-    await expect(adminPage.getByText(/Invalid email/)).toBeVisible();
+    await expect(adminPage.getByTestId("validation-error")).toBeVisible();
   });
 
   test("CSV import validates invalid membership type ID", async ({ adminPage }) => {
