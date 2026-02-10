@@ -1,4 +1,4 @@
-import { error, redirect } from "@sveltejs/kit";
+import { error, invalid, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
 import { timingSafeEqual } from "node:crypto";
 import {
@@ -25,7 +25,7 @@ import { getLL } from "$lib/server/i18n";
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
 
-export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
+export const verifyCode = form(verifyCodeSchema, async ({ code }, issue) => {
   const event = getRequestEvent();
 
   const LL = getLL(event.locals.locale);
@@ -63,7 +63,7 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
   const isValid = expectedBuffer.length === providedBuffer.length && timingSafeEqual(expectedBuffer, providedBuffer);
   if (!isValid) {
     await auditLoginFailed(event, otp.email);
-    error(400, LL.auth.incorrectCode());
+    return invalid(issue.code(LL.auth.incorrectCode()));
   }
 
   // Check both primary and VERIFIED secondary emails

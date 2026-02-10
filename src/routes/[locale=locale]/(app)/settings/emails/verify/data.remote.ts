@@ -1,4 +1,4 @@
-import { error, redirect } from "@sveltejs/kit";
+import { error, invalid, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
 import { timingSafeEqual } from "node:crypto";
 import {
@@ -20,7 +20,7 @@ import { getLL } from "$lib/server/i18n";
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
 
-export const verifyCode = form(verifyCodeSchema, async ({ code, next }) => {
+export const verifyCode = form(verifyCodeSchema, async ({ code, next }, issue) => {
   const event = getRequestEvent();
 
   const LL = getLL(event.locals.locale);
@@ -56,7 +56,7 @@ export const verifyCode = form(verifyCodeSchema, async ({ code, next }) => {
   const providedBuffer = Buffer.from(capitalizedCode.padEnd(otp.code.length, "\0"), "utf8");
   const isValid = expectedBuffer.length === providedBuffer.length && timingSafeEqual(expectedBuffer, providedBuffer);
   if (!isValid) {
-    error(400, LL.auth.incorrectCode());
+    return invalid(issue.code(LL.auth.incorrectCode()));
   }
 
   // Find the secondary email record for this user
