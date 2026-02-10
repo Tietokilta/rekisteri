@@ -25,7 +25,7 @@ export async function ensureUserHasQrToken(userId: string): Promise<string> {
     where: eq(table.user.id, userId),
     columns: {
       id: true,
-      attendanceQrToken: true,
+      qrToken: true,
     },
   });
 
@@ -33,13 +33,13 @@ export async function ensureUserHasQrToken(userId: string): Promise<string> {
     throw new Error("User not found");
   }
 
-  if (user.attendanceQrToken) {
-    return user.attendanceQrToken;
+  if (user.qrToken) {
+    return user.qrToken;
   }
 
   // Generate new token
   const token = generateQrToken();
-  await db.update(table.user).set({ attendanceQrToken: token }).where(eq(table.user.id, userId));
+  await db.update(table.user).set({ qrToken: token }).where(eq(table.user.id, userId));
 
   return token;
 }
@@ -52,7 +52,7 @@ export async function ensureUserHasQrToken(userId: string): Promise<string> {
  */
 export async function verifyQrToken(token: string): Promise<string | null> {
   const user = await db.query.user.findFirst({
-    where: eq(table.user.attendanceQrToken, token),
+    where: eq(table.user.qrToken, token),
     columns: {
       id: true,
     },
@@ -81,7 +81,7 @@ export async function regenerateQrToken(userId: string): Promise<string> {
   }
 
   const token = generateQrToken();
-  await db.update(table.user).set({ attendanceQrToken: token }).where(eq(table.user.id, userId));
+  await db.update(table.user).set({ qrToken: token }).where(eq(table.user.id, userId));
 
   return token;
 }

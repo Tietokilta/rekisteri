@@ -1,5 +1,5 @@
 {
-  "id": "60401bdb-3a9c-4f8f-b57d-a33ff8ddaf48",
+  "id": "c1cacf16-7b83-4f49-bdd6-11b3d063bb90",
   "prevId": "4bf193a3-fa42-470b-b6cd-ea796b8aadb9",
   "version": "7",
   "dialect": "postgresql",
@@ -668,8 +668,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "attendance_qr_token": {
-          "name": "attendance_qr_token",
+        "qr_token": {
+          "name": "qr_token",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -706,11 +706,11 @@
             "email"
           ]
         },
-        "user_attendanceQrToken_unique": {
-          "name": "user_attendanceQrToken_unique",
+        "user_qrToken_unique": {
+          "name": "user_qrToken_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "attendance_qr_token"
+            "qr_token"
           ]
         }
       },
