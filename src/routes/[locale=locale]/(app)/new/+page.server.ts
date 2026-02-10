@@ -6,18 +6,21 @@ import * as table from "$lib/server/db/schema";
 import { eq, desc, gt, gte, and, isNotNull } from "drizzle-orm";
 import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
 import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
+import { checkAutoApprovalEligibility } from "$lib/server/payment/auto-approval";
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.user) {
     return redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
   }
 
+  const user = event.locals.user;
+
   const result = await db
     .select()
     .from(table.member)
     .innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
     .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
-    .where(eq(table.member.userId, event.locals.user.id))
+    .where(eq(table.member.userId, user.id))
     .orderBy(desc(table.membership.startTime));
 
   const memberships = result.map((m) => ({
@@ -47,16 +50,26 @@ export const load: PageServerLoad = async (event) => {
       ),
     );
 
-  const availableMemberships = availableResult.map((r) => ({
+  const availableMembershipsRaw = availableResult.map((r) => ({
     ...r.membership,
     membershipType: r.membership_type,
   }));
 
+  // Check auto-approval eligibility for each available membership.
+  // This runs 2-3 queries per membership (N+1), but the number of available
+  // memberships is typically very small (2-5), so batching isn't worth the complexity.
+  const availableMemberships = await Promise.all(
+    availableMembershipsRaw.map(async (m) => ({
+      ...m,
+      willAutoApprove: await checkAutoApprovalEligibility(db, user.id, m),
+    })),
+  );
+
   // Check for valid aalto.fi email (primary or secondary)
-  const primaryEmailDomain = event.locals.user.email.split("@")[1]?.toLowerCase();
+  const primaryEmailDomain = user.email.split("@")[1]?.toLowerCase();
   const isPrimaryAalto = primaryEmailDomain === "aalto.fi";
 
-  const secondaryEmails = await getUserSecondaryEmails(event.locals.user.id);
+  const secondaryEmails = await getUserSecondaryEmails(user.id);
   const aaltoSecondaryEmail = secondaryEmails.find((e) => e.domain === "aalto.fi");
   const hasValidSecondaryAalto = aaltoSecondaryEmail ? isSecondaryEmailValid(aaltoSecondaryEmail) : false;
   const hasExpiredSecondaryAalto = aaltoSecondaryEmail && !isSecondaryEmailValid(aaltoSecondaryEmail);
@@ -67,7 +80,7 @@ export const load: PageServerLoad = async (event) => {
   const hasExpiredAaltoEmail = !isPrimaryAalto && hasExpiredSecondaryAalto;
 
   return {
-    user: event.locals.user,
+    user,
     memberships,
     availableMemberships,
     hasValidAaltoEmail,

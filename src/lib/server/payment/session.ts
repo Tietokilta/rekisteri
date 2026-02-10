@@ -5,6 +5,9 @@ import { eq } from "drizzle-orm";
 import { env } from "$lib/server/env";
 import type { Locale } from "$lib/i18n/routing";
 import Stripe from "stripe";
+import { checkAutoApprovalEligibility } from "./auto-approval";
+import type { AuditAction } from "$lib/server/audit";
+import { encodeBase32LowerCase } from "@oslojs/encoding";
 
 /**
  * Checks if a Stripe error is due to a non-existent customer.
@@ -246,12 +249,35 @@ export async function fulfillSession(sessionId: string) {
   await db.transaction(async (tx) => {
     const member = await tx.query.member.findFirst({
       where: eq(table.member.id, memberId),
+      with: { membership: true },
     });
     if (!member || member.status !== "awaiting_payment") {
       // Already processed or not found
       return;
     }
-    await tx.update(table.member).set({ status: "awaiting_approval" }).where(eq(table.member.id, member.id));
+
+    const eligible = await checkAutoApprovalEligibility(tx, member.userId, member.membership);
+    const newStatus = eligible ? "active" : "awaiting_approval";
+
+    await tx.update(table.member).set({ status: newStatus }).where(eq(table.member.id, member.id));
+
+    if (eligible) {
+      const action: AuditAction = "member.auto_approve";
+      await tx.insert(table.auditLog).values({
+        id: encodeBase32LowerCase(crypto.getRandomValues(new Uint8Array(16))),
+        userId: null,
+        action,
+        targetType: "member",
+        targetId: member.id,
+        metadata: {
+          reason: "renewal",
+          membershipTypeId: member.membership.membershipTypeId,
+          userId: member.userId,
+        },
+        ipAddress: null,
+        userAgent: null,
+      });
+    }
   });
 }
 
