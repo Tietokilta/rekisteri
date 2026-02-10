@@ -8,6 +8,7 @@ import { RefillingTokenBucket } from "$lib/server/auth/rate-limit";
 import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/server";
 import { dev } from "$app/environment";
 import * as v from "valibot";
+import { getLL } from "$lib/server/i18n";
 
 // Rate limit: 10 authentication attempts per hour per email
 const authBucket = new RefillingTokenBucket<string>(10, 60 * 60);
@@ -21,11 +22,12 @@ const emailCookieName = "passkey_auth_email";
 export const getAuthenticationOptions = command(
   v.pipe(v.string(), v.email()),
   async (email): Promise<{ options: PublicKeyCredentialRequestOptionsJSON }> => {
-    const { cookies } = getRequestEvent();
+    const { cookies, locals } = getRequestEvent();
+    const LL = getLL(locals.locale);
 
     // Rate limiting by email
     if (!authBucket.consume(email, 1)) {
-      throw error(429, "Too many authentication attempts. Please try again later.");
+      throw error(429, LL.auth.passkey.tooManyAttempts());
     }
 
     try {
@@ -51,7 +53,7 @@ export const getAuthenticationOptions = command(
       return { options };
     } catch (err) {
       console.error("Failed to generate authentication options:", err);
-      throw error(500, "Failed to generate authentication options");
+      throw error(500, LL.auth.passkey.failedGenerateAuthOptions());
     }
   },
 );
@@ -62,13 +64,14 @@ export const getAuthenticationOptions = command(
 export const verifyAuthentication = command(
   v.any(), // AuthenticationResponseJSON from SimpleWebAuthn
   async (response): Promise<{ success: boolean; user: { id: string; email: string; isAdmin: boolean } }> => {
-    const { cookies, request, getClientAddress } = getRequestEvent();
+    const { cookies, request, getClientAddress, locals } = getRequestEvent();
+    const LL = getLL(locals.locale);
 
     const challenge = cookies.get(challengeCookieName);
     const email = cookies.get(emailCookieName);
 
     if (!challenge || !email) {
-      throw error(400, "No authentication challenge found. Please start authentication again.");
+      throw error(400, LL.auth.passkey.noAuthChallenge());
     }
 
     try {
@@ -79,7 +82,7 @@ export const verifyAuthentication = command(
         cookies.delete(challengeCookieName, { path: "/" });
         cookies.delete(emailCookieName, { path: "/" });
         cookies.delete(signInEmailCookieName, { path: "/" });
-        throw error(401, "Authentication failed");
+        throw error(401, LL.auth.passkey.authFailed());
       }
 
       const { user, passkey } = result;
@@ -138,7 +141,7 @@ export const verifyAuthentication = command(
       }
 
       // Only unexpected errors become 500
-      throw error(500, "Failed to verify authentication");
+      throw error(500, LL.auth.passkey.failedVerifyAuth());
     }
   },
 );

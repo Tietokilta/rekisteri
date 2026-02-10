@@ -8,13 +8,16 @@ import {
   setEmailOTPCookie,
 } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
+import { getLL } from "$lib/server/i18n";
 
 export const useEmail = form(async () => {
   const event = getRequestEvent();
 
+  const LL = getLL(event.locals.locale);
+
   const email = event.cookies.get(emailCookieName);
   if (typeof email !== "string") {
-    error(401, "No email found");
+    error(401, LL.auth.noEmailFound());
   }
 
   // Create and send OTP

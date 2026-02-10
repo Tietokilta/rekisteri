@@ -4,12 +4,14 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { count, eq } from "drizzle-orm";
 import { createMembershipTypeSchema, deleteMembershipTypeSchema, updateMembershipTypeSchema } from "./schema";
+import { getLL } from "$lib/server/i18n";
 
 export const createMembershipType = form(createMembershipTypeSchema, async (data) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   // Check if ID already exists
@@ -20,7 +22,7 @@ export const createMembershipType = form(createMembershipTypeSchema, async (data
     .then((result) => result[0]);
 
   if (existing) {
-    error(400, "A membership type with this ID already exists");
+    error(400, LL.admin.membershipTypes.idAlreadyExists());
   }
 
   await db
@@ -40,9 +42,10 @@ export const createMembershipType = form(createMembershipTypeSchema, async (data
 
 export const updateMembershipType = form(updateMembershipTypeSchema, async (data) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   // Verify membership type exists before updating
@@ -53,7 +56,7 @@ export const updateMembershipType = form(updateMembershipTypeSchema, async (data
     .then((result) => result[0]);
 
   if (!existing) {
-    error(404, "Membership type not found");
+    error(404, LL.admin.membershipTypes.membershipTypeNotFound());
   }
 
   await db
@@ -73,9 +76,10 @@ export const updateMembershipType = form(updateMembershipTypeSchema, async (data
 
 export const deleteMembershipType = form(deleteMembershipTypeSchema, async ({ id }) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   // Check if any memberships use this type
@@ -86,7 +90,7 @@ export const deleteMembershipType = form(deleteMembershipTypeSchema, async ({ id
     .then((result) => result[0]?.count ?? 0);
 
   if (membershipCount > 0) {
-    error(400, "Cannot delete membership type that is used by existing memberships");
+    error(400, LL.admin.membershipTypes.cannotDeleteInUse());
   }
 
   await db.delete(table.membershipType).where(eq(table.membershipType.id, id)).execute();

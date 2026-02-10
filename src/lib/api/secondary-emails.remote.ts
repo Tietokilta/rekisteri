@@ -14,6 +14,7 @@ import { route } from "$lib/ROUTES";
 import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
 import { addSecondaryEmailSchema } from "./secondary-emails.schema";
 import { env } from "$lib/server/env";
+import { getLL } from "$lib/server/i18n";
 
 // Rate limit: 10 add attempts per user per hour in production, 1000 in test mode
 // SECURITY: Prevents email enumeration attacks
@@ -28,7 +29,8 @@ export const listSecondaryEmails = query(async () => {
   const { locals } = getRequestEvent();
 
   if (!locals.user) {
-    throw error(401, "Not authenticated");
+    const LL = getLL(locals.locale);
+    throw error(401, LL.error.notAuthenticated());
   }
 
   const emails = await getUserSecondaryEmails(locals.user.id);
@@ -46,14 +48,16 @@ export const deleteSecondaryEmailForm = form(
   async ({ emailId }) => {
     const { locals } = getRequestEvent();
 
+    const LL = getLL(locals.locale);
+
     if (!locals.user) {
-      throw error(401, "Not authenticated");
+      throw error(401, LL.error.notAuthenticated());
     }
 
     const success = await deleteSecondaryEmail(emailId, locals.user.id);
 
     if (!success) {
-      throw error(404, "Email not found or does not belong to user");
+      throw error(404, LL.secondaryEmail.emailNotFound());
     }
 
     // Refresh the email list
@@ -74,13 +78,15 @@ export const reverifySecondaryEmailForm = form(
   async ({ emailId, next }) => {
     const { locals, cookies } = getRequestEvent();
 
+    const LL = getLL(locals.locale);
+
     if (!locals.user) {
-      throw error(401, "Not authenticated");
+      throw error(401, LL.error.notAuthenticated());
     }
 
     const email = await getSecondaryEmailById(emailId, locals.user.id);
     if (!email) {
-      throw error(404, "Email not found");
+      throw error(404, LL.secondaryEmail.emailNotFound());
     }
 
     // Create OTP and send email
@@ -121,14 +127,16 @@ export const changePrimaryEmailForm = form(
   async ({ emailId }) => {
     const event = getRequestEvent();
 
+    const LL = getLL(event.locals.locale);
+
     if (!event.locals.user) {
-      throw error(401, "Not authenticated");
+      throw error(401, LL.error.notAuthenticated());
     }
 
     const success = await changePrimaryEmail(emailId, event.locals.user.id, event);
 
     if (!success) {
-      throw error(400, "Could not change primary email. Email must be verified and not expired.");
+      throw error(400, LL.secondaryEmail.couldNotChangePrimary());
     }
   },
 );
@@ -142,14 +150,24 @@ export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ emai
   // Lazy cleanup to prevent memory leaks
   addEmailBucket.cleanup();
 
+  const LL = getLL(locals.locale);
+
   if (!locals.user) {
-    throw error(401, "Not authenticated");
+    throw error(401, LL.error.notAuthenticated());
   }
 
   // Rate limit by user ID to prevent enumeration
   if (!addEmailBucket.consume(locals.user.id, 1)) {
-    throw error(429, "Too many attempts. Please try again later.");
+    throw error(429, LL.secondaryEmail.tooManyAttempts());
   }
+
+  // Translation map for errors thrown by createSecondaryEmail / extractDomain
+  const errorTranslations: Record<string, string> = {
+    "Invalid email format": LL.secondaryEmail.invalidEmail(),
+    "Invalid email format: missing domain": LL.secondaryEmail.invalidEmail(),
+    "Could not add this email. Please try a different email address.": LL.secondaryEmail.couldNotAdd(),
+    "Maximum 10 secondary emails allowed": LL.secondaryEmail.limitReached(),
+  };
 
   try {
     // Create unverified secondary email
@@ -186,8 +204,9 @@ export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ emai
     }
     // Use invalid.email() to attach error to the email field
     if (err instanceof Error) {
-      return invalid(issue.email(err.message));
+      const translated = errorTranslations[err.message] ?? err.message;
+      return invalid(issue.email(translated));
     }
-    return invalid(issue.email("An error occurred"));
+    return invalid(issue.email(LL.error.genericError()));
   }
 });

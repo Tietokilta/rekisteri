@@ -7,18 +7,16 @@ import { createSession } from "$lib/server/payment/session";
 import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
 import { payMembershipSchema } from "./schema";
 import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
-import { i18nObject } from "$lib/i18n/i18n-util";
-import { loadLocale } from "$lib/i18n/i18n-util.sync";
+import { getLL } from "$lib/server/i18n";
 
 export const payMembership = form(payMembershipSchema, async ({ membershipId, description }) => {
   const event = getRequestEvent();
 
-  if (!event.locals.user) {
-    error(401, "Unauthorized");
-  }
+  const LL = getLL(event.locals.locale);
 
-  loadLocale(event.locals.locale);
-  const LL = i18nObject(event.locals.locale);
+  if (!event.locals.user) {
+    error(401, LL.error.unauthorized());
+  }
 
   // Check if membership requires student verification
   const [membership] = await db.select().from(table.membership).where(eq(table.membership.id, membershipId));
@@ -61,7 +59,7 @@ export const payMembership = form(payMembershipSchema, async ({ membershipId, de
     const hasValidAaltoEmail = isPrimaryAalto || hasValidSecondaryAalto;
 
     if (!hasValidAaltoEmail) {
-      error(400, "Student verification required. Please add and verify your Aalto email address.");
+      error(400, LL.membership.studentVerificationRequired());
     }
   }
 
@@ -72,7 +70,7 @@ export const payMembership = form(payMembershipSchema, async ({ membershipId, de
     trimmedDescription,
   );
   if (!paymentSession?.url) {
-    error(400, "Could not create payment session");
+    error(400, LL.membership.paymentSessionFailed());
   }
   redirect(303, paymentSession.url);
 });

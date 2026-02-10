@@ -73,6 +73,11 @@ const en = {
     changeEmail: "Change email address",
     emailSubject: "CSG Membership Registry Sign In Code",
     emailBody: "Your code is {code}",
+    noEmailFound: "No email found",
+    incorrectCode: "Incorrect code.",
+    codeExpiredResent: "The verification code was expired. We sent another code to your inbox.",
+    codeSent: "A new code was sent to your inbox.",
+    emailNotFound: "Email not found",
 
     // Passkey
     passkey: {
@@ -90,6 +95,17 @@ const en = {
       regAlreadyRegistered:
         "This device is already registered. If you want to re-register, please delete the old passkey first.",
       lastUsed: "last used",
+
+      // Server errors
+      tooManyAttempts: "Too many authentication attempts. Please try again later.",
+      failedGenerateAuthOptions: "Failed to generate authentication options",
+      noAuthChallenge: "No authentication challenge found. Please start authentication again.",
+      failedVerifyAuth: "Failed to verify authentication",
+      failedGenerateRegOptions: "Failed to generate registration options",
+      noRegChallenge: "No registration challenge found. Please start registration again.",
+      failedVerifyReg: "Failed to verify passkey registration",
+      failedList: "Failed to list passkeys",
+      notFound: "Passkey not found or does not belong to user",
 
       // Banner
       bannerTitle: "Add a passkey",
@@ -211,6 +227,10 @@ const en = {
     limitReached: "Maximum 10 secondary emails allowed",
     verificationFailed: "Invalid verification code",
     rateLimited: "Too many requests. Please try again later",
+    couldNotAdd: "Could not add this email. Please try a different email address.",
+    emailNotFound: "Email not found",
+    couldNotChangePrimary: "Could not change primary email. Email must be verified and not expired.",
+    tooManyAttempts: "Too many attempts. Please try again later.",
 
     // Empty state
     noEmails: "No secondary emails",
@@ -253,6 +273,8 @@ const en = {
     willRequireApproval: "Will require board approval after payment",
     autoApprovalAdminNote:
       "Members who had an approved membership of the same type in the immediately preceding period will be automatically approved upon renewal. For student memberships, a valid aalto.fi email is also required.",
+    studentVerificationRequired: "Student verification required. Please add and verify your Aalto email address.",
+    paymentSessionFailed: "Could not create payment session",
 
     // Status
     status: {
@@ -301,6 +323,8 @@ const en = {
       descriptionEn: "Description (English, optional)",
       descriptionPlaceholder: "Optional description for the membership type...",
       cannotDeleteInUse: "Cannot delete membership type that has memberships",
+      idAlreadyExists: "A membership type with this ID already exists",
+      membershipTypeNotFound: "Membership type not found",
     },
 
     members: {
@@ -386,6 +410,15 @@ const en = {
         bulkReactivate: "Reactivate ({count})",
         clearSelection: "Clear selection",
       },
+
+      // Server errors
+      memberNotFound: "Member not found",
+      notAwaitingApproval: "Member is not awaiting approval",
+      cannotReactivate: "Only expired or cancelled memberships can be reactivated",
+      noMembersAwaitingApproval: "No members are awaiting approval",
+      noMembersCanBeExpired: "No members can be marked as expired",
+      noMembersCanBeCancelled: "No members can be cancelled",
+      noMembersCanBeReactivated: "No members can be reactivated",
     },
 
     import: {
@@ -445,6 +478,7 @@ const en = {
       createFailed: "Failed to create membership",
       rowsAffected: "{count} {{row|rows}} affected",
       resolveToImport: "Resolve all unmatched rows to enable import",
+      invalidDataFormat: "Invalid data format",
     },
 
     users: {
@@ -469,6 +503,20 @@ const en = {
         noResults: "No search results",
         showing: "Showing {current} of {total} users",
       },
+
+      // Server errors
+      userNotFound: "User not found",
+      alreadyAdmin: "User is already an admin",
+      notAdmin: "User is not an admin",
+      cannotDemoteSelf: "You cannot demote yourself",
+      cannotDemoteLastAdmin: "Cannot demote the last admin",
+      cannotMergeSelf: "Cannot merge a user with themselves",
+      primaryUserNotFound: "Primary user not found",
+      secondaryUserNotFound: "Secondary user not found",
+      primaryEmailMismatch: "Primary email confirmation does not match",
+      secondaryEmailMismatch: "Secondary email confirmation does not match",
+      cannotMergeOverlapping:
+        'Cannot merge: Both users have membership "{type}" for the same period ({startDate} - {endDate})',
 
       merge: {
         title: "Merge users",
@@ -529,6 +577,15 @@ const en = {
     errorCode: "Error code: {code}",
     backToHome: "Back to home",
     tryAgain: "Try again",
+
+    // Form/API validation errors
+    notAuthenticated: "Not authenticated",
+    tooManyRequests: "Too many requests",
+    tooManyRequestsNetwork:
+      "Too many requests. This could be due to network activity or multiple attempts. Try again later or from a different network.",
+    unauthorized: "Unauthorized",
+    resourceNotFound: "Not found",
+    updateFailed: "Failed to update information",
   },
 
   // Documents & Legal

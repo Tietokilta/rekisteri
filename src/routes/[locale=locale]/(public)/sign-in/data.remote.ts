@@ -4,6 +4,7 @@ import { RefillingTokenBucket } from "$lib/server/auth/rate-limit";
 import { setEmailCookie } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
 import { signInSchema } from "./schema";
+import { getLL } from "$lib/server/i18n";
 
 // Rate limit: 100 sign-in attempts per minute per IP (generous for shared networks)
 const ipBucket = new RefillingTokenBucket<string>(100, 60);
@@ -12,6 +13,8 @@ const emailBucket = new RefillingTokenBucket<string>(10, 60 * 60);
 
 export const signIn = form(signInSchema, async ({ email: rawEmail }) => {
   const event = getRequestEvent();
+
+  const LL = getLL(event.locals.locale);
 
   // Lazy cleanup to prevent memory leaks
   ipBucket.cleanup();
@@ -23,10 +26,7 @@ export const signIn = form(signInSchema, async ({ email: rawEmail }) => {
   const clientIP = event.getClientAddress();
 
   if (!ipBucket.check(clientIP, 1)) {
-    error(
-      429,
-      "Too many requests. This could be due to network activity or multiple attempts. Try again later or from a different network.",
-    );
+    error(429, LL.error.tooManyRequestsNetwork());
   }
 
   // Normalize email to lowercase to ensure case-insensitive matching
@@ -34,18 +34,12 @@ export const signIn = form(signInSchema, async ({ email: rawEmail }) => {
 
   // Check email rate limit
   if (!emailBucket.check(email, 1)) {
-    error(
-      429,
-      "Too many requests. This could be due to network activity or multiple attempts. Try again later or from a different network.",
-    );
+    error(429, LL.error.tooManyRequestsNetwork());
   }
 
   // Consume from both buckets
   if (!ipBucket.consume(clientIP, 1) || !emailBucket.consume(email, 1)) {
-    error(
-      429,
-      "Too many requests. This could be due to network activity or multiple attempts. Try again later or from a different network.",
-    );
+    error(429, LL.error.tooManyRequestsNetwork());
   }
 
   setEmailCookie(event, email, new Date(Date.now() + 1000 * 60 * 10));

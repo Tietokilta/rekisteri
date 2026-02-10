@@ -16,33 +16,36 @@ import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
 import { route } from "$lib/ROUTES";
 import { getUserSecondaryEmails, markSecondaryEmailVerified } from "$lib/server/auth/secondary-email";
 import { verifyCodeSchema } from "./schema";
+import { getLL } from "$lib/server/i18n";
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
 
 export const verifyCode = form(verifyCodeSchema, async ({ code, next }) => {
   const event = getRequestEvent();
 
+  const LL = getLL(event.locals.locale);
+
   // Lazy cleanup to prevent memory leaks
   otpVerifyBucket.cleanup();
 
   let otp = await getEmailOTPFromRequest(event);
   if (otp === null) {
-    error(401, "Not authenticated");
+    error(401, LL.error.notAuthenticated());
   }
 
   if (!otpVerifyBucket.check(otp.email, 1)) {
-    error(429, "Too many requests");
+    error(429, LL.error.tooManyRequests());
   }
 
   if (!otpVerifyBucket.consume(otp.email, 1)) {
-    error(429, "Too many requests");
+    error(429, LL.error.tooManyRequests());
   }
 
   if (Date.now() >= otp.expiresAt.getTime()) {
     otp = await createEmailOTP(otp.email);
     sendOTPEmail(otp.email, otp.code, event.locals.locale);
     return {
-      message: "The verification code was expired. We sent another code to your inbox.",
+      message: LL.auth.codeExpiredResent(),
     };
   }
 
@@ -53,19 +56,19 @@ export const verifyCode = form(verifyCodeSchema, async ({ code, next }) => {
   const providedBuffer = Buffer.from(capitalizedCode.padEnd(otp.code.length, "\0"), "utf8");
   const isValid = expectedBuffer.length === providedBuffer.length && timingSafeEqual(expectedBuffer, providedBuffer);
   if (!isValid) {
-    error(400, "Incorrect code.");
+    error(400, LL.auth.incorrectCode());
   }
 
   // Find the secondary email record for this user
   if (!event.locals.user) {
-    error(401, "Not authenticated");
+    error(401, LL.error.notAuthenticated());
   }
 
   const secondaryEmails = await getUserSecondaryEmails(event.locals.user.id);
   const emailToVerify = secondaryEmails.find((e) => e.email === otp.email);
 
   if (!emailToVerify) {
-    error(404, "Email not found");
+    error(404, LL.auth.emailNotFound());
   }
 
   // Mark as verified
@@ -89,20 +92,22 @@ export const verifyCode = form(verifyCodeSchema, async ({ code, next }) => {
 export const resendEmail = form(async () => {
   const event = getRequestEvent();
 
+  const LL = getLL(event.locals.locale);
+
   // Lazy cleanup to prevent memory leaks
   sendOTPBucket.cleanup();
 
   const email = event.cookies.get(emailCookieName);
   if (typeof email !== "string") {
-    error(401, "Not authenticated");
+    error(401, LL.error.notAuthenticated());
   }
 
   if (!sendOTPBucket.check(email, 1)) {
-    error(429, "Too many requests");
+    error(429, LL.error.tooManyRequests());
   }
 
   if (!sendOTPBucket.consume(email, 1)) {
-    error(429, "Too many requests");
+    error(429, LL.error.tooManyRequests());
   }
 
   const otp = await createEmailOTP(email);
@@ -110,7 +115,7 @@ export const resendEmail = form(async () => {
   setEmailOTPCookie(event, otp);
 
   return {
-    message: "A new code was sent to your inbox.",
+    message: LL.auth.codeSent(),
   };
 });
 
