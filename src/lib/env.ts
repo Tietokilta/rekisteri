@@ -1,4 +1,5 @@
 import { env as publicEnv } from "$env/dynamic/public";
+import { PUBLIC_GIT_COMMIT_SHA } from "$env/static/public";
 import * as v from "valibot";
 
 /**
@@ -8,14 +9,14 @@ import * as v from "valibot";
 const publicEnvSchema = v.object({
   // Public URL (required for Stripe redirects and other use cases)
   PUBLIC_URL: v.pipe(v.string(), v.url(), v.regex(/^https?:\/\/.+/, "PUBLIC_URL must use http or https protocol")),
-  // Git commit SHA for version display (optional, baked in at build time)
+  // Git commit SHA for version display (optional, baked in at build time via $env/static/public)
   PUBLIC_GIT_COMMIT_SHA: v.optional(v.string()),
 });
 
 // Validate public environment variables at module load (fail fast)
 const parsed = v.safeParse(publicEnvSchema, {
   PUBLIC_URL: publicEnv.PUBLIC_URL,
-  PUBLIC_GIT_COMMIT_SHA: publicEnv.PUBLIC_GIT_COMMIT_SHA || undefined,
+  PUBLIC_GIT_COMMIT_SHA: PUBLIC_GIT_COMMIT_SHA || undefined,
 });
 
 if (!parsed.success) {
