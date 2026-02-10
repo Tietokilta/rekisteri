@@ -20,6 +20,7 @@ const en = {
       members: "Members",
       memberships: "Memberships",
       membershipTypes: "Membership Types",
+      meetings: "Meetings",
       users: "Users",
     },
     signOut: "Sign out",
@@ -507,6 +508,35 @@ const en = {
         overlappingMembershipsError: "Merge failed: both users have memberships for the same period",
         noOverlappingMemberships: "No overlapping memberships - merge is safe",
         checkingMemberships: "Checking memberships...",
+      },
+    },
+
+    meetings: {
+      title: "Manage meetings",
+      description: "Track meeting attendance and manage events",
+      createNew: "Create new meeting",
+      meetingName: "Meeting name",
+      meetingDescription: "Description (optional)",
+      creating: "Creating...",
+      createButton: "Create meeting",
+      noMeetings: "No meetings",
+      noMeetingsDescription: "Create a meeting to start tracking attendance",
+
+      // Status
+      status: {
+        upcoming: "Upcoming",
+        ongoing: "Ongoing",
+        recess: "Recess",
+        finished: "Finished",
+      },
+
+      // Table
+      table: {
+        name: "Name",
+        status: "Status",
+        created: "Created",
+        actions: "Actions",
+        view: "View details",
       },
     },
   },

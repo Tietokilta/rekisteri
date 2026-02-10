@@ -20,6 +20,7 @@ const fi = {
       members: "Jäsenet",
       memberships: "Jäsenyydet",
       membershipTypes: "Jäsenyystyypit",
+      meetings: "Kokoukset",
       users: "Käyttäjät",
     },
     signOut: "Kirjaudu ulos",
@@ -509,6 +510,35 @@ const fi = {
           "Yhdistäminen epäonnistui: molemmilla käyttäjillä on jäsenyys samalle ajanjaksolle",
         noOverlappingMemberships: "Ei päällekkäisiä jäsenyyksiä - yhdistäminen on turvallista",
         checkingMemberships: "Tarkistetaan jäsenyyksiä...",
+      },
+    },
+
+    meetings: {
+      title: "Hallinnoi kokouksia",
+      description: "Seuraa kokouksiin osallistumista ja hallinnoi tapahtumia",
+      createNew: "Luo uusi kokous",
+      meetingName: "Kokouksen nimi",
+      meetingDescription: "Kuvaus (valinnainen)",
+      creating: "Luodaan...",
+      createButton: "Luo kokous",
+      noMeetings: "Ei kokouksia",
+      noMeetingsDescription: "Luo kokous aloittaaksesi osallistumisen seurannan",
+
+      // Status
+      status: {
+        upcoming: "Tuleva",
+        ongoing: "Käynnissä",
+        recess: "Tauko",
+        finished: "Päättynyt",
+      },
+
+      // Table
+      table: {
+        name: "Nimi",
+        status: "Tila",
+        created: "Luotu",
+        actions: "Toiminnot",
+        view: "Näytä tiedot",
       },
     },
   },

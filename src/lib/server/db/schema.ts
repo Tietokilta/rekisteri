@@ -12,7 +12,14 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import * as v from "valibot";
-import { MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
+import {
+  MEMBER_STATUS_VALUES,
+  PREFERRED_LANGUAGE_VALUES,
+  MEETING_STATUS_VALUES,
+  MEETING_EVENT_TYPE_VALUES,
+  ATTENDANCE_EVENT_TYPE_VALUES,
+  SCAN_METHOD_VALUES,
+} from "../../shared/enums";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 
 export type LocalizedString = { fi: string; en: string };
@@ -32,6 +39,22 @@ export const preferredLanguageEnumSchema = v.picklist(PREFERRED_LANGUAGE_VALUES)
 export const memberStatusEnum = pgEnum("member_status", MEMBER_STATUS_VALUES);
 
 export const memberStatusEnumSchema = v.picklist(MEMBER_STATUS_VALUES);
+
+export const meetingStatusEnum = pgEnum("meeting_status", MEETING_STATUS_VALUES);
+
+export const meetingStatusEnumSchema = v.picklist(MEETING_STATUS_VALUES);
+
+export const meetingEventTypeEnum = pgEnum("meeting_event_type", MEETING_EVENT_TYPE_VALUES);
+
+export const meetingEventTypeEnumSchema = v.picklist(MEETING_EVENT_TYPE_VALUES);
+
+export const attendanceEventTypeEnum = pgEnum("attendance_event_type", ATTENDANCE_EVENT_TYPE_VALUES);
+
+export const attendanceEventTypeEnumSchema = v.picklist(ATTENDANCE_EVENT_TYPE_VALUES);
+
+export const scanMethodEnum = pgEnum("scan_method", SCAN_METHOD_VALUES);
+
+export const scanMethodEnumSchema = v.picklist(SCAN_METHOD_VALUES);
 
 export const user = pgTable("user", {
   id: text().primaryKey(),
@@ -172,6 +195,88 @@ export const auditLog = pgTable("audit_log", {
   ...timestamps,
 });
 
+/**
+ * Meeting table - tracks guild meetings for attendance
+ */
+export const meeting = pgTable("meeting", {
+  id: text().primaryKey(),
+  name: text().notNull(),
+  description: text(),
+  status: meetingStatusEnum().notNull().default("upcoming"),
+  startedAt: timestamp({ withTimezone: true }),
+  finishedAt: timestamp({ withTimezone: true }),
+  shareToken: text().unique(), // For shareable view-only links (secretary, chair)
+  ...timestamps,
+});
+
+/**
+ * Meeting event table - tracks state transitions (start, recess, resume, finish)
+ */
+export const meetingEvent = pgTable(
+  "meeting_event",
+  {
+    id: text().primaryKey(),
+    meetingId: text()
+      .notNull()
+      .references(() => meeting.id, { onDelete: "cascade" }),
+    eventType: meetingEventTypeEnum().notNull(),
+    notes: text(), // Optional notes (e.g., "Lunch break", "Day 2 continuation")
+    timestamp: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("idx_meeting_event_meeting_id").on(table.meetingId)],
+);
+
+/**
+ * Attendance table - tracks check-in/out events for meetings
+ */
+export const attendance = pgTable(
+  "attendance",
+  {
+    id: text().primaryKey(),
+    meetingId: text()
+      .notNull()
+      .references(() => meeting.id, { onDelete: "cascade" }),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    eventType: attendanceEventTypeEnum().notNull(),
+    scanMethod: scanMethodEnum().notNull(),
+    scannedBy: text()
+      .notNull()
+      .references(() => user.id),
+    timestamp: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("idx_attendance_meeting_id").on(table.meetingId), index("idx_attendance_user_id").on(table.userId)],
+);
+
+// Relations
+export const meetingRelations = relations(meeting, ({ many }) => ({
+  events: many(meetingEvent),
+  attendances: many(attendance),
+}));
+
+export const meetingEventRelations = relations(meetingEvent, ({ one }) => ({
+  meeting: one(meeting, {
+    fields: [meetingEvent.meetingId],
+    references: [meeting.id],
+  }),
+}));
+
+export const attendanceRelations = relations(attendance, ({ one }) => ({
+  meeting: one(meeting, {
+    fields: [attendance.meetingId],
+    references: [meeting.id],
+  }),
+  user: one(user, {
+    fields: [attendance.userId],
+    references: [user.id],
+  }),
+  scanner: one(user, {
+    fields: [attendance.scannedBy],
+    references: [user.id],
+  }),
+}));
+
 export type Member = typeof member.$inferSelect;
 
 export type MemberStatus = v.InferOutput<typeof memberStatusEnumSchema>;
@@ -193,3 +298,17 @@ export type AuditLog = typeof auditLog.$inferSelect;
 export type Passkey = typeof passkey.$inferSelect;
 
 export type SecondaryEmail = typeof secondaryEmail.$inferSelect;
+
+export type Meeting = typeof meeting.$inferSelect;
+
+export type MeetingEvent = typeof meetingEvent.$inferSelect;
+
+export type Attendance = typeof attendance.$inferSelect;
+
+export type MeetingStatus = v.InferOutput<typeof meetingStatusEnumSchema>;
+
+export type MeetingEventType = v.InferOutput<typeof meetingEventTypeEnumSchema>;
+
+export type AttendanceEventType = v.InferOutput<typeof attendanceEventTypeEnumSchema>;
+
+export type ScanMethod = v.InferOutput<typeof scanMethodEnumSchema>;
