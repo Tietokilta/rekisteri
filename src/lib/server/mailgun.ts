@@ -1,5 +1,5 @@
 import Mailgun from "mailgun.js";
-import type { MessagesSendResult } from "mailgun.js/definitions";
+import type { MessagesSendResult, MailgunMessageData } from "mailgun.js/definitions";
 import { env } from "$lib/server/env";
 
 interface SendEmailOptions {
@@ -22,25 +22,17 @@ export const sendEmail = async (options: SendEmailOptions): Promise<MessagesSend
     url: env.MAILGUN_URL,
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const message: any = {
+  const message: MailgunMessageData = {
     from: env.MAILGUN_SENDER,
     to: options.to,
     subject: options.subject,
     text: options.text,
+    ...(options.html && { html: options.html }),
+    // Add custom headers with 'h:' prefix (e.g., for OTP auto-extraction)
+    // MailgunMessageData supports arbitrary keys via index signature
+    ...(options.headers &&
+      Object.fromEntries(Object.entries(options.headers).map(([key, value]) => [`h:${key}`, value]))),
   };
-
-  // Add optional HTML content
-  if (options.html) {
-    message.html = options.html;
-  }
-
-  // Add custom headers (e.g., for OTP auto-extraction)
-  if (options.headers) {
-    for (const [key, value] of Object.entries(options.headers)) {
-      message[`h:${key}`] = value;
-    }
-  }
 
   return await mg.messages.create(env.MAILGUN_DOMAIN, message);
 };
