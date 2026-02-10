@@ -37,7 +37,7 @@
         </InputOTP.Root>
       </div>
       {#each verifyCode.fields.allIssues() as issue, i (i)}
-        <p class="text-red-500">{issue.message}</p>
+        <p class="text-red-500" data-testid="otp-error">{issue.message}</p>
       {/each}
       <Button type="submit">{$LL.auth.verify()}</Button>
     </form>
