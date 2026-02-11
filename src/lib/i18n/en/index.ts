@@ -71,8 +71,6 @@ const en = {
     codeSentTo: "We sent an 8-digit code to {email}.",
     resendCode: "Resend code",
     changeEmail: "Change email address",
-    emailSubject: "CSG Membership Registry Sign In Code",
-    emailBody: "Your code is {code}",
     noEmailFound: "No email found",
     incorrectCode: "Incorrect code.",
     codeExpiredResent: "The verification code was expired. We sent another code to your inbox.",
@@ -142,6 +140,11 @@ const en = {
   emails: {
     otp: {
       subject: "CSG Membership Registry Sign In Code",
+      body: `Your login code is: {code}
+
+This code will expire in 10 minutes.
+
+@{domain} #{code}`,
     },
     paymentSuccess: {
       subject: "Payment received - Awaiting board approval",

@@ -6,7 +6,8 @@ export const paymentSuccessTemplate: EmailTemplate<PaymentSuccessMetadata> = {
   render(locale, metadata, LL) {
     const { membershipName, amount, currency } = metadata;
 
-    // Use Finnish formatting conventions regardless of UI language
+    // Use Finnish region for formatting (e.g., 'fi-FI' or 'en-FI')
+    // This ensures locale-appropriate formatting with Finnish regional conventions
     const formatter = new Intl.NumberFormat(`${locale}-FI`, {
       style: "currency",
       currency,

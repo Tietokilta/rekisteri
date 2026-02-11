@@ -71,8 +71,6 @@ const fi = {
     codeSentTo: "Lähetimme 8-numeroisen koodin osoitteeseen {email}.",
     resendCode: "Lähetä uusi koodi",
     changeEmail: "Vaihda sähköpostiosoite",
-    emailSubject: "Tietokillan jäsenrekisterin sisäänkirjautumiskoodi",
-    emailBody: "Koodisi on {code}",
     noEmailFound: "Sähköpostia ei löytynyt",
     incorrectCode: "Virheellinen koodi.",
     codeExpiredResent: "Vahvistuskoodi oli vanhentunut. Lähetimme uuden koodin sähköpostiisi.",
@@ -142,6 +140,11 @@ const fi = {
   emails: {
     otp: {
       subject: "Tietokillan jäsenrekisterin sisäänkirjautumiskoodi",
+      body: `Kirjautumiskoodisi on: {code}
+
+Koodi vanhenee 10 minuutin kuluttua.
+
+@{domain} #{code}`,
     },
     paymentSuccess: {
       subject: "Maksu vastaanotettu - Odottaa hallituksen hyväksyntää",

@@ -10,6 +10,7 @@ import type { AuditAction } from "$lib/server/audit";
 import { encodeBase32LowerCase } from "@oslojs/encoding";
 import { sendMemberEmail } from "$lib/server/emails";
 import { getMembershipName } from "$lib/server/utils/membership";
+import { getUserLocale } from "$lib/server/utils/user";
 
 /**
  * Checks if a Stripe error is due to a non-existent customer.
@@ -284,6 +285,11 @@ export async function fulfillSession(sessionId: string) {
   });
 
   // Send appropriate email based on the status that was set
+  // NOTE: Email sending is synchronous and adds ~200-500ms latency to webhook response.
+  // This is acceptable because:
+  // 1. Stripe retries failed webhooks automatically
+  // 2. Phase 1 prioritizes simplicity over background job complexity
+  // 3. Email failures are caught and logged without failing the transaction
   if (newStatus) {
     try {
       const memberWithDetails = await db.query.member.findFirst({
@@ -300,7 +306,7 @@ export async function fulfillSession(sessionId: string) {
         return;
       }
 
-      const userLocale: "fi" | "en" = memberWithDetails.user.preferredLanguage === "english" ? "en" : "fi";
+      const userLocale = getUserLocale(memberWithDetails.user);
 
       if (newStatus === "active") {
         // Auto-approved (renewal): send membership renewed email immediately

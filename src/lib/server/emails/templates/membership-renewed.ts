@@ -7,7 +7,8 @@ export const membershipRenewedTemplate: EmailTemplate<MembershipApprovedMetadata
   type: "membership_renewed",
 
   render(locale, metadata, LL) {
-    // Use Finnish formatting conventions regardless of UI language
+    // Use Finnish region for formatting (e.g., 'fi-FI' or 'en-FI')
+    // This ensures locale-appropriate formatting with Finnish regional conventions
     const dateFormatter = new Intl.DateTimeFormat(`${locale}-FI`, { dateStyle: "long" });
 
     return {
