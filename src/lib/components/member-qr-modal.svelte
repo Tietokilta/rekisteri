@@ -79,31 +79,29 @@
 </button>
 
 <!-- Native HTML dialog element -->
-<dialog
-  bind:this={dialog}
-  onclick={handleDialogClick}
-  class="m-0 flex max-h-screen w-full max-w-md flex-col items-center justify-center gap-6 rounded-lg border-none bg-white p-8 text-black backdrop:bg-black/80 open:flex"
->
-  <h2 class="text-center text-2xl font-bold">{$LL.memberCard.title()}</h2>
+<dialog bind:this={dialog} onclick={handleDialogClick} class="max-w-md rounded-lg backdrop:bg-black/80">
+  <div class="flex flex-col items-center gap-6 p-8">
+    <h2 class="text-center text-2xl font-bold">{$LL.memberCard.title()}</h2>
 
-  <!-- QR Code -->
-  {#if qrDataUrl}
-    <div class="rounded-lg bg-white p-4 shadow-lg">
-      <img src={qrDataUrl} alt={$LL.memberCard.qrAlt()} class="h-auto w-[280px]" />
-    </div>
-  {:else}
-    <div class="h-[280px] w-[280px] animate-pulse rounded-lg bg-gray-200"></div>
-  {/if}
+    <!-- QR Code -->
+    {#if qrDataUrl}
+      <div class="rounded-lg bg-white p-4 shadow-lg">
+        <img src={qrDataUrl} alt={$LL.memberCard.qrAlt()} class="h-auto w-[280px]" />
+      </div>
+    {:else}
+      <div class="h-[280px] w-[280px] animate-pulse rounded-lg bg-gray-200"></div>
+    {/if}
 
-  <!-- User name -->
-  <p class="text-center text-xl font-semibold">{userName}</p>
+    <!-- User name -->
+    <p class="text-center text-xl font-semibold">{userName}</p>
 
-  <!-- Close button -->
-  <button
-    type="button"
-    onclick={closeModal}
-    class="mt-4 rounded-md bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 focus:outline-none"
-  >
-    {$LL.memberCard.close()}
-  </button>
+    <!-- Close button -->
+    <button
+      type="button"
+      onclick={closeModal}
+      class="mt-4 rounded-md bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 focus:outline-none"
+    >
+      {$LL.memberCard.close()}
+    </button>
+  </div>
 </dialog>

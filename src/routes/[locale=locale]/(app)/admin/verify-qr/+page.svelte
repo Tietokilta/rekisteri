@@ -144,10 +144,10 @@
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 </svelte:head>
 
-<AdminPageHeader title={$LL.admin.verifyQr.title()} description={$LL.admin.verifyQr.description()} />
+<main class="container mx-auto max-w-[1400px] px-4 py-6">
+  <AdminPageHeader title={$LL.admin.verifyQr.title()} description={$LL.admin.verifyQr.description()} />
 
-<div class="container mx-auto max-w-2xl px-4 py-8">
-  <div class="space-y-6">
+  <div class="mx-auto max-w-2xl space-y-6">
     <!-- Scanner controls -->
     <div class="flex justify-center">
       {#if !scanning}
@@ -176,15 +176,12 @@
       <p class="text-center text-sm text-muted-foreground">{$LL.admin.verifyQr.scanInstructions()}</p>
     {/if}
   </div>
-</div>
+</main>
 
 <!-- User info modal -->
-<dialog
-  bind:this={dialog}
-  class="fixed inset-0 z-50 m-auto max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-lg border bg-background p-6 shadow-lg backdrop:bg-black/50"
->
+<dialog bind:this={dialog} class="max-w-lg rounded-lg backdrop:bg-black/50">
   {#if scannedUser}
-    <div class="space-y-6">
+    <div class="space-y-6 p-6">
       <h2 class="text-2xl font-bold">{$LL.admin.verifyQr.userInfo()}</h2>
 
       <!-- User details -->
