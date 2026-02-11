@@ -6,7 +6,8 @@ export const paymentSuccessTemplate: EmailTemplate<PaymentSuccessMetadata> = {
   render(locale, metadata, LL) {
     const { membershipName, amount, currency } = metadata;
 
-    const formatter = new Intl.NumberFormat(locale, {
+    // Use Finnish formatting conventions regardless of UI language
+    const formatter = new Intl.NumberFormat(`${locale}-FI`, {
       style: "currency",
       currency,
     });

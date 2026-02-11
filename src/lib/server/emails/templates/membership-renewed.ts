@@ -7,7 +7,8 @@ export const membershipRenewedTemplate: EmailTemplate<MembershipApprovedMetadata
   type: "membership_renewed",
 
   render(locale, metadata, LL) {
-    const dateFormatter = new Intl.DateTimeFormat(locale, { dateStyle: "long" });
+    // Use Finnish formatting conventions regardless of UI language
+    const dateFormatter = new Intl.DateTimeFormat(`${locale}-FI`, { dateStyle: "long" });
 
     return {
       subject: LL.emails.membershipRenewed.subject(),

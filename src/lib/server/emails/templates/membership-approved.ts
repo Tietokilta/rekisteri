@@ -6,7 +6,8 @@ export const membershipApprovedTemplate: EmailTemplate<MembershipApprovedMetadat
   render(locale, metadata, LL) {
     const { firstName, membershipName, startDate, endDate } = metadata;
 
-    const dateFormatter = new Intl.DateTimeFormat(locale, {
+    // Use Finnish formatting conventions regardless of UI language
+    const dateFormatter = new Intl.DateTimeFormat(`${locale}-FI`, {
       dateStyle: "long",
     });
 
