@@ -1,14 +1,17 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import QRCode from "qrcode";
+  import QrCodeIcon from "@lucide/svelte/icons/qr-code";
   import { LL } from "$lib/i18n/i18n-svelte";
+  import { Button } from "$lib/components/ui/button/index.js";
 
   type Props = {
     token: string;
     userName: string;
+    class?: string;
   };
 
-  let { token, userName }: Props = $props();
+  let { token, userName, class: className }: Props = $props();
 
   let qrDataUrl = $state("");
   let wakeLock: WakeLockSentinel | null = $state(null);
@@ -70,42 +73,31 @@
   }
 </script>
 
-<button
-  type="button"
-  onclick={openModal}
-  class="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
->
+<Button onclick={openModal} class={className}>
+  <QrCodeIcon class="mr-2 size-4" />
   {$LL.memberCard.show()}
-</button>
+</Button>
 
 <!-- Native HTML dialog element -->
-<dialog
-  bind:this={dialog}
-  onclick={handleDialogClick}
-  class="m-auto max-w-md rounded-lg p-0 backdrop:bg-black/80 open:flex open:flex-col"
->
+<dialog bind:this={dialog} onclick={handleDialogClick} class="fixed m-auto max-w-md rounded-lg backdrop:bg-black/80">
   <div class="flex flex-col items-center gap-6 p-8">
     <h2 class="text-center text-2xl font-bold">{$LL.memberCard.title()}</h2>
 
     <!-- QR Code -->
     {#if qrDataUrl}
       <div class="rounded-lg bg-white p-4 shadow-lg">
-        <img src={qrDataUrl} alt={$LL.memberCard.qrAlt()} class="h-auto w-[280px]" />
+        <img src={qrDataUrl} alt={$LL.memberCard.qrAlt()} class="h-auto w-70" />
       </div>
     {:else}
-      <div class="h-[280px] w-[280px] animate-pulse rounded-lg bg-gray-200"></div>
+      <div class="h-70 w-70 animate-pulse rounded-lg bg-gray-200"></div>
     {/if}
 
     <!-- User name -->
     <p class="text-center text-xl font-semibold">{userName}</p>
 
     <!-- Close button -->
-    <button
-      type="button"
-      onclick={closeModal}
-      class="mt-4 rounded-md bg-gray-900 px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 focus:outline-none"
-    >
+    <Button onclick={closeModal} class="mt-4">
       {$LL.memberCard.close()}
-    </button>
+    </Button>
   </div>
 </dialog>

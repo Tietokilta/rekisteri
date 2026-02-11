@@ -7,7 +7,6 @@
   import type { PageServerData } from "./$types";
   import MembershipCard from "$lib/components/membership-card.svelte";
   import ProfileIncompleteCard from "$lib/components/profile-incomplete-card.svelte";
-  import MemberQrModal from "$lib/components/member-qr-modal.svelte";
 
   let { data }: { data: PageServerData } = $props();
 
@@ -42,16 +41,14 @@
 <div class="container mx-auto max-w-2xl px-4 py-8">
   <div class="space-y-4">
     {#if isProfileComplete}
-      <MembershipCard memberships={data.memberships} userName="{data.user.firstNames} {data.user.lastName}" />
+      <MembershipCard
+        memberships={data.memberships}
+        userName={fullName}
+        qrToken={data.qrToken}
+        hasAvailableMemberships={data.hasAvailableMemberships}
+      />
     {:else}
       <ProfileIncompleteCard />
-    {/if}
-
-    <!-- Member QR Code - only show if user has active or expired membership -->
-    {#if data.qrToken}
-      <div class="flex justify-center">
-        <MemberQrModal token={data.qrToken} userName={fullName} />
-      </div>
     {/if}
   </div>
 </div>

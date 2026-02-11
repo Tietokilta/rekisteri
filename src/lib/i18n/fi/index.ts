@@ -637,6 +637,8 @@ Tietokilta`,
       userInfo: "Jäsenen tiedot",
       memberships: "Jäsenyydet",
       noMemberships: "Jäsenyyksiä ei löytynyt",
+      scanNext: "Skannaa seuraava",
+      closeScanner: "Sulje skanneri",
     },
   },
 

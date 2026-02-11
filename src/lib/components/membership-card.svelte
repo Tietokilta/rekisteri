@@ -8,6 +8,7 @@
   import type { LocalizedString } from "$lib/server/db/schema";
   import { retryPayment } from "$lib/api/retry-payment.remote";
   import { retryPaymentSchema } from "$lib/api/retry-payment.schema";
+  import MemberQrModal from "$lib/components/member-qr-modal.svelte";
 
   // Icons
   import CircleCheck from "@lucide/svelte/icons/circle-check";
@@ -32,9 +33,11 @@
   interface Props {
     memberships: Membership[];
     userName: string;
+    qrToken: string | null;
+    hasAvailableMemberships: boolean;
   }
 
-  let { memberships, userName }: Props = $props();
+  let { memberships, userName, qrToken, hasAvailableMemberships }: Props = $props();
 
   // Helper to get localized membership type name
   function getTypeName(membershipType: MembershipType): string {
@@ -146,13 +149,9 @@
       </div>
     {/if}
   </Card.Content>
-  <Card.Footer class="flex gap-2">
-    {#if memberships.length > 0}
-      <Button variant="outline" href={route("/[locale=locale]/membership", { locale: $locale })} class="flex-1">
-        {$LL.dashboard.viewAll()}
-      </Button>
-    {/if}
+  <Card.Footer class="flex flex-wrap gap-2">
     {#if currentMembership?.status === "awaiting_payment"}
+      <!-- Awaiting payment: Primary = Complete payment, Secondary = History -->
       <form {...retryPayment.preflight(retryPaymentSchema)} class="flex-1">
         <input type="hidden" name="memberId" value={currentMembership.unique_id} />
         <Button type="submit" class="w-full" disabled={!!retryPayment.pending}>
@@ -163,16 +162,72 @@
           {/if}
         </Button>
       </form>
-    {:else}
-      <Button href={route("/[locale=locale]/new", { locale: $locale })} class="flex-1">
-        {#if memberships.length === 0}
-          {$LL.dashboard.getFirstMembership()}
-        {:else if hasActiveMembership}
-          {$LL.dashboard.purchaseNew()}
-        {:else}
-          {$LL.dashboard.renewMembership()}
-        {/if}
+      {#if memberships.length > 0}
+        <Button variant="outline" href={route("/[locale=locale]/membership", { locale: $locale })}>
+          {$LL.dashboard.viewAll()}
+        </Button>
+      {/if}
+    {:else if hasActiveMembership && qrToken}
+      <!-- Active + QR token: Primary = QR modal, Secondary = History + Buy new -->
+      <MemberQrModal token={qrToken} {userName} class="flex-1" />
+      <Button variant="outline" href={route("/[locale=locale]/membership", { locale: $locale })} class="flex-1">
+        {$LL.dashboard.viewAll()}
       </Button>
+      {#if hasAvailableMemberships}
+        <Button variant="outline" href={route("/[locale=locale]/new", { locale: $locale })} class="flex-1">
+          {$LL.dashboard.purchaseNew()}
+        </Button>
+      {/if}
+    {:else if hasActiveMembership && !qrToken}
+      <!-- Active + no QR token: Primary = Buy new (if available), Secondary = History -->
+      {#if hasAvailableMemberships}
+        <Button href={route("/[locale=locale]/new", { locale: $locale })} class="flex-1">
+          {$LL.dashboard.purchaseNew()}
+        </Button>
+      {/if}
+      <Button variant="outline" href={route("/[locale=locale]/membership", { locale: $locale })} class="flex-1">
+        {$LL.dashboard.viewAll()}
+      </Button>
+    {:else if currentMembership && qrToken}
+      <!-- Expired/other + QR token: Primary = QR modal, Secondary = History + Renew -->
+      <MemberQrModal token={qrToken} {userName} class="flex-1" />
+      <Button variant="outline" href={route("/[locale=locale]/membership", { locale: $locale })} class="flex-1">
+        {$LL.dashboard.viewAll()}
+      </Button>
+      {#if hasAvailableMemberships}
+        <Button variant="outline" href={route("/[locale=locale]/new", { locale: $locale })} class="flex-1">
+          {$LL.dashboard.renewMembership()}
+        </Button>
+      {/if}
+    {:else if currentMembership && hasAvailableMemberships}
+      <!-- Expired/other + no QR + available memberships: Primary = Renew, Secondary = History -->
+      <Button href={route("/[locale=locale]/new", { locale: $locale })} class="flex-1">
+        {$LL.dashboard.renewMembership()}
+      </Button>
+      {#if memberships.length > 0}
+        <Button variant="outline" href={route("/[locale=locale]/membership", { locale: $locale })}>
+          {$LL.dashboard.viewAll()}
+        </Button>
+      {/if}
+    {:else if !currentMembership && hasAvailableMemberships}
+      <!-- No membership + available: Primary = Get first membership -->
+      <Button href={route("/[locale=locale]/new", { locale: $locale })} class="flex-1">
+        {$LL.dashboard.getFirstMembership()}
+      </Button>
+    {:else if !currentMembership}
+      <!-- No membership + no available: just History if memberships exist -->
+      {#if memberships.length > 0}
+        <Button variant="outline" href={route("/[locale=locale]/membership", { locale: $locale })}>
+          {$LL.dashboard.viewAll()}
+        </Button>
+      {/if}
+    {:else}
+      <!-- Fallback: History if memberships exist -->
+      {#if memberships.length > 0}
+        <Button variant="outline" href={route("/[locale=locale]/membership", { locale: $locale })}>
+          {$LL.dashboard.viewAll()}
+        </Button>
+      {/if}
     {/if}
   </Card.Footer>
 </Card.Root>

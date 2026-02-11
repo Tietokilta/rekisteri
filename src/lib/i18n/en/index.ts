@@ -633,6 +633,8 @@ Computer Science Guild`,
       userInfo: "Member Information",
       memberships: "Memberships",
       noMemberships: "No memberships found",
+      scanNext: "Scan Next",
+      closeScanner: "Close scanner",
     },
   },
 
