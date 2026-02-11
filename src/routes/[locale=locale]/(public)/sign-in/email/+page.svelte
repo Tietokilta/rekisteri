@@ -3,6 +3,7 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import { LL } from "$lib/i18n/i18n-svelte";
   import * as InputOTP from "$lib/components/ui/input-otp/index.js";
+  import { REGEXP_ONLY_DIGITS_AND_CHARS } from "bits-ui";
   import type { PageData } from "./$types";
   import { verifyCode, resendEmail, changeEmail } from "./data.remote";
   import { verifyCodeSchema } from "./schema";
@@ -22,6 +23,8 @@
         <InputOTP.Root
           id="code"
           maxlength={8}
+          pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+          inputmode="text"
           name={verifyCode.fields.code.as("text").name}
           required
           class="capitalize"
