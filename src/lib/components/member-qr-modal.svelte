@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import QRCode from "qrcode";
   import QrCodeIcon from "@lucide/svelte/icons/qr-code";
   import { LL } from "$lib/i18n/i18n-svelte";
@@ -17,23 +16,22 @@
   let wakeLock: WakeLockSentinel | null = $state(null);
   let dialog: HTMLDialogElement | null = $state(null);
 
-  // Generate QR code when component mounts
-  onMount(async () => {
-    try {
-      // Generate QR code as data URL
-      // Token will be scanned by admin at meetings, events, etc.
-      const url = token; // Just the token, admin scanner will decode it
-      qrDataUrl = await QRCode.toDataURL(url, {
-        width: 280,
-        margin: 2,
-        color: {
-          dark: "#000000", // Black QR code
-          light: "#FFFFFF", // White background (high contrast)
-        },
+  // Generate QR code reactively when token changes
+  $effect(() => {
+    QRCode.toDataURL(token, {
+      width: 280,
+      margin: 2,
+      color: {
+        dark: "#000000",
+        light: "#FFFFFF",
+      },
+    })
+      .then((url) => {
+        qrDataUrl = url;
+      })
+      .catch((err) => {
+        console.error("Failed to generate QR code:", err);
       });
-    } catch (err) {
-      console.error("Failed to generate QR code:", err);
-    }
   });
 
   async function openModal() {

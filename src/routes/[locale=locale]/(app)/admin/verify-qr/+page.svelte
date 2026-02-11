@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { onDestroy, tick } from "svelte";
+  import { onDestroy } from "svelte";
+  import QrScanner from "qr-scanner";
   import CircleCheck from "@lucide/svelte/icons/circle-check";
   import CircleAlert from "@lucide/svelte/icons/circle-alert";
   import CircleX from "@lucide/svelte/icons/circle-x";
   import X from "@lucide/svelte/icons/x";
-  import { LL } from "$lib/i18n/i18n-svelte";
+  import { LL, locale } from "$lib/i18n/i18n-svelte";
   import { cn } from "$lib/utils";
   import AdminPageHeader from "$lib/components/admin-page-header.svelte";
   import { Button } from "$lib/components/ui/button";
@@ -14,7 +15,8 @@
   let scanning = $state(false);
   let processing = $state(false);
   let error = $state("");
-  let qrScanner: { stop(): Promise<void>; clear(): void } | null = null;
+  let videoEl: HTMLVideoElement | null = $state(null);
+  let qrScanner: QrScanner | null = null;
 
   type VerifyResult = Awaited<ReturnType<typeof verifyQr>>;
 
@@ -57,36 +59,30 @@
     error = "";
     scanning = true;
     processing = false;
-
-    await tick();
-
-    try {
-      const { Html5Qrcode } = await import("html5-qrcode");
-      const scanner = new Html5Qrcode("qr-reader");
-      qrScanner = scanner;
-
-      await scanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        onScanSuccess,
-        () => {},
-      );
-    } catch {
-      error = $LL.admin.verifyQr.cameraError();
-      scanning = false;
-    }
   }
 
-  async function stopScanning() {
-    if (qrScanner) {
-      try {
-        await qrScanner.stop();
-        qrScanner.clear();
-      } catch {
-        // Ignore cleanup errors
-      }
+  // Create and start scanner when video element is bound
+  $effect(() => {
+    if (!scanning || !videoEl) return;
+
+    const scanner = new QrScanner(videoEl, (result) => onScanSuccess(result.data), {
+      preferredCamera: "environment",
+      highlightScanRegion: true,
+    });
+    qrScanner = scanner;
+
+    scanner.start().catch(() => {
+      error = $LL.admin.verifyQr.cameraError();
+      scanning = false;
+    });
+
+    return () => {
+      scanner.destroy();
       qrScanner = null;
-    }
+    };
+  });
+
+  function stopScanning() {
     scanning = false;
   }
 
@@ -94,7 +90,7 @@
     if (processing) return;
     processing = true;
 
-    await stopScanning();
+    stopScanning();
 
     try {
       scannedUser = await verifyQr({ token: decodedText });
@@ -111,7 +107,8 @@
   }
 
   onDestroy(() => {
-    stopScanning();
+    qrScanner?.destroy();
+    qrScanner = null;
   });
 
   function getOverallStatus(memberships: VerifyResult["memberships"]): "active" | "expired" | "none" {
@@ -120,8 +117,8 @@
     return "none";
   }
 
-  function formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString();
+  function formatDate(date: string | Date): string {
+    return new Date(date).toLocaleDateString(`${$locale}-FI`);
   }
 </script>
 
@@ -145,7 +142,7 @@
 
 {#if scanning}
   <div class="fixed inset-0 z-60 flex flex-col items-center justify-center bg-black">
-    <div id="qr-reader" class="w-full max-w-2xl overflow-hidden"></div>
+    <video bind:this={videoEl} class="h-full w-full max-w-2xl object-cover"></video>
 
     {#if error}
       <div
@@ -216,7 +213,7 @@
       <div class="space-y-2 px-6 py-4">
         {#each scannedUser.memberships as membership (membership.id)}
           <div class="rounded-lg border p-3">
-            <div class="font-medium">{membership.membershipType.name.fi}</div>
+            <div class="font-medium">{membership.membershipType.name[$locale]}</div>
             <div class="text-sm text-muted-foreground">
               {formatDate(membership.membership.startTime)} – {formatDate(membership.membership.endTime)}
             </div>
