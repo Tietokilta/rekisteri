@@ -36,6 +36,7 @@ const config = {
         "font-src": ["self", "data:"],
         "connect-src": ["self", "https://api.stripe.com"],
         "frame-src": ["https://js.stripe.com", "https://hooks.stripe.com"],
+        "worker-src": ["self", "blob:"],
         "object-src": ["none"],
         "base-uri": ["self"],
         "form-action": ["self"],
