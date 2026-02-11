@@ -9,36 +9,16 @@
   import AdminPageHeader from "$lib/components/admin-page-header.svelte";
   import { Button } from "$lib/components/ui/button";
   import { Badge } from "$lib/components/ui/badge";
+  import { verifyQr } from "./data.remote";
 
   let scanning = $state(false);
   let processing = $state(false);
   let error = $state("");
   let qrScanner: { stop(): Promise<void>; clear(): void } | null = null;
 
-  type ScannedUser = {
-    user: {
-      id: string;
-      email: string;
-      firstNames: string | null;
-      lastName: string | null;
-      homeMunicipality: string | null;
-    };
-    memberships: Array<{
-      id: string;
-      status: string;
-      createdAt: Date;
-      membershipType: {
-        id: string;
-        name: { fi: string; en: string };
-      };
-      membership: {
-        startTime: Date;
-        endTime: Date;
-      };
-    }>;
-  };
+  type VerifyResult = Awaited<ReturnType<typeof verifyQr>>;
 
-  let scannedUser = $state<ScannedUser | null>(null);
+  let scannedUser = $state<VerifyResult | null>(null);
   let dialog: HTMLDialogElement | null = $state(null);
 
   let scanStatus = $derived(scannedUser ? getOverallStatus(scannedUser.memberships) : "none");
@@ -117,19 +97,7 @@
     await stopScanning();
 
     try {
-      const response = await fetch(globalThis.location.href, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: decodedText }),
-      });
-
-      if (!response.ok) {
-        error = response.status === 404 ? $LL.admin.verifyQr.invalidQr() : $LL.admin.verifyQr.verifyError();
-        processing = false;
-        return;
-      }
-
-      scannedUser = await response.json();
+      scannedUser = await verifyQr({ token: decodedText });
       dialog?.showModal();
     } catch {
       error = $LL.admin.verifyQr.verifyError();
@@ -146,7 +114,7 @@
     stopScanning();
   });
 
-  function getOverallStatus(memberships: ScannedUser["memberships"]): "active" | "expired" | "none" {
+  function getOverallStatus(memberships: VerifyResult["memberships"]): "active" | "expired" | "none" {
     if (memberships.some((m) => m.status === "active")) return "active";
     if (memberships.some((m) => m.status === "expired")) return "expired";
     return "none";

@@ -1,29 +1,26 @@
-import { error, json } from "@sveltejs/kit";
-import type { RequestHandler } from "./$types";
-import { verifyQrToken } from "$lib/server/attendance/qr-token";
+import { error } from "@sveltejs/kit";
+import { command, getRequestEvent } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, desc, and, or } from "drizzle-orm";
+import { verifyQrToken } from "$lib/server/attendance/qr-token";
+import { verifyQrSchema } from "./schema";
+import { getLL } from "$lib/server/i18n";
 
-export const POST: RequestHandler = async ({ request, locals }) => {
-  if (!locals.user?.isAdmin) {
-    return error(403, "Admin access required");
+export const verifyQr = command(verifyQrSchema, async ({ token }) => {
+  const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
+
+  if (!event.locals.session || !event.locals.user?.isAdmin) {
+    error(404, LL.error.resourceNotFound());
   }
 
-  const { token } = await request.json();
-
-  if (!token || typeof token !== "string") {
-    return error(400, "Invalid token");
-  }
-
-  // Verify token and get user ID
   const userId = await verifyQrToken(token);
 
   if (!userId) {
-    return error(404, "Invalid QR code");
+    error(404, LL.admin.verifyQr.invalidQr());
   }
 
-  // Get user with membership info
   const user = await db.query.user.findFirst({
     where: eq(table.user.id, userId),
     columns: {
@@ -36,10 +33,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   });
 
   if (!user) {
-    return error(404, "User not found");
+    error(404, LL.error.resourceNotFound());
   }
 
-  // Get active or most recent membership
   const memberships = await db
     .select({
       id: table.member.id,
@@ -63,8 +59,5 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     .orderBy(desc(table.membership.startTime))
     .limit(3);
 
-  return json({
-    user,
-    memberships,
-  });
-};
+  return { user, memberships };
+});
