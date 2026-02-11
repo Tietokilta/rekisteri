@@ -1,6 +1,6 @@
 <script lang="ts">
-  /* global jsQR */
   import { onDestroy } from "svelte";
+  import jsQR from "jsqr";
   import { LL } from "$lib/i18n/i18n-svelte";
   import AdminPageHeader from "$lib/components/admin-page-header.svelte";
   import { Button } from "$lib/components/ui/button";
@@ -86,7 +86,6 @@
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
       // Use jsQR to scan for QR code
-      // @ts-expect-error - jsQR is loaded via CDN
       const code = jsQR(imageData.data, imageData.width, imageData.height);
 
       if (code) {
@@ -139,10 +138,6 @@
     return new Date(date).toLocaleDateString();
   }
 </script>
-
-<svelte:head>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-</svelte:head>
 
 <main class="container mx-auto max-w-[1400px] px-4 py-6">
   <AdminPageHeader title={$LL.admin.verifyQr.title()} description={$LL.admin.verifyQr.description()} />
