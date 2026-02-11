@@ -6,8 +6,7 @@ import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { dev } from "$app/environment";
 import { sendEmail } from "$lib/server/mailgun";
-import { i18nObject } from "$lib/i18n/i18n-util";
-import { loadLocale } from "$lib/i18n/i18n-util.sync";
+import { getLL } from "$lib/server/i18n";
 import { env } from "$lib/server/env";
 
 import type { EmailOTP } from "$lib/server/db/schema";
@@ -68,8 +67,7 @@ export async function deleteEmailOTP(id: string): Promise<void> {
 }
 
 export function sendOTPEmail(email: string, code: string, locale: "fi" | "en" = "fi"): void {
-  loadLocale(locale);
-  const LL = i18nObject(locale);
+  const LL = getLL(locale);
 
   const emailOptions = {
     to: email,

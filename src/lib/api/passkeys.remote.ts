@@ -11,6 +11,7 @@ import { auditPasskeyRegistered, auditPasskeyDeleted } from "$lib/server/audit";
 import type { PublicKeyCredentialCreationOptionsJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
 import { dev } from "$app/environment";
 import * as v from "valibot";
+import { getLL } from "$lib/server/i18n";
 
 // Valibot schema for AuthenticatorTransportFuture
 const authenticatorTransportSchema = v.picklist(["ble", "cable", "hybrid", "internal", "nfc", "smart-card", "usb"]);
@@ -46,9 +47,10 @@ export const getRegistrationOptions = command(
   v.string(),
   async (deviceName): Promise<{ options: PublicKeyCredentialCreationOptionsJSON; deviceName: string }> => {
     const { locals, cookies } = getRequestEvent();
+    const LL = getLL(locals.locale);
 
     if (!locals.user) {
-      throw error(401, "Not authenticated");
+      throw error(401, LL.error.notAuthenticated());
     }
 
     try {
@@ -66,7 +68,7 @@ export const getRegistrationOptions = command(
       return { options, deviceName: deviceName || "Unnamed device" };
     } catch (err) {
       console.error("Failed to generate registration options:", err);
-      throw error(500, "Failed to generate registration options");
+      throw error(500, LL.auth.passkey.failedGenerateRegOptions());
     }
   },
 );
@@ -81,14 +83,15 @@ export const verifyRegistration = command(
   }),
   async ({ response, deviceName }): Promise<{ success: boolean }> => {
     const { locals, cookies, request, getClientAddress } = getRequestEvent();
+    const LL = getLL(locals.locale);
 
     if (!locals.user) {
-      throw error(401, "Not authenticated");
+      throw error(401, LL.error.notAuthenticated());
     }
 
     const challenge = cookies.get(challengeCookieName);
     if (!challenge) {
-      throw error(400, "No registration challenge found. Please start registration again.");
+      throw error(400, LL.auth.passkey.noRegChallenge());
     }
 
     try {
@@ -108,7 +111,7 @@ export const verifyRegistration = command(
       console.error("Failed to verify passkey registration:", err);
       // Clear the challenge cookie on error
       cookies.delete(challengeCookieName, { path: "/" });
-      throw error(500, "Failed to verify passkey registration");
+      throw error(500, LL.auth.passkey.failedVerifyReg());
     }
   },
 );
@@ -118,9 +121,10 @@ export const verifyRegistration = command(
  */
 export const listPasskeys = query(async () => {
   const { locals } = getRequestEvent();
+  const LL = getLL(locals.locale);
 
   if (!locals.user) {
-    throw error(401, "Not authenticated");
+    throw error(401, LL.error.notAuthenticated());
   }
 
   try {
@@ -139,7 +143,7 @@ export const listPasskeys = query(async () => {
     return { passkeys: safePasskeys };
   } catch (err) {
     console.error("Failed to list passkeys:", err);
-    throw error(500, "Failed to list passkeys");
+    throw error(500, LL.auth.passkey.failedList());
   }
 });
 
@@ -153,15 +157,16 @@ export const deletePasskeyForm = form(
   }),
   async ({ passkeyId }) => {
     const { locals, request, getClientAddress } = getRequestEvent();
+    const LL = getLL(locals.locale);
 
     if (!locals.user) {
-      throw error(401, "Not authenticated");
+      throw error(401, LL.error.notAuthenticated());
     }
 
     const success = await deletePasskey(passkeyId, locals.user.id);
 
     if (!success) {
-      throw error(404, "Passkey not found or does not belong to user");
+      throw error(404, LL.auth.passkey.notFound());
     }
 
     // Log the deletion
@@ -187,15 +192,16 @@ export const renamePasskeyForm = form(
   }),
   async ({ passkeyId, deviceName }) => {
     const { locals } = getRequestEvent();
+    const LL = getLL(locals.locale);
 
     if (!locals.user) {
-      throw error(401, "Not authenticated");
+      throw error(401, LL.error.notAuthenticated());
     }
 
     const success = await renamePasskey(passkeyId, locals.user.id, deviceName);
 
     if (!success) {
-      throw error(404, "Passkey not found or does not belong to user");
+      throw error(404, LL.auth.passkey.notFound());
     }
 
     // Refresh the passkey list

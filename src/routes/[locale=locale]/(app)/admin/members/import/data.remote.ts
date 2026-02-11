@@ -13,19 +13,21 @@ import {
   createLegacyMembershipsBatchSchema,
   type CsvRow,
 } from "./schema";
+import { getLL } from "$lib/server/i18n";
 
 export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   let rows: CsvRow[];
   try {
     rows = JSON.parse(rowsJson);
   } catch {
-    error(400, "Invalid data format");
+    error(400, LL.admin.import.invalidDataFormat());
   }
 
   const rowsValidation = v.safeParse(v.array(csvRowSchema), rows);
@@ -333,9 +335,10 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 // Create a single legacy membership (no Stripe price)
 export const createLegacyMembership = command(createLegacyMembershipSchema, async (data) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   const membership = await db
@@ -356,9 +359,10 @@ export const createLegacyMembership = command(createLegacyMembershipSchema, asyn
 // Batch create multiple legacy memberships
 export const createLegacyMemberships = command(createLegacyMembershipsBatchSchema, async ({ memberships }) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   const created = await db

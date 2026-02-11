@@ -73,6 +73,11 @@ const fi = {
     changeEmail: "Vaihda sähköpostiosoite",
     emailSubject: "Tietokillan jäsenrekisterin sisäänkirjautumiskoodi",
     emailBody: "Koodisi on {code}",
+    noEmailFound: "Sähköpostia ei löytynyt",
+    incorrectCode: "Virheellinen koodi.",
+    codeExpiredResent: "Vahvistuskoodi oli vanhentunut. Lähetimme uuden koodin sähköpostiisi.",
+    codeSent: "Uusi koodi on lähetetty sähköpostiisi.",
+    emailNotFound: "Sähköpostia ei löytynyt",
 
     // Passkey
     passkey: {
@@ -90,6 +95,17 @@ const fi = {
       regAlreadyRegistered:
         "Tämä laite on jo rekisteröity. Jos haluat rekisteröidä uudelleen, poista vanha avainkoodi ensin.",
       lastUsed: "viimeksi käytetty",
+
+      // Server errors
+      tooManyAttempts: "Liian monta tunnistautumisyritystä. Yritä myöhemmin uudelleen.",
+      failedGenerateAuthOptions: "Tunnistautumisasetusten luominen epäonnistui",
+      noAuthChallenge: "Tunnistautumishaastetta ei löytynyt. Aloita tunnistautuminen uudelleen.",
+      failedVerifyAuth: "Tunnistautumisen varmennus epäonnistui",
+      failedGenerateRegOptions: "Rekisteröintiasetusten luominen epäonnistui",
+      noRegChallenge: "Rekisteröintihaastetta ei löytynyt. Aloita rekisteröinti uudelleen.",
+      failedVerifyReg: "Avainkoodin rekisteröinnin varmennus epäonnistui",
+      failedList: "Avainkoodien haku epäonnistui",
+      notFound: "Avainkoodia ei löytynyt tai se ei kuulu käyttäjälle",
 
       // Banner
       bannerTitle: "Lisää avainkoodi",
@@ -211,6 +227,11 @@ const fi = {
     limitReached: "Enintään 10 toissijaista sähköpostia sallittu",
     verificationFailed: "Virheellinen vahvistuskoodi",
     rateLimited: "Liian monta pyyntöä. Yritä myöhemmin uudelleen",
+    couldNotAdd: "Sähköpostia ei voitu lisätä. Kokeile toista osoitetta.",
+    emailNotFound: "Sähköpostia ei löytynyt",
+    couldNotChangePrimary:
+      "Ensisijaista sähköpostia ei voitu vaihtaa. Sähköpostin on oltava vahvistettu eikä se saa olla vanhentunut.",
+    tooManyAttempts: "Liian monta yritystä. Yritä myöhemmin uudelleen.",
 
     // Empty state
     noEmails: "Ei toissijaisia sähköposteja",
@@ -253,6 +274,9 @@ const fi = {
     willRequireApproval: "Vaatii hallituksen hyväksynnän maksun jälkeen",
     autoApprovalAdminNote:
       "Jäsenet, joilla on hyväksytty jäsenyys samaa tyyppiä edellisellä kaudella, hyväksytään automaattisesti uusiessaan jäsenyytensä. Opiskelijajäsenyyksien automaattinen hyväksyntä edellyttää myös voimassa olevaa aalto.fi-sähköpostia.",
+    studentVerificationRequired:
+      "Opiskelijastatuksen vahvistus vaaditaan. Lisää ja vahvista Aalto-sähköpostiosoitteesi.",
+    paymentSessionFailed: "Maksuistunnon luominen epäonnistui",
 
     // Status
     status: {
@@ -301,6 +325,8 @@ const fi = {
       descriptionEn: "Kuvaus (englanniksi, valinnainen)",
       descriptionPlaceholder: "Valinnainen kuvaus jäsenyystyypille...",
       cannotDeleteInUse: "Jäsenyystyyppiä ei voi poistaa, koska sillä on jäsenyyksiä",
+      idAlreadyExists: "Tämän tunnisteen omaava jäsenyystyyppi on jo olemassa",
+      membershipTypeNotFound: "Jäsenyystyyppiä ei löytynyt",
     },
 
     members: {
@@ -386,6 +412,15 @@ const fi = {
         bulkReactivate: "Aktivoi uudelleen ({count})",
         clearSelection: "Tyhjennä valinta",
       },
+
+      // Server errors
+      memberNotFound: "Jäsentä ei löytynyt",
+      notAwaitingApproval: "Jäsen ei odota hyväksyntää",
+      cannotReactivate: "Vain vanhentuneet tai peruutetut jäsenyydet voidaan aktivoida uudelleen",
+      noMembersAwaitingApproval: "Yksikään jäsen ei odota hyväksyntää",
+      noMembersCanBeExpired: "Yhtään jäsentä ei voi merkitä vanhentuneeksi",
+      noMembersCanBeCancelled: "Yhtään jäsenyyttä ei voi peruuttaa",
+      noMembersCanBeReactivated: "Yhtään jäsentä ei voi aktivoida uudelleen",
     },
 
     import: {
@@ -445,6 +480,15 @@ const fi = {
       createFailed: "Jäsenyyden luonti epäonnistui",
       rowsAffected: "koskee {count:number} {{riviä|riviä}}",
       resolveToImport: "Ratkaise kaikki puuttuvat rivit mahdollistaaksesi tuonnin",
+      invalidDataFormat: "Virheellinen datamuoto",
+      csvColumnsMismatch: "CSV-sarakkeet eivät vastaa odotettuja: {columns:string}",
+      invalidTypeIdsError:
+        "Virheelliset jäsenyystyyppitunnisteet: {invalidTypes:string}. Käytettävissä: {availableIds:string}",
+      rowError: "Rivi {row:number}: {message:string}",
+      rowErrorDetail: "Rivi {row:number} ({email:string}): {error:string}",
+      or: "tai",
+      statusHeader: "Tila",
+      pending: "Odottaa",
     },
 
     users: {
@@ -469,6 +513,20 @@ const fi = {
         noResults: "Ei hakutuloksia",
         showing: "Näytetään {current} / {total} käyttäjää",
       },
+
+      // Server errors
+      userNotFound: "Käyttäjää ei löytynyt",
+      alreadyAdmin: "Käyttäjä on jo ylläpitäjä",
+      notAdmin: "Käyttäjä ei ole ylläpitäjä",
+      cannotDemoteSelf: "Et voi poistaa omaa ylläpitäjyyttäsi",
+      cannotDemoteLastAdmin: "Viimeisen ylläpitäjän ylläpitäjyyttä ei voi poistaa",
+      cannotMergeSelf: "Käyttäjää ei voi yhdistää itsensä kanssa",
+      primaryUserNotFound: "Ensisijaista käyttäjää ei löytynyt",
+      secondaryUserNotFound: "Toissijaista käyttäjää ei löytynyt",
+      primaryEmailMismatch: "Ensisijaisen sähköpostin vahvistus ei täsmää",
+      secondaryEmailMismatch: "Toissijaisen sähköpostin vahvistus ei täsmää",
+      cannotMergeOverlapping:
+        'Yhdistäminen epäonnistui: Molemmilla käyttäjillä on jäsenyys "{type:string}" samalle ajanjaksolle ({startDate:string} - {endDate:string})',
 
       merge: {
         title: "Yhdistä käyttäjät",
@@ -530,6 +588,15 @@ const fi = {
     errorCode: "Virhekoodi: {code}",
     backToHome: "Takaisin etusivulle",
     tryAgain: "Yritä uudelleen",
+
+    // Form/API validation errors
+    notAuthenticated: "Ei tunnistautunut",
+    tooManyRequests: "Liian monta pyyntöä",
+    tooManyRequestsNetwork:
+      "Liian monta pyyntöä. Tämä voi johtua verkkoliikenteestä tai useista yrityksistä. Yritä myöhemmin tai eri verkon kautta.",
+    unauthorized: "Ei valtuuksia",
+    resourceNotFound: "Ei löytynyt",
+    updateFailed: "Tietojen päivittäminen epäonnistui",
   },
 
   // Documents & Legal

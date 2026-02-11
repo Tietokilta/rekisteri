@@ -5,12 +5,14 @@ import * as table from "$lib/server/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { auditMemberAction, auditBulkMemberAction } from "$lib/server/audit";
 import { memberIdSchema, bulkMemberIdsSchema } from "./schema";
+import { getLL } from "$lib/server/i18n";
 
 export const approveMember = form(memberIdSchema, async ({ memberId }) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   const member = await db.query.member.findFirst({
@@ -18,11 +20,11 @@ export const approveMember = form(memberIdSchema, async ({ memberId }) => {
   });
 
   if (!member) {
-    error(404, "Member not found");
+    error(404, LL.admin.members.memberNotFound());
   }
 
   if (member.status !== "awaiting_approval") {
-    error(400, "Member is not awaiting approval");
+    error(400, LL.admin.members.notAwaitingApproval());
   }
 
   await db.update(table.member).set({ status: "active" }).where(eq(table.member.id, memberId));
@@ -36,9 +38,10 @@ export const approveMember = form(memberIdSchema, async ({ memberId }) => {
 
 export const rejectMember = form(memberIdSchema, async ({ memberId }) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   const member = await db.query.member.findFirst({
@@ -46,7 +49,7 @@ export const rejectMember = form(memberIdSchema, async ({ memberId }) => {
   });
 
   if (!member) {
-    error(404, "Member not found");
+    error(404, LL.admin.members.memberNotFound());
   }
 
   await db.update(table.member).set({ status: "cancelled" }).where(eq(table.member.id, memberId));
@@ -60,9 +63,10 @@ export const rejectMember = form(memberIdSchema, async ({ memberId }) => {
 
 export const markMemberExpired = form(memberIdSchema, async ({ memberId }) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   const member = await db.query.member.findFirst({
@@ -70,7 +74,7 @@ export const markMemberExpired = form(memberIdSchema, async ({ memberId }) => {
   });
 
   if (!member) {
-    error(404, "Member not found");
+    error(404, LL.admin.members.memberNotFound());
   }
 
   await db.update(table.member).set({ status: "expired" }).where(eq(table.member.id, memberId));
@@ -84,9 +88,10 @@ export const markMemberExpired = form(memberIdSchema, async ({ memberId }) => {
 
 export const cancelMember = form(memberIdSchema, async ({ memberId }) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   const member = await db.query.member.findFirst({
@@ -94,7 +99,7 @@ export const cancelMember = form(memberIdSchema, async ({ memberId }) => {
   });
 
   if (!member) {
-    error(404, "Member not found");
+    error(404, LL.admin.members.memberNotFound());
   }
 
   await db.update(table.member).set({ status: "cancelled" }).where(eq(table.member.id, memberId));
@@ -108,9 +113,10 @@ export const cancelMember = form(memberIdSchema, async ({ memberId }) => {
 
 export const reactivateMember = form(memberIdSchema, async ({ memberId }) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   const member = await db.query.member.findFirst({
@@ -118,11 +124,11 @@ export const reactivateMember = form(memberIdSchema, async ({ memberId }) => {
   });
 
   if (!member) {
-    error(404, "Member not found");
+    error(404, LL.admin.members.memberNotFound());
   }
 
   if (member.status !== "expired" && member.status !== "cancelled") {
-    error(400, "Only expired or cancelled memberships can be reactivated");
+    error(400, LL.admin.members.cannotReactivate());
   }
 
   await db.update(table.member).set({ status: "active" }).where(eq(table.member.id, memberId));
@@ -137,9 +143,10 @@ export const reactivateMember = form(memberIdSchema, async ({ memberId }) => {
 // Bulk actions
 export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberIds }) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   // Fetch all members to validate they exist and are awaiting approval
@@ -150,7 +157,7 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
   const validMembers = members.filter((m) => m.status === "awaiting_approval");
 
   if (validMembers.length === 0) {
-    error(400, "No members are awaiting approval");
+    error(400, LL.admin.members.noMembersAwaitingApproval());
   }
 
   const validIds = validMembers.map((m) => m.id);
@@ -174,9 +181,10 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
 
 export const bulkRejectMembers = command(bulkMemberIdsSchema, async ({ memberIds }) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   // Fetch all members to validate they exist and are awaiting approval
@@ -187,7 +195,7 @@ export const bulkRejectMembers = command(bulkMemberIdsSchema, async ({ memberIds
   const validMembers = members.filter((m) => m.status === "awaiting_approval");
 
   if (validMembers.length === 0) {
-    error(400, "No members are awaiting approval");
+    error(400, LL.admin.members.noMembersAwaitingApproval());
   }
 
   const validIds = validMembers.map((m) => m.id);
@@ -211,9 +219,10 @@ export const bulkRejectMembers = command(bulkMemberIdsSchema, async ({ memberIds
 
 export const bulkMarkMembersExpired = command(bulkMemberIdsSchema, async ({ memberIds }) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   // Fetch all members to validate they exist and can be marked expired
@@ -224,7 +233,7 @@ export const bulkMarkMembersExpired = command(bulkMemberIdsSchema, async ({ memb
   const validMembers = members.filter((m) => m.status === "active" || m.status === "awaiting_payment");
 
   if (validMembers.length === 0) {
-    error(400, "No members can be marked as expired");
+    error(400, LL.admin.members.noMembersCanBeExpired());
   }
 
   const validIds = validMembers.map((m) => m.id);
@@ -248,9 +257,10 @@ export const bulkMarkMembersExpired = command(bulkMemberIdsSchema, async ({ memb
 
 export const bulkCancelMembers = command(bulkMemberIdsSchema, async ({ memberIds }) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   // Fetch all members to validate they exist and can be cancelled
@@ -261,7 +271,7 @@ export const bulkCancelMembers = command(bulkMemberIdsSchema, async ({ memberIds
   const validMembers = members.filter((m) => m.status === "active" || m.status === "awaiting_payment");
 
   if (validMembers.length === 0) {
-    error(400, "No members can be cancelled");
+    error(400, LL.admin.members.noMembersCanBeCancelled());
   }
 
   const validIds = validMembers.map((m) => m.id);
@@ -285,9 +295,10 @@ export const bulkCancelMembers = command(bulkMemberIdsSchema, async ({ memberIds
 
 export const bulkReactivateMembers = command(bulkMemberIdsSchema, async ({ memberIds }) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   // Fetch all members to validate they exist and can be reactivated
@@ -298,7 +309,7 @@ export const bulkReactivateMembers = command(bulkMemberIdsSchema, async ({ membe
   const validMembers = members.filter((m) => m.status === "expired" || m.status === "cancelled");
 
   if (validMembers.length === 0) {
-    error(400, "No members can be reactivated");
+    error(400, LL.admin.members.noMembersCanBeReactivated());
   }
 
   const validIds = validMembers.map((m) => m.id);

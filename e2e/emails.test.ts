@@ -252,7 +252,7 @@ test.describe("Secondary Email OTP Flow", () => {
 
     await adminPage.locator('[data-slot="input-otp"]').pressSequentially("WRONGABC");
 
-    await expect(adminPage.getByText("Incorrect")).toBeVisible();
+    await expect(adminPage.getByTestId("otp-error")).toBeVisible();
     await expect(adminPage).toHaveURL(/settings\/emails\/verify/);
 
     const [email] = await db

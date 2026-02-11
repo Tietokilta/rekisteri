@@ -1,4 +1,4 @@
-import { error, redirect } from "@sveltejs/kit";
+import { error, invalid, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
 import { timingSafeEqual } from "node:crypto";
 import {
@@ -21,33 +21,36 @@ import { db } from "$lib/server/db";
 import { route } from "$lib/ROUTES";
 import { auditLogin, auditLoginFailed } from "$lib/server/audit";
 import { verifyCodeSchema } from "./schema";
+import { getLL } from "$lib/server/i18n";
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
 
-export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
+export const verifyCode = form(verifyCodeSchema, async ({ code }, issue) => {
   const event = getRequestEvent();
+
+  const LL = getLL(event.locals.locale);
 
   // Lazy cleanup to prevent memory leaks
   otpVerifyBucket.cleanup();
 
   let otp = await getEmailOTPFromRequest(event);
   if (otp === null) {
-    error(401, "Not authenticated");
+    error(401, LL.error.notAuthenticated());
   }
 
   if (!otpVerifyBucket.check(otp.email, 1)) {
-    error(429, "Too many requests");
+    error(429, LL.error.tooManyRequests());
   }
 
   if (!otpVerifyBucket.consume(otp.email, 1)) {
-    error(429, "Too many requests");
+    error(429, LL.error.tooManyRequests());
   }
 
   if (Date.now() >= otp.expiresAt.getTime()) {
     otp = await createEmailOTP(otp.email);
     sendOTPEmail(otp.email, otp.code, event.locals.locale);
     return {
-      message: "The verification code was expired. We sent another code to your inbox.",
+      message: LL.auth.codeExpiredResent(),
     };
   }
 
@@ -60,7 +63,7 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
   const isValid = expectedBuffer.length === providedBuffer.length && timingSafeEqual(expectedBuffer, providedBuffer);
   if (!isValid) {
     await auditLoginFailed(event, otp.email);
-    error(400, "Incorrect code.");
+    return invalid(issue.code(LL.auth.incorrectCode()));
   }
 
   // Check both primary and VERIFIED secondary emails
@@ -96,20 +99,22 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }) => {
 export const resendEmail = form(async () => {
   const event = getRequestEvent();
 
+  const LL = getLL(event.locals.locale);
+
   // Lazy cleanup to prevent memory leaks
   sendOTPBucket.cleanup();
 
   const email = event.cookies.get(emailCookieName);
   if (typeof email !== "string") {
-    error(401, "Not authenticated");
+    error(401, LL.error.notAuthenticated());
   }
 
   if (!sendOTPBucket.check(email, 1)) {
-    error(429, "Too many requests");
+    error(429, LL.error.tooManyRequests());
   }
 
   if (!sendOTPBucket.consume(email, 1)) {
-    error(429, "Too many requests");
+    error(429, LL.error.tooManyRequests());
   }
 
   const otp = await createEmailOTP(email);
@@ -117,7 +122,7 @@ export const resendEmail = form(async () => {
   setEmailOTPCookie(event, otp);
 
   return {
-    message: "A new code was sent to your inbox.",
+    message: LL.auth.codeSent(),
   };
 });
 

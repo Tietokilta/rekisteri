@@ -24,7 +24,7 @@
 
   type PersistedState = {
     validRows: CsvRow[];
-    validationErrors: Array<{ row: number; message: string }>;
+    validationErrors: Array<{ row: number; message: string; code?: string }>;
     matchedRows: AnalyzedRow[];
     unmatchedRows: AnalyzedRow[];
     unmatchedMemberships: UnmatchedMembership[];
@@ -62,7 +62,7 @@
 
   // Parsed and validated rows
   let validRows = $state<CsvRow[]>([]);
-  let validationErrors = $state<Array<{ row: number; message: string }>>([]);
+  let validationErrors = $state<Array<{ row: number; message: string; code?: string }>>([]);
 
   let matchedRows = $state<AnalyzedRow[]>([]);
   let unmatchedRows = $state<AnalyzedRow[]>([]);
@@ -224,13 +224,19 @@
         csv.meta.fields.every((field, i) => field === expectedColumns[i]);
 
       if (!hasCorrectColumns) {
-        validationErrors = [{ row: 0, message: `CSV columns don't match expected: ${expectedColumns.join(", ")}` }];
+        validationErrors = [
+          {
+            row: 0,
+            message: $LL.admin.import.csvColumnsMismatch({ columns: expectedColumns.join(", ") }),
+            code: "csv_columns_mismatch",
+          },
+        ];
         return;
       }
 
       // Validate each row
       const validated: CsvRow[] = [];
-      const errors: Array<{ row: number; message: string }> = [];
+      const errors: Array<{ row: number; message: string; code?: string }> = [];
 
       for (let i = 0; i < csv.data.length; i++) {
         const rowData = csv.data[i];
@@ -263,7 +269,11 @@
           ...validationErrors,
           {
             row: 0,
-            message: `Invalid membership type IDs: ${Array.from(invalidTypes).join(", ")}. Available IDs: ${typeIdsSnapshot.join(", ")}`,
+            message: $LL.admin.import.invalidTypeIdsError({
+              invalidTypes: Array.from(invalidTypes).join(", "),
+              availableIds: typeIdsSnapshot.join(", "),
+            }),
+            code: "invalid_type_ids",
           },
         ];
       }
@@ -282,7 +292,7 @@
   const allResolved = $derived(unmatchedMemberships.every((m) => m.status === "created" || m.linkedMembershipId));
 
   // Check if all type IDs are valid
-  const hasInvalidTypeIds = $derived(validationErrors.some((e) => e.message.includes("Invalid membership type IDs")));
+  const hasInvalidTypeIds = $derived(validationErrors.some((e) => e.code === "invalid_type_ids"));
 
   // Can import when: has valid rows, no validation errors (except fixable type errors), and all unmatched resolved
   const canImport = $derived(
@@ -521,7 +531,9 @@
           <h2 class="mb-4 text-lg font-medium text-destructive">{$LL.admin.import.validationErrors()}</h2>
           <ul class="list-inside list-disc space-y-1 text-sm text-destructive">
             {#each validationErrors as error, i (i)}
-              <li>Row {error.row}: {error.message}</li>
+              <li data-testid="validation-error">
+                {$LL.admin.import.rowError({ row: error.row, message: error.message })}
+              </li>
             {/each}
           </ul>
         </div>
@@ -637,7 +649,7 @@
                         {$LL.admin.import.quickCreate()}
                       </Button>
 
-                      <span class="text-sm text-muted-foreground">or</span>
+                      <span class="text-sm text-muted-foreground">{$LL.admin.import.or()}</span>
 
                       <NativeSelect.Root
                         class="w-56"
@@ -681,7 +693,9 @@
                 </summary>
                 <ul class="mt-2 list-inside list-disc space-y-1 text-sm">
                   {#each importMembers.result.errors as error, i (i)}
-                    <li>Row {error.row} ({error.email}): {error.error}</li>
+                    <li>
+                      {$LL.admin.import.rowErrorDetail({ row: error.row, email: error.email, error: error.error })}
+                    </li>
                   {/each}
                 </ul>
               </details>
@@ -761,7 +775,7 @@
                     <th class="p-2 text-left font-medium">{$LL.admin.import.email()}</th>
                     <th class="p-2 text-left font-medium">{$LL.admin.import.membershipType()}</th>
                     <th class="p-2 text-left font-medium">{$LL.admin.import.startDate()}</th>
-                    <th class="p-2 text-left font-medium">Status</th>
+                    <th class="p-2 text-left font-medium">{$LL.admin.import.statusHeader()}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -786,7 +800,7 @@
                         {:else}
                           <Badge variant="secondary" class="text-xs">
                             <CircleDashed class="mr-1 size-3" />
-                            Pending
+                            {$LL.admin.import.pending()}
                           </Badge>
                         {/if}
                       </td>

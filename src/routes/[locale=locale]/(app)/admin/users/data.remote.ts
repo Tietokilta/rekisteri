@@ -7,12 +7,14 @@ import { isNonEmpty } from "$lib/utils";
 import { promoteToAdminSchema, demoteFromAdminSchema, mergeUsersSchema } from "./schema";
 import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
 import { auditUserAdminAction } from "$lib/server/audit";
+import { getLL } from "$lib/server/i18n";
 
 export const promoteToAdmin = form(promoteToAdminSchema, async ({ userId }) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   const user = await db.query.user.findFirst({
@@ -20,11 +22,11 @@ export const promoteToAdmin = form(promoteToAdminSchema, async ({ userId }) => {
   });
 
   if (!user) {
-    error(404, "User not found");
+    error(404, LL.admin.users.userNotFound());
   }
 
   if (user.isAdmin) {
-    error(400, "User is already an admin");
+    error(400, LL.admin.users.alreadyAdmin());
   }
 
   await db.update(table.user).set({ isAdmin: true }).where(eq(table.user.id, userId));
@@ -39,9 +41,10 @@ export const promoteToAdmin = form(promoteToAdminSchema, async ({ userId }) => {
 
 export const demoteFromAdmin = form(demoteFromAdminSchema, async ({ userId }) => {
   const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
 
   if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, "Not found");
+    error(404, LL.error.resourceNotFound());
   }
 
   const user = await db.query.user.findFirst({
@@ -49,16 +52,16 @@ export const demoteFromAdmin = form(demoteFromAdminSchema, async ({ userId }) =>
   });
 
   if (!user) {
-    error(404, "User not found");
+    error(404, LL.admin.users.userNotFound());
   }
 
   if (!user.isAdmin) {
-    error(400, "User is not an admin");
+    error(400, LL.admin.users.notAdmin());
   }
 
   // Prevent demoting yourself
   if (user.id === event.locals.user.id) {
-    error(400, "You cannot demote yourself");
+    error(400, LL.admin.users.cannotDemoteSelf());
   }
 
   // Count total admins to prevent removing the last one
@@ -68,7 +71,7 @@ export const demoteFromAdmin = form(demoteFromAdminSchema, async ({ userId }) =>
     .where(eq(table.user.isAdmin, true));
 
   if (!isNonEmpty(adminCount) || adminCount[0].count <= 1) {
-    error(400, "Cannot demote the last admin");
+    error(400, LL.admin.users.cannotDemoteLastAdmin());
   }
 
   await db.update(table.user).set({ isAdmin: false }).where(eq(table.user.id, userId));
@@ -85,9 +88,10 @@ export const mergeUsers = command(
   mergeUsersSchema,
   async ({ primaryUserId, secondaryUserId, confirmPrimaryEmail, confirmSecondaryEmail }) => {
     const event = getRequestEvent();
+    const LL = getLL(event.locals.locale);
 
     if (!event.locals.session || !event.locals.user?.isAdmin) {
-      error(404, "Not found");
+      error(404, LL.error.resourceNotFound());
     }
 
     // Type guard: we know event.locals.user is not null after the check above
@@ -95,7 +99,7 @@ export const mergeUsers = command(
 
     // Validate that users are not the same
     if (primaryUserId === secondaryUserId) {
-      error(400, "Cannot merge a user with themselves");
+      error(400, LL.admin.users.cannotMergeSelf());
     }
 
     // Fetch both users
@@ -105,20 +109,20 @@ export const mergeUsers = command(
     ]);
 
     if (!primaryUser) {
-      error(404, "Primary user not found");
+      error(404, LL.admin.users.primaryUserNotFound());
     }
 
     if (!secondaryUser) {
-      error(404, "Secondary user not found");
+      error(404, LL.admin.users.secondaryUserNotFound());
     }
 
     // Validate email confirmations
     if (primaryUser.email.toLowerCase() !== confirmPrimaryEmail.toLowerCase()) {
-      error(400, "Primary email confirmation does not match");
+      error(400, LL.admin.users.primaryEmailMismatch());
     }
 
     if (secondaryUser.email.toLowerCase() !== confirmSecondaryEmail.toLowerCase()) {
-      error(400, "Secondary email confirmation does not match");
+      error(400, LL.admin.users.secondaryEmailMismatch());
     }
 
     // Check for overlapping memberships
@@ -144,7 +148,11 @@ export const mergeUsers = command(
         if (secondaryMember.membershipId === primaryMember.membershipId) {
           error(
             400,
-            `Cannot merge: Both users have membership "${secondaryMember.membership.membershipTypeId}" for the same period (${new Date(secondaryMember.membership.startTime).toLocaleDateString()} - ${new Date(secondaryMember.membership.endTime).toLocaleDateString()})`,
+            LL.admin.users.cannotMergeOverlapping({
+              type: secondaryMember.membership.membershipTypeId,
+              startDate: new Date(secondaryMember.membership.startTime).toLocaleDateString(),
+              endDate: new Date(secondaryMember.membership.endTime).toLocaleDateString(),
+            }),
           );
         }
       }
