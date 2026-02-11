@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from "svelte";
   import QRCode from "qrcode";
   import QrCodeIcon from "@lucide/svelte/icons/qr-code";
   import { LL } from "$lib/i18n/i18n-svelte";
@@ -62,6 +63,10 @@
 
     dialog.close();
   }
+
+  onDestroy(() => {
+    wakeLock?.release().catch(() => {});
+  });
 
   // Close on backdrop click
   function handleDialogClick(e: MouseEvent) {

@@ -18,7 +18,7 @@ export const verifyQr = command(verifyQrSchema, async ({ token }) => {
   const userId = await verifyQrToken(token);
 
   if (!userId) {
-    error(404, LL.admin.verifyQr.invalidQr());
+    error(422, LL.admin.verifyQr.invalidQr());
   }
 
   const user = await db.query.user.findFirst({
