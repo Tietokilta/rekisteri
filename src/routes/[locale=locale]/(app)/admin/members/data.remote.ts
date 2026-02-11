@@ -6,6 +6,9 @@ import { eq, inArray } from "drizzle-orm";
 import { auditMemberAction, auditBulkMemberAction } from "$lib/server/audit";
 import { memberIdSchema, bulkMemberIdsSchema } from "./schema";
 import { getLL } from "$lib/server/i18n";
+import { sendMemberEmail } from "$lib/server/emails";
+import { getMembershipName } from "$lib/server/utils/membership";
+import { getUserLocale } from "$lib/server/utils/user";
 
 export const approveMember = form(memberIdSchema, async ({ memberId }) => {
   const event = getRequestEvent();
@@ -32,6 +35,38 @@ export const approveMember = form(memberIdSchema, async ({ memberId }) => {
   await auditMemberAction(event, "member.approve", memberId, {
     previousStatus: member.status,
   });
+
+  // Send membership approved email
+  try {
+    const memberWithDetails = await db.query.member.findFirst({
+      where: eq(table.member.id, memberId),
+      with: {
+        user: true,
+        membership: {
+          with: { membershipType: true },
+        },
+      },
+    });
+
+    if (memberWithDetails && memberWithDetails.user.firstNames) {
+      const userLocale = getUserLocale(memberWithDetails.user);
+
+      await sendMemberEmail({
+        recipientEmail: memberWithDetails.user.email,
+        emailType: "membership_approved",
+        metadata: {
+          firstName: memberWithDetails.user.firstNames.split(" ")[0] || "",
+          membershipName: getMembershipName(memberWithDetails.membership, userLocale),
+          startDate: memberWithDetails.membership.startTime,
+          endDate: memberWithDetails.membership.endTime,
+        },
+        locale: userLocale,
+      });
+    }
+  } catch (emailError) {
+    // Log but don't fail the approval if email fails
+    console.error("[approveMember] Failed to send membership approved email:", emailError);
+  }
 
   return { success: true, message: "Member approved successfully" };
 });
@@ -171,6 +206,55 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
     requestedCount: memberIds.length,
     processedCount: validIds.length,
   });
+
+  // Send membership approved emails to all approved members
+  try {
+    const approvedMembersWithDetails = await db.query.member.findMany({
+      where: inArray(table.member.id, validIds),
+      with: {
+        user: true,
+        membership: {
+          with: { membershipType: true },
+        },
+      },
+    });
+
+    // Send emails in parallel, don't fail if some emails fail
+    const emailPromises = approvedMembersWithDetails
+      .filter((m) => m.user.firstNames) // Only send to users with names
+      .map(async (memberWithDetails) => {
+        const userLocale = getUserLocale(memberWithDetails.user);
+
+        return sendMemberEmail({
+          recipientEmail: memberWithDetails.user.email,
+          emailType: "membership_approved",
+          metadata: {
+            firstName: memberWithDetails.user.firstNames?.split(" ")[0] || "",
+            membershipName: getMembershipName(memberWithDetails.membership, userLocale),
+            startDate: memberWithDetails.membership.startTime,
+            endDate: memberWithDetails.membership.endTime,
+          },
+          locale: userLocale,
+        });
+      });
+
+    const results = await Promise.allSettled(emailPromises);
+    const failedCount = results.filter((r) => r.status === "rejected").length;
+
+    if (failedCount > 0) {
+      console.error(
+        `[bulkApproveMembers] Failed to send ${failedCount}/${emailPromises.length} membership approved emails`,
+      );
+      for (const [index, result] of results.entries()) {
+        if (result.status === "rejected") {
+          console.error(`  - Email ${index + 1} failed:`, result.reason);
+        }
+      }
+    }
+  } catch (emailError) {
+    // Log but don't fail the bulk approval if email fetching/sending fails
+    console.error("[bulkApproveMembers] Failed to send membership approved emails:", emailError);
+  }
 
   return {
     success: true,

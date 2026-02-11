@@ -8,6 +8,9 @@ import Stripe from "stripe";
 import { checkAutoApprovalEligibility } from "./auto-approval";
 import type { AuditAction } from "$lib/server/audit";
 import { encodeBase32LowerCase } from "@oslojs/encoding";
+import { sendMemberEmail } from "$lib/server/emails";
+import { getMembershipName } from "$lib/server/utils/membership";
+import { getUserLocale } from "$lib/server/utils/user";
 
 /**
  * Checks if a Stripe error is due to a non-existent customer.
@@ -246,6 +249,7 @@ export async function fulfillSession(sessionId: string) {
   }
 
   // Use transaction to prevent race condition if multiple webhooks arrive simultaneously
+  let newStatus: "active" | "awaiting_approval" | null = null;
   await db.transaction(async (tx) => {
     const member = await tx.query.member.findFirst({
       where: eq(table.member.id, memberId),
@@ -257,7 +261,7 @@ export async function fulfillSession(sessionId: string) {
     }
 
     const eligible = await checkAutoApprovalEligibility(tx, member.userId, member.membership);
-    const newStatus = eligible ? "active" : "awaiting_approval";
+    newStatus = eligible ? "active" : "awaiting_approval";
 
     await tx.update(table.member).set({ status: newStatus }).where(eq(table.member.id, member.id));
 
@@ -279,6 +283,64 @@ export async function fulfillSession(sessionId: string) {
       });
     }
   });
+
+  // Send appropriate email based on the status that was set
+  // NOTE: Email sending is synchronous and adds ~200-500ms latency to webhook response.
+  // This is acceptable because:
+  // 1. Stripe retries failed webhooks automatically
+  // 2. Phase 1 prioritizes simplicity over background job complexity
+  // 3. Email failures are caught and logged without failing the transaction
+  if (newStatus) {
+    try {
+      const memberWithDetails = await db.query.member.findFirst({
+        where: eq(table.member.id, memberId),
+        with: {
+          user: true,
+          membership: {
+            with: { membershipType: true },
+          },
+        },
+      });
+
+      if (!memberWithDetails) {
+        return;
+      }
+
+      const userLocale = getUserLocale(memberWithDetails.user);
+
+      if (newStatus === "active") {
+        // Auto-approved (renewal): send membership renewed email immediately
+        if (memberWithDetails.user.firstNames) {
+          await sendMemberEmail({
+            recipientEmail: memberWithDetails.user.email,
+            emailType: "membership_renewed",
+            metadata: {
+              firstName: memberWithDetails.user.firstNames.split(" ")[0] || "",
+              membershipName: getMembershipName(memberWithDetails.membership, userLocale),
+              startDate: memberWithDetails.membership.startTime,
+              endDate: memberWithDetails.membership.endTime,
+            },
+            locale: userLocale,
+          });
+        }
+      } else if (newStatus === "awaiting_approval" && session.amount_total && session.currency) {
+        // Requires board approval: send payment success email
+        await sendMemberEmail({
+          recipientEmail: memberWithDetails.user.email,
+          emailType: "payment_success",
+          metadata: {
+            membershipName: getMembershipName(memberWithDetails.membership, userLocale),
+            amount: session.amount_total,
+            currency: session.currency,
+          },
+          locale: userLocale,
+        });
+      }
+    } catch (emailError) {
+      // Log but don't fail the fulfillment if email fails
+      console.error("[fulfillSession] Failed to send email:", emailError);
+    }
+  }
 }
 
 /**

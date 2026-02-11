@@ -71,8 +71,6 @@ const fi = {
     codeSentTo: "Lähetimme 8-numeroisen koodin osoitteeseen {email}.",
     resendCode: "Lähetä uusi koodi",
     changeEmail: "Vaihda sähköpostiosoite",
-    emailSubject: "Tietokillan jäsenrekisterin sisäänkirjautumiskoodi",
-    emailBody: "Koodisi on {code}",
     noEmailFound: "Sähköpostia ei löytynyt",
     incorrectCode: "Virheellinen koodi.",
     codeExpiredResent: "Vahvistuskoodi oli vanhentunut. Lähetimme uuden koodin sähköpostiisi.",
@@ -135,6 +133,61 @@ const fi = {
       nameOptional: "Valinnainen - jätä tyhjäksi käyttääksesi päivämäärää",
       nameThisPasskey: "Nimeä tämä avainkoodi?",
       renameHint: "Voit nimetä avainkoodit uudelleen lisäämisen jälkeen",
+    },
+  },
+
+  // Emails
+  emails: {
+    otp: {
+      subject: "Tietokillan jäsenrekisterin sisäänkirjautumiskoodi",
+      body: `Kirjautumiskoodisi on: {code}
+
+Koodi vanhenee 10 minuutin kuluttua.
+
+@{domain} #{code}`,
+    },
+    paymentSuccess: {
+      subject: "Maksu vastaanotettu - Odottaa hallituksen hyväksyntää",
+      body: `Kiitos {membershipName}-jäsenyytesi maksusta ({amount})!
+
+Maksusi on vastaanotettu ja jäsenhakemuksesi odottaa hallituksen hyväksyntää seuraavassa kokouksessa.
+
+Saat sähköpostiviestin, kun jäsenyytesi on hyväksytty.
+
+Terveisin,
+Tietokilta`,
+    },
+    membershipApproved: {
+      subject: "Tervetuloa Tietokiltaan!",
+      body: `Hei {firstName}!
+
+Jäsenhakemuksesi on hyväksytty. Tervetuloa Tietokillan jäseneksi!
+
+Jäsenyystiedot:
+- Jäsenyystyyppi: {membershipName}
+- Voimassa: {startDate} - {endDate}
+
+Voit nyt osallistua killan toimintaan ja hyödyntää jäsenetuja.
+
+Nähdään tapahtumissa!
+
+Terveisin,
+Tietokilta`,
+    },
+    membershipRenewed: {
+      subject: "Jäsenyytesi on uusittu!",
+      body: `Hei {firstName}!
+
+Jäsenyytesi on uusittu automaattisesti maksun jälkeen.
+
+Jäsenyystiedot:
+- Jäsenyystyyppi: {membershipName}
+- Voimassa: {startDate} - {endDate}
+
+Kiitos, että jatkat jäsenenämme!
+
+Terveisin,
+Tietokilta`,
     },
   },
 

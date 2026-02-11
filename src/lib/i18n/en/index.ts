@@ -71,8 +71,6 @@ const en = {
     codeSentTo: "We sent an 8-digit code to {email}.",
     resendCode: "Resend code",
     changeEmail: "Change email address",
-    emailSubject: "CSG Membership Registry Sign In Code",
-    emailBody: "Your code is {code}",
     noEmailFound: "No email found",
     incorrectCode: "Incorrect code.",
     codeExpiredResent: "The verification code was expired. We sent another code to your inbox.",
@@ -135,6 +133,61 @@ const en = {
       nameOptional: "Optional - leave empty to use date",
       nameThisPasskey: "Name this passkey?",
       renameHint: "You can rename passkeys after adding them",
+    },
+  },
+
+  // Emails
+  emails: {
+    otp: {
+      subject: "CSG Membership Registry Sign In Code",
+      body: `Your login code is: {code}
+
+This code will expire in 10 minutes.
+
+@{domain} #{code}`,
+    },
+    paymentSuccess: {
+      subject: "Payment received - Awaiting board approval",
+      body: `Thank you for your {membershipName} membership payment ({amount})!
+
+Your payment has been received and your membership application is awaiting approval at the next board meeting.
+
+You will receive an email once your membership is approved.
+
+Best regards,
+Computer Science Guild`,
+    },
+    membershipApproved: {
+      subject: "Welcome to the Computer Science Guild!",
+      body: `Hi {firstName}!
+
+Your membership application has been approved. Welcome as a member of the Computer Science Guild!
+
+Membership details:
+- Type: {membershipName}
+- Valid: {startDate} - {endDate}
+
+You can now participate in guild activities and enjoy member benefits.
+
+See you at events!
+
+Best regards,
+Computer Science Guild`,
+    },
+    membershipRenewed: {
+      subject: "Your membership has been renewed!",
+      body: `Hi {firstName}!
+
+Your membership has been automatically renewed after payment.
+
+Membership details:
+- Type: {membershipName}
+- Valid: {startDate} - {endDate}
+
+Thank you for continuing as a member!
+
+Best regards,
+Computer Science Guild`,
     },
   },
 
