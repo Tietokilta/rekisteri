@@ -1,15 +1,13 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
-  import jsQR from "jsqr";
+  import { onMount, onDestroy } from "svelte";
+  import { Html5Qrcode } from "html5-qrcode";
   import { LL } from "$lib/i18n/i18n-svelte";
   import AdminPageHeader from "$lib/components/admin-page-header.svelte";
   import { Button } from "$lib/components/ui/button";
   import { Badge } from "$lib/components/ui/badge";
   import type { LocalizedString } from "$lib/server/db/schema";
 
-  let videoElement: HTMLVideoElement | null = $state(null);
-  let canvasElement: HTMLCanvasElement | null = $state(null);
-  let stream: MediaStream | null = $state(null);
+  let scanner: Html5Qrcode | null = null;
   let scanning = $state(false);
   let error = $state("");
 
@@ -39,66 +37,46 @@
 
   let dialog: HTMLDialogElement | null = $state(null);
 
+  onMount(() => {
+    scanner = new Html5Qrcode("qr-reader");
+  });
+
   async function startScanning() {
     error = "";
     scanning = true;
 
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      });
-
-      if (videoElement) {
-        videoElement.srcObject = stream;
-        await videoElement.play();
-        requestAnimationFrame(scanFrame);
-      }
+      await scanner?.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+        },
+        (decodedText) => {
+          // QR code successfully scanned
+          verifyToken(decodedText);
+        },
+        () => {
+          // Scanning in progress, no QR found yet
+        },
+      );
     } catch {
       error = $LL.admin.verifyQr.cameraError();
       scanning = false;
     }
   }
 
-  function stopScanning() {
+  async function stopScanning() {
     scanning = false;
-    if (stream) {
-      for (const track of stream.getTracks()) {
-        track.stop();
-      }
-      stream = null;
+    try {
+      await scanner?.stop();
+    } catch {
+      // Ignore errors when stopping
     }
-  }
-
-  function scanFrame() {
-    if (!scanning || !videoElement || !canvasElement) return;
-
-    const canvas = canvasElement;
-    const video = videoElement;
-    const context = canvas.getContext("2d");
-
-    if (!context) return;
-
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.height = video.videoHeight;
-      canvas.width = video.videoWidth;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-
-      // Use jsQR to scan for QR code
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
-
-      if (code) {
-        verifyToken(code.data);
-        return;
-      }
-    }
-
-    requestAnimationFrame(scanFrame);
   }
 
   async function verifyToken(token: string) {
-    stopScanning();
+    await stopScanning();
 
     try {
       const response = await fetch(globalThis.location.href, {
@@ -124,8 +102,14 @@
     scannedUser = null;
   }
 
-  onDestroy(() => {
-    stopScanning();
+  onDestroy(async () => {
+    if (scanning && scanner) {
+      try {
+        await scanner.stop();
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
   });
 
   function getStatusBadge(status: string): "default" | "secondary" | "destructive" | "outline" {
@@ -159,22 +143,16 @@
       </div>
     {/if}
 
-    <!-- Video feed -->
+    <!-- QR Scanner -->
     {#if scanning}
-      <div class="relative overflow-hidden rounded-lg border bg-black">
-        <video bind:this={videoElement} class="w-full" playsinline></video>
-        <canvas bind:this={canvasElement} class="hidden"></canvas>
-        <div class="absolute inset-0 flex items-center justify-center">
-          <div class="h-48 w-48 rounded-lg border-4 border-primary opacity-50"></div>
-        </div>
-      </div>
+      <div id="qr-reader" class="mx-auto max-w-lg"></div>
       <p class="text-center text-sm text-muted-foreground">{$LL.admin.verifyQr.scanInstructions()}</p>
     {/if}
   </div>
 </main>
 
 <!-- User info modal -->
-<dialog bind:this={dialog} class="max-w-lg rounded-lg backdrop:bg-black/50">
+<dialog bind:this={dialog} class="m-auto max-w-lg rounded-lg p-0 backdrop:bg-black/50 open:flex open:flex-col">
   {#if scannedUser}
     <div class="space-y-6 p-6">
       <h2 class="text-2xl font-bold">{$LL.admin.verifyQr.userInfo()}</h2>

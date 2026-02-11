@@ -79,7 +79,11 @@
 </button>
 
 <!-- Native HTML dialog element -->
-<dialog bind:this={dialog} onclick={handleDialogClick} class="max-w-md rounded-lg backdrop:bg-black/80">
+<dialog
+  bind:this={dialog}
+  onclick={handleDialogClick}
+  class="m-auto max-w-md rounded-lg p-0 backdrop:bg-black/80 open:flex open:flex-col"
+>
   <div class="flex flex-col items-center gap-6 p-8">
     <h2 class="text-center text-2xl font-bold">{$LL.memberCard.title()}</h2>
 
