@@ -79,37 +79,12 @@
         </Drawer.Close>
       </Drawer.Header>
 
-      <nav class="flex flex-col gap-2 p-4" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));">
-        <!-- Main navigation -->
-        <ul class="flex flex-col gap-1">
-          {#each mainNavItems as item (item.href)}
-            <li>
-              <a
-                href={item.href}
-                onclick={handleNavClick}
-                class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent {isActive(
-                  item.href,
-                )
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground'}"
-              >
-                <item.icon class="size-5" />
-                <span>{item.title}</span>
-              </a>
-            </li>
-          {/each}
-        </ul>
-
-        <!-- Settings section -->
-        <div class="mt-2">
-          <div
-            class="flex items-center gap-2 px-3 py-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-          >
-            <Settings class="size-4" />
-            <span>{$LL.nav.settings()}</span>
-          </div>
+      <!-- Scrollable navigation links -->
+      <nav class="flex-1 overflow-y-auto p-4">
+        <div class="flex flex-col gap-2">
+          <!-- Main navigation -->
           <ul class="flex flex-col gap-1">
-            {#each settingsNavItems as item (item.href)}
+            {#each mainNavItems as item (item.href)}
               <li>
                 <a
                   href={item.href}
@@ -126,19 +101,17 @@
               </li>
             {/each}
           </ul>
-        </div>
 
-        <!-- Admin section (only visible if isAdmin) -->
-        {#if user.isAdmin}
+          <!-- Settings section -->
           <div class="mt-2">
             <div
               class="flex items-center gap-2 px-3 py-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
             >
-              <Shield class="size-4" />
-              <span>{$LL.nav.admin.title()}</span>
+              <Settings class="size-4" />
+              <span>{$LL.nav.settings()}</span>
             </div>
             <ul class="flex flex-col gap-1">
-              {#each adminNavItems as item (item.href)}
+              {#each settingsNavItems as item (item.href)}
                 <li>
                   <a
                     href={item.href}
@@ -156,37 +129,70 @@
               {/each}
             </ul>
           </div>
-        {/if}
 
-        <!-- Language toggle and sign out -->
-        <div class="mt-4 flex items-center justify-between border-t pt-4">
-          <div class="flex items-center gap-2">
-            <Languages class="size-5 text-muted-foreground" />
-            <ToggleGroup.Root type="single" value={$locale} data-sveltekit-reload>
-              <ToggleGroup.Item value="fi" class="h-8 px-3">
-                {#snippet child({ props })}
-                  <a {...props} href={languageHref("fi")}>FI</a>
-                {/snippet}
-              </ToggleGroup.Item>
-              <ToggleGroup.Item value="en" class="h-8 px-3">
-                {#snippet child({ props })}
-                  <a {...props} href={languageHref("en")}>EN</a>
-                {/snippet}
-              </ToggleGroup.Item>
-            </ToggleGroup.Root>
-          </div>
-          <form class="contents" {...signOut}>
-            <button
-              type="submit"
-              onclick={handleNavClick}
-              class="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
-            >
-              <LogOut class="size-5" />
-              <span>{$LL.nav.signOut()}</span>
-            </button>
-          </form>
+          <!-- Admin section (only visible if isAdmin) -->
+          {#if user.isAdmin}
+            <div class="mt-2">
+              <div
+                class="flex items-center gap-2 px-3 py-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+              >
+                <Shield class="size-4" />
+                <span>{$LL.nav.admin.title()}</span>
+              </div>
+              <ul class="flex flex-col gap-1">
+                {#each adminNavItems as item (item.href)}
+                  <li>
+                    <a
+                      href={item.href}
+                      onclick={handleNavClick}
+                      class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent {isActive(
+                        item.href,
+                      )
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-muted-foreground'}"
+                    >
+                      <item.icon class="size-5" />
+                      <span>{item.title}</span>
+                    </a>
+                  </li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
         </div>
       </nav>
+
+      <!-- Pinned footer: language toggle and sign out (always visible) -->
+      <div
+        class="flex items-center justify-between border-t p-4"
+        style="padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));"
+      >
+        <div class="flex items-center gap-2">
+          <Languages class="size-5 text-muted-foreground" />
+          <ToggleGroup.Root type="single" value={$locale} data-sveltekit-reload>
+            <ToggleGroup.Item value="fi" class="h-8 px-3">
+              {#snippet child({ props })}
+                <a {...props} href={languageHref("fi")}>FI</a>
+              {/snippet}
+            </ToggleGroup.Item>
+            <ToggleGroup.Item value="en" class="h-8 px-3">
+              {#snippet child({ props })}
+                <a {...props} href={languageHref("en")}>EN</a>
+              {/snippet}
+            </ToggleGroup.Item>
+          </ToggleGroup.Root>
+        </div>
+        <form class="contents" {...signOut}>
+          <button
+            type="submit"
+            onclick={handleNavClick}
+            class="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+          >
+            <LogOut class="size-5" />
+            <span>{$LL.nav.signOut()}</span>
+          </button>
+        </form>
+      </div>
     </Drawer.Content>
   </Drawer.Root>
 </div>
