@@ -49,9 +49,6 @@ const fi = {
     show: "Näytä jäsenkortti",
     close: "Sulje",
     qrAlt: "Jäsentodistuksen QR-koodi",
-    instructions:
-      "Näytä tämä koodi jäsentodistusta varten. Voidaan käyttää kokouksissa, tapahtumissa, alennuksissa, ym.",
-    brightnessNotice: "Aseta näytön kirkkaus maksimiin parhaan skannauksen takaamiseksi",
   },
 
   // Settings

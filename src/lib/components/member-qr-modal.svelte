@@ -61,6 +61,13 @@
 
     dialog.close();
   }
+
+  // Close on backdrop click
+  function handleDialogClick(e: MouseEvent) {
+    if (e.target === dialog) {
+      closeModal();
+    }
+  }
 </script>
 
 <button
@@ -74,16 +81,9 @@
 <!-- Native HTML dialog element -->
 <dialog
   bind:this={dialog}
-  class="fixed inset-0 z-50 m-0 flex h-full max-h-full w-full max-w-full flex-col items-center justify-center gap-6 border-none bg-white p-8 text-black backdrop:bg-black/80"
+  onclick={handleDialogClick}
+  class="m-0 flex max-h-screen w-full max-w-md flex-col items-center justify-center gap-6 rounded-lg border-none bg-white p-8 text-black backdrop:bg-black/80 open:flex"
 >
-  <!-- Brightness notice -->
-  <div
-    class="flex items-center gap-2 rounded-md border-2 border-amber-500 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900"
-  >
-    <span class="text-xl">⚠️</span>
-    <span>{$LL.memberCard.brightnessNotice()}</span>
-  </div>
-
   <h2 class="text-center text-2xl font-bold">{$LL.memberCard.title()}</h2>
 
   <!-- QR Code -->
@@ -97,11 +97,6 @@
 
   <!-- User name -->
   <p class="text-center text-xl font-semibold">{userName}</p>
-
-  <!-- Instructions -->
-  <p class="max-w-md text-center text-sm text-gray-700">
-    {$LL.memberCard.instructions()}
-  </p>
 
   <!-- Close button -->
   <button

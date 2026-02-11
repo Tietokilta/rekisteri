@@ -49,8 +49,6 @@ const en = {
     show: "Show Member Card",
     close: "Close",
     qrAlt: "Member verification QR code",
-    instructions: "Show this code for member verification. Can be used at meetings, events, discounts, etc.",
-    brightnessNotice: "Please maximize your screen brightness for best scanning",
   },
 
   // Settings
