@@ -1,6 +1,7 @@
 import Mailgun from "mailgun.js";
 import type { MessagesSendResult, MailgunMessageData } from "mailgun.js/definitions";
 import { env } from "$lib/server/env";
+import { dev } from "$app/environment";
 
 interface SendEmailOptions {
   to: string;
@@ -11,9 +12,27 @@ interface SendEmailOptions {
 }
 
 export const sendEmail = async (options: SendEmailOptions): Promise<MessagesSendResult> => {
+  // In dev or test mode, log email instead of sending
+  if (dev || env.TEST) {
+    const mode = dev ? "dev" : "test";
+    console.log(`[Email] Email (${mode} mode):`, {
+      to: options.to,
+      subject: options.subject,
+      headers: options.headers,
+      text: options.text,
+    });
+    // Return a mock success response
+    return {
+      status: 200,
+      id: `<mock-${Date.now()}@mailgun.test>`,
+      message: "Queued. Thank you.",
+    };
+  }
+
   if (!env.MAILGUN_API_KEY || !env.MAILGUN_DOMAIN || !env.MAILGUN_SENDER) {
     throw new Error("Mailgun is not properly configured.");
   }
+
   const mailgun = new Mailgun(FormData);
 
   const mg = mailgun.client({
