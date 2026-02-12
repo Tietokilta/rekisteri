@@ -191,8 +191,7 @@
 
       <div class="text-center">
         <div class="text-2xl font-bold">
-          {scannedUser.user.firstNames || ""}
-          {scannedUser.user.lastName || ""}
+          {[scannedUser.user.firstNames, scannedUser.user.lastName].filter(Boolean).join(" ") || scannedUser.user.email}
         </div>
         <div class="text-sm text-muted-foreground">{scannedUser.user.email}</div>
       </div>

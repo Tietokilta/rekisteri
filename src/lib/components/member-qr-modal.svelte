@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import QRCode from "qrcode";
   import QrCodeIcon from "@lucide/svelte/icons/qr-code";
   import { LL } from "$lib/i18n/i18n-svelte";
   import { Button } from "$lib/components/ui/button/index.js";
+  import QrImage from "$lib/components/qr-image.svelte";
 
   type Props = {
     token: string;
@@ -13,27 +13,8 @@
 
   let { token, userName, class: className }: Props = $props();
 
-  let qrDataUrl = $state("");
   let wakeLock: WakeLockSentinel | null = $state(null);
   let dialog: HTMLDialogElement | null = $state(null);
-
-  // Generate QR code reactively when token changes
-  $effect(() => {
-    QRCode.toDataURL(token, {
-      width: 280,
-      margin: 2,
-      color: {
-        dark: "#000000",
-        light: "#FFFFFF",
-      },
-    })
-      .then((url) => {
-        qrDataUrl = url;
-      })
-      .catch((err) => {
-        console.error("Failed to generate QR code:", err);
-      });
-  });
 
   async function openModal() {
     if (!dialog) return;
@@ -50,30 +31,23 @@
     }
   }
 
-  function closeModal() {
-    if (!dialog) return;
-
-    // Release wake lock when modal closes
+  function releaseWakeLock() {
     if (wakeLock) {
       wakeLock.release().catch((err) => {
         console.error("Wake Lock release error:", err);
       });
       wakeLock = null;
     }
+  }
 
+  function closeModal() {
+    if (!dialog) return;
     dialog.close();
   }
 
   onDestroy(() => {
-    wakeLock?.release().catch(() => {});
+    releaseWakeLock();
   });
-
-  // Close on backdrop click
-  function handleDialogClick(e: MouseEvent) {
-    if (e.target === dialog) {
-      closeModal();
-    }
-  }
 </script>
 
 <Button onclick={openModal} class={className}>
@@ -82,18 +56,30 @@
 </Button>
 
 <!-- Native HTML dialog element -->
-<dialog bind:this={dialog} onclick={handleDialogClick} class="fixed m-auto max-w-md rounded-lg backdrop:bg-black/80">
+<dialog
+  bind:this={dialog}
+  onclose={releaseWakeLock}
+  onclick={(e) => {
+    if (e.target === dialog) dialog?.close();
+  }}
+  class="fixed m-auto max-w-md rounded-lg backdrop:bg-black/80"
+>
   <div class="flex flex-col items-center gap-6 p-8">
     <h2 class="text-center text-2xl font-bold">{$LL.memberCard.title()}</h2>
 
     <!-- QR Code -->
-    {#if qrDataUrl}
-      <div class="rounded-lg bg-white p-4 shadow-lg">
-        <img src={qrDataUrl} alt={$LL.memberCard.qrAlt()} class="h-auto w-70" />
-      </div>
-    {:else}
-      <div class="h-70 w-70 animate-pulse rounded-lg bg-gray-200"></div>
-    {/if}
+    <svelte:boundary>
+      <QrImage {token} />
+      {#snippet pending()}
+        <div class="h-70 w-70 animate-pulse rounded-lg bg-gray-200"></div>
+      {/snippet}
+      {#snippet failed(_error, retry)}
+        <div class="flex h-70 w-70 flex-col items-center justify-center gap-2 rounded-lg bg-gray-100">
+          <p class="text-sm text-destructive">Failed to generate QR code</p>
+          <Button onclick={retry} variant="outline" size="sm">Retry</Button>
+        </div>
+      {/snippet}
+    </svelte:boundary>
 
     <!-- User name -->
     <p class="text-center text-xl font-semibold">{userName}</p>
