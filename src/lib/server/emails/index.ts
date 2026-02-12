@@ -37,7 +37,6 @@ export async function sendMemberEmail<T extends EmailType>({
   emailType,
   metadata,
   locale = "fi",
-  headers,
 }: {
   recipientEmail: string;
   emailType: T;
@@ -60,7 +59,5 @@ export async function sendMemberEmail<T extends EmailType>({
     to: recipientEmail,
     subject,
     text,
-    html,
-    headers,
   });
 }
