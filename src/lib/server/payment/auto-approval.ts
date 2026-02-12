@@ -12,7 +12,7 @@ const MAX_PRECEDING_GAP_MS = 6 * 30 * 24 * 60 * 60 * 1000; // ~6 months
  * Check if a user is eligible for auto-approval when purchasing a membership.
  *
  * Auto-approval is granted when:
- * 1. The user had an approved membership (active or expired) of the same membership type
+ * 1. The user had an approved membership (active or resigned) of the same membership type
  *    in the immediately preceding period (gap must be at most ~6 months)
  * 2. For student-verified memberships: the user still has a valid aalto.fi email
  *
