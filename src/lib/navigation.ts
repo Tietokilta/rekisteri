@@ -14,6 +14,7 @@ import Tags from "@lucide/svelte/icons/tags";
 import Tag from "@lucide/svelte/icons/tag";
 import UserCog from "@lucide/svelte/icons/user-cog";
 import QrCode from "@lucide/svelte/icons/qr-code";
+import CalendarDays from "@lucide/svelte/icons/calendar-days";
 
 export interface NavItem {
   title: string;
@@ -62,6 +63,11 @@ export function getAdminNavItems(locale: Locale, LL: TranslationFunctions): NavI
       title: LL.nav.admin.members(),
       href: route("/[locale=locale]/admin/members", { locale }),
       icon: Users,
+    },
+    {
+      title: LL.nav.admin.meetings(),
+      href: route("/[locale=locale]/admin/meetings", { locale }),
+      icon: CalendarDays,
     },
     {
       title: LL.nav.admin.memberships(),
