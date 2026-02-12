@@ -28,7 +28,6 @@ export const verifyQr = command(verifyQrSchema, async ({ token }) => {
       email: true,
       firstNames: true,
       lastName: true,
-      homeMunicipality: true,
     },
   });
 
