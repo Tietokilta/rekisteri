@@ -117,6 +117,11 @@ email_log:
 
 Added to existing `node-cron` setup in `hooks.server.ts` (daily, alongside cleanup tasks).
 
+**Schedule:** Weekdays at 10 AM Helsinki time (handles DST automatically):
+```js
+cron.schedule("0 10 * * 1-5", handler, { timezone: "Europe/Helsinki" });
+```
+
 **Logic:**
 ```
 For each membership M where M.paymentDueDate is not null:
@@ -124,17 +129,22 @@ For each membership M where M.paymentDueDate is not null:
   in a PREVIOUS period, AND who have NOT purchased M yet
   (no member record linking them to M).
 
-  Based on days until M.paymentDueDate:
-    -30 days: send 'payment_reminder_30d'  (if not already sent per email_log)
-    -7 days:  send 'payment_reminder_7d'
-    0 days:   send 'payment_reminder_due'
-    +30 days: send 'payment_reminder_overdue'
+  Based on days relative to M.paymentDueDate (ranges to handle weekends):
+    28-30 days before: send 'payment_reminder_30d'  (if not already sent per email_log)
+    5-7 days before:   send 'payment_reminder_7d'
+    0-2 days after:    send 'payment_reminder_due'
+    28-30 days after:  send 'payment_reminder_overdue'
+
+  Dedup via email_log ensures only one email per type per member:
+    first weekday in the window triggers the send,
+    subsequent days in the window are skipped.
 ```
 
 **Edge cases:**
 - No new membership of same type exists → no reminders fire (correct — nothing to renew into)
 - Membership type discontinued → no reminders, board handles communication separately
 - Member already purchased new period → no reminder (they have a member record for M)
+- Reminder milestone falls on weekend → sent on following Monday (range-based check + dedup)
 
 ### 4. Status Change Notification Emails (Immediate)
 
@@ -174,7 +184,7 @@ All templates respect `user.preferredLanguage` for locale selection.
 hooks.server.ts ServerInit:
   "0 3 * * *"    — existing: cleanupExpiredTokens, cleanupOldAuditLogs
   "0 4 * * 0"    — existing: cleanupInactiveUsers (GDPR, 6yr)
-  "0 8 * * *"    — NEW: payment due date reminder check (8 AM, reasonable sending time)
+  "0 10 * * 1-5" — NEW: payment reminder check (weekdays 10 AM Helsinki, tz-aware)
   "0 3 * * *"    — EXTEND: add email_log cleanup (180-day retention)
 ```
 
