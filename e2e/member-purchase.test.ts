@@ -98,16 +98,16 @@ test.describe("Member Purchase Flow", () => {
     await expect(adminPage.getByRole("link", { name: /Osta uusi|Uusi jäsenyys|Hanki jäsenyys/i })).not.toBeVisible();
   });
 
-  test("allows repurchasing cancelled membership", async ({ adminPage, adminUser, db }) => {
+  test("allows repurchasing rejected membership", async ({ adminPage, adminUser, db }) => {
     const membership = await getMembershipWithStripePrice(db);
 
-    // Create a cancelled member for the test user
+    // Create a rejected member for the test user
     const testMemberId = crypto.randomUUID();
     await db.insert(table.member).values({
       id: testMemberId,
       userId: adminUser.id,
       membershipId: membership.id,
-      status: "cancelled",
+      status: "rejected",
       stripeSessionId: null,
     });
     testMemberIds.push(testMemberId);
@@ -115,22 +115,22 @@ test.describe("Member Purchase Flow", () => {
     // Navigate to new membership page and verify form is visible
     await gotoNewMembershipPage(adminPage);
 
-    // The cancelled membership should be available to repurchase
+    // The rejected membership should be available to repurchase
     // Look for a radio button for that membership type
     const membershipRadio = adminPage.getByRole("radio");
     await expect(membershipRadio.first()).toBeVisible();
   });
 
-  test("allows repurchasing expired membership", async ({ adminPage, adminUser, db }) => {
+  test("allows repurchasing resigned membership", async ({ adminPage, adminUser, db }) => {
     const membership = await getMembershipWithStripePrice(db);
 
-    // Create an expired member for the test user
+    // Create a resigned member for the test user
     const testMemberId = crypto.randomUUID();
     await db.insert(table.member).values({
       id: testMemberId,
       userId: adminUser.id,
       membershipId: membership.id,
-      status: "expired",
+      status: "resigned",
       stripeSessionId: null,
     });
     testMemberIds.push(testMemberId);
@@ -138,7 +138,7 @@ test.describe("Member Purchase Flow", () => {
     // Navigate to new membership page and verify form is visible
     await gotoNewMembershipPage(adminPage);
 
-    // The expired membership should be available to repurchase
+    // The resigned membership should be available to repurchase
     const membershipRadio = adminPage.getByRole("radio");
     await expect(membershipRadio.first()).toBeVisible();
   });
@@ -192,16 +192,16 @@ test.describe("Member Purchase Flow", () => {
     await expect(adminPage.getByText("Odottaa hyväksyntää")).toBeVisible();
   });
 
-  test("home page shows 'Renew membership' for expired membership", async ({ adminPage, adminUser, db }) => {
+  test("home page shows 'Renew membership' for resigned membership", async ({ adminPage, adminUser, db }) => {
     const membership = await getMembershipWithStripePrice(db);
 
-    // Create an expired member for the test user
+    // Create a resigned member for the test user
     const testMemberId = crypto.randomUUID();
     await db.insert(table.member).values({
       id: testMemberId,
       userId: adminUser.id,
       membershipId: membership.id,
-      status: "expired",
+      status: "resigned",
       stripeSessionId: null,
     });
     testMemberIds.push(testMemberId);

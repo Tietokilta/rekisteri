@@ -30,7 +30,7 @@ export const load: PageServerLoad = async (event) => {
   }));
 
   // Only consider memberships with blocking statuses when calculating the latest end time
-  // This allows users to repurchase memberships if their previous one was cancelled or expired
+  // This allows users to repurchase memberships if their previous one was resigned or rejected
   const blockingMemberships = memberships.filter((m) => BLOCKING_MEMBER_STATUSES.has(m.status));
   const latestEndTime =
     blockingMemberships.length > 0

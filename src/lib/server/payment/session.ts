@@ -371,6 +371,6 @@ export async function cancelSession(sessionId: string) {
       // Already processed or not found
       return;
     }
-    await tx.update(table.member).set({ status: "cancelled" }).where(eq(table.member.id, member.id));
+    await tx.update(table.member).set({ status: "rejected" }).where(eq(table.member.id, member.id));
   });
 }

@@ -27,9 +27,9 @@ export const load: PageServerLoad = async (event) => {
     unique_id: m.member.id,
   }));
 
-  // Load QR token if user has active or expired membership
+  // Load QR token if user has active or past membership
   let qrToken: string | null = null;
-  const hasValidMembership = memberships.some((m) => m.status === "active" || m.status === "expired");
+  const hasValidMembership = memberships.some((m) => m.status === "active" || m.status === "resigned");
 
   if (hasValidMembership) {
     qrToken = await ensureUserHasQrToken(event.locals.user.id);

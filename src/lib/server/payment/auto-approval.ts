@@ -1,4 +1,4 @@
-import { and, eq, lte, desc, inArray } from "drizzle-orm";
+import { and, eq, lte, desc } from "drizzle-orm";
 import * as table from "$lib/server/db/schema";
 import type { Membership, SecondaryEmail } from "$lib/server/db/schema";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
@@ -12,7 +12,7 @@ const MAX_PRECEDING_GAP_MS = 6 * 30 * 24 * 60 * 60 * 1000; // ~6 months
  * Check if a user is eligible for auto-approval when purchasing a membership.
  *
  * Auto-approval is granted when:
- * 1. The user had an approved membership (active or expired) of the same membership type
+ * 1. The user had an active membership of the same membership type
  *    in the immediately preceding period (gap must be at most ~6 months)
  * 2. For student-verified memberships: the user still has a valid aalto.fi email
  *
@@ -45,13 +45,14 @@ export async function checkAutoApprovalEligibility(
     return false;
   }
 
-  // Check if user had an approved member record for that preceding membership
-  // "active" or "expired" status indicates the board approved it at some point
+  // Check if user had an active member record for that preceding membership.
+  // Only "active" qualifies — resigned members were deliberately removed by the
+  // board at year-end (§8 p2) and should go through board review again.
   const previousMember = await db.query.member.findFirst({
     where: and(
       eq(table.member.userId, userId),
       eq(table.member.membershipId, precedingMembership.id),
-      inArray(table.member.status, ["active", "expired"]),
+      eq(table.member.status, "active"),
     ),
   });
 

@@ -108,18 +108,18 @@
           label: $LL.membership.status.awaitingApproval(),
           cardClass: "border-yellow-500/50 bg-yellow-500/5",
         };
-      case "expired":
+      case "resigned":
         return {
           variant: "destructive" as const,
           icon: CircleAlert,
-          label: $LL.membership.status.expired(),
+          label: $LL.membership.status.resigned(),
           cardClass: "border-destructive/50 bg-destructive/5",
         };
-      case "cancelled":
+      case "rejected":
         return {
           variant: "destructive" as const,
           icon: CircleAlert,
-          label: $LL.membership.status.expired(),
+          label: $LL.membership.status.rejected(),
           cardClass: "border-destructive/50 bg-destructive/5",
         };
       default:

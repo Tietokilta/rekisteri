@@ -78,6 +78,13 @@
       "when": 1770844926842,
       "tag": "0010_free_dexter_bennett",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1770921079658,
+      "tag": "0011_smiling_butterfly",
+      "breakpoints": true
     }
   ]
 }

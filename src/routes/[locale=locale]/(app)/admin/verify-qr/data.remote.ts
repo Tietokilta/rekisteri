@@ -53,7 +53,7 @@ export const verifyQr = command(verifyQrSchema, async ({ token }) => {
     .innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
     .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
     .where(
-      and(eq(table.member.userId, userId), or(eq(table.member.status, "active"), eq(table.member.status, "expired"))),
+      and(eq(table.member.userId, userId), or(eq(table.member.status, "active"), eq(table.member.status, "resigned"))),
     )
     .orderBy(desc(table.membership.startTime))
     .limit(3);

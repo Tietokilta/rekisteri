@@ -46,7 +46,7 @@ async function createMember(
   opts: {
     userId: string;
     membershipId: string;
-    status: "awaiting_payment" | "awaiting_approval" | "active" | "expired" | "cancelled";
+    status: "awaiting_payment" | "awaiting_approval" | "active" | "resigned" | "rejected";
   },
 ) {
   await db.insert(table.member).values({
@@ -129,7 +129,7 @@ describe("Auto-approval eligibility", () => {
     expect(result).toBe(true);
   });
 
-  it("auto-approves when previous membership status is expired", async () => {
+  it("rejects when previous membership status is resigned", async () => {
     const { db } = testDb;
     const userId = crypto.randomUUID();
     const typeId = `type-${crypto.randomUUID().slice(0, 8)}`;
@@ -143,7 +143,7 @@ describe("Auto-approval eligibility", () => {
       startTime: new Date("2024-01-01"),
       endTime: new Date("2024-12-31"),
     });
-    await createMember(db, { userId, membershipId: `prev-${userId}`, status: "expired" });
+    await createMember(db, { userId, membershipId: `prev-${userId}`, status: "resigned" });
 
     await createMembership(db, {
       id: `new-${userId}`,
@@ -154,8 +154,9 @@ describe("Auto-approval eligibility", () => {
 
     const newMembership = await getMembership(db, `new-${userId}`);
 
+    // Resigned members were deliberately removed by the board — they need re-approval
     const result = await checkAutoApprovalEligibility(db, userId, newMembership);
-    expect(result).toBe(true);
+    expect(result).toBe(false);
   });
 
   it("rejects when user has no previous memberships", async () => {
@@ -212,7 +213,7 @@ describe("Auto-approval eligibility", () => {
     expect(result).toBe(false);
   });
 
-  it("rejects when previous membership was cancelled", async () => {
+  it("rejects when previous membership was rejected", async () => {
     const { db } = testDb;
     const userId = crypto.randomUUID();
     const typeId = `type-${crypto.randomUUID().slice(0, 8)}`;
@@ -226,7 +227,7 @@ describe("Auto-approval eligibility", () => {
       startTime: new Date("2024-01-01"),
       endTime: new Date("2024-12-31"),
     });
-    await createMember(db, { userId, membershipId: `prev-${userId}`, status: "cancelled" });
+    await createMember(db, { userId, membershipId: `prev-${userId}`, status: "rejected" });
 
     await createMembership(db, {
       id: `new-${userId}`,

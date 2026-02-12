@@ -1,16 +1,17 @@
 import { error } from "@sveltejs/kit";
-import { form, getRequestEvent, command } from "$app/server";
+import { getRequestEvent, command } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { auditMemberAction, auditBulkMemberAction } from "$lib/server/audit";
-import { memberIdSchema, bulkMemberIdsSchema } from "./schema";
+import { memberIdSchema, memberIdWithReasonSchema, bulkMemberIdsSchema, bulkMemberIdsWithReasonSchema } from "./schema";
 import { getLL } from "$lib/server/i18n";
 import { sendMemberEmail } from "$lib/server/emails";
 import { getMembershipName } from "$lib/server/utils/membership";
 import { getUserLocale } from "$lib/server/utils/user";
+import { isValidTransition } from "$lib/server/utils/member";
 
-export const approveMember = form(memberIdSchema, async ({ memberId }) => {
+export const approveMember = command(memberIdSchema, async ({ memberId }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
@@ -26,7 +27,9 @@ export const approveMember = form(memberIdSchema, async ({ memberId }) => {
     error(404, LL.admin.members.memberNotFound());
   }
 
-  if (member.status !== "awaiting_approval") {
+  // approveMember is specifically for new applications — resigned/rejected
+  // members should go through reactivateMember instead
+  if (member.status !== "awaiting_approval" && member.status !== "awaiting_payment") {
     error(400, LL.admin.members.notAwaitingApproval());
   }
 
@@ -71,7 +74,7 @@ export const approveMember = form(memberIdSchema, async ({ memberId }) => {
   return { success: true, message: "Member approved successfully" };
 });
 
-export const rejectMember = form(memberIdSchema, async ({ memberId }) => {
+export const rejectMember = command(memberIdWithReasonSchema, async ({ memberId, reason }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
@@ -87,16 +90,26 @@ export const rejectMember = form(memberIdSchema, async ({ memberId }) => {
     error(404, LL.admin.members.memberNotFound());
   }
 
-  await db.update(table.member).set({ status: "cancelled" }).where(eq(table.member.id, memberId));
+  if (!isValidTransition(member.status, "rejected")) {
+    error(400, LL.admin.members.cannotReject());
+  }
+
+  await db.update(table.member).set({ status: "rejected" }).where(eq(table.member.id, memberId));
 
   await auditMemberAction(event, "member.reject", memberId, {
     previousStatus: member.status,
+    reason,
   });
 
   return { success: true, message: "Member rejected successfully" };
 });
 
-export const markMemberExpired = form(memberIdSchema, async ({ memberId }) => {
+/**
+ * Deem a member as resigned (eronneeksi katsominen).
+ * Used when the board deems a member resigned for non-payment (§8 p2)
+ * or for the year-end mass cleanup.
+ */
+export const markMemberResigned = command(memberIdWithReasonSchema, async ({ memberId, reason }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
@@ -112,16 +125,25 @@ export const markMemberExpired = form(memberIdSchema, async ({ memberId }) => {
     error(404, LL.admin.members.memberNotFound());
   }
 
-  await db.update(table.member).set({ status: "expired" }).where(eq(table.member.id, memberId));
+  if (!isValidTransition(member.status, "resigned")) {
+    error(400, LL.admin.members.cannotDeemResigned());
+  }
 
-  await auditMemberAction(event, "member.expire", memberId, {
+  await db.update(table.member).set({ status: "resigned" }).where(eq(table.member.id, memberId));
+
+  await auditMemberAction(event, "member.deem_resigned", memberId, {
     previousStatus: member.status,
+    reason,
   });
 
-  return { success: true, message: "Member marked as expired" };
+  return { success: true, message: "Member deemed resigned" };
 });
 
-export const cancelMember = form(memberIdSchema, async ({ memberId }) => {
+/**
+ * Record a member's voluntary resignation (eroaminen).
+ * Used when a member explicitly asks to leave the guild (§8 p1).
+ */
+export const resignMember = command(memberIdWithReasonSchema, async ({ memberId, reason }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
@@ -137,16 +159,21 @@ export const cancelMember = form(memberIdSchema, async ({ memberId }) => {
     error(404, LL.admin.members.memberNotFound());
   }
 
-  await db.update(table.member).set({ status: "cancelled" }).where(eq(table.member.id, memberId));
+  if (!isValidTransition(member.status, "resigned")) {
+    error(400, LL.admin.members.cannotResign());
+  }
 
-  await auditMemberAction(event, "member.cancel", memberId, {
+  await db.update(table.member).set({ status: "resigned" }).where(eq(table.member.id, memberId));
+
+  await auditMemberAction(event, "member.resign", memberId, {
     previousStatus: member.status,
+    reason,
   });
 
-  return { success: true, message: "Membership cancelled successfully" };
+  return { success: true, message: "Membership resignation recorded" };
 });
 
-export const reactivateMember = form(memberIdSchema, async ({ memberId }) => {
+export const reactivateMember = command(memberIdWithReasonSchema, async ({ memberId, reason }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
@@ -162,7 +189,7 @@ export const reactivateMember = form(memberIdSchema, async ({ memberId }) => {
     error(404, LL.admin.members.memberNotFound());
   }
 
-  if (member.status !== "expired" && member.status !== "cancelled") {
+  if (!isValidTransition(member.status, "active")) {
     error(400, LL.admin.members.cannotReactivate());
   }
 
@@ -170,6 +197,7 @@ export const reactivateMember = form(memberIdSchema, async ({ memberId }) => {
 
   await auditMemberAction(event, "member.reactivate", memberId, {
     previousStatus: member.status,
+    reason,
   });
 
   return { success: true, message: "Membership reactivated successfully" };
@@ -184,12 +212,14 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
     error(404, LL.error.resourceNotFound());
   }
 
-  // Fetch all members to validate they exist and are awaiting approval
+  // Fetch all members to validate they exist and can be approved
   const members = await db.query.member.findMany({
     where: inArray(table.member.id, memberIds),
   });
 
-  const validMembers = members.filter((m) => m.status === "awaiting_approval");
+  // Bulk approve is specifically for new applications — not for reactivating
+  // resigned/rejected members
+  const validMembers = members.filter((m) => m.status === "awaiting_approval" || m.status === "awaiting_payment");
 
   if (validMembers.length === 0) {
     error(400, LL.admin.members.noMembersAwaitingApproval());
@@ -263,7 +293,12 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
   };
 });
 
-export const bulkRejectMembers = command(bulkMemberIdsSchema, async ({ memberIds }) => {
+/**
+ * Bulk deem members as resigned (eronneeksi katsominen).
+ * Primarily used for the year-end mass cleanup when the board deems
+ * members who haven't paid as resigned per §8 p2.
+ */
+export const bulkMarkMembersResigned = command(bulkMemberIdsWithReasonSchema, async ({ memberIds, reason }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
@@ -271,146 +306,33 @@ export const bulkRejectMembers = command(bulkMemberIdsSchema, async ({ memberIds
     error(404, LL.error.resourceNotFound());
   }
 
-  // Fetch all members to validate they exist and are awaiting approval
+  // Fetch all members to validate they exist and can be deemed resigned
   const members = await db.query.member.findMany({
     where: inArray(table.member.id, memberIds),
   });
 
-  const validMembers = members.filter((m) => m.status === "awaiting_approval");
+  const validMembers = members.filter((m) => isValidTransition(m.status, "resigned"));
 
   if (validMembers.length === 0) {
-    error(400, LL.admin.members.noMembersAwaitingApproval());
+    error(400, LL.admin.members.noMembersCanBeResigned());
   }
 
   const validIds = validMembers.map((m) => m.id);
 
   // Use transaction to update all members atomically
   await db.transaction(async (tx) => {
-    await tx.update(table.member).set({ status: "cancelled" }).where(inArray(table.member.id, validIds));
+    await tx.update(table.member).set({ status: "resigned" }).where(inArray(table.member.id, validIds));
   });
 
-  await auditBulkMemberAction(event, "member.bulk_reject", validIds, {
+  await auditBulkMemberAction(event, "member.bulk_deem_resigned", validIds, {
     requestedCount: memberIds.length,
     processedCount: validIds.length,
+    reason,
   });
 
   return {
     success: true,
-    message: `${validIds.length} member(s) rejected successfully`,
-    processedCount: validIds.length,
-  };
-});
-
-export const bulkMarkMembersExpired = command(bulkMemberIdsSchema, async ({ memberIds }) => {
-  const event = getRequestEvent();
-  const LL = getLL(event.locals.locale);
-
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, LL.error.resourceNotFound());
-  }
-
-  // Fetch all members to validate they exist and can be marked expired
-  const members = await db.query.member.findMany({
-    where: inArray(table.member.id, memberIds),
-  });
-
-  const validMembers = members.filter((m) => m.status === "active" || m.status === "awaiting_payment");
-
-  if (validMembers.length === 0) {
-    error(400, LL.admin.members.noMembersCanBeExpired());
-  }
-
-  const validIds = validMembers.map((m) => m.id);
-
-  // Use transaction to update all members atomically
-  await db.transaction(async (tx) => {
-    await tx.update(table.member).set({ status: "expired" }).where(inArray(table.member.id, validIds));
-  });
-
-  await auditBulkMemberAction(event, "member.bulk_expire", validIds, {
-    requestedCount: memberIds.length,
-    processedCount: validIds.length,
-  });
-
-  return {
-    success: true,
-    message: `${validIds.length} member(s) marked as expired`,
-    processedCount: validIds.length,
-  };
-});
-
-export const bulkCancelMembers = command(bulkMemberIdsSchema, async ({ memberIds }) => {
-  const event = getRequestEvent();
-  const LL = getLL(event.locals.locale);
-
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, LL.error.resourceNotFound());
-  }
-
-  // Fetch all members to validate they exist and can be cancelled
-  const members = await db.query.member.findMany({
-    where: inArray(table.member.id, memberIds),
-  });
-
-  const validMembers = members.filter((m) => m.status === "active" || m.status === "awaiting_payment");
-
-  if (validMembers.length === 0) {
-    error(400, LL.admin.members.noMembersCanBeCancelled());
-  }
-
-  const validIds = validMembers.map((m) => m.id);
-
-  // Use transaction to update all members atomically
-  await db.transaction(async (tx) => {
-    await tx.update(table.member).set({ status: "cancelled" }).where(inArray(table.member.id, validIds));
-  });
-
-  await auditBulkMemberAction(event, "member.bulk_cancel", validIds, {
-    requestedCount: memberIds.length,
-    processedCount: validIds.length,
-  });
-
-  return {
-    success: true,
-    message: `${validIds.length} membership(s) cancelled`,
-    processedCount: validIds.length,
-  };
-});
-
-export const bulkReactivateMembers = command(bulkMemberIdsSchema, async ({ memberIds }) => {
-  const event = getRequestEvent();
-  const LL = getLL(event.locals.locale);
-
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, LL.error.resourceNotFound());
-  }
-
-  // Fetch all members to validate they exist and can be reactivated
-  const members = await db.query.member.findMany({
-    where: inArray(table.member.id, memberIds),
-  });
-
-  const validMembers = members.filter((m) => m.status === "expired" || m.status === "cancelled");
-
-  if (validMembers.length === 0) {
-    error(400, LL.admin.members.noMembersCanBeReactivated());
-  }
-
-  const validIds = validMembers.map((m) => m.id);
-
-  // Use transaction to update all members atomically
-  await db.transaction(async (tx) => {
-    await tx.update(table.member).set({ status: "active" }).where(inArray(table.member.id, validIds));
-  });
-
-  await auditBulkMemberAction(event, "member.bulk_reactivate", validIds, {
-    requestedCount: memberIds.length,
-    processedCount: validIds.length,
-  });
-
-  return {
-    success: true,
-    message: `${validIds.length} membership(s) reactivated`,
+    message: `${validIds.length} member(s) deemed resigned`,
     processedCount: validIds.length,
   };
 });

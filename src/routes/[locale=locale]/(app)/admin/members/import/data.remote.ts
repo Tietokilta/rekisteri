@@ -76,7 +76,7 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
     row: CsvRow;
     userId: string;
     membershipId: string;
-    status: "active" | "expired";
+    status: "active" | "resigned";
     isNewUser: boolean;
   };
 
@@ -156,7 +156,7 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 
       // Determine member status based on membership end date
       const now = new Date();
-      const status = targetMembership.endTime < now ? "expired" : "active";
+      const status = targetMembership.endTime < now ? "resigned" : "active";
 
       processedRows.push({
         index: i,
