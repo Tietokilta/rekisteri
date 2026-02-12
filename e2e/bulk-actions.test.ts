@@ -180,6 +180,9 @@ test.describe("Admin Bulk Actions", () => {
       // Click bulk approve
       await adminPage.getByTestId("bulk-approve-button").click();
 
+      // Confirm the dialog
+      await adminPage.getByRole("button", { name: "Vahvista" }).click();
+
       // Wait for toolbar to disappear (indicates action completed)
       await expect(adminPage.getByTestId("bulk-action-toolbar")).not.toBeVisible();
 
@@ -234,7 +237,7 @@ test.describe("Admin Bulk Actions", () => {
       await db.delete(table.user).where(eq(table.user.id, testUser.id));
     });
 
-    test("shows reject button for awaiting_approval members", async ({ adminPage }) => {
+    test("shows approve button for awaiting_approval members", async ({ adminPage }) => {
       // Create member with awaiting_approval status
       await db.insert(table.member).values({
         id: memberId,
@@ -254,12 +257,14 @@ test.describe("Admin Bulk Actions", () => {
       // Select the row
       await adminPage.getByTestId("row-select-checkbox").first().click();
 
-      // Should see both approve and reject buttons
+      // Should see approve button
       await expect(adminPage.getByTestId("bulk-approve-button")).toBeVisible();
-      await expect(adminPage.getByTestId("bulk-reject-button")).toBeVisible();
+
+      // Should NOT see deem resigned button (member is awaiting approval, not active)
+      await expect(adminPage.getByTestId("bulk-deem-resigned-button")).not.toBeVisible();
     });
 
-    test("shows mark expired and cancel buttons for active members", async ({ adminPage }) => {
+    test("shows deem resigned button for active members", async ({ adminPage }) => {
       // Create member with active status
       await db.insert(table.member).values({
         id: memberId,
@@ -279,79 +284,37 @@ test.describe("Admin Bulk Actions", () => {
       // Select the row
       await adminPage.getByTestId("row-select-checkbox").first().click();
 
-      // Should see mark expired and cancel buttons
-      await expect(adminPage.getByTestId("bulk-expire-button")).toBeVisible();
-      await expect(adminPage.getByTestId("bulk-cancel-button")).toBeVisible();
+      // Should see deem resigned button
+      await expect(adminPage.getByTestId("bulk-deem-resigned-button")).toBeVisible();
 
-      // Should NOT see approve/reject/reactivate buttons
+      // Should NOT see approve button
       await expect(adminPage.getByTestId("bulk-approve-button")).not.toBeVisible();
-      await expect(adminPage.getByTestId("bulk-reject-button")).not.toBeVisible();
-      await expect(adminPage.getByTestId("bulk-reactivate-button")).not.toBeVisible();
     });
 
-    test("shows reactivate button for expired/cancelled members", async ({ adminPage }) => {
-      // Create member with expired status
+    test("no bulk actions for resigned members", async ({ adminPage }) => {
+      // Create member with resigned status
       await db.insert(table.member).values({
         id: memberId,
         userId: testUser.id,
         membershipId: membershipId,
-        status: "expired",
+        status: "resigned",
       });
 
       await adminPage.goto("/fi/admin/members");
       await expect(adminPage.getByRole("heading", { name: "Hallinnoi jäseniä" })).toBeVisible();
 
-      // Filter by expired
-      await adminPage.getByRole("button", { name: "Vanhentunut" }).click();
+      // Filter by resigned
+      await adminPage.getByRole("button", { name: "Eronnut" }).click();
       await adminPage.getByPlaceholder("Hae jäseniä").fill(testUser.email);
       await expect(adminPage.getByText(testUser.email)).toBeVisible();
 
       // Select the row
       await adminPage.getByTestId("row-select-checkbox").first().click();
 
-      // Should see reactivate button
-      await expect(adminPage.getByTestId("bulk-reactivate-button")).toBeVisible();
-
-      // Should NOT see other action buttons
+      // Should see toolbar but no action buttons (only clear selection)
+      await expect(adminPage.getByTestId("bulk-action-toolbar")).toBeVisible();
       await expect(adminPage.getByTestId("bulk-approve-button")).not.toBeVisible();
-      await expect(adminPage.getByTestId("bulk-reject-button")).not.toBeVisible();
-      await expect(adminPage.getByTestId("bulk-expire-button")).not.toBeVisible();
-      await expect(adminPage.getByTestId("bulk-cancel-button")).not.toBeVisible();
-    });
-
-    test("bulk reactivate works for expired members", async ({ adminPage }) => {
-      // Create member with expired status
-      await db.insert(table.member).values({
-        id: memberId,
-        userId: testUser.id,
-        membershipId: membershipId,
-        status: "expired",
-      });
-
-      await adminPage.goto("/fi/admin/members");
-      await expect(adminPage.getByRole("heading", { name: "Hallinnoi jäseniä" })).toBeVisible();
-
-      // Filter by expired
-      await adminPage.getByRole("button", { name: "Vanhentunut" }).click();
-      await adminPage.getByPlaceholder("Hae jäseniä").fill(testUser.email);
-      await expect(adminPage.getByText(testUser.email)).toBeVisible();
-
-      // Select the row
-      await adminPage.getByTestId("row-select-checkbox").first().click();
-
-      // Click bulk reactivate
-      await adminPage.getByTestId("bulk-reactivate-button").click();
-
-      // Wait for toolbar to disappear (indicates action completed)
-      await expect(adminPage.getByTestId("bulk-action-toolbar")).not.toBeVisible();
-
-      // Verify via UI: member should no longer appear in "expired" filter
-      await expect(adminPage.getByText(testUser.email)).not.toBeVisible();
-
-      // Verify member now appears in "active" filter
-      await adminPage.getByRole("button", { name: "Aktiivinen" }).click();
-      await adminPage.getByPlaceholder("Hae jäseniä").fill(testUser.email);
-      await expect(adminPage.getByText(testUser.email)).toBeVisible();
+      await expect(adminPage.getByTestId("bulk-deem-resigned-button")).not.toBeVisible();
     });
   });
 
@@ -440,8 +403,8 @@ test.describe("Admin Bulk Actions", () => {
       // Toolbar should show buttons for both status types
       // Approve button (for awaiting_approval)
       await expect(adminPage.getByTestId("bulk-approve-button")).toBeVisible();
-      // Mark expired button (for active)
-      await expect(adminPage.getByTestId("bulk-expire-button")).toBeVisible();
+      // Deem resigned button (for active)
+      await expect(adminPage.getByTestId("bulk-deem-resigned-button")).toBeVisible();
     });
   });
 });

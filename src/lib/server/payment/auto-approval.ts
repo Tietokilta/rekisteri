@@ -46,12 +46,12 @@ export async function checkAutoApprovalEligibility(
   }
 
   // Check if user had an approved member record for that preceding membership
-  // "active" or "expired" status indicates the board approved it at some point
+  // "active" or "resigned" status indicates the board approved it at some point
   const previousMember = await db.query.member.findFirst({
     where: and(
       eq(table.member.userId, userId),
       eq(table.member.membershipId, precedingMembership.id),
-      inArray(table.member.status, ["active", "expired"]),
+      inArray(table.member.status, ["active", "resigned"]),
     ),
   });
 

@@ -12,14 +12,14 @@ export type AuditAction =
   | "member.approve"
   | "member.auto_approve"
   | "member.reject"
-  | "member.expire"
-  | "member.cancel"
+  | "member.deem_resigned"
+  | "member.resign"
   | "member.reactivate"
   | "member.create"
   | "member.bulk_approve"
   | "member.bulk_reject"
-  | "member.bulk_expire"
-  | "member.bulk_cancel"
+  | "member.bulk_deem_resigned"
+  | "member.bulk_resign"
   | "member.bulk_reactivate"
   | "membership.create"
   | "membership.delete"
@@ -124,7 +124,7 @@ export async function auditMemberAction(
   event: RequestEvent,
   action: Extract<
     AuditAction,
-    "member.approve" | "member.reject" | "member.expire" | "member.cancel" | "member.reactivate"
+    "member.approve" | "member.reject" | "member.deem_resigned" | "member.resign" | "member.reactivate"
   >,
   memberId: string,
   metadata?: Record<string, unknown>,
@@ -145,8 +145,8 @@ export async function auditBulkMemberAction(
     AuditAction,
     | "member.bulk_approve"
     | "member.bulk_reject"
-    | "member.bulk_expire"
-    | "member.bulk_cancel"
+    | "member.bulk_deem_resigned"
+    | "member.bulk_resign"
     | "member.bulk_reactivate"
   >,
   memberIds: string[],

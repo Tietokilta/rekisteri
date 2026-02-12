@@ -60,7 +60,7 @@ test.describe("Membership Overlap Blocking", () => {
     await expect(isolatedPage.getByText(/1\.8\.2051/)).not.toBeVisible();
   });
 
-  test("shows membership when user has cancelled membership for same period", async ({
+  test("shows membership when user has rejected membership for same period", async ({
     isolatedPage,
     isolatedUser,
     db,
@@ -76,22 +76,22 @@ test.describe("Membership Overlap Blocking", () => {
       requiresStudentVerification: false,
     });
 
-    // Create a cancelled member record for the test user
+    // Create a rejected member record for the test user
     await db.insert(table.member).values({
       id: crypto.randomUUID(),
       userId: isolatedUser.id,
       membershipId: testMembershipId,
-      status: "cancelled",
+      status: "rejected",
     });
 
     await isolatedPage.goto(route("/[locale=locale]/new", { locale: "fi" }));
     await isolatedPage.waitForLoadState("networkidle");
 
-    // Verify the membership IS shown (cancelled memberships don't block)
+    // Verify the membership IS shown (rejected memberships don't block)
     await expect(isolatedPage.getByText(/1\.8\.2052/)).toBeVisible();
   });
 
-  test("shows membership when user has expired membership for same period", async ({
+  test("shows membership when user has resigned membership for same period", async ({
     isolatedPage,
     isolatedUser,
     db,
@@ -107,18 +107,18 @@ test.describe("Membership Overlap Blocking", () => {
       requiresStudentVerification: false,
     });
 
-    // Create an expired member record for the test user
+    // Create a resigned member record for the test user
     await db.insert(table.member).values({
       id: crypto.randomUUID(),
       userId: isolatedUser.id,
       membershipId: testMembershipId,
-      status: "expired",
+      status: "resigned",
     });
 
     await isolatedPage.goto(route("/[locale=locale]/new", { locale: "fi" }));
     await isolatedPage.waitForLoadState("networkidle");
 
-    // Verify the membership IS shown (expired memberships don't block)
+    // Verify the membership IS shown (resigned memberships don't block)
     await expect(isolatedPage.getByText(/1\.8\.2053/)).toBeVisible();
   });
 

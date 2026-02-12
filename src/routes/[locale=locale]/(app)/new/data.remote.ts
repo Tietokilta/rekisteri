@@ -22,7 +22,7 @@ export const payMembership = form(payMembershipSchema, async ({ membershipId, de
   const [membership] = await db.select().from(table.membership).where(eq(table.membership.id, membershipId));
 
   // Get user's existing memberships with blocking statuses to check for overlaps
-  // This allows users to repurchase memberships if their previous one was cancelled or expired
+  // This allows users to repurchase memberships if their previous one was resigned or rejected
   const blockingStatuses = [...BLOCKING_MEMBER_STATUSES];
   const userMemberships = await db
     .select()

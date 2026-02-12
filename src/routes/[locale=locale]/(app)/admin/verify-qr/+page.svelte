@@ -36,7 +36,7 @@
           bgClass: "bg-green-500/5",
           iconClass: "text-green-500",
         };
-      case "expired":
+      case "resigned":
         return {
           icon: CircleAlert,
           badgeVariant: "secondary" as const,
@@ -111,9 +111,9 @@
     qrScanner = null;
   });
 
-  function getOverallStatus(memberships: VerifyResult["memberships"]): "active" | "expired" | "none" {
+  function getOverallStatus(memberships: VerifyResult["memberships"]): "active" | "resigned" | "none" {
     if (memberships.some((m) => m.status === "active")) return "active";
-    if (memberships.some((m) => m.status === "expired")) return "expired";
+    if (memberships.some((m) => m.status === "resigned")) return "resigned";
     return "none";
   }
 
@@ -199,8 +199,8 @@
       <Badge variant={statusConfig.badgeVariant} class="px-4 py-1 text-base">
         {#if scanStatus === "active"}
           {$LL.membership.status.active()}
-        {:else if scanStatus === "expired"}
-          {$LL.membership.status.expired()}
+        {:else if scanStatus === "resigned"}
+          {$LL.membership.status.resigned()}
         {:else}
           {$LL.admin.verifyQr.noMemberships()}
         {/if}

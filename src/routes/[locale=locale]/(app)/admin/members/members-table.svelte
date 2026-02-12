@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createSvelteTable, FlexRender } from "$lib/components/ui/data-table";
   import * as Table from "$lib/components/ui/table";
+  import * as AlertDialog from "$lib/components/ui/alert-dialog";
   import { Badge } from "$lib/components/ui/badge";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
@@ -30,14 +31,11 @@
   import {
     approveMember,
     rejectMember,
-    markMemberExpired,
-    cancelMember,
+    markMemberResigned,
+    resignMember,
     reactivateMember,
     bulkApproveMembers,
-    bulkRejectMembers,
-    bulkMarkMembersExpired,
-    bulkCancelMembers,
-    bulkReactivateMembers,
+    bulkMarkMembersResigned,
   } from "./data.remote";
   import { memberIdSchema } from "./schema";
   import type { LocalizedString, MembershipType } from "$lib/server/db/schema";
@@ -46,7 +44,7 @@
     id: string;
     userId: string;
     membershipId: string;
-    status: "awaiting_payment" | "awaiting_approval" | "active" | "expired" | "cancelled";
+    status: "awaiting_payment" | "awaiting_approval" | "active" | "resigned" | "rejected";
     stripeSessionId: string | null;
     description: string | null;
     createdAt: Date;
@@ -66,7 +64,7 @@
     allMemberships: Array<{
       id: string;
       membershipId: string;
-      status: "awaiting_payment" | "awaiting_approval" | "active" | "expired" | "cancelled";
+      status: "awaiting_payment" | "awaiting_approval" | "active" | "resigned" | "rejected";
       stripeSessionId: string | null;
       description: string | null;
       createdAt: Date;
@@ -117,6 +115,17 @@
 
   // Bulk action state
   let bulkActionLoading = $state(false);
+
+  // Confirmation dialog state — bulk actions
+  let showApproveDialog = $state(false);
+  let showDeemResignedDialog = $state(false);
+  let deemResignedReason = $state("Eronneeksi katsominen (sääntöjen 8 § 2 mom.) — jäsenmaksu maksamatta");
+
+  // Confirmation dialog state — individual actions
+  type IndividualAction = "deemResigned" | "resign" | "reject" | "reactivate";
+  let individualAction = $state<{ type: IndividualAction; memberId: string; memberName: string } | null>(null);
+  let individualReason = $state("");
+  let individualActionLoading = $state(false);
 
   // Filter state - synced with URL
   let selectedYear = $state<string>(urlParams.get("year") ?? "all");
@@ -314,18 +323,25 @@
         return "secondary";
       case "awaiting_approval":
         return "secondary";
-      case "expired":
+      case "resigned":
         return "destructive";
-      case "cancelled":
+      case "rejected":
         return "outline";
       default:
         return "outline";
     }
   }
 
-  // Format status for display
+  // Format status for display using i18n
   function formatStatus(status: MemberRow["status"]) {
-    return status.replaceAll("_", " ").replaceAll(/\b\w/g, (l) => l.toUpperCase());
+    const statusLabels = {
+      active: $LL.admin.members.table.active(),
+      resigned: $LL.admin.members.table.resigned(),
+      rejected: $LL.admin.members.table.rejected(),
+      awaiting_approval: $LL.admin.members.table.awaitingApproval(),
+      awaiting_payment: $LL.admin.members.table.awaitingPayment(),
+    } as const;
+    return statusLabels[status];
   }
 
   // Custom filter function for year
@@ -492,6 +508,12 @@
     return Object.keys(rowSelection).filter((id) => rowSelection[id]);
   }
 
+  // Check if a membership period has ended (endTime is in the past)
+  function isMembershipPeriodEnded(endTime: Date | null): boolean {
+    if (!endTime) return false;
+    return endTime < new Date();
+  }
+
   // Helper to get the count of selected members by status
   function getSelectedMembersByStatus() {
     const selectedIds = getSelectedMemberIds();
@@ -501,8 +523,9 @@
       awaitingApproval: 0,
       active: 0,
       awaitingPayment: 0,
-      expired: 0,
-      cancelled: 0,
+      resigned: 0,
+      rejected: 0,
+      eligibleForDeemResigned: 0,
     };
 
     for (const row of selectedRows) {
@@ -512,15 +535,18 @@
           break;
         case "active":
           counts.active++;
+          if (isMembershipPeriodEnded(row.original.membershipEndTime)) {
+            counts.eligibleForDeemResigned++;
+          }
           break;
         case "awaiting_payment":
           counts.awaitingPayment++;
           break;
-        case "expired":
-          counts.expired++;
+        case "resigned":
+          counts.resigned++;
           break;
-        case "cancelled":
-          counts.cancelled++;
+        case "rejected":
+          counts.rejected++;
           break;
       }
     }
@@ -528,8 +554,42 @@
     return counts;
   }
 
+  // Helper to format a member row as a display name
+  function formatMemberName(row: MemberRow): string {
+    const firstName = row.firstNames ?? "";
+    const lastName = row.lastName ?? "";
+    return `${firstName} ${lastName}`.trim() || (row.email ?? row.id);
+  }
+
+  // Helper to get selected member names for confirmation dialogs
+  function getSelectedMemberNames(): string[] {
+    const selectedIds = getSelectedMemberIds();
+    return table
+      .getRowModel()
+      .rows.filter((row) => selectedIds.includes(row.id))
+      .map((row) => formatMemberName(row.original));
+  }
+
+  // Helper to get selected members eligible for deem resigned
+  // Only active members whose membership period has ended
+  function getSelectedDeemResignedMembers(): { ids: string[]; names: string[] } {
+    const selectedIds = getSelectedMemberIds();
+    const eligible = table
+      .getRowModel()
+      .rows.filter(
+        (row) =>
+          selectedIds.includes(row.id) &&
+          row.original.status === "active" &&
+          isMembershipPeriodEnded(row.original.membershipEndTime),
+      );
+    return {
+      ids: eligible.map((row) => row.id),
+      names: eligible.map((row) => formatMemberName(row.original)),
+    };
+  }
+
   // Bulk action handlers
-  async function handleBulkApprove() {
+  async function confirmBulkApprove() {
     const memberIds = getSelectedMemberIds();
     if (memberIds.length === 0) return;
 
@@ -537,65 +597,64 @@
     try {
       await bulkApproveMembers({ memberIds });
       rowSelection = {};
+      showApproveDialog = false;
       await invalidateAll();
     } finally {
       bulkActionLoading = false;
     }
   }
 
-  async function handleBulkReject() {
-    const memberIds = getSelectedMemberIds();
-    if (memberIds.length === 0) return;
+  async function confirmBulkDeemResigned() {
+    const { ids } = getSelectedDeemResignedMembers();
+    if (ids.length === 0) return;
 
     bulkActionLoading = true;
     try {
-      await bulkRejectMembers({ memberIds });
+      await bulkMarkMembersResigned({
+        memberIds: ids,
+        reason: deemResignedReason || undefined,
+      });
       rowSelection = {};
+      showDeemResignedDialog = false;
       await invalidateAll();
     } finally {
       bulkActionLoading = false;
     }
   }
 
-  async function handleBulkMarkExpired() {
-    const memberIds = getSelectedMemberIds();
-    if (memberIds.length === 0) return;
-
-    bulkActionLoading = true;
-    try {
-      await bulkMarkMembersExpired({ memberIds });
-      rowSelection = {};
-      await invalidateAll();
-    } finally {
-      bulkActionLoading = false;
-    }
+  // Individual action helpers
+  function openIndividualAction(type: IndividualAction, memberId: string, memberName: string) {
+    individualAction = { type, memberId, memberName };
+    individualReason =
+      type === "deemResigned" ? "Eronneeksi katsominen (sääntöjen 8 § 2 mom.) — jäsenmaksu maksamatta" : "";
   }
 
-  async function handleBulkCancel() {
-    const memberIds = getSelectedMemberIds();
-    if (memberIds.length === 0) return;
+  async function confirmIndividualAction() {
+    if (!individualAction) return;
 
-    bulkActionLoading = true;
+    const { type, memberId } = individualAction;
+    const reason = individualReason || undefined;
+
+    individualActionLoading = true;
     try {
-      await bulkCancelMembers({ memberIds });
-      rowSelection = {};
+      switch (type) {
+        case "deemResigned":
+          await markMemberResigned({ memberId, reason });
+          break;
+        case "resign":
+          await resignMember({ memberId, reason });
+          break;
+        case "reject":
+          await rejectMember({ memberId, reason });
+          break;
+        case "reactivate":
+          await reactivateMember({ memberId, reason });
+          break;
+      }
+      individualAction = null;
       await invalidateAll();
     } finally {
-      bulkActionLoading = false;
-    }
-  }
-
-  async function handleBulkReactivate() {
-    const memberIds = getSelectedMemberIds();
-    if (memberIds.length === 0) return;
-
-    bulkActionLoading = true;
-    try {
-      await bulkReactivateMembers({ memberIds });
-      rowSelection = {};
-      await invalidateAll();
-    } finally {
-      bulkActionLoading = false;
+      individualActionLoading = false;
     }
   }
 
@@ -606,11 +665,8 @@
   // Derived values for bulk action visibility
   const selectedCount = $derived(getSelectedMemberIds().length);
   const statusCounts = $derived(getSelectedMembersByStatus());
-  const canApprove = $derived(statusCounts.awaitingApproval > 0);
-  const canReject = $derived(statusCounts.awaitingApproval > 0);
-  const canMarkExpired = $derived(statusCounts.active + statusCounts.awaitingPayment > 0);
-  const canCancel = $derived(statusCounts.active + statusCounts.awaitingPayment > 0);
-  const canReactivate = $derived(statusCounts.expired + statusCounts.cancelled > 0);
+  const canApprove = $derived(statusCounts.awaitingApproval + statusCounts.awaitingPayment > 0);
+  const canDeemResigned = $derived(statusCounts.eligibleForDeemResigned > 0);
 </script>
 
 <div class="space-y-4">
@@ -707,11 +763,18 @@
           {$LL.admin.members.table.active()}
         </Button>
         <Button
-          variant={selectedStatus === "expired" ? "default" : "outline"}
+          variant={selectedStatus === "resigned" ? "default" : "outline"}
           size="sm"
-          onclick={() => (selectedStatus = "expired")}
+          onclick={() => (selectedStatus = "resigned")}
         >
-          {$LL.admin.members.table.expired()}
+          {$LL.admin.members.table.resigned()}
+        </Button>
+        <Button
+          variant={selectedStatus === "rejected" ? "default" : "outline"}
+          size="sm"
+          onclick={() => (selectedStatus = "rejected")}
+        >
+          {$LL.admin.members.table.rejected()}
         </Button>
         <Button
           variant={selectedStatus === "awaiting_approval" ? "default" : "outline"}
@@ -726,13 +789,6 @@
           onclick={() => (selectedStatus = "awaiting_payment")}
         >
           {$LL.admin.members.table.awaitingPayment()}
-        </Button>
-        <Button
-          variant={selectedStatus === "cancelled" ? "default" : "outline"}
-          size="sm"
-          onclick={() => (selectedStatus = "cancelled")}
-        >
-          {$LL.admin.members.table.cancelled()}
         </Button>
       </div>
     </div>
@@ -749,55 +805,27 @@
           <Button
             size="sm"
             variant="default"
-            onclick={handleBulkApprove}
+            onclick={() => (showApproveDialog = true)}
             disabled={bulkActionLoading}
             data-testid="bulk-approve-button"
           >
-            {$LL.admin.members.table.bulkApprove({ count: statusCounts.awaitingApproval })}
+            {$LL.admin.members.table.bulkApprove({
+              count: statusCounts.awaitingApproval + statusCounts.awaitingPayment,
+            })}
           </Button>
         {/if}
-        {#if canReject}
-          <Button
-            size="sm"
-            variant="destructive"
-            onclick={handleBulkReject}
-            disabled={bulkActionLoading}
-            data-testid="bulk-reject-button"
-          >
-            {$LL.admin.members.table.bulkReject({ count: statusCounts.awaitingApproval })}
-          </Button>
-        {/if}
-        {#if canMarkExpired}
+        {#if canDeemResigned}
           <Button
             size="sm"
             variant="outline"
-            onclick={handleBulkMarkExpired}
+            onclick={() => {
+              deemResignedReason = "Eronneeksi katsominen (sääntöjen 8 § 2 mom.) — jäsenmaksu maksamatta";
+              showDeemResignedDialog = true;
+            }}
             disabled={bulkActionLoading}
-            data-testid="bulk-expire-button"
+            data-testid="bulk-deem-resigned-button"
           >
-            {$LL.admin.members.table.bulkMarkExpired({ count: statusCounts.active + statusCounts.awaitingPayment })}
-          </Button>
-        {/if}
-        {#if canCancel}
-          <Button
-            size="sm"
-            variant="destructive"
-            onclick={handleBulkCancel}
-            disabled={bulkActionLoading}
-            data-testid="bulk-cancel-button"
-          >
-            {$LL.admin.members.table.bulkCancel({ count: statusCounts.active + statusCounts.awaitingPayment })}
-          </Button>
-        {/if}
-        {#if canReactivate}
-          <Button
-            size="sm"
-            variant="default"
-            onclick={handleBulkReactivate}
-            disabled={bulkActionLoading}
-            data-testid="bulk-reactivate-button"
-          >
-            {$LL.admin.members.table.bulkReactivate({ count: statusCounts.expired + statusCounts.cancelled })}
+            {$LL.admin.members.table.bulkDeemResigned({ count: statusCounts.eligibleForDeemResigned })}
           </Button>
         {/if}
       </div>
@@ -952,6 +980,7 @@
                     </h4>
                     <div class="space-y-3">
                       {#each filteredMemberships as membership (membership.id)}
+                        {@const memberName = formatMemberName(row.original)}
                         <div class="rounded-md border p-4">
                           <div class="mb-3 grid gap-2 text-sm md:grid-cols-3">
                             <div>
@@ -1008,44 +1037,58 @@
                                   >{$LL.admin.members.table.approve()}</Button
                                 >
                               </form>
-                              <form {...rejectMember.for(membership.id).preflight(memberIdSchema)}>
-                                <input
-                                  {...rejectMember.for(membership.id).fields.memberId.as("hidden", membership.id)}
-                                />
-                                <Button type="submit" size="sm" variant="destructive"
-                                  >{$LL.admin.members.table.reject()}</Button
-                                >
-                              </form>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onclick={() => openIndividualAction("reject", membership.id, memberName)}
+                              >
+                                {$LL.admin.members.table.reject()}
+                              </Button>
                             </div>
-                          {:else if membership.status === "expired" || membership.status === "cancelled"}
+                          {:else if membership.status === "resigned" || membership.status === "rejected"}
                             <div class="flex gap-2 border-t pt-3">
-                              <form {...reactivateMember.for(membership.id).preflight(memberIdSchema)}>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onclick={() => openIndividualAction("reactivate", membership.id, memberName)}
+                              >
+                                {$LL.admin.members.table.reactivate()}
+                              </Button>
+                            </div>
+                          {:else if membership.status === "awaiting_payment"}
+                            <div class="flex gap-2 border-t pt-3">
+                              <form {...approveMember.for(membership.id).preflight(memberIdSchema)}>
                                 <input
-                                  {...reactivateMember.for(membership.id).fields.memberId.as("hidden", membership.id)}
+                                  {...approveMember.for(membership.id).fields.memberId.as("hidden", membership.id)}
                                 />
                                 <Button type="submit" size="sm" variant="default"
-                                  >{$LL.admin.members.table.reactivate()}</Button
+                                  >{$LL.admin.members.table.approve()}</Button
                                 >
                               </form>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onclick={() => openIndividualAction("reject", membership.id, memberName)}
+                              >
+                                {$LL.admin.members.table.reject()}
+                              </Button>
                             </div>
-                          {:else if membership.status === "active" || membership.status === "awaiting_payment"}
+                          {:else if membership.status === "active"}
                             <div class="flex gap-2 border-t pt-3">
-                              <form {...markMemberExpired.for(membership.id).preflight(memberIdSchema)}>
-                                <input
-                                  {...markMemberExpired.for(membership.id).fields.memberId.as("hidden", membership.id)}
-                                />
-                                <Button type="submit" size="sm" variant="outline"
-                                  >{$LL.admin.members.table.markExpired()}</Button
-                                >
-                              </form>
-                              <form {...cancelMember.for(membership.id).preflight(memberIdSchema)}>
-                                <input
-                                  {...cancelMember.for(membership.id).fields.memberId.as("hidden", membership.id)}
-                                />
-                                <Button type="submit" size="sm" variant="destructive"
-                                  >{$LL.admin.members.table.cancelMembership()}</Button
-                                >
-                              </form>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onclick={() => openIndividualAction("deemResigned", membership.id, memberName)}
+                              >
+                                {$LL.admin.members.table.deemResigned()}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onclick={() => openIndividualAction("resign", membership.id, memberName)}
+                              >
+                                {$LL.admin.members.table.resignMembership()}
+                              </Button>
                             </div>
                           {/if}
                         </div>
@@ -1079,3 +1122,118 @@
     </div>
   </div>
 </div>
+
+<!-- Bulk Approve Confirmation Dialog -->
+<AlertDialog.Root bind:open={showApproveDialog}>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>
+        {$LL.admin.members.table.confirmApproveTitle({
+          count: statusCounts.awaitingApproval + statusCounts.awaitingPayment,
+        })}
+      </AlertDialog.Title>
+      <AlertDialog.Description>
+        {$LL.admin.members.table.confirmApproveDescription()}
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <ul class="max-h-48 list-disc overflow-y-auto pl-5 text-sm">
+      {#each getSelectedMemberNames() as name, i (i)}
+        <li>{name}</li>
+      {/each}
+    </ul>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel disabled={bulkActionLoading}>
+        {$LL.admin.members.table.cancel()}
+      </AlertDialog.Cancel>
+      <AlertDialog.Action onclick={confirmBulkApprove} disabled={bulkActionLoading}>
+        {$LL.admin.members.table.confirm()}
+      </AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
+
+<!-- Bulk Deem Resigned Confirmation Dialog -->
+<AlertDialog.Root bind:open={showDeemResignedDialog}>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>
+        {$LL.admin.members.table.confirmDeemResignedTitle({
+          count: statusCounts.eligibleForDeemResigned,
+        })}
+      </AlertDialog.Title>
+      <AlertDialog.Description>
+        {$LL.admin.members.table.confirmDeemResignedDescription()}
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <ul class="max-h-48 list-disc overflow-y-auto pl-5 text-sm">
+      {#each getSelectedDeemResignedMembers().names as name, i (i)}
+        <li>{name}</li>
+      {/each}
+    </ul>
+    <div class="space-y-2">
+      <label for="deem-resigned-reason" class="text-sm font-medium">
+        {$LL.admin.members.table.reasonLabel()}
+      </label>
+      <Input id="deem-resigned-reason" bind:value={deemResignedReason} class="text-sm" />
+    </div>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel disabled={bulkActionLoading}>
+        {$LL.admin.members.table.cancel()}
+      </AlertDialog.Cancel>
+      <AlertDialog.Action onclick={confirmBulkDeemResigned} disabled={bulkActionLoading}>
+        {$LL.admin.members.table.confirm()}
+      </AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
+
+<!-- Individual Action Confirmation Dialog -->
+<AlertDialog.Root
+  open={individualAction !== null}
+  onOpenChange={(open) => {
+    if (!open) individualAction = null;
+  }}
+>
+  <AlertDialog.Content>
+    {#if individualAction}
+      <AlertDialog.Header>
+        <AlertDialog.Title>
+          {#if individualAction.type === "deemResigned"}
+            {$LL.admin.members.table.confirmDeemResignedSingleTitle()}
+          {:else if individualAction.type === "resign"}
+            {$LL.admin.members.table.confirmResignSingleTitle()}
+          {:else if individualAction.type === "reject"}
+            {$LL.admin.members.table.confirmRejectSingleTitle()}
+          {:else}
+            {$LL.admin.members.table.confirmReactivateSingleTitle()}
+          {/if}
+        </AlertDialog.Title>
+        <AlertDialog.Description>
+          {#if individualAction.type === "deemResigned"}
+            {$LL.admin.members.table.confirmDeemResignedSingleDescription({ name: individualAction.memberName })}
+          {:else if individualAction.type === "resign"}
+            {$LL.admin.members.table.confirmResignSingleDescription({ name: individualAction.memberName })}
+          {:else if individualAction.type === "reject"}
+            {$LL.admin.members.table.confirmRejectSingleDescription({ name: individualAction.memberName })}
+          {:else}
+            {$LL.admin.members.table.confirmReactivateSingleDescription({ name: individualAction.memberName })}
+          {/if}
+        </AlertDialog.Description>
+      </AlertDialog.Header>
+      <div class="space-y-2">
+        <label for="individual-reason" class="text-sm font-medium">
+          {$LL.admin.members.table.reasonLabel()}
+        </label>
+        <Input id="individual-reason" bind:value={individualReason} class="text-sm" />
+      </div>
+      <AlertDialog.Footer>
+        <AlertDialog.Cancel disabled={individualActionLoading}>
+          {$LL.admin.members.table.cancel()}
+        </AlertDialog.Cancel>
+        <AlertDialog.Action onclick={confirmIndividualAction} disabled={individualActionLoading}>
+          {$LL.admin.members.table.confirm()}
+        </AlertDialog.Action>
+      </AlertDialog.Footer>
+    {/if}
+  </AlertDialog.Content>
+</AlertDialog.Root>

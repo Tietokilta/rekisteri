@@ -249,24 +249,24 @@ try {
   // Helper to select status based on membership period
   function selectStatus(
     membershipId: string,
-  ): "awaiting_payment" | "awaiting_approval" | "active" | "expired" | "cancelled" {
+  ): "awaiting_payment" | "awaiting_approval" | "active" | "resigned" | "rejected" {
     const membership = insertedMemberships.find((m) => m.id === membershipId);
     if (!membership) return "active";
 
     const now = new Date();
-    const isExpired = membership.endTime < now;
+    const isPast = membership.endTime < now;
 
-    if (isExpired) {
-      // For expired memberships, mostly expired with small chance of cancelled
+    if (isPast) {
+      // For past memberships, mostly resigned with small chance of rejected
       const random = Math.random();
-      if (random < 0.05) return "cancelled";
-      return "expired";
+      if (random < 0.05) return "rejected";
+      return "resigned";
     } else {
       // For current/future memberships, use normal distribution
       const random = Math.random();
       if (random < 0.02) return "awaiting_approval";
       if (random < 0.03) return "awaiting_payment";
-      if (random < 0.04) return "cancelled";
+      if (random < 0.04) return "rejected";
       return "active";
     }
   }

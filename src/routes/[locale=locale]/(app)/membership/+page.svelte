@@ -25,7 +25,7 @@
     ),
   );
 
-  const pastMemberships = $derived(data.memberships.filter((m) => m.status === "expired" || m.status === "cancelled"));
+  const pastMemberships = $derived(data.memberships.filter((m) => m.status === "resigned" || m.status === "rejected"));
 
   function getStatusConfig(status: MemberStatus) {
     switch (status) {
@@ -47,12 +47,17 @@
           icon: Hourglass,
           label: $LL.membership.status.awaitingApproval(),
         };
-      case "expired":
-      case "cancelled":
+      case "resigned":
         return {
           variant: "outline" as const,
           icon: CircleAlert,
-          label: $LL.membership.status.expired(),
+          label: $LL.membership.status.resigned(),
+        };
+      case "rejected":
+        return {
+          variant: "outline" as const,
+          icon: CircleAlert,
+          label: $LL.membership.status.rejected(),
         };
       default:
         return {

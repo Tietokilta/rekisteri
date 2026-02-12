@@ -394,9 +394,9 @@
     const uniqueEmails = new Set(importableRows.map((r) => r.email));
     const memberRecords = importableRows.length;
 
-    // Calculate active vs expired
+    // Calculate active vs resigned
     let activeCount = 0;
-    let expiredCount = 0;
+    let resignedCount = 0;
     const now = new Date();
 
     for (const row of importableRows) {
@@ -411,7 +411,7 @@
       }
       if (membership) {
         if (membership.endTime < now) {
-          expiredCount++;
+          resignedCount++;
         } else {
           activeCount++;
         }
@@ -422,7 +422,7 @@
       userCount: uniqueEmails.size,
       memberRecords,
       activeCount,
-      expiredCount,
+      resignedCount,
     };
   });
 
@@ -728,8 +728,8 @@
                     <span class="font-medium text-green-600">{importPreview.activeCount}</span>
                   </div>
                   <div class="flex items-center justify-between">
-                    <span class="text-muted-foreground">{$LL.admin.import.willBeExpired()}</span>
-                    <span class="font-medium text-orange-600">{importPreview.expiredCount}</span>
+                    <span class="text-muted-foreground">{$LL.admin.import.willBeResigned()}</span>
+                    <span class="font-medium text-orange-600">{importPreview.resignedCount}</span>
                   </div>
                 </div>
               </div>
