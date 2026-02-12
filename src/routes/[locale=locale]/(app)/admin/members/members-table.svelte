@@ -579,8 +579,10 @@
     };
   }
 
-  // Helper to get selected members eligible for deem resigned
-  // Only active members whose membership period has ended
+  // Helper to get selected members eligible for bulk deem resigned.
+  // Only active members whose membership period has ended — this is stricter
+  // than individual deem resigned (which works on any active member) because
+  // the bulk action is specifically for the year-end cleanup per §8 p2.
   function getSelectedDeemResignedMembers(): { ids: string[]; names: string[] } {
     const selectedIds = getSelectedMemberIds();
     const now = new Date();

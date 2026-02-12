@@ -27,7 +27,9 @@ export const approveMember = command(memberIdSchema, async ({ memberId }) => {
     error(404, LL.admin.members.memberNotFound());
   }
 
-  if (!isValidTransition(member.status, "active")) {
+  // approveMember is specifically for new applications — resigned/rejected
+  // members should go through reactivateMember instead
+  if (member.status !== "awaiting_approval" && member.status !== "awaiting_payment") {
     error(400, LL.admin.members.notAwaitingApproval());
   }
 
@@ -215,7 +217,9 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
     where: inArray(table.member.id, memberIds),
   });
 
-  const validMembers = members.filter((m) => isValidTransition(m.status, "active"));
+  // Bulk approve is specifically for new applications — not for reactivating
+  // resigned/rejected members
+  const validMembers = members.filter((m) => m.status === "awaiting_approval" || m.status === "awaiting_payment");
 
   if (validMembers.length === 0) {
     error(400, LL.admin.members.noMembersAwaitingApproval());

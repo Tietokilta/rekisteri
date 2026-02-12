@@ -129,7 +129,7 @@ describe("Auto-approval eligibility", () => {
     expect(result).toBe(true);
   });
 
-  it("auto-approves when previous membership status is resigned", async () => {
+  it("rejects when previous membership status is resigned", async () => {
     const { db } = testDb;
     const userId = crypto.randomUUID();
     const typeId = `type-${crypto.randomUUID().slice(0, 8)}`;
@@ -154,8 +154,9 @@ describe("Auto-approval eligibility", () => {
 
     const newMembership = await getMembership(db, `new-${userId}`);
 
+    // Resigned members were deliberately removed by the board — they need re-approval
     const result = await checkAutoApprovalEligibility(db, userId, newMembership);
-    expect(result).toBe(true);
+    expect(result).toBe(false);
   });
 
   it("rejects when user has no previous memberships", async () => {
