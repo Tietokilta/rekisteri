@@ -188,6 +188,64 @@ hooks.server.ts ServerInit:
   "0 3 * * *"    — EXTEND: add email_log cleanup (180-day retention)
 ```
 
+### 7. Integration Tests
+
+Uses Vitest + testcontainers (real PostgreSQL), same pattern as existing
+`tests/member-status-transitions.test.ts` and `tests/auto-approval.test.ts`.
+
+#### `tests/email-notifications.test.ts` — Status change email logging
+
+Verifies every admin action creates the correct `email_log` rows.
+
+```
+For each status transition:
+  approve (awaiting_approval → active)    → email_log: 'membership_approved'
+  approve (awaiting_payment → active)     → email_log: 'membership_approved'
+  reject  (awaiting_approval → rejected)  → email_log: 'membership_rejected'
+  resign  (active → resigned, §8 p2)     → email_log: 'membership_resigned'
+  resign  (active → resigned, §8 p1)     → email_log: 'membership_resigned'
+  reactivate (resigned → active)          → email_log: 'membership_reactivated'
+  reactivate (rejected → active)          → email_log: 'membership_reactivated'
+
+Bulk actions:
+  bulkApprove (N members)                 → N email_log rows
+  bulkMarkResigned (N members)            → N email_log rows
+
+Edge cases:
+  - User without firstNames              → email still logged (graceful fallback)
+  - Bulk with mixed eligible/ineligible  → only eligible members get emails
+  - CSV import                           → zero email_log rows (by design)
+```
+
+#### `tests/payment-reminders.test.ts` — Time-travel reminder cron tests
+
+Uses `vi.useFakeTimers()` / `vi.setSystemTime()` to simulate calendar progression.
+The reminder cron function is extracted and called directly (not via node-cron).
+
+```
+Setup fixture:
+  membershipType "Regular"
+  membership 2025: Jan 1 – Dec 31 (previous period)
+  membership 2026: Jan 1 – Dec 31, paymentDueDate = Sep 30
+  user with active member record for 2025, no record for 2026
+
+Time-travel sequence:
+  vi.setSystemTime("2026-09-01") → run cron → assert 'payment_reminder_30d' in email_log
+  run cron again same day        → assert NO duplicate (dedup via email_log)
+  vi.setSystemTime("2026-09-23") → run cron → assert 'payment_reminder_7d'
+  vi.setSystemTime("2026-09-30") → run cron → assert 'payment_reminder_due'
+  vi.setSystemTime("2026-10-30") → run cron → assert 'payment_reminder_overdue'
+
+Edge cases:
+  - Member already purchased 2026      → no reminders at any date
+  - paymentDueDate is null              → no reminders
+  - No 2026 membership exists           → no reminders
+  - Different membership type           → not reminded for wrong type
+  - Member resigned before due date     → no reminder (not 'active')
+  - Due date on Saturday, cron on Mon   → still sends (range-based window)
+  - email_log cleanup                   → rows older than 180 days are pruned
+```
+
 ---
 
 ## Implementation Order
@@ -195,9 +253,11 @@ hooks.server.ts ServerInit:
 1. **DB migration**: add `paymentDueDate` to `membership`, create `email_log` table
 2. **Email log integration**: wrap `sendMemberEmail` to log all sends to `email_log`
 3. **Status change emails**: add templates + wire into admin actions (resign, reject, reactivate, expel)
-4. **Payment reminder cron**: daily job with deduplication
-5. **Admin UI**: expose `paymentDueDate` in membership create/edit forms
-6. **Cleanup**: extend cron to prune old `email_log` rows
+4. **Email notification tests**: `tests/email-notifications.test.ts`
+5. **Payment reminder cron**: daily job with deduplication
+6. **Payment reminder tests**: `tests/payment-reminders.test.ts` (time-travel)
+7. **Admin UI**: expose `paymentDueDate` in membership create/edit forms
+8. **Cleanup**: extend cron to prune old `email_log` rows
 
 ---
 
