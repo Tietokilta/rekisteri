@@ -1,5 +1,5 @@
 import { error } from "@sveltejs/kit";
-import { form, getRequestEvent, command } from "$app/server";
+import { getRequestEvent, command } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, inArray } from "drizzle-orm";
@@ -11,7 +11,7 @@ import { getMembershipName } from "$lib/server/utils/membership";
 import { getUserLocale } from "$lib/server/utils/user";
 import { isValidTransition } from "$lib/server/utils/member";
 
-export const approveMember = form(memberIdSchema, async ({ memberId }) => {
+export const approveMember = command(memberIdSchema, async ({ memberId }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
@@ -289,45 +289,6 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
   };
 });
 
-export const bulkRejectMembers = command(bulkMemberIdsWithReasonSchema, async ({ memberIds, reason }) => {
-  const event = getRequestEvent();
-  const LL = getLL(event.locals.locale);
-
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, LL.error.resourceNotFound());
-  }
-
-  // Fetch all members to validate they exist and can be rejected
-  const members = await db.query.member.findMany({
-    where: inArray(table.member.id, memberIds),
-  });
-
-  const validMembers = members.filter((m) => isValidTransition(m.status, "rejected"));
-
-  if (validMembers.length === 0) {
-    error(400, LL.admin.members.noMembersAwaitingApproval());
-  }
-
-  const validIds = validMembers.map((m) => m.id);
-
-  // Use transaction to update all members atomically
-  await db.transaction(async (tx) => {
-    await tx.update(table.member).set({ status: "rejected" }).where(inArray(table.member.id, validIds));
-  });
-
-  await auditBulkMemberAction(event, "member.bulk_reject", validIds, {
-    requestedCount: memberIds.length,
-    processedCount: validIds.length,
-    reason,
-  });
-
-  return {
-    success: true,
-    message: `${validIds.length} member(s) rejected successfully`,
-    processedCount: validIds.length,
-  };
-});
-
 /**
  * Bulk deem members as resigned (eronneeksi katsominen).
  * Primarily used for the year-end mass cleanup when the board deems
@@ -368,84 +329,6 @@ export const bulkMarkMembersResigned = command(bulkMemberIdsWithReasonSchema, as
   return {
     success: true,
     message: `${validIds.length} member(s) deemed resigned`,
-    processedCount: validIds.length,
-  };
-});
-
-export const bulkResignMembers = command(bulkMemberIdsWithReasonSchema, async ({ memberIds, reason }) => {
-  const event = getRequestEvent();
-  const LL = getLL(event.locals.locale);
-
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, LL.error.resourceNotFound());
-  }
-
-  // Fetch all members to validate they exist and can be resigned
-  const members = await db.query.member.findMany({
-    where: inArray(table.member.id, memberIds),
-  });
-
-  const validMembers = members.filter((m) => isValidTransition(m.status, "resigned"));
-
-  if (validMembers.length === 0) {
-    error(400, LL.admin.members.noMembersCanBeResigned());
-  }
-
-  const validIds = validMembers.map((m) => m.id);
-
-  // Use transaction to update all members atomically
-  await db.transaction(async (tx) => {
-    await tx.update(table.member).set({ status: "resigned" }).where(inArray(table.member.id, validIds));
-  });
-
-  await auditBulkMemberAction(event, "member.bulk_resign", validIds, {
-    requestedCount: memberIds.length,
-    processedCount: validIds.length,
-    reason,
-  });
-
-  return {
-    success: true,
-    message: `${validIds.length} membership(s) resigned`,
-    processedCount: validIds.length,
-  };
-});
-
-export const bulkReactivateMembers = command(bulkMemberIdsWithReasonSchema, async ({ memberIds, reason }) => {
-  const event = getRequestEvent();
-  const LL = getLL(event.locals.locale);
-
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, LL.error.resourceNotFound());
-  }
-
-  // Fetch all members to validate they exist and can be reactivated
-  const members = await db.query.member.findMany({
-    where: inArray(table.member.id, memberIds),
-  });
-
-  const validMembers = members.filter((m) => isValidTransition(m.status, "active"));
-
-  if (validMembers.length === 0) {
-    error(400, LL.admin.members.noMembersCanBeReactivated());
-  }
-
-  const validIds = validMembers.map((m) => m.id);
-
-  // Use transaction to update all members atomically
-  await db.transaction(async (tx) => {
-    await tx.update(table.member).set({ status: "active" }).where(inArray(table.member.id, validIds));
-  });
-
-  await auditBulkMemberAction(event, "member.bulk_reactivate", validIds, {
-    requestedCount: memberIds.length,
-    processedCount: validIds.length,
-    reason,
-  });
-
-  return {
-    success: true,
-    message: `${validIds.length} membership(s) reactivated`,
     processedCount: validIds.length,
   };
 });

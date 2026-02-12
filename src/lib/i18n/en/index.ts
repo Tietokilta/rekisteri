@@ -482,6 +482,8 @@ Computer Science Guild`,
         cancel: "Cancel",
 
         // Confirmation dialogs — individual
+        confirmApproveSingleTitle: "Approve membership",
+        confirmApproveSingleDescription: "Are you sure you want to approve {name}'s membership?",
         confirmDeemResignedSingleTitle: "Deem member resigned",
         confirmDeemResignedSingleDescription: "Are you sure you want to deem {name} resigned?",
         confirmResignSingleTitle: "Resign member",
@@ -491,6 +493,7 @@ Computer Science Guild`,
         confirmReactivateSingleTitle: "Reactivate membership",
         confirmReactivateSingleDescription: "Are you sure you want to reactivate {name}'s membership?",
         reasonLabel: "Reason (saved to audit log)",
+        deemResignedDefaultReason: "Deemed resigned (bylaws §8 p2) — membership fee unpaid",
       },
 
       // Server errors

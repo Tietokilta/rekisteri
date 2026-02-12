@@ -484,6 +484,8 @@ Tietokilta`,
         cancel: "Peruuta",
 
         // Confirmation dialogs — individual
+        confirmApproveSingleTitle: "Hyväksy jäsenyys",
+        confirmApproveSingleDescription: "Haluatko hyväksyä jäsenen {name} jäsenyyden?",
         confirmDeemResignedSingleTitle: "Katso jäsen eronneeksi",
         confirmDeemResignedSingleDescription: "Haluatko katsoa jäsenen {name} eronneeksi?",
         confirmResignSingleTitle: "Erota jäsen",
@@ -493,6 +495,7 @@ Tietokilta`,
         confirmReactivateSingleTitle: "Aktivoi jäsenyys uudelleen",
         confirmReactivateSingleDescription: "Haluatko aktivoida jäsenen {name} jäsenyyden uudelleen?",
         reasonLabel: "Syy (tallennetaan lokiin)",
+        deemResignedDefaultReason: "Eronneeksi katsominen (sääntöjen 8 § 2 mom.) — jäsenmaksu maksamatta",
       },
 
       // Server errors

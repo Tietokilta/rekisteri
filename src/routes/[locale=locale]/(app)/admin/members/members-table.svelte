@@ -37,7 +37,7 @@
     bulkApproveMembers,
     bulkMarkMembersResigned,
   } from "./data.remote";
-  import { memberIdSchema } from "./schema";
+
   import type { LocalizedString, MembershipType } from "$lib/server/db/schema";
 
   type MemberRow = {
@@ -119,10 +119,10 @@
   // Confirmation dialog state — bulk actions
   let showApproveDialog = $state(false);
   let showDeemResignedDialog = $state(false);
-  let deemResignedReason = $state("Eronneeksi katsominen (sääntöjen 8 § 2 mom.) — jäsenmaksu maksamatta");
+  let deemResignedReason = $state($LL.admin.members.table.deemResignedDefaultReason());
 
   // Confirmation dialog state — individual actions
-  type IndividualAction = "deemResigned" | "resign" | "reject" | "reactivate";
+  type IndividualAction = "approve" | "deemResigned" | "resign" | "reject" | "reactivate";
   let individualAction = $state<{ type: IndividualAction; memberId: string; memberName: string } | null>(null);
   let individualReason = $state("");
   let individualActionLoading = $state(false);
@@ -509,15 +509,16 @@
   }
 
   // Check if a membership period has ended (endTime is in the past)
-  function isMembershipPeriodEnded(endTime: Date | null): boolean {
+  function isMembershipPeriodEnded(endTime: Date | null, now: Date = new Date()): boolean {
     if (!endTime) return false;
-    return endTime < new Date();
+    return endTime < now;
   }
 
   // Helper to get the count of selected members by status
   function getSelectedMembersByStatus() {
     const selectedIds = getSelectedMemberIds();
     const selectedRows = table.getRowModel().rows.filter((row) => selectedIds.includes(row.id));
+    const now = new Date();
 
     const counts = {
       awaitingApproval: 0,
@@ -535,7 +536,7 @@
           break;
         case "active":
           counts.active++;
-          if (isMembershipPeriodEnded(row.original.membershipEndTime)) {
+          if (isMembershipPeriodEnded(row.original.membershipEndTime, now)) {
             counts.eligibleForDeemResigned++;
           }
           break;
@@ -561,26 +562,35 @@
     return `${firstName} ${lastName}`.trim() || (row.email ?? row.id);
   }
 
-  // Helper to get selected member names for confirmation dialogs
-  function getSelectedMemberNames(): string[] {
-    const selectedIds = getSelectedMemberIds();
-    return table
-      .getRowModel()
-      .rows.filter((row) => selectedIds.includes(row.id))
-      .map((row) => formatMemberName(row.original));
-  }
-
-  // Helper to get selected members eligible for deem resigned
-  // Only active members whose membership period has ended
-  function getSelectedDeemResignedMembers(): { ids: string[]; names: string[] } {
+  // Helper to get selected members eligible for approval
+  // Only awaiting_approval or awaiting_payment members
+  function getSelectedApprovableMembers(): { ids: string[]; names: string[] } {
     const selectedIds = getSelectedMemberIds();
     const eligible = table
       .getRowModel()
       .rows.filter(
         (row) =>
           selectedIds.includes(row.id) &&
+          (row.original.status === "awaiting_approval" || row.original.status === "awaiting_payment"),
+      );
+    return {
+      ids: eligible.map((row) => row.id),
+      names: eligible.map((row) => formatMemberName(row.original)),
+    };
+  }
+
+  // Helper to get selected members eligible for deem resigned
+  // Only active members whose membership period has ended
+  function getSelectedDeemResignedMembers(): { ids: string[]; names: string[] } {
+    const selectedIds = getSelectedMemberIds();
+    const now = new Date();
+    const eligible = table
+      .getRowModel()
+      .rows.filter(
+        (row) =>
+          selectedIds.includes(row.id) &&
           row.original.status === "active" &&
-          isMembershipPeriodEnded(row.original.membershipEndTime),
+          isMembershipPeriodEnded(row.original.membershipEndTime, now),
       );
     return {
       ids: eligible.map((row) => row.id),
@@ -590,7 +600,7 @@
 
   // Bulk action handlers
   async function confirmBulkApprove() {
-    const memberIds = getSelectedMemberIds();
+    const { ids: memberIds } = getSelectedApprovableMembers();
     if (memberIds.length === 0) return;
 
     bulkActionLoading = true;
@@ -625,8 +635,7 @@
   // Individual action helpers
   function openIndividualAction(type: IndividualAction, memberId: string, memberName: string) {
     individualAction = { type, memberId, memberName };
-    individualReason =
-      type === "deemResigned" ? "Eronneeksi katsominen (sääntöjen 8 § 2 mom.) — jäsenmaksu maksamatta" : "";
+    individualReason = type === "deemResigned" ? $LL.admin.members.table.deemResignedDefaultReason() : "";
   }
 
   async function confirmIndividualAction() {
@@ -638,6 +647,9 @@
     individualActionLoading = true;
     try {
       switch (type) {
+        case "approve":
+          await approveMember({ memberId });
+          break;
         case "deemResigned":
           await markMemberResigned({ memberId, reason });
           break;
@@ -819,7 +831,7 @@
             size="sm"
             variant="outline"
             onclick={() => {
-              deemResignedReason = "Eronneeksi katsominen (sääntöjen 8 § 2 mom.) — jäsenmaksu maksamatta";
+              deemResignedReason = $LL.admin.members.table.deemResignedDefaultReason();
               showDeemResignedDialog = true;
             }}
             disabled={bulkActionLoading}
@@ -1029,14 +1041,13 @@
                           <!-- Admin Actions per membership -->
                           {#if membership.status === "awaiting_approval"}
                             <div class="flex gap-2 border-t pt-3">
-                              <form {...approveMember.for(membership.id).preflight(memberIdSchema)}>
-                                <input
-                                  {...approveMember.for(membership.id).fields.memberId.as("hidden", membership.id)}
-                                />
-                                <Button type="submit" size="sm" variant="default"
-                                  >{$LL.admin.members.table.approve()}</Button
-                                >
-                              </form>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onclick={() => openIndividualAction("approve", membership.id, memberName)}
+                              >
+                                {$LL.admin.members.table.approve()}
+                              </Button>
                               <Button
                                 size="sm"
                                 variant="destructive"
@@ -1057,14 +1068,13 @@
                             </div>
                           {:else if membership.status === "awaiting_payment"}
                             <div class="flex gap-2 border-t pt-3">
-                              <form {...approveMember.for(membership.id).preflight(memberIdSchema)}>
-                                <input
-                                  {...approveMember.for(membership.id).fields.memberId.as("hidden", membership.id)}
-                                />
-                                <Button type="submit" size="sm" variant="default"
-                                  >{$LL.admin.members.table.approve()}</Button
-                                >
-                              </form>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onclick={() => openIndividualAction("approve", membership.id, memberName)}
+                              >
+                                {$LL.admin.members.table.approve()}
+                              </Button>
                               <Button
                                 size="sm"
                                 variant="destructive"
@@ -1137,7 +1147,7 @@
       </AlertDialog.Description>
     </AlertDialog.Header>
     <ul class="max-h-48 list-disc overflow-y-auto pl-5 text-sm">
-      {#each getSelectedMemberNames() as name, i (i)}
+      {#each getSelectedApprovableMembers().names as name, i (i)}
         <li>{name}</li>
       {/each}
     </ul>
@@ -1198,7 +1208,9 @@
     {#if individualAction}
       <AlertDialog.Header>
         <AlertDialog.Title>
-          {#if individualAction.type === "deemResigned"}
+          {#if individualAction.type === "approve"}
+            {$LL.admin.members.table.confirmApproveSingleTitle()}
+          {:else if individualAction.type === "deemResigned"}
             {$LL.admin.members.table.confirmDeemResignedSingleTitle()}
           {:else if individualAction.type === "resign"}
             {$LL.admin.members.table.confirmResignSingleTitle()}
@@ -1209,7 +1221,9 @@
           {/if}
         </AlertDialog.Title>
         <AlertDialog.Description>
-          {#if individualAction.type === "deemResigned"}
+          {#if individualAction.type === "approve"}
+            {$LL.admin.members.table.confirmApproveSingleDescription({ name: individualAction.memberName })}
+          {:else if individualAction.type === "deemResigned"}
             {$LL.admin.members.table.confirmDeemResignedSingleDescription({ name: individualAction.memberName })}
           {:else if individualAction.type === "resign"}
             {$LL.admin.members.table.confirmResignSingleDescription({ name: individualAction.memberName })}
@@ -1220,12 +1234,14 @@
           {/if}
         </AlertDialog.Description>
       </AlertDialog.Header>
-      <div class="space-y-2">
-        <label for="individual-reason" class="text-sm font-medium">
-          {$LL.admin.members.table.reasonLabel()}
-        </label>
-        <Input id="individual-reason" bind:value={individualReason} class="text-sm" />
-      </div>
+      {#if individualAction.type !== "approve"}
+        <div class="space-y-2">
+          <label for="individual-reason" class="text-sm font-medium">
+            {$LL.admin.members.table.reasonLabel()}
+          </label>
+          <Input id="individual-reason" bind:value={individualReason} class="text-sm" />
+        </div>
+      {/if}
       <AlertDialog.Footer>
         <AlertDialog.Cancel disabled={individualActionLoading}>
           {$LL.admin.members.table.cancel()}
