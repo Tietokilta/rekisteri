@@ -20,6 +20,18 @@ export const isNonEmpty = <T>(arr: T[] | undefined | null): arr is NonEmptyArray
 };
 
 /**
+ * Format a user's full name from first names and last name.
+ * Returns the email as fallback if no name parts are available.
+ */
+export function formatUserName(
+  user: { firstNames?: string | null; lastName?: string | null; email?: string | null },
+  fallback?: string,
+): string {
+  const name = [user.firstNames, user.lastName].filter(Boolean).join(" ");
+  return name || fallback || user.email || "";
+}
+
+/**
  * Format a price in cents to a localized currency string using Intl.NumberFormat.
  */
 export function formatPrice(priceCents: number, currency: string, locale: string): string {

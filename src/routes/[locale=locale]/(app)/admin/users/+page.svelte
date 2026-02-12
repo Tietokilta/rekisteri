@@ -18,6 +18,7 @@
   import { promoteToAdminSchema, demoteFromAdminSchema } from "./schema";
   import { toast } from "svelte-sonner";
   import { invalidateAll } from "$app/navigation";
+  import { formatUserName } from "$lib/utils";
 
   const { data }: PageProps = $props();
 
@@ -184,10 +185,9 @@
               <p class="mb-2 text-sm font-medium">{$LL.admin.users.merge.primaryUser()}</p>
               <div class="rounded-md border bg-muted p-3">
                 <p class="font-mono text-sm">{primaryUser.email}</p>
-                {#if primaryUser.firstNames || primaryUser.lastName}
+                {#if formatUserName(primaryUser)}
                   <p class="text-sm text-muted-foreground">
-                    {primaryUser.firstNames ?? ""}
-                    {primaryUser.lastName ?? ""}
+                    {formatUserName(primaryUser)}
                   </p>
                 {/if}
               </div>
@@ -214,10 +214,9 @@
                   >
                     <div>
                       <p class="font-mono text-sm">{user.email}</p>
-                      {#if user.firstNames || user.lastName}
+                      {#if formatUserName(user)}
                         <p class="text-sm text-muted-foreground">
-                          {user.firstNames ?? ""}
-                          {user.lastName ?? ""}
+                          {formatUserName(user)}
                         </p>
                       {/if}
                     </div>
@@ -248,10 +247,9 @@
                 </p>
                 <div class="rounded-md border border-primary/20 bg-primary/5 p-3">
                   <p class="font-mono text-sm">{primaryUser.email}</p>
-                  {#if primaryUser.firstNames || primaryUser.lastName}
+                  {#if formatUserName(primaryUser)}
                     <p class="text-sm text-muted-foreground">
-                      {primaryUser.firstNames ?? ""}
-                      {primaryUser.lastName ?? ""}
+                      {formatUserName(primaryUser)}
                     </p>
                   {/if}
                   {#if primaryUser.isAdmin}
@@ -266,10 +264,9 @@
                 </p>
                 <div class="rounded-md border border-destructive/20 bg-destructive/5 p-3">
                   <p class="font-mono text-sm">{secondaryUser.email}</p>
-                  {#if secondaryUser.firstNames || secondaryUser.lastName}
+                  {#if formatUserName(secondaryUser)}
                     <p class="text-sm text-muted-foreground">
-                      {secondaryUser.firstNames ?? ""}
-                      {secondaryUser.lastName ?? ""}
+                      {formatUserName(secondaryUser)}
                     </p>
                   {/if}
                   {#if secondaryUser.isAdmin}
@@ -378,11 +375,7 @@
                 <Table.Cell class="w-[200px] font-mono text-xs">{user.id}</Table.Cell>
                 <Table.Cell class="w-[250px]">{user.email}</Table.Cell>
                 <Table.Cell class="w-[200px]">
-                  {#if user.firstNames || user.lastName}
-                    {user.firstNames ?? ""} {user.lastName ?? ""}
-                  {:else}
-                    -
-                  {/if}
+                  {formatUserName(user) || "-"}
                 </Table.Cell>
                 <Table.Cell class="w-[100px]">
                   <Badge variant="default">ADMIN</Badge>
@@ -468,11 +461,7 @@
                 <Table.Cell class="w-[200px] font-mono text-xs">{user.id}</Table.Cell>
                 <Table.Cell class="w-[250px]">{user.email}</Table.Cell>
                 <Table.Cell class="w-[200px]">
-                  {#if user.firstNames || user.lastName}
-                    {user.firstNames ?? ""} {user.lastName ?? ""}
-                  {:else}
-                    -
-                  {/if}
+                  {formatUserName(user) || "-"}
                 </Table.Cell>
                 <Table.Cell class="w-[100px]">-</Table.Cell>
                 <Table.Cell class="w-[250px]">

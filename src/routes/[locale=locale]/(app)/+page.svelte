@@ -7,6 +7,7 @@
   import type { PageServerData } from "./$types";
   import MembershipCard from "$lib/components/membership-card.svelte";
   import ProfileIncompleteCard from "$lib/components/profile-incomplete-card.svelte";
+  import { formatUserName } from "$lib/utils";
 
   let { data }: { data: PageServerData } = $props();
 
@@ -14,9 +15,7 @@
   const isProfileComplete = $derived(Boolean(data.user.firstNames && data.user.lastName && data.user.homeMunicipality));
 
   // Get full user name for QR modal
-  const fullName = $derived(
-    data.user.firstNames && data.user.lastName ? `${data.user.firstNames} ${data.user.lastName}` : data.user.email,
-  );
+  const fullName = $derived(formatUserName(data.user, data.user.email));
 
   // Handle stripe success redirect
   $effect(() => {

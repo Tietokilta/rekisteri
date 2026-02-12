@@ -6,7 +6,7 @@
   import CircleX from "@lucide/svelte/icons/circle-x";
   import X from "@lucide/svelte/icons/x";
   import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { cn } from "$lib/utils";
+  import { cn, formatUserName } from "$lib/utils";
   import AdminPageHeader from "$lib/components/admin-page-header.svelte";
   import { Button } from "$lib/components/ui/button";
   import { Badge } from "$lib/components/ui/badge";
@@ -191,7 +191,7 @@
 
       <div class="text-center">
         <div class="text-2xl font-bold">
-          {[scannedUser.user.firstNames, scannedUser.user.lastName].filter(Boolean).join(" ") || scannedUser.user.email}
+          {formatUserName(scannedUser.user, scannedUser.user.email)}
         </div>
         <div class="text-sm text-muted-foreground">{scannedUser.user.email}</div>
       </div>
