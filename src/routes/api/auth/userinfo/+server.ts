@@ -55,58 +55,59 @@ import { eq, desc } from "drizzle-orm";
  *   https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
  */
 export async function GET(event: RequestEvent) {
-	if (!event.locals.user || !event.locals.session) {
-		return json({ error: "unauthorized" }, { status: 401 });
-	}
+  if (!event.locals.user || !event.locals.session) {
+    return json({ error: "unauthorized" }, { status: 401 });
+  }
 
-	const user = event.locals.user;
+  const user = event.locals.user;
 
-	// Query all memberships for the user
-	const memberRecords = await db
-		.select()
-		.from(table.member)
-		.innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
-		.where(eq(table.member.userId, user.id))
-		.orderBy(desc(table.membership.startTime));
+  // Query all memberships for the user
+  const memberRecords = await db
+    .select()
+    .from(table.member)
+    .innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
+    .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
+    .where(eq(table.member.userId, user.id))
+    .orderBy(desc(table.membership.startTime));
 
-	const now = new Date();
+  const now = new Date();
 
-	// Map memberships with validity check
-	const memberships = memberRecords.map((record) => {
-		const isValid =
-			record.member.status === "active" && now >= record.membership.startTime && now <= record.membership.endTime;
+  // Map memberships with validity check
+  const memberships = memberRecords.map((record) => {
+    const isValid =
+      record.member.status === "active" && now >= record.membership.startTime && now <= record.membership.endTime;
 
-		return {
-			status: record.member.status,
-			type: record.membership.type,
-			start_time: record.membership.startTime.toISOString(),
-			end_time: record.membership.endTime.toISOString(),
-			price_cents: record.membership.priceCents,
-			requires_student_verification: record.membership.requiresStudentVerification,
-			is_valid: isValid,
-		};
-	});
+    return {
+      status: record.member.status,
+      type: record.membership_type.name,
+      start_time: record.membership.startTime.toISOString(),
+      end_time: record.membership.endTime.toISOString(),
+      stripe_price_id: record.membership.stripePriceId || undefined,
+      requires_student_verification: record.membership.requiresStudentVerification,
+      is_valid: isValid,
+    };
+  });
 
-	// Find the current active and valid membership
-	const activeMembership = memberships.find((m) => m.status === "active" && m.is_valid) || null;
+  // Find the current active and valid membership
+  const activeMembership = memberships.find((m) => m.status === "active" && m.is_valid) || null;
 
-	// Return OpenID Connect compatible user info
-	// Standard claims: sub, email, email_verified, given_name, family_name
-	// Custom claims: home_municipality, is_admin, is_allowed_emails, membership, memberships
-	return json({
-		sub: user.id, // Subject (user ID)
-		email: user.email,
-		email_verified: true, // We verify via OTP
-		given_name: user.firstNames || undefined,
-		family_name: user.lastName || undefined,
+  // Return OpenID Connect compatible user info
+  // Standard claims: sub, email, email_verified, given_name, family_name
+  // Custom claims: home_municipality, is_admin, is_allowed_emails, membership, memberships
+  return json({
+    sub: user.id, // Subject (user ID)
+    email: user.email,
+    email_verified: true, // We verify via OTP
+    given_name: user.firstNames || undefined,
+    family_name: user.lastName || undefined,
 
-		// Custom claims (non-standard)
-		home_municipality: user.homeMunicipality || undefined,
-		is_admin: user.isAdmin,
-		is_allowed_emails: user.isAllowedEmails,
+    // Custom claims (non-standard)
+    home_municipality: user.homeMunicipality || undefined,
+    is_admin: user.isAdmin,
+    is_allowed_emails: user.isAllowedEmails,
 
-		// Membership claims
-		membership: activeMembership, // Current active membership or null
-		memberships: memberships, // All memberships (historical + current)
-	});
+    // Membership claims
+    membership: activeMembership, // Current active membership or null
+    memberships: memberships, // All memberships (historical + current)
+  });
 }

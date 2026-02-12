@@ -237,9 +237,9 @@ In your other service (running on different port), manually pass the token:
 const sessionToken = "paste-token-here";
 
 const response = await fetch("http://localhost:5173/api/auth/userinfo", {
-	headers: {
-		Cookie: `auth-session=${sessionToken}`,
-	},
+  headers: {
+    Cookie: `auth-session=${sessionToken}`,
+  },
 });
 
 const userInfo = await response.json();

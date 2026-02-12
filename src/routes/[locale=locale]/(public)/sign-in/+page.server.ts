@@ -8,15 +8,15 @@ import { route } from "$lib/ROUTES";
  * Only allows same domain or subdomains of tietokilta.fi to prevent open redirect attacks.
  */
 function isValidReturnUrl(url: string): boolean {
-	try {
-		const parsed = new URL(url);
-		const hostname = parsed.hostname;
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname;
 
-		// Allow same domain or subdomains of tietokilta.fi
-		return hostname === "tietokilta.fi" || hostname.endsWith(".tietokilta.fi");
-	} catch {
-		return false;
-	}
+    // Allow same domain or subdomains of tietokilta.fi
+    return hostname === "tietokilta.fi" || hostname.endsWith(".tietokilta.fi");
+  } catch {
+    return false;
+  }
 }
 
 export const load: PageServerLoad = async (event) => {

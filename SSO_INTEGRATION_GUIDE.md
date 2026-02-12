@@ -51,88 +51,88 @@ import type { Cookies } from "@sveltejs/kit";
 const REKISTERI_URL = "https://rekisteri.tietokilta.fi";
 
 interface UserInfo {
-	sub: string;
-	email: string;
-	email_verified: boolean;
-	given_name?: string;
-	family_name?: string;
-	home_municipality?: string;
-	is_admin: boolean;
-	is_allowed_emails: boolean;
-	membership: {
-		status: string;
-		type: string;
-		start_time: string;
-		end_time: string;
-		price_cents: number;
-		requires_student_verification: boolean;
-		is_valid: boolean;
-	} | null;
-	memberships: Array<{
-		status: string;
-		type: string;
-		start_time: string;
-		end_time: string;
-		is_valid: boolean;
-	}>;
+  sub: string;
+  email: string;
+  email_verified: boolean;
+  given_name?: string;
+  family_name?: string;
+  home_municipality?: string;
+  is_admin: boolean;
+  is_allowed_emails: boolean;
+  membership: {
+    status: string;
+    type: string;
+    start_time: string;
+    end_time: string;
+    price_cents: number;
+    requires_student_verification: boolean;
+    is_valid: boolean;
+  } | null;
+  memberships: Array<{
+    status: string;
+    type: string;
+    start_time: string;
+    end_time: string;
+    is_valid: boolean;
+  }>;
 }
 
 // Cache to avoid hitting API on every request
 const userCache = new Map<string, { data: UserInfo; expiresAt: number }>();
 
 export async function getUserInfo(cookies: Cookies): Promise<UserInfo | null> {
-	const sessionToken = cookies.get("auth-session");
+  const sessionToken = cookies.get("auth-session");
 
-	if (!sessionToken) {
-		return null;
-	}
+  if (!sessionToken) {
+    return null;
+  }
 
-	// Check cache first (5 minute TTL)
-	const cached = userCache.get(sessionToken);
-	if (cached && Date.now() < cached.expiresAt) {
-		return cached.data;
-	}
+  // Check cache first (5 minute TTL)
+  const cached = userCache.get(sessionToken);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data;
+  }
 
-	try {
-		const response = await fetch(`${REKISTERI_URL}/api/auth/userinfo`, {
-			headers: {
-				Cookie: `auth-session=${sessionToken}`,
-			},
-		});
+  try {
+    const response = await fetch(`${REKISTERI_URL}/api/auth/userinfo`, {
+      headers: {
+        Cookie: `auth-session=${sessionToken}`,
+      },
+    });
 
-		if (!response.ok) {
-			userCache.delete(sessionToken);
-			return null;
-		}
+    if (!response.ok) {
+      userCache.delete(sessionToken);
+      return null;
+    }
 
-		const data = await response.json();
+    const data = await response.json();
 
-		// Cache for 5 minutes
-		userCache.set(sessionToken, {
-			data,
-			expiresAt: Date.now() + 5 * 60 * 1000,
-		});
+    // Cache for 5 minutes
+    userCache.set(sessionToken, {
+      data,
+      expiresAt: Date.now() + 5 * 60 * 1000,
+    });
 
-		return data;
-	} catch (error) {
-		console.error("Failed to fetch user info:", error);
-		return null;
-	}
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch user info:", error);
+    return null;
+  }
 }
 
 export function hasActiveMembership(userInfo: UserInfo | null): boolean {
-	return userInfo?.membership?.is_valid === true;
+  return userInfo?.membership?.is_valid === true;
 }
 
 export function redirectToLogin(currentUrl: URL): Response {
-	const returnTo = currentUrl.toString();
-	const loginUrl = `${REKISTERI_URL}/fi/sign-in?return_to=${encodeURIComponent(returnTo)}`;
-	return new Response(null, {
-		status: 302,
-		headers: {
-			Location: loginUrl,
-		},
-	});
+  const returnTo = currentUrl.toString();
+  const loginUrl = `${REKISTERI_URL}/fi/sign-in?return_to=${encodeURIComponent(returnTo)}`;
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: loginUrl,
+    },
+  });
 }
 ```
 
@@ -145,30 +145,30 @@ import type { PageServerLoad } from "./$types";
 import { getUserInfo, hasActiveMembership, redirectToLogin } from "$lib/server/auth";
 
 export const load: PageServerLoad = async ({ cookies, url, params }) => {
-	// Fetch user info from rekisteri
-	const userInfo = await getUserInfo(cookies);
+  // Fetch user info from rekisteri
+  const userInfo = await getUserInfo(cookies);
 
-	// Check membership status
-	const hasMembership = hasActiveMembership(userInfo);
+  // Check membership status
+  const hasMembership = hasActiveMembership(userInfo);
 
-	// Get event details
-	const event = await db.query.events.findFirst({
-		where: eq(events.id, params.id),
-	});
+  // Get event details
+  const event = await db.query.events.findFirst({
+    where: eq(events.id, params.id),
+  });
 
-	return {
-		event,
-		userInfo,
-		hasMembership,
-		// Pre-fill form data
-		formDefaults: userInfo
-			? {
-					email: userInfo.email,
-					firstName: userInfo.given_name || "",
-					lastName: userInfo.family_name || "",
-				}
-			: null,
-	};
+  return {
+    event,
+    userInfo,
+    hasMembership,
+    // Pre-fill form data
+    formDefaults: userInfo
+      ? {
+          email: userInfo.email,
+          firstName: userInfo.given_name || "",
+          lastName: userInfo.family_name || "",
+        }
+      : null,
+  };
 };
 ```
 
@@ -178,49 +178,49 @@ In your sign-up page component (`src/routes/events/[id]/signup/+page.svelte`):
 
 ```svelte
 <script lang="ts">
-	import { page } from "$app/stores";
+  import { page } from "$app/stores";
 
-	const { event, userInfo, hasMembership, formDefaults } = $page.data;
+  const { event, userInfo, hasMembership, formDefaults } = $page.data;
 </script>
 
 <h1>Sign up for {event.name}</h1>
 
 {#if userInfo}
-	<div class="user-info">
-		<p>Signed in as: {userInfo.email}</p>
+  <div class="user-info">
+    <p>Signed in as: {userInfo.email}</p>
 
-		{#if !hasMembership}
-			<div class="warning-banner">
-				⚠️ You don't have an active Tietokilta membership.
-				<a href="https://rekisteri.tietokilta.fi/fi/new"> Purchase membership </a>
-			</div>
-		{/if}
-	</div>
+    {#if !hasMembership}
+      <div class="warning-banner">
+        ⚠️ You don't have an active Tietokilta membership.
+        <a href="https://rekisteri.tietokilta.fi/fi/new"> Purchase membership </a>
+      </div>
+    {/if}
+  </div>
 {/if}
 
 <form method="POST">
-	<label>
-		Email
-		<input type="email" name="email" value={formDefaults?.email || ""} required />
-	</label>
+  <label>
+    Email
+    <input type="email" name="email" value={formDefaults?.email || ""} required />
+  </label>
 
-	<label>
-		First Name
-		<input type="text" name="firstName" value={formDefaults?.firstName || ""} required />
-	</label>
+  <label>
+    First Name
+    <input type="text" name="firstName" value={formDefaults?.firstName || ""} required />
+  </label>
 
-	<label>
-		Last Name
-		<input type="text" name="lastName" value={formDefaults?.lastName || ""} required />
-	</label>
+  <label>
+    Last Name
+    <input type="text" name="lastName" value={formDefaults?.lastName || ""} required />
+  </label>
 
-	{#if !hasMembership}
-		<p class="non-member-notice">As a non-member, you may have different pricing or restricted access.</p>
-	{/if}
+  {#if !hasMembership}
+    <p class="non-member-notice">As a non-member, you may have different pricing or restricted access.</p>
+  {/if}
 
-	<button type="submit">
-		Sign up {hasMembership ? "(Member)" : "(Non-member)"}
-	</button>
+  <button type="submit">
+    Sign up {hasMembership ? "(Member)" : "(Non-member)"}
+  </button>
 </form>
 ```
 
@@ -234,53 +234,53 @@ import { getUserInfo, hasActiveMembership } from "$lib/server/auth";
 import { sendEmail } from "$lib/server/email";
 
 export const actions: Actions = {
-	default: async ({ request, cookies, params }) => {
-		const userInfo = await getUserInfo(cookies);
-		const hasMembership = hasActiveMembership(userInfo);
+  default: async ({ request, cookies, params }) => {
+    const userInfo = await getUserInfo(cookies);
+    const hasMembership = hasActiveMembership(userInfo);
 
-		const formData = await request.formData();
-		const email = formData.get("email");
-		const firstName = formData.get("firstName");
-		const lastName = formData.get("lastName");
+    const formData = await request.formData();
+    const email = formData.get("email");
+    const firstName = formData.get("firstName");
+    const lastName = formData.get("lastName");
 
-		// Create signup in database
-		const signup = await db.insert(eventSignups).values({
-			eventId: params.id,
-			email,
-			firstName,
-			lastName,
-			isMember: hasMembership,
-			membershipType: userInfo?.membership?.type,
-			userId: userInfo?.sub,
-		});
+    // Create signup in database
+    const signup = await db.insert(eventSignups).values({
+      eventId: params.id,
+      email,
+      firstName,
+      lastName,
+      isMember: hasMembership,
+      membershipType: userInfo?.membership?.type,
+      userId: userInfo?.sub,
+    });
 
-		// Send appropriate email
-		if (hasMembership) {
-			await sendEmail({
-				to: email,
-				subject: "Event Registration Confirmed - Member",
-				html: `
+    // Send appropriate email
+    if (hasMembership) {
+      await sendEmail({
+        to: email,
+        subject: "Event Registration Confirmed - Member",
+        html: `
 					<p>Hi ${firstName},</p>
 					<p>Your registration has been confirmed!</p>
 					<p><strong>Member pricing applies.</strong></p>
 					<p>Membership: ${userInfo.membership.type}</p>
 				`,
-			});
-		} else {
-			await sendEmail({
-				to: email,
-				subject: "Event Registration Confirmed - Non-member",
-				html: `
+      });
+    } else {
+      await sendEmail({
+        to: email,
+        subject: "Event Registration Confirmed - Non-member",
+        html: `
 					<p>Hi ${firstName},</p>
 					<p>Your registration has been confirmed!</p>
 					<p><strong>Non-member pricing applies.</strong></p>
 					<p>Consider <a href="https://rekisteri.tietokilta.fi/fi/new">becoming a member</a> for benefits!</p>
 				`,
-			});
-		}
+      });
+    }
 
-		return { success: true };
-	},
+    return { success: true };
+  },
 };
 ```
 
@@ -290,13 +290,13 @@ If you want to require users to be logged in:
 
 ```typescript
 export const load: PageServerLoad = async ({ cookies, url }) => {
-	const userInfo = await getUserInfo(cookies);
+  const userInfo = await getUserInfo(cookies);
 
-	if (!userInfo) {
-		return redirectToLogin(url);
-	}
+  if (!userInfo) {
+    return redirectToLogin(url);
+  }
 
-	// Rest of your load function
+  // Rest of your load function
 };
 ```
 
@@ -318,51 +318,51 @@ import type { Cookies } from "@sveltejs/kit";
 const REKISTERI_URL = "https://rekisteri.tietokilta.fi";
 
 interface UserInfo {
-	email: string;
-	given_name?: string;
-	family_name?: string;
+  email: string;
+  given_name?: string;
+  family_name?: string;
 }
 
 // Simple cache with 5-minute TTL
 const cache = new Map<string, { data: UserInfo; expiresAt: number }>();
 
 export async function getUserInfo(cookies: Cookies): Promise<UserInfo | null> {
-	const sessionToken = cookies.get("auth-session");
+  const sessionToken = cookies.get("auth-session");
 
-	if (!sessionToken) {
-		return null;
-	}
+  if (!sessionToken) {
+    return null;
+  }
 
-	// Check cache
-	const cached = cache.get(sessionToken);
-	if (cached && Date.now() < cached.expiresAt) {
-		return cached.data;
-	}
+  // Check cache
+  const cached = cache.get(sessionToken);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data;
+  }
 
-	try {
-		const response = await fetch(`${REKISTERI_URL}/api/auth/userinfo`, {
-			headers: {
-				Cookie: `auth-session=${sessionToken}`,
-			},
-		});
+  try {
+    const response = await fetch(`${REKISTERI_URL}/api/auth/userinfo`, {
+      headers: {
+        Cookie: `auth-session=${sessionToken}`,
+      },
+    });
 
-		if (!response.ok) {
-			return null;
-		}
+    if (!response.ok) {
+      return null;
+    }
 
-		const data = await response.json();
+    const data = await response.json();
 
-		// Cache for 5 minutes
-		cache.set(sessionToken, {
-			data,
-			expiresAt: Date.now() + 5 * 60 * 1000,
-		});
+    // Cache for 5 minutes
+    cache.set(sessionToken, {
+      data,
+      expiresAt: Date.now() + 5 * 60 * 1000,
+    });
 
-		return data;
-	} catch (error) {
-		console.error("Failed to fetch user info:", error);
-		return null;
-	}
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch user info:", error);
+    return null;
+  }
 }
 ```
 
@@ -375,15 +375,15 @@ import type { PageServerLoad } from "./$types";
 import { getUserInfo } from "$lib/server/rekisteri";
 
 export const load: PageServerLoad = async ({ cookies }) => {
-	const userInfo = await getUserInfo(cookies);
+  const userInfo = await getUserInfo(cookies);
 
-	return {
-		// Pre-fill form if user is authenticated
-		email: userInfo?.email || "",
-		firstName: userInfo?.given_name || "",
-		lastName: userInfo?.family_name || "",
-		isAuthenticated: !!userInfo,
-	};
+  return {
+    // Pre-fill form if user is authenticated
+    email: userInfo?.email || "",
+    firstName: userInfo?.given_name || "",
+    lastName: userInfo?.family_name || "",
+    isAuthenticated: !!userInfo,
+  };
 };
 ```
 
@@ -391,34 +391,34 @@ In your newsletter form (`src/routes/newsletter/+page.svelte`):
 
 ```svelte
 <script lang="ts">
-	import { page } from "$app/stores";
+  import { page } from "$app/stores";
 
-	const { email, firstName, lastName, isAuthenticated } = $page.data;
+  const { email, firstName, lastName, isAuthenticated } = $page.data;
 </script>
 
 <h2>Subscribe to our Newsletter</h2>
 
 {#if isAuthenticated}
-	<p class="info-message">✓ We've pre-filled your information from your Tietokilta account.</p>
+  <p class="info-message">✓ We've pre-filled your information from your Tietokilta account.</p>
 {/if}
 
 <form method="POST">
-	<label>
-		Email
-		<input type="email" name="email" value={email} required />
-	</label>
+  <label>
+    Email
+    <input type="email" name="email" value={email} required />
+  </label>
 
-	<label>
-		First Name
-		<input type="text" name="firstName" value={firstName} />
-	</label>
+  <label>
+    First Name
+    <input type="text" name="firstName" value={firstName} />
+  </label>
 
-	<label>
-		Last Name
-		<input type="text" name="lastName" value={lastName} />
-	</label>
+  <label>
+    Last Name
+    <input type="text" name="lastName" value={lastName} />
+  </label>
 
-	<button type="submit">Subscribe</button>
+  <button type="submit">Subscribe</button>
 </form>
 ```
 
@@ -431,16 +431,16 @@ import type { LayoutServerLoad } from "./$types";
 import { getUserInfo } from "$lib/server/rekisteri";
 
 export const load: LayoutServerLoad = async ({ cookies }) => {
-	const userInfo = await getUserInfo(cookies);
+  const userInfo = await getUserInfo(cookies);
 
-	return {
-		user: userInfo
-			? {
-					email: userInfo.email,
-					name: [userInfo.given_name, userInfo.family_name].filter(Boolean).join(" "),
-				}
-			: null,
-	};
+  return {
+    user: userInfo
+      ? {
+          email: userInfo.email,
+          name: [userInfo.given_name, userInfo.family_name].filter(Boolean).join(" "),
+        }
+      : null,
+  };
 };
 ```
 
@@ -448,28 +448,28 @@ In your header component:
 
 ```svelte
 <script lang="ts">
-	import { page } from "$app/stores";
+  import { page } from "$app/stores";
 
-	const user = $page.data.user;
+  const user = $page.data.user;
 </script>
 
 <header>
-	<nav>
-		<a href="/">Home</a>
-		<a href="/events">Events</a>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/events">Events</a>
 
-		{#if user}
-			<div class="user-menu">
-				<span>👤 {user.name || user.email}</span>
-				<a href="https://rekisteri.tietokilta.fi/fi">My Account</a>
-				<form method="POST" action="/logout">
-					<button>Logout</button>
-				</form>
-			</div>
-		{:else}
-			<a href="https://rekisteri.tietokilta.fi/fi/sign-in">Login</a>
-		{/if}
-	</nav>
+    {#if user}
+      <div class="user-menu">
+        <span>👤 {user.name || user.email}</span>
+        <a href="https://rekisteri.tietokilta.fi/fi">My Account</a>
+        <form method="POST" action="/logout">
+          <button>Logout</button>
+        </form>
+      </div>
+    {:else}
+      <a href="https://rekisteri.tietokilta.fi/fi/sign-in">Login</a>
+    {/if}
+  </nav>
 </header>
 ```
 
@@ -576,20 +576,20 @@ Example global logout:
 
 ```typescript
 export const actions: Actions = {
-	logout: async ({ cookies, fetch }) => {
-		const sessionToken = cookies.get("auth-session");
+  logout: async ({ cookies, fetch }) => {
+    const sessionToken = cookies.get("auth-session");
 
-		if (sessionToken) {
-			await fetch("https://rekisteri.tietokilta.fi/api/auth/logout", {
-				method: "POST",
-				headers: {
-					Cookie: `auth-session=${sessionToken}`,
-				},
-			});
-		}
+    if (sessionToken) {
+      await fetch("https://rekisteri.tietokilta.fi/api/auth/logout", {
+        method: "POST",
+        headers: {
+          Cookie: `auth-session=${sessionToken}`,
+        },
+      });
+    }
 
-		redirect(302, "/");
-	},
+    redirect(302, "/");
+  },
 };
 ```
 

@@ -18,10 +18,10 @@ import * as auth from "$lib/server/auth/session";
  * After logout, the user will need to sign in again across all services.
  */
 export async function POST(event: RequestEvent) {
-	if (event.locals.session) {
-		await auth.invalidateSession(event.locals.session.id);
-		auth.deleteSessionTokenCookie(event);
-	}
+  if (event.locals.session) {
+    await auth.invalidateSession(event.locals.session.id);
+    auth.deleteSessionTokenCookie(event);
+  }
 
-	return json({ success: true });
+  return json({ success: true });
 }
