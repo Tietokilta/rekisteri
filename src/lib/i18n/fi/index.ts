@@ -49,6 +49,8 @@ const fi = {
     show: "Näytä jäsenkortti",
     close: "Sulje",
     qrAlt: "Jäsentodistuksen QR-koodi",
+    qrError: "QR-koodin luominen epäonnistui",
+    retry: "Yritä uudelleen",
   },
 
   // Settings

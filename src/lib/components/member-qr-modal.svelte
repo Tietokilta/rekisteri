@@ -75,8 +75,8 @@
       {/snippet}
       {#snippet failed(_error, retry)}
         <div class="flex h-70 w-70 flex-col items-center justify-center gap-2 rounded-lg bg-gray-100">
-          <p class="text-sm text-destructive">Failed to generate QR code</p>
-          <Button onclick={retry} variant="outline" size="sm">Retry</Button>
+          <p class="text-sm text-destructive">{$LL.memberCard.qrError()}</p>
+          <Button onclick={retry} variant="outline" size="sm">{$LL.memberCard.retry()}</Button>
         </div>
       {/snippet}
     </svelte:boundary>

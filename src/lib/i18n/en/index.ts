@@ -49,6 +49,8 @@ const en = {
     show: "Show Member Card",
     close: "Close",
     qrAlt: "Member verification QR code",
+    qrError: "Failed to generate QR code",
+    retry: "Retry",
   },
 
   // Settings
