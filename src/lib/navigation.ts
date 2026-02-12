@@ -13,6 +13,7 @@ import Users from "@lucide/svelte/icons/users";
 import Tags from "@lucide/svelte/icons/tags";
 import Tag from "@lucide/svelte/icons/tag";
 import UserCog from "@lucide/svelte/icons/user-cog";
+import QrCode from "@lucide/svelte/icons/qr-code";
 
 export interface NavItem {
   title: string;
@@ -71,6 +72,11 @@ export function getAdminNavItems(locale: Locale, LL: TranslationFunctions): NavI
       title: LL.nav.admin.membershipTypes(),
       href: route("/[locale=locale]/admin/membership-types", { locale }),
       icon: Tag,
+    },
+    {
+      title: LL.nav.admin.verifyQr(),
+      href: route("/[locale=locale]/admin/verify-qr", { locale }),
+      icon: QrCode,
     },
     {
       title: LL.nav.admin.users(),

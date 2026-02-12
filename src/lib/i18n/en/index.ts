@@ -21,6 +21,7 @@ const en = {
       memberships: "Memberships",
       membershipTypes: "Membership Types",
       users: "Users",
+      verifyQr: "Verify QR",
     },
     signOut: "Sign out",
   },
@@ -40,6 +41,16 @@ const en = {
     completeProfile: "Go to profile",
     paymentSuccess: "Payment successful!",
     paymentSuccessDescription: "Your membership will be updated shortly.",
+  },
+
+  // Member Card
+  memberCard: {
+    title: "Member Card",
+    show: "Show Member Card",
+    close: "Close",
+    qrAlt: "Member verification QR code",
+    qrError: "Failed to generate QR code",
+    retry: "Retry",
   },
 
   // Settings
@@ -610,6 +621,22 @@ Computer Science Guild`,
         noOverlappingMemberships: "No overlapping memberships - merge is safe",
         checkingMemberships: "Checking memberships...",
       },
+    },
+
+    verifyQr: {
+      title: "Verify Member QR",
+      description: "Scan member QR codes to verify membership status",
+      startScanning: "Start Scanning",
+      stopScanning: "Stop Scanning",
+      scanInstructions: "Point camera at member's QR code",
+      cameraError: "Could not access camera. Please check permissions.",
+      invalidQr: "Invalid QR code. This code is not recognized.",
+      verifyError: "Failed to verify QR code. Please try again.",
+      userInfo: "Member Information",
+      memberships: "Memberships",
+      noMemberships: "No memberships found",
+      scanNext: "Scan Next",
+      closeScanner: "Close scanner",
     },
   },
 

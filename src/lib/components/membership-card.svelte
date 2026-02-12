@@ -8,6 +8,7 @@
   import type { LocalizedString } from "$lib/server/db/schema";
   import { retryPayment } from "$lib/api/retry-payment.remote";
   import { retryPaymentSchema } from "$lib/api/retry-payment.schema";
+  import MemberQrModal from "$lib/components/member-qr-modal.svelte";
 
   // Icons
   import CircleCheck from "@lucide/svelte/icons/circle-check";
@@ -32,9 +33,11 @@
   interface Props {
     memberships: Membership[];
     userName: string;
+    qrToken: string | null;
+    hasAvailableMemberships: boolean;
   }
 
-  let { memberships, userName }: Props = $props();
+  let { memberships, userName, qrToken, hasAvailableMemberships }: Props = $props();
 
   // Helper to get localized membership type name
   function getTypeName(membershipType: MembershipType): string {
@@ -54,6 +57,23 @@
   });
 
   const hasActiveMembership = $derived(memberships.some((m) => m.status === "active"));
+  const isAwaitingPayment = $derived(currentMembership?.status === "awaiting_payment");
+  const showQrButton = $derived(!!qrToken && !isAwaitingPayment && (hasActiveMembership || !!currentMembership));
+
+  // Compute purchase/renew button config
+  const purchaseAction = $derived.by(() => {
+    if (isAwaitingPayment || !hasAvailableMemberships) return null;
+    if (!currentMembership) return { label: $LL.dashboard.getFirstMembership(), variant: "default" as const };
+    if (hasActiveMembership)
+      return {
+        label: $LL.dashboard.purchaseNew(),
+        variant: showQrButton ? ("outline" as const) : ("default" as const),
+      };
+    return {
+      label: $LL.dashboard.renewMembership(),
+      variant: showQrButton ? ("outline" as const) : ("default" as const),
+    };
+  });
 
   // Status badge variant and icon
   const statusConfig = $derived.by(() => {
@@ -146,13 +166,8 @@
       </div>
     {/if}
   </Card.Content>
-  <Card.Footer class="flex gap-2">
-    {#if memberships.length > 0}
-      <Button variant="outline" href={route("/[locale=locale]/membership", { locale: $locale })} class="flex-1">
-        {$LL.dashboard.viewAll()}
-      </Button>
-    {/if}
-    {#if currentMembership?.status === "awaiting_payment"}
+  <Card.Footer class="flex flex-wrap gap-2">
+    {#if isAwaitingPayment && currentMembership}
       <form {...retryPayment.preflight(retryPaymentSchema)} class="flex-1">
         <input type="hidden" name="memberId" value={currentMembership.unique_id} />
         <Button type="submit" class="w-full" disabled={!!retryPayment.pending}>
@@ -163,15 +178,18 @@
           {/if}
         </Button>
       </form>
-    {:else}
-      <Button href={route("/[locale=locale]/new", { locale: $locale })} class="flex-1">
-        {#if memberships.length === 0}
-          {$LL.dashboard.getFirstMembership()}
-        {:else if hasActiveMembership}
-          {$LL.dashboard.purchaseNew()}
-        {:else}
-          {$LL.dashboard.renewMembership()}
-        {/if}
+    {/if}
+    {#if showQrButton && qrToken}
+      <MemberQrModal token={qrToken} {userName} class="flex-1" />
+    {/if}
+    {#if purchaseAction}
+      <Button variant={purchaseAction.variant} href={route("/[locale=locale]/new", { locale: $locale })} class="flex-1">
+        {purchaseAction.label}
+      </Button>
+    {/if}
+    {#if memberships.length > 0}
+      <Button variant="outline" href={route("/[locale=locale]/membership", { locale: $locale })} class="flex-1">
+        {$LL.dashboard.viewAll()}
       </Button>
     {/if}
   </Card.Footer>

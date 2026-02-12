@@ -71,6 +71,13 @@
       "when": 1770132677940,
       "tag": "0009_amused_sumo",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1770844926842,
+      "tag": "0010_free_dexter_bennett",
+      "breakpoints": true
     }
   ]
 }

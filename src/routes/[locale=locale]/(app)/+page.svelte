@@ -7,11 +7,15 @@
   import type { PageServerData } from "./$types";
   import MembershipCard from "$lib/components/membership-card.svelte";
   import ProfileIncompleteCard from "$lib/components/profile-incomplete-card.svelte";
+  import { formatUserName } from "$lib/utils";
 
   let { data }: { data: PageServerData } = $props();
 
   // Check if profile is complete
   const isProfileComplete = $derived(Boolean(data.user.firstNames && data.user.lastName && data.user.homeMunicipality));
+
+  // Get full user name for QR modal
+  const fullName = $derived(formatUserName(data.user, data.user.email));
 
   // Handle stripe success redirect
   $effect(() => {
@@ -34,9 +38,16 @@
 </script>
 
 <div class="container mx-auto max-w-2xl px-4 py-8">
-  {#if isProfileComplete}
-    <MembershipCard memberships={data.memberships} userName="{data.user.firstNames} {data.user.lastName}" />
-  {:else}
-    <ProfileIncompleteCard />
-  {/if}
+  <div class="space-y-4">
+    {#if isProfileComplete}
+      <MembershipCard
+        memberships={data.memberships}
+        userName={fullName}
+        qrToken={data.qrToken}
+        hasAvailableMemberships={data.hasAvailableMemberships}
+      />
+    {:else}
+      <ProfileIncompleteCard />
+    {/if}
+  </div>
 </div>

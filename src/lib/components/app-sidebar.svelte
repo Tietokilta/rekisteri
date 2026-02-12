@@ -8,6 +8,7 @@
   import { stripLocaleFromPathname, type Locale } from "$lib/i18n/routing";
   import { getMainNavItems, getSettingsNavItems, getAdminNavItems } from "$lib/navigation";
   import RatasLogo from "$lib/icons/ratas-logo.svelte";
+  import { formatUserName } from "$lib/utils";
 
   // Icons from @lucide/svelte
   import User from "@lucide/svelte/icons/user";
@@ -40,15 +41,7 @@
   }
 
   // Get user display name
-  const displayName = $derived.by(() => {
-    if (user.firstNames && user.lastName) {
-      return `${user.firstNames} ${user.lastName}`;
-    }
-    if (user.firstNames) {
-      return user.firstNames;
-    }
-    return user.email;
-  });
+  const displayName = $derived(formatUserName(user, user.email));
 </script>
 
 <Sidebar.Sidebar>

@@ -11,6 +11,7 @@ import { encodeBase32LowerCase } from "@oslojs/encoding";
 import { sendMemberEmail } from "$lib/server/emails";
 import { getMembershipName } from "$lib/server/utils/membership";
 import { getUserLocale } from "$lib/server/utils/user";
+import { formatUserName } from "$lib/utils";
 
 /**
  * Checks if a Stripe error is due to a non-existent customer.
@@ -125,7 +126,7 @@ export async function createSession(userId: string, membershipId: string, locale
   let stripeCustomerId = user.stripeCustomerId;
   if (!stripeCustomerId) {
     // https://docs.stripe.com/api/customers/create
-    stripeCustomerId = await createStripeCustomer(userId, user.email, `${user.firstNames} ${user.lastName}`);
+    stripeCustomerId = await createStripeCustomer(userId, user.email, formatUserName(user));
   }
 
   const memberId = crypto.randomUUID();
@@ -134,7 +135,7 @@ export async function createSession(userId: string, membershipId: string, locale
   const session = await createCheckoutSessionWithRetry(
     userId,
     user.email,
-    `${user.firstNames} ${user.lastName}`,
+    formatUserName(user),
     stripeCustomerId,
     membership.stripePriceId,
     locale,
@@ -207,13 +208,13 @@ export async function resumeOrCreateSession(memberId: string, locale: Locale) {
 
   let stripeCustomerId = user.stripeCustomerId;
   if (!stripeCustomerId) {
-    stripeCustomerId = await createStripeCustomer(user.id, user.email, `${user.firstNames} ${user.lastName}`);
+    stripeCustomerId = await createStripeCustomer(user.id, user.email, formatUserName(user));
   }
 
   const session = await createCheckoutSessionWithRetry(
     user.id,
     user.email,
-    `${user.firstNames} ${user.lastName}`,
+    formatUserName(user),
     stripeCustomerId,
     membership.stripePriceId,
     locale,

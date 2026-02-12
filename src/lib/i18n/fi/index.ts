@@ -21,6 +21,7 @@ const fi = {
       memberships: "Jäsenyydet",
       membershipTypes: "Jäsenyystyypit",
       users: "Käyttäjät",
+      verifyQr: "Tarkista QR",
     },
     signOut: "Kirjaudu ulos",
   },
@@ -40,6 +41,16 @@ const fi = {
     completeProfile: "Siirry profiiliin",
     paymentSuccess: "Maksu onnistui!",
     paymentSuccessDescription: "Jäsenyytesi päivittyy hetken kuluttua.",
+  },
+
+  // Member Card
+  memberCard: {
+    title: "Jäsenkortti",
+    show: "Näytä jäsenkortti",
+    close: "Sulje",
+    qrAlt: "Jäsentodistuksen QR-koodi",
+    qrError: "QR-koodin luominen epäonnistui",
+    retry: "Yritä uudelleen",
   },
 
   // Settings
@@ -614,6 +625,22 @@ Tietokilta`,
         noOverlappingMemberships: "Ei päällekkäisiä jäsenyyksiä - yhdistäminen on turvallista",
         checkingMemberships: "Tarkistetaan jäsenyyksiä...",
       },
+    },
+
+    verifyQr: {
+      title: "Tarkista jäsenen QR-koodi",
+      description: "Skannaa jäsenten QR-koodeja tarkistaaksesi jäsenyyden tilan",
+      startScanning: "Aloita skannaus",
+      stopScanning: "Lopeta skannaus",
+      scanInstructions: "Osoita kamera jäsenen QR-koodiin",
+      cameraError: "Kameraan ei saatu yhteyttä. Tarkista käyttöoikeudet.",
+      invalidQr: "Virheellinen QR-koodi. Tätä koodia ei tunnisteta.",
+      verifyError: "QR-koodin tarkistus epäonnistui. Yritä uudelleen.",
+      userInfo: "Jäsenen tiedot",
+      memberships: "Jäsenyydet",
+      noMemberships: "Jäsenyyksiä ei löytynyt",
+      scanNext: "Skannaa seuraava",
+      closeScanner: "Sulje skanneri",
     },
   },
 
