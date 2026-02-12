@@ -63,12 +63,7 @@ export const payMembership = form(payMembershipSchema, async ({ membershipId, de
     }
   }
 
-  const paymentSession = await createSession(
-    event.locals.user.id,
-    membershipId,
-    event.locals.locale,
-    trimmedDescription,
-  );
+  const paymentSession = await createSession(event.locals.user.id, membershipId, event.locals.locale);
   if (!paymentSession?.url) {
     error(400, LL.membership.paymentSessionFailed());
   }

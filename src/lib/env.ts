@@ -1,5 +1,5 @@
 import { env as publicEnv } from "$env/dynamic/public";
-import { PUBLIC_GIT_COMMIT_SHA } from "$env/static/public";
+// PUBLIC_GIT_COMMIT_SHA is set via dynamic import
 import * as v from "valibot";
 
 /**
@@ -16,7 +16,7 @@ const publicEnvSchema = v.object({
 // Validate public environment variables at module load (fail fast)
 const parsed = v.safeParse(publicEnvSchema, {
   PUBLIC_URL: publicEnv.PUBLIC_URL,
-  PUBLIC_GIT_COMMIT_SHA: PUBLIC_GIT_COMMIT_SHA || undefined,
+  PUBLIC_GIT_COMMIT_SHA: publicEnv.PUBLIC_GIT_COMMIT_SHA || undefined,
 });
 
 if (!parsed.success) {

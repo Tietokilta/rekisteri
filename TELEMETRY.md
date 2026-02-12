@@ -84,19 +84,19 @@ import { logger } from "$lib/server/telemetry";
 
 // Info log
 logger.info("stripe.webhook.received", {
-	"stripe.event.id": eventId,
-	"stripe.event.type": eventType,
+  "stripe.event.id": eventId,
+  "stripe.event.type": eventType,
 });
 
 // Warning log
 logger.warn("stripe.webhook.duplicate", {
-	"stripe.event.id": eventId,
+  "stripe.event.id": eventId,
 });
 
 // Error log
 logger.error("stripe.webhook.failed", error, {
-	"stripe.event.id": eventId,
-	"user.id": userId,
+  "stripe.event.id": eventId,
+  "user.id": userId,
 });
 ```
 
@@ -106,13 +106,13 @@ logger.error("stripe.webhook.failed", error, {
 import { logger } from "$lib/server/telemetry";
 
 await logger.startSpan("stripe.checkout.create", async (span) => {
-	span.setAttribute("user.id", userId);
-	span.setAttribute("membership.id", membershipId);
+  span.setAttribute("user.id", userId);
+  span.setAttribute("membership.id", membershipId);
 
-	const session = await createCheckoutSession();
+  const session = await createCheckoutSession();
 
-	span.setAttribute("stripe.session.id", session.id);
-	return session;
+  span.setAttribute("stripe.session.id", session.id);
+  return session;
 });
 ```
 
@@ -120,12 +120,12 @@ await logger.startSpan("stripe.checkout.create", async (span) => {
 
 ```typescript
 export const load: PageServerLoad = async ({ locals, tracing }) => {
-	// SvelteKit automatically creates a span for this load function
-	// Augment it with business context
-	tracing?.current.setAttribute("user.id", locals.user?.id);
+  // SvelteKit automatically creates a span for this load function
+  // Augment it with business context
+  tracing?.current.setAttribute("user.id", locals.user?.id);
 
-	const data = await fetchData();
-	return data;
+  const data = await fetchData();
+  return data;
 };
 ```
 
@@ -179,8 +179,8 @@ To enable full distributed tracing with Azure Monitor:
    import { AzureMonitorTraceExporter } from "@azure/monitor-opentelemetry-exporter";
 
    const traceExporter = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING
-   	? new AzureMonitorTraceExporter()
-   	: new PrettyConsoleSpanExporter();
+     ? new AzureMonitorTraceExporter()
+     : new PrettyConsoleSpanExporter();
    ```
 
 3. Set environment variable:
