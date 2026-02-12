@@ -1,156 +1,202 @@
-# Email System Phase 2: Business Requirements & Planning
+# Email System Phase 2: Implementation Plan
 
-## Current State (Phase 1)
+## Context: Tietokilta Membership Lifecycle
 
-Phase 1 delivers synchronous transactional emails for critical moments:
+All emails on this platform are membership-critical / transactional. The `isAllowedEmails`
+field is for Google Group newsletter exports, not for this platform's email system.
 
-| Email | Trigger | Business Purpose |
+### Bylaws Reference (Tietokilta säännöt)
+
+- **§6**: Members are contacted via email. Sent email is assumed received on the day of sending.
+- **§7**: Members pay a membership fee per academic year. The **annual meeting** (vuosikokous)
+  determines the fee amount and **due date** (eräpäivä) for each member group separately.
+- **§8 p1**: Voluntary resignation — member notifies board in writing.
+- **§8 p2**: Deemed resigned — board can deem a member resigned if fee unpaid **2 months after
+  due date**. Must send email notification.
+- **§9**: Expulsion — must be delivered via email **without delay** (viipymättä).
+
+### Typical Year Timeline
+
+```
+Jan/Feb  — Annual meeting (vuosikokous) sets fee amount and due date
+           for each member group (§7).
+           Admin creates next period's memberships with paymentDueDate.
+
+~Aug     — 1 month before due date: first payment reminder email
+           "Your membership fee is due [date]. Pay here: [link]"
+
+~Sep 23  — 1 week before due date: second reminder
+
+Sep 30   — Due date (typical): "Your membership fee is due today"
+           (exact date varies yearly, set by annual meeting)
+
+~Oct 30  — 1 month overdue: grace period reminder
+           "Your fee is overdue. Pay to maintain your membership."
+
+Dec      — Board eligible to deem resigned (2+ months after due date, §8 p2).
+           Bulk "mark as resigned" action in admin UI.
+           Resignation notification emails sent immediately (§8 p2).
+```
+
+### Member Status State Machine
+
+```
+awaiting_payment → active | awaiting_approval | rejected
+awaiting_approval → active | rejected
+active → resigned
+resigned → active      (reactivation)
+rejected → active      (reactivation)
+```
+
+Defined in `src/lib/server/utils/member.ts`. Aligned with bylaws:
+- `resigned` = voluntary (§8 p1), deemed resigned for non-payment (§8 p2), or expelled (§9)
+- `rejected` = board rejected application, or payment failed/expired
+
+---
+
+## Phase 1 (Complete)
+
+Synchronous transactional emails:
+
+| Email | Trigger | Notes |
 |---|---|---|
-| OTP code | Sign-in / email verification | Authentication |
-| Payment received | Stripe payment completes (needs approval) | Confirm money received |
-| Membership approved | Admin approves member | Welcome to the guild |
-| Membership renewed | Auto-approved renewal payment | Confirm continued membership |
-
-All emails are sent synchronously in the request handler. Failures are logged but don't block the operation. No queue, no scheduling, no retries beyond Mailgun's own delivery retries.
+| OTP code | Sign-in / email verification | Always sent |
+| Payment received | Stripe webhook | Needs approval confirmation |
+| Membership approved | Admin approves | Individual + bulk |
+| Membership renewed | Auto-approved renewal | Via Stripe webhook |
 
 ---
 
-## Phase 2: What member and admin behaviors should improve?
+## Phase 2 Scope
 
-### 1. Members don't know their membership is about to expire
+### 1. Data Model: `paymentDueDate` on `membership`
 
-**Problem:** Members discover their membership expired only when they try to use it. There's no proactive notification.
+Add a nullable `paymentDueDate` column to the `membership` table.
 
-**Desired behavior:** Members receive a reminder before expiry so they can renew without a lapse.
+```
+membership:
+  id, membershipTypeId, stripePriceId, startTime, endTime,
+  requiresStudentVerification,
+  paymentDueDate  ← NEW (nullable timestamp)
+```
 
-**Scope:**
-- Email N days before `membership.endDate` (configurable, e.g., 30 days and 7 days)
-- Only for `active` memberships
-- Include a direct link to renew
-- Respect `user.isAllowedEmails` preference (currently unused in email sending)
+**Why on `membership`:** Each `membership` record already represents a specific year's offering
+of a membership type (e.g., "Regular member 2026-2027"). The annual meeting sets the due date
+per member group per year (§7), which maps exactly to this table. No separate period table needed.
 
-**Requires:** Scheduled job infrastructure (cron/periodic task) to check upcoming expirations.
+- `null` = no payment reminders (initial purchases, legacy data, honorary members)
+- Set by admin when creating next year's membership offerings
+- Displayed and editable in admin membership management UI
 
----
+### 2. Email Delivery Log Table
 
-### 2. Members in "silent" status transitions get no feedback
+Single table serving as both delivery log and deduplication check for reminders.
 
-**Problem:** Several admin actions change member status without notification:
-- **Rejection** (`awaiting_approval` -> `cancelled`) - member paid, got a payment confirmation, then silence
-- **Expiration** (`active` -> `expired`) - no notification at all
-- **Cancellation** (`active` -> `cancelled`) - no notification
-- **Reactivation** (`expired`/`cancelled` -> `active`) - member is active again but doesn't know
+```sql
+email_log:
+  id          TEXT PRIMARY KEY
+  user_id     TEXT REFERENCES user(id)      -- who it was sent to
+  email_type  TEXT NOT NULL                  -- e.g., 'membership_approved', 'payment_reminder_30d'
+  related_member_id  TEXT                    -- nullable, for dedup (which member record triggered this)
+  status      TEXT NOT NULL                  -- 'sent', 'failed'
+  mailgun_message_id TEXT                    -- for correlation with Mailgun
+  created_at  TIMESTAMP WITH TIME ZONE
+  sent_at     TIMESTAMP WITH TIME ZONE
+```
 
-**Desired behavior:** Members are informed when their status changes, especially for rejection (they paid money and deserve an explanation).
+**GDPR considerations:**
+- No email content stored, no recipient email address (derivable from userId if needed)
+- Only type, user reference, and delivery status
+- Cleanup: 180-day retention via existing cron infrastructure
 
-**Scope:**
-- Rejection email: explain outcome, mention refund process if applicable
-- Expiration email: inform, link to renew
-- Reactivation email: welcome back, confirm new status
-- Cancellation email: confirm cancellation
+**Serves two purposes:**
+1. Delivery visibility — admins can check if emails were sent/failed
+2. Reminder deduplication — "did we already send `payment_reminder_30d` for this member?"
 
-**Requires:** New email templates and triggers in existing admin action handlers. No queue needed - same synchronous pattern as Phase 1.
+### 3. Payment Due Date Reminders (Daily Cron)
 
----
+Added to existing `node-cron` setup in `hooks.server.ts` (daily, alongside cleanup tasks).
 
-### 3. Admins don't know when action is needed
+**Logic:**
+```
+For each membership M where M.paymentDueDate is not null:
+  Find users who are 'active' members of the same membershipType
+  in a PREVIOUS period, AND who have NOT purchased M yet
+  (no member record linking them to M).
 
-**Problem:** Admins must proactively check the admin panel to see pending approvals. After a membership purchase wave (e.g., start of academic year), pending members may wait days.
+  Based on days until M.paymentDueDate:
+    -30 days: send 'payment_reminder_30d'  (if not already sent per email_log)
+    -7 days:  send 'payment_reminder_7d'
+    0 days:   send 'payment_reminder_due'
+    +30 days: send 'payment_reminder_overdue'
+```
 
-**Desired behavior:** Admins receive a notification when members are waiting for approval.
+**Edge cases:**
+- No new membership of same type exists → no reminders fire (correct — nothing to renew into)
+- Membership type discontinued → no reminders, board handles communication separately
+- Member already purchased new period → no reminder (they have a member record for M)
 
-**Scope:**
-- Option A: Immediate notification per new pending member (could be noisy during waves)
-- Option B: Daily/periodic digest of pending approvals (e.g., "5 members awaiting approval")
-- Consider: which admin users should receive these? All admins? Configurable?
+### 4. Status Change Notification Emails (Immediate)
 
-**Requires:** For Option A, just a new email in the webhook flow. For Option B, scheduled job infrastructure.
+All status change emails sent **immediately** (not queued/batched). The confirmation dialogs
+added in the state machine PR provide the safety net against accidental actions.
 
----
+| Transition | Email Type | Notes |
+|---|---|---|
+| `→ active` (approve) | `membership_approved` | **Already exists** (Phase 1) |
+| `→ active` (reactivate) | `membership_reactivated` | New: "Your membership has been reactivated" |
+| `→ rejected` | `membership_rejected` | New: explain outcome |
+| `→ resigned` (§8 p2 deemed) | `membership_resigned` | New: **required by bylaws** (§8 p2) |
+| `→ resigned` (§8 p1 voluntary) | `membership_resigned` | New: confirm resignation recorded |
+| `→ resigned` (§9 expulsion) | `membership_expelled` | New: **must be sent viipymättä** (§9) |
 
-### 4. The `isAllowedEmails` preference is not enforced
+For bulk actions (`bulkApproveMembers`, `bulkMarkMembersResigned`): emails sent in parallel
+via `Promise.allSettled`, same pattern as existing bulk approve emails.
 
-**Problem:** `user.isAllowedEmails` exists in the schema but is not checked before sending emails. All emails are sent regardless of preference.
+**CSV import sends NO emails** (by design). Import is for historical/legacy data where members
+are already aware of their status. See `admin/members/import/data.remote.ts`.
 
-**Desired behavior:**
-- Transactional emails (OTP, payment confirmation) are always sent - these are necessary for service operation
-- Informational/marketing emails (expiry reminders, digests, announcements) respect the preference
+### 5. New Email Templates
 
-**Scope:**
-- Classify email types as `transactional` vs `informational`
-- Check `isAllowedEmails` before sending informational emails
-- Ensure the preference is exposed in user settings UI (if not already)
+| Template | Metadata | i18n keys needed |
+|---|---|---|
+| `membership_reactivated` | firstName, membershipName | emails.membershipReactivated.* |
+| `membership_rejected` | firstName, membershipName, reason? | emails.membershipRejected.* |
+| `membership_resigned` | firstName, membershipName, reason | emails.membershipResigned.* |
+| `membership_expelled` | firstName | emails.membershipExpelled.* |
+| `payment_reminder` | firstName, membershipName, dueDate, paymentLink | emails.paymentReminder.* |
 
-**Requires:** Minor change to `sendMemberEmail()` to check preference for non-transactional types.
+All templates respect `user.preferredLanguage` for locale selection.
 
----
+### 6. Cron Schedule (Extended)
 
-### 5. No visibility into email delivery
-
-**Problem:** If an email fails to send or bounces, nobody knows. Failures are logged to console but not tracked or surfaced.
-
-**Desired behavior:** Admins can see whether important emails were delivered, and failures are retried or flagged.
-
-**Scope (minimal):**
-- Log email sends to an `email_log` table (recipient, type, status, timestamp, Mailgun message ID)
-- Surface delivery failures in admin UI or as admin notifications
-- Optional: Mailgun webhook for bounce/complaint tracking
-
-**Scope (extended):**
-- Automatic retry for transient failures
-- Suppression list management (don't email addresses that bounced)
-- Delivery rate tracking
-
-**Requires:** New database table, minor changes to email service layer. Extended scope needs Mailgun webhook endpoint.
-
----
-
-## Infrastructure Decision: Do we need a job queue?
-
-Several Phase 2 features need scheduled execution:
-- Expiry reminders (check daily for upcoming expirations)
-- Admin digest emails (daily/weekly summary)
-- Optional: retry failed emails
-
-**Options:**
-
-### A. PostgreSQL-based scheduling (simplest)
-- Add a `scheduled_jobs` or `email_queue` table
-- Run a periodic check via SvelteKit's server startup or an external cron
-- Fits the existing stack (no new dependencies)
-- Sufficient for low volume (Tietokilta likely has hundreds, not thousands, of members)
-
-### B. pg-boss (PostgreSQL-native job queue)
-- Full job queue built on PostgreSQL
-- Handles scheduling, retries, concurrency, dead letter queue
-- Adds one dependency but no new infrastructure
-- Good if we expect job complexity to grow
-
-### C. External cron (e.g., systemd timer, GitHub Actions scheduled workflow)
-- Trigger a protected API endpoint on a schedule
-- No in-process scheduling needed
-- Simple but adds operational complexity
-
-**Recommendation:** Start with Option A or an external cron (Option C) for the MVP. The volume is low enough that a simple daily check is sufficient. Migrate to pg-boss only if job complexity warrants it.
+```
+hooks.server.ts ServerInit:
+  "0 3 * * *"    — existing: cleanupExpiredTokens, cleanupOldAuditLogs
+  "0 4 * * 0"    — existing: cleanupInactiveUsers (GDPR, 6yr)
+  "0 8 * * *"    — NEW: payment due date reminder check (8 AM, reasonable sending time)
+  "0 3 * * *"    — EXTEND: add email_log cleanup (180-day retention)
+```
 
 ---
 
-## Prioritized Implementation Order
+## Implementation Order
 
-Based on member experience impact:
-
-1. **Enforce `isAllowedEmails`** - Quick win, prerequisite for adding more email types responsibly
-2. **Status change notifications** (rejection, expiration, reactivation) - Biggest gap in member communication, especially rejection after payment
-3. **Expiry reminders** - Proactive retention, requires scheduled infrastructure
-4. **Email delivery logging** - Operational visibility
-5. **Admin pending-approval notifications** - Quality of life for board members
+1. **DB migration**: add `paymentDueDate` to `membership`, create `email_log` table
+2. **Email log integration**: wrap `sendMemberEmail` to log all sends to `email_log`
+3. **Status change emails**: add templates + wire into admin actions (resign, reject, reactivate, expel)
+4. **Payment reminder cron**: daily job with deduplication
+5. **Admin UI**: expose `paymentDueDate` in membership create/edit forms
+6. **Cleanup**: extend cron to prune old `email_log` rows
 
 ---
 
-## Open Questions
+## Open Questions (Resolved)
 
-- What's the typical membership renewal volume? (drives infrastructure choice)
-- Should rejection emails include a reason field? (admin would need to input this)
-- Who should receive admin notifications - all admins or a configurable subset?
-- Is there an existing external cron/scheduler (e.g., in the Nix/Docker deployment) that could trigger periodic tasks?
-- Should email preferences be per-category (reminders vs. announcements) or a single toggle?
+| Question | Resolution |
+|---|---|
+| Queue vs immediate? | Immediate — confirmation dialogs provide safety net |
+| `isAllowedEmails` enforcement? | Not for this platform — it's for Google Group exports |
+| Admin notification emails? | Not needed — admins check weekly |
+| Separate period table? | No — `membership` already represents type × period |
+| What triggers reminders? | Existence of new membership with `paymentDueDate` + same type |
