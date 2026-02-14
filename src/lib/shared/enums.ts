@@ -39,3 +39,27 @@ export const BLOCKING_MEMBER_STATUSES: ReadonlySet<MemberStatus> = new Set([
   "awaiting_approval",
   "awaiting_payment",
 ]);
+
+/**
+ * Available meeting status values
+ */
+export const MEETING_STATUS_VALUES = ["upcoming", "ongoing", "recess", "finished"] as const;
+export type MeetingStatus = (typeof MEETING_STATUS_VALUES)[number];
+
+/**
+ * Meeting event type values (lifecycle events)
+ */
+export const MEETING_EVENT_TYPE_VALUES = ["start", "recess_start", "recess_end", "finish"] as const;
+export type MeetingEventType = (typeof MEETING_EVENT_TYPE_VALUES)[number];
+
+/**
+ * Attendance event type values (check-in/check-out)
+ */
+export const ATTENDANCE_EVENT_TYPE_VALUES = ["check_in", "check_out"] as const;
+export type AttendanceEventType = (typeof ATTENDANCE_EVENT_TYPE_VALUES)[number];
+
+/**
+ * Scan method values (how attendance was recorded)
+ */
+export const SCAN_METHOD_VALUES = ["qr_scan", "manual"] as const;
+export type ScanMethod = (typeof SCAN_METHOD_VALUES)[number];

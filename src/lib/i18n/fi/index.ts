@@ -18,6 +18,7 @@ const fi = {
     admin: {
       title: "Hallinta",
       members: "Jäsenet",
+      meetings: "Kokoukset",
       memberships: "Jäsenyydet",
       membershipTypes: "Jäsenyystyypit",
       users: "Käyttäjät",
@@ -647,6 +648,35 @@ Tietokilta`,
           "Yhdistäminen epäonnistui: molemmilla käyttäjillä on jäsenyys samalle ajanjaksolle",
         noOverlappingMemberships: "Ei päällekkäisiä jäsenyyksiä - yhdistäminen on turvallista",
         checkingMemberships: "Tarkistetaan jäsenyyksiä...",
+      },
+    },
+
+    meetings: {
+      title: "Hallinnoi kokouksia",
+      description: "Seuraa kokouksien läsnäoloa ja hallinnoi tapahtumia",
+      createNew: "Luo uusi kokous",
+      meetingName: "Kokouksen nimi",
+      meetingDescription: "Kuvaus (valinnainen)",
+      creating: "Luodaan...",
+      createButton: "Luo kokous",
+      noMeetings: "Ei kokouksia",
+      noMeetingsDescription: "Luo kokous aloittaaksesi läsnäolon seurannan",
+
+      // Status
+      status: {
+        upcoming: "Tuleva",
+        ongoing: "Käynnissä",
+        recess: "Tauko",
+        finished: "Päättynyt",
+      },
+
+      // Table
+      table: {
+        name: "Nimi",
+        status: "Tila",
+        created: "Luotu",
+        actions: "Toiminnot",
+        view: "Näytä tiedot",
       },
     },
 
