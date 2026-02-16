@@ -7,6 +7,7 @@ import { eq, and, isNull, like } from "drizzle-orm";
 import path from "node:path";
 import fs from "node:fs";
 import { route } from "../src/lib/ROUTES";
+import { getDatabaseUrl } from "./testcontainer";
 
 test.describe("Secondary Email OTP Flow", () => {
   let client: ReturnType<typeof postgres>;
@@ -42,8 +43,7 @@ test.describe("Secondary Email OTP Flow", () => {
   };
 
   test.beforeAll(async () => {
-    const dbUrl = process.env.DATABASE_URL_TEST;
-    if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
+    const dbUrl = getDatabaseUrl();
     client = postgres(dbUrl);
     db = drizzle(client, { schema: table, casing: "snake_case" });
 

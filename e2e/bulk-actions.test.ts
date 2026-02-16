@@ -4,14 +4,14 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import * as table from "../src/lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { generateUserId } from "../src/lib/server/auth/utils";
+import { getDatabaseUrl } from "./testcontainer";
 
 test.describe("Admin Bulk Actions", () => {
   let db: ReturnType<typeof drizzle>;
   let client: ReturnType<typeof postgres>;
 
   test.beforeAll(async () => {
-    const dbUrl = process.env.DATABASE_URL_TEST;
-    if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
+    const dbUrl = getDatabaseUrl();
     client = postgres(dbUrl);
     db = drizzle(client, { schema: table, casing: "snake_case" });
   });

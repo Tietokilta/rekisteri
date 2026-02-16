@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import postgres from "postgres";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as table from "../../src/lib/server/db/schema";
+import { getDatabaseUrl } from "../testcontainer";
 
 type DbFixtures = {
   authenticatedPage: Page;
@@ -25,13 +26,12 @@ type WorkerFixtures = {
 export const test = authTest.extend<DbFixtures, WorkerFixtures>({
   /**
    * Worker-scoped database connection - shared across all tests in a worker
+   * Reads database URL from testcontainer state file
    */
   dbConnection: [
     // eslint-disable-next-line no-empty-pattern
     async ({}, use) => {
-      const dbUrl = process.env.DATABASE_URL_TEST;
-      if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
-
+      const dbUrl = getDatabaseUrl();
       const client = postgres(dbUrl);
       const db = drizzle(client, { schema: table, casing: "snake_case" });
 

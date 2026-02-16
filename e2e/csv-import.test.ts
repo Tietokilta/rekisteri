@@ -7,6 +7,7 @@ import * as table from "../src/lib/server/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { createVerifiedSecondaryEmail, createUnverifiedSecondaryEmail } from "./helpers/secondary-email";
 import { route } from "../src/lib/ROUTES";
+import { getDatabaseUrl } from "./testcontainer";
 
 test.describe("CSV Import", () => {
   let client: ReturnType<typeof postgres>;
@@ -19,8 +20,7 @@ test.describe("CSV Import", () => {
   const getTestEmail = (prefix: string) => `${prefix}-${crypto.randomUUID()}@example.com`;
 
   test.beforeAll(async () => {
-    const dbUrl = process.env.DATABASE_URL_TEST;
-    if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
+    const dbUrl = getDatabaseUrl();
     client = postgres(dbUrl);
     db = drizzle(client, { schema: table, casing: "snake_case" });
   });
