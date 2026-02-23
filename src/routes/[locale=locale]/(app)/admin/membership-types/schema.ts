@@ -10,7 +10,7 @@ export const createMembershipTypeSchema = v.object({
   nameEn: v.pipe(v.string(), v.minLength(1, "English name is required")),
   descriptionFi: v.optional(v.string()),
   descriptionEn: v.optional(v.string()),
-  purchasable: v.optional(v.boolean(), true),
+  purchasable: v.optional(v.boolean(), false),
 });
 
 export const updateMembershipTypeSchema = v.object({
@@ -19,7 +19,7 @@ export const updateMembershipTypeSchema = v.object({
   nameEn: v.pipe(v.string(), v.minLength(1, "English name is required")),
   descriptionFi: v.optional(v.string()),
   descriptionEn: v.optional(v.string()),
-  purchasable: v.optional(v.boolean(), true),
+  purchasable: v.optional(v.boolean(), false),
 });
 
 export const deleteMembershipTypeSchema = v.object({
