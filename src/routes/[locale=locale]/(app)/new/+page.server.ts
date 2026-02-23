@@ -47,6 +47,7 @@ export const load: PageServerLoad = async (event) => {
         gt(table.membership.endTime, new Date()),
         gte(table.membership.startTime, latestEndTime),
         isNotNull(table.membership.stripePriceId),
+        eq(table.membershipType.purchasable, true),
       ),
     );
 

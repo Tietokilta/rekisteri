@@ -2,7 +2,7 @@ import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { asc, sql } from "drizzle-orm";
+import { asc, desc, eq, sql } from "drizzle-orm";
 import type { NonEmptyArray } from "$lib/utils";
 
 export const load: PageServerLoad = async (event) => {
@@ -14,6 +14,7 @@ export const load: PageServerLoad = async (event) => {
     .select({
       id: table.member.id,
       userId: table.member.userId,
+      organizationName: table.member.organizationName,
       membershipId: table.member.membershipId,
       status: table.member.status,
       stripeSessionId: table.member.stripeSessionId,
@@ -33,24 +34,24 @@ export const load: PageServerLoad = async (event) => {
       membershipEndTime: table.membership.endTime,
     })
     .from(table.member)
-    .leftJoin(table.user, sql`${table.member.userId} = ${table.user.id}`)
-    .leftJoin(table.membership, sql`${table.member.membershipId} = ${table.membership.id}`)
-    .leftJoin(table.membershipType, sql`${table.membership.membershipTypeId} = ${table.membershipType.id}`)
+    .leftJoin(table.user, eq(table.member.userId, table.user.id))
+    .leftJoin(table.membership, eq(table.member.membershipId, table.membership.id))
+    .leftJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
     .as("subQuery");
 
   const allMembers = await db.select().from(subQuery).orderBy(asc(subQuery.firstNames), asc(subQuery.lastName));
 
-  // Group memberships by user
+  // Group memberships by user (or by member id for association members without a user)
   const userMembershipsMap = new Map<string, NonEmptyArray<(typeof allMembers)[number]>>();
   for (const member of allMembers) {
-    const userId = member.userId;
-    if (userMembershipsMap.has(userId)) {
-      const userMemberships = userMembershipsMap.get(userId);
+    const groupKey = member.userId ?? member.organizationName ?? member.id;
+    if (userMembershipsMap.has(groupKey)) {
+      const userMemberships = userMembershipsMap.get(groupKey);
       if (userMemberships) {
         userMemberships.push(member);
       }
     } else {
-      userMembershipsMap.set(userId, [member]);
+      userMembershipsMap.set(groupKey, [member]);
     }
   }
 
@@ -78,10 +79,11 @@ export const load: PageServerLoad = async (event) => {
       };
     })
     .toSorted((a, b) => {
-      // Sort by first name, then last name
-      const aFirst = (a.firstNames ?? "").toLowerCase();
-      const bFirst = (b.firstNames ?? "").toLowerCase();
-      if (aFirst !== bFirst) return aFirst.localeCompare(bFirst);
+      // Sort by display name: firstNames+lastName for persons, organizationName for associations
+      const aName = a.firstNames ?? a.organizationName ?? "";
+      const bName = b.firstNames ?? b.organizationName ?? "";
+      const nameCompare = aName.toLowerCase().localeCompare(bName.toLowerCase());
+      if (nameCompare !== 0) return nameCompare;
 
       const aLast = (a.lastName ?? "").toLowerCase();
       const bLast = (b.lastName ?? "").toLowerCase();
@@ -106,9 +108,23 @@ export const load: PageServerLoad = async (event) => {
     new Set(memberships.flatMap((m) => [m.startTime.getFullYear(), m.endTime.getFullYear()])),
   ).toSorted((a, b) => b - a); // Most recent first
 
+  // Get all memberships with their types for the "Add member" form
+  const availableMemberships = await db
+    .select({
+      id: table.membership.id,
+      membershipTypeId: table.membership.membershipTypeId,
+      membershipTypeName: table.membershipType.name,
+      startTime: table.membership.startTime,
+      endTime: table.membership.endTime,
+    })
+    .from(table.membership)
+    .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
+    .orderBy(desc(table.membership.startTime));
+
   return {
     members,
     membershipTypes,
     years,
+    availableMemberships,
   };
 };

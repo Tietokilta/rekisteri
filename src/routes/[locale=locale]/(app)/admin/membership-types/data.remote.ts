@@ -34,6 +34,7 @@ export const createMembershipType = form(createMembershipTypeSchema, async (data
         data.descriptionFi || data.descriptionEn
           ? { fi: data.descriptionFi ?? "", en: data.descriptionEn ?? "" }
           : null,
+      purchasable: data.purchasable,
     })
     .execute();
 
@@ -67,6 +68,7 @@ export const updateMembershipType = form(updateMembershipTypeSchema, async (data
         data.descriptionFi || data.descriptionEn
           ? { fi: data.descriptionFi ?? "", en: data.descriptionEn ?? "" }
           : null,
+      purchasable: data.purchasable,
     })
     .where(eq(table.membershipType.id, data.id))
     .execute();

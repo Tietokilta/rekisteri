@@ -16,6 +16,7 @@
     id: string;
     name: LocalizedString;
     description: LocalizedString | null;
+    purchasable: boolean;
     membershipCount: number;
   }
 
@@ -45,6 +46,7 @@
         nameEn: membershipType.name.en,
         descriptionFi: membershipType.description?.fi ?? "",
         descriptionEn: membershipType.description?.en ?? "",
+        purchasable: membershipType.purchasable,
       });
     });
   });
@@ -112,6 +114,19 @@
     {#each editForm.fields.descriptionEn.issues() as issue, i (i)}
       <p class="text-sm text-destructive">{issue.message}</p>
     {/each}
+  </div>
+
+  <!-- Purchasable -->
+  <div class="flex items-center gap-3">
+    <input
+      {...editForm.fields.purchasable.as("checkbox")}
+      id={`edit-purchasable-${membershipType.id}`}
+      class="size-4 rounded border-input"
+    />
+    <div>
+      <Label for={`edit-purchasable-${membershipType.id}`}>{$LL.admin.membershipTypes.purchasable()}</Label>
+      <p class="text-sm text-muted-foreground">{$LL.admin.membershipTypes.purchasableDescription()}</p>
+    </div>
   </div>
 </form>
 

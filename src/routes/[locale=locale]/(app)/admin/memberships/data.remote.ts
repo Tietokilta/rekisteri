@@ -12,15 +12,25 @@ export const createMembership = form(createMembershipSchema, async (data) => {
     error(404, "Not found");
   }
 
+  // For non-purchasable types, ignore stripePriceId and requiresStudentVerification
+  const membershipType = await db.query.membershipType.findFirst({
+    where: eq(table.membershipType.id, data.membershipTypeId),
+  });
+  if (!membershipType) {
+    error(400, "Membership type not found");
+  }
+  const stripePriceId = membershipType.purchasable ? (data.stripePriceId ?? null) : null;
+  const requiresStudentVerification = membershipType.purchasable ? data.requiresStudentVerification : false;
+
   await db
     .insert(table.membership)
     .values({
       id: crypto.randomUUID(),
       membershipTypeId: data.membershipTypeId,
-      stripePriceId: data.stripePriceId ?? null,
+      stripePriceId,
       startTime: new Date(data.startTime),
       endTime: new Date(data.endTime),
-      requiresStudentVerification: data.requiresStudentVerification,
+      requiresStudentVerification,
     })
     .execute();
 
@@ -67,12 +77,22 @@ export const updateMembership = form(updateMembershipSchema, async (data) => {
     error(404, "Membership not found");
   }
 
+  // For non-purchasable types, ignore stripePriceId and requiresStudentVerification
+  const membershipType = await db.query.membershipType.findFirst({
+    where: eq(table.membershipType.id, data.membershipTypeId),
+  });
+  if (!membershipType) {
+    error(400, "Membership type not found");
+  }
+  const stripePriceId = membershipType.purchasable ? (data.stripePriceId ?? null) : null;
+  const requiresStudentVerification = membershipType.purchasable ? data.requiresStudentVerification : false;
+
   await db
     .update(table.membership)
     .set({
       membershipTypeId: data.membershipTypeId,
-      stripePriceId: data.stripePriceId ?? null,
-      requiresStudentVerification: data.requiresStudentVerification,
+      stripePriceId,
+      requiresStudentVerification,
     })
     .where(eq(table.membership.id, data.id))
     .execute();
