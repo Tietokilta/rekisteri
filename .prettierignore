@@ -9,3 +9,6 @@ flake.lock
 .claude
 
 drizzle
+
+# Rewritten by typesafe-i18n on every install
+.typesafe-i18n.json
