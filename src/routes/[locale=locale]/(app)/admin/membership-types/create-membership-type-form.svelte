@@ -24,6 +24,7 @@
         nameEn: "",
         descriptionFi: "",
         descriptionEn: "",
+        purchasable: true,
       });
     });
   });
@@ -121,6 +122,19 @@
     {#each createMembershipType.fields.descriptionEn.issues() as issue, i (i)}
       <p class="text-sm text-destructive">{issue.message}</p>
     {/each}
+  </div>
+
+  <!-- Purchasable -->
+  <div class="flex items-center gap-3">
+    <input
+      {...createMembershipType.fields.purchasable.as("checkbox")}
+      id="purchasable"
+      class="size-4 rounded border-input"
+    />
+    <div>
+      <Label for="purchasable">{$LL.admin.membershipTypes.purchasable()}</Label>
+      <p class="text-sm text-muted-foreground">{$LL.admin.membershipTypes.purchasableDescription()}</p>
+    </div>
   </div>
 
   <Sheet.Footer>

@@ -15,6 +15,7 @@ export const load: PageServerLoad = async (event) => {
       id: table.membershipType.id,
       name: table.membershipType.name,
       description: table.membershipType.description,
+      purchasable: table.membershipType.purchasable,
       createdAt: table.membershipType.createdAt,
       updatedAt: table.membershipType.updatedAt,
       membershipCount: count(table.membership.id),

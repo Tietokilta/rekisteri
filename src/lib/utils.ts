@@ -32,6 +32,15 @@ export function formatUserName(
 }
 
 /**
+ * Get a display-friendly first name for a user.
+ * Falls back to the email prefix (part before @) if no first name is set.
+ */
+export function getDisplayFirstName(user: { firstNames?: string | null; email: string }): string {
+  const firstName = user.firstNames?.split(" ")[0];
+  return firstName || user.email.split("@")[0] || user.email;
+}
+
+/**
  * Format a price in cents to a localized currency string using Intl.NumberFormat.
  */
 export function formatPrice(priceCents: number, currency: string, locale: string): string {

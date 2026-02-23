@@ -1,6 +1,7 @@
 import { relations, sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   index,
   integer,
   json,
@@ -109,6 +110,7 @@ export const membershipType = pgTable("membership_type", {
   id: text().primaryKey(),
   name: jsonb("name").$type<LocalizedString>().notNull(),
   description: jsonb("description").$type<LocalizedString>(),
+  purchasable: boolean().notNull().default(true),
   ...timestamps,
 });
 
@@ -123,19 +125,28 @@ export const membership = pgTable("membership", {
   requiresStudentVerification: boolean().notNull().default(false),
 });
 
-export const member = pgTable("member", {
-  id: text().primaryKey(),
-  userId: text()
-    .notNull()
-    .references(() => user.id),
-  membershipId: text()
-    .notNull()
-    .references(() => membership.id),
-  status: memberStatusEnum().notNull(),
-  stripeSessionId: text(),
-  description: text(),
-  ...timestamps,
-});
+export const member = pgTable(
+  "member",
+  {
+    id: text().primaryKey(),
+    userId: text().references(() => user.id),
+    organizationName: text(),
+    membershipId: text()
+      .notNull()
+      .references(() => membership.id),
+    status: memberStatusEnum().notNull(),
+    stripeSessionId: text(),
+    description: text(),
+    ...timestamps,
+  },
+  (table) => [
+    // A member must have either userId (individual) or organizationName (association), not both
+    check(
+      "member_user_or_org",
+      sql`(${table.userId} IS NOT NULL AND ${table.organizationName} IS NULL) OR (${table.userId} IS NULL AND ${table.organizationName} IS NOT NULL)`,
+    ),
+  ],
+);
 
 export const memberRelations = relations(member, ({ one }) => ({
   user: one(user, {

@@ -40,51 +40,89 @@
 
   import type { LocalizedString, MembershipType } from "$lib/server/db/schema";
 
-  type MemberRow = {
+  type MembershipData = {
     id: string;
-    userId: string;
     membershipId: string;
     status: "awaiting_payment" | "awaiting_approval" | "active" | "resigned" | "rejected";
     stripeSessionId: string | null;
     description: string | null;
     createdAt: Date;
     updatedAt: Date;
+    membershipTypeId: string | null;
+    membershipTypeName: LocalizedString | null;
+    membershipStripePriceId: string | null;
+    membershipStartTime: Date | null;
+    membershipEndTime: Date | null;
+  };
+
+  type BaseMemberRow = MembershipData & {
+    allMemberships: MembershipData[];
+    membershipCount: number;
+  };
+
+  type PersonMemberRow = BaseMemberRow & {
+    userId: string;
+    organizationName: null;
     email: string | null;
     firstNames: string | null;
     lastName: string | null;
     homeMunicipality: string | null;
     preferredLanguage: "unspecified" | "finnish" | "english" | null;
     isAllowedEmails: boolean | null;
-    membershipTypeId: string | null;
-    membershipTypeName: LocalizedString | null;
-    membershipStripePriceId: string | null;
-    membershipStartTime: Date | null;
-    membershipEndTime: Date | null;
-    // Grouped membership data
-    allMemberships: Array<{
-      id: string;
-      membershipId: string;
-      status: "awaiting_payment" | "awaiting_approval" | "active" | "resigned" | "rejected";
-      stripeSessionId: string | null;
-      description: string | null;
-      createdAt: Date;
-      updatedAt: Date;
-      membershipTypeId: string | null;
-      membershipTypeName: LocalizedString | null;
-      membershipStripePriceId: string | null;
-      membershipStartTime: Date | null;
-      membershipEndTime: Date | null;
-    }>;
-    membershipCount: number;
   };
 
+  type AssociationMemberRow = BaseMemberRow & {
+    userId: null;
+    organizationName: string;
+    email: null;
+    firstNames: null;
+    lastName: null;
+    homeMunicipality: null;
+    preferredLanguage: null;
+    isAllowedEmails: null;
+  };
+
+  type MemberRow = PersonMemberRow | AssociationMemberRow;
+
+  // Raw type from the server — userId and organizationName are both `| null`
+  // The DB CHECK constraint guarantees exactly one is non-null,
+  // but TypeScript can't express that from the query result.
+  type RawMemberRow = BaseMemberRow & {
+    userId: string | null;
+    organizationName: string | null;
+    email: string | null;
+    firstNames: string | null;
+    lastName: string | null;
+    homeMunicipality: string | null;
+    preferredLanguage: "unspecified" | "finnish" | "english" | null;
+    isAllowedEmails: boolean | null;
+  };
+
+  function isPersonMember(row: MemberRow): row is PersonMemberRow {
+    return row.userId !== null;
+  }
+
+  /** Narrow raw server data (both fields nullable) to the discriminated union.
+   *  The DB CHECK constraint guarantees exactly one of userId/organizationName is non-null. */
+  function narrowMemberRow(raw: RawMemberRow): MemberRow {
+    if (raw.userId !== null) {
+      return raw as PersonMemberRow;
+    }
+    if (raw.organizationName === null) {
+      throw new Error(`Member ${raw.id} has neither userId nor organizationName`);
+    }
+    return raw as AssociationMemberRow;
+  }
+
   type Props = {
-    data: MemberRow[];
+    data: RawMemberRow[];
     membershipTypes: MembershipType[];
     years: number[];
   };
 
-  let { data, membershipTypes, years }: Props = $props();
+  let { data: rawData, membershipTypes, years }: Props = $props();
+
+  const data = $derived(rawData.map(narrowMemberRow));
 
   // Helper to get localized membership type name
   function getLocalizedTypeName(name: LocalizedString | null): string {
@@ -221,9 +259,7 @@
     for (const [type, members] of grouped) {
       text += `${type}:\n`;
       for (const member of members) {
-        const firstName = member.firstNames ?? "";
-        const lastName = member.lastName ?? "";
-        text += `  ${firstName} ${lastName}\n`;
+        text += `  ${formatMemberName(member)}\n`;
       }
       text += "\n";
     }
@@ -367,15 +403,9 @@
       enableSorting: false,
     },
     {
-      accessorKey: "firstNames",
-      header: $LL.admin.members.table.firstNames(),
-      cell: ({ row }) => row.original.firstNames ?? "-",
-      enableSorting: true,
-    },
-    {
-      accessorKey: "lastName",
-      header: $LL.admin.members.table.lastName(),
-      cell: ({ row }) => row.original.lastName ?? "-",
+      id: "name",
+      accessorFn: (row) => formatMemberName(row),
+      header: $LL.admin.members.table.name(),
       enableSorting: true,
     },
     {
@@ -488,12 +518,14 @@
       getPaginationRowModel: getPaginationRowModel(),
       globalFilterFn: (row, columnId, filterValue) => {
         const searchValue = filterValue.toLowerCase();
+        const orgName = (row.original.organizationName ?? "").toLowerCase();
         const firstName = (row.original.firstNames ?? "").toLowerCase();
         const lastName = (row.original.lastName ?? "").toLowerCase();
         const email = (row.original.email ?? "").toLowerCase();
         const municipality = (row.original.homeMunicipality ?? "").toLowerCase();
 
         return (
+          orgName.includes(searchValue) ||
           firstName.includes(searchValue) ||
           lastName.includes(searchValue) ||
           email.includes(searchValue) ||
@@ -557,6 +589,9 @@
 
   // Helper to format a member row as a display name
   function formatMemberName(row: MemberRow): string {
+    if (!isPersonMember(row)) {
+      return row.organizationName;
+    }
     const firstName = row.firstNames ?? "";
     const lastName = row.lastName ?? "";
     return `${firstName} ${lastName}`.trim() || (row.email ?? row.id);
@@ -898,21 +933,21 @@
                     data-testid="row-select-checkbox"
                   />
                 {:else if cell.column.id === "expand"}
+                  {@const expandKey = row.original.userId ?? row.original.id}
                   <Button
                     variant="ghost"
                     size="sm"
                     onclick={() => {
-                      const userId = row.original.userId;
-                      if (expandedRows.has(userId)) {
+                      if (expandedRows.has(expandKey)) {
                         const newSet = new Set(expandedRows);
-                        newSet.delete(userId);
+                        newSet.delete(expandKey);
                         expandedRows = newSet;
                       } else {
-                        expandedRows = new Set([...expandedRows, userId]);
+                        expandedRows = new Set([...expandedRows, expandKey]);
                       }
                     }}
                   >
-                    {#if expandedRows.has(row.original.userId)}
+                    {#if expandedRows.has(expandKey)}
                       <ChevronDown class="size-4" />
                     {:else}
                       <ChevronRight class="size-4" />
@@ -938,47 +973,61 @@
               </Table.Cell>
             {/each}
           </Table.Row>
-          {#if expandedRows.has(row.original.userId)}
+          {#if expandedRows.has(row.original.userId ?? row.original.id)}
             {@const filteredMemberships = getFilteredMemberships(row.original.allMemberships)}
             <Table.Row class="bg-muted/50">
               <Table.Cell colspan={columns.length}>
                 <div class="p-4">
-                  <!-- User Details -->
-                  <div class="mb-4 space-y-2">
-                    <h4 class="font-semibold">{$LL.admin.members.table.userDetails()}</h4>
-                    <dl class="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
-                      <div>
-                        <dt class="text-muted-foreground">{$LL.admin.members.table.userIdLabel()}</dt>
-                        <dd class="font-mono">{row.original.userId}</dd>
-                      </div>
-                      <div>
-                        <dt class="text-muted-foreground">{$LL.admin.members.table.emailLabel()}</dt>
-                        <dd>{row.original.email ?? "-"}</dd>
-                      </div>
-                      <div>
-                        <dt class="text-muted-foreground">{$LL.admin.members.table.municipalityLabel()}</dt>
-                        <dd>{row.original.homeMunicipality ?? "-"}</dd>
-                      </div>
-                      <div>
-                        <dt class="text-muted-foreground">{$LL.admin.members.table.preferredLanguageLabel()}</dt>
-                        <dd>
-                          {#if row.original.preferredLanguage === "finnish"}
-                            {$LL.user.preferredLanguageOptions.finnish()}
-                          {:else if row.original.preferredLanguage === "english"}
-                            {$LL.user.preferredLanguageOptions.english()}
-                          {:else}
-                            {$LL.user.preferredLanguageOptions.unspecified()}
-                          {/if}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt class="text-muted-foreground">{$LL.admin.members.table.emailAllowedLabel()}</dt>
-                        <dd>
-                          {row.original.isAllowedEmails ? $LL.admin.members.table.yes() : $LL.admin.members.table.no()}
-                        </dd>
-                      </div>
-                    </dl>
-                  </div>
+                  <!-- Details section: User Details for persons, Organization Details for associations -->
+                  {#if isPersonMember(row.original)}
+                    <div class="mb-4 space-y-2">
+                      <h4 class="font-semibold">{$LL.admin.members.table.userDetails()}</h4>
+                      <dl class="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
+                        <div>
+                          <dt class="text-muted-foreground">{$LL.admin.members.table.userIdLabel()}</dt>
+                          <dd class="font-mono">{row.original.userId}</dd>
+                        </div>
+                        <div>
+                          <dt class="text-muted-foreground">{$LL.admin.members.table.emailLabel()}</dt>
+                          <dd>{row.original.email ?? "-"}</dd>
+                        </div>
+                        <div>
+                          <dt class="text-muted-foreground">{$LL.admin.members.table.municipalityLabel()}</dt>
+                          <dd>{row.original.homeMunicipality ?? "-"}</dd>
+                        </div>
+                        <div>
+                          <dt class="text-muted-foreground">{$LL.admin.members.table.preferredLanguageLabel()}</dt>
+                          <dd>
+                            {#if row.original.preferredLanguage === "finnish"}
+                              {$LL.user.preferredLanguageOptions.finnish()}
+                            {:else if row.original.preferredLanguage === "english"}
+                              {$LL.user.preferredLanguageOptions.english()}
+                            {:else}
+                              {$LL.user.preferredLanguageOptions.unspecified()}
+                            {/if}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt class="text-muted-foreground">{$LL.admin.members.table.emailAllowedLabel()}</dt>
+                          <dd>
+                            {row.original.isAllowedEmails
+                              ? $LL.admin.members.table.yes()
+                              : $LL.admin.members.table.no()}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  {:else}
+                    <div class="mb-4 space-y-2">
+                      <h4 class="font-semibold">{$LL.admin.members.organizationDetails()}</h4>
+                      <dl class="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
+                        <div>
+                          <dt class="text-muted-foreground">{$LL.admin.members.organizationName()}</dt>
+                          <dd>{row.original.organizationName}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  {/if}
 
                   <!-- Filtered Memberships -->
                   <div class="space-y-3">

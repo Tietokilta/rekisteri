@@ -1,6 +1,7 @@
 <script lang="ts">
   import { LL, locale } from "$lib/i18n/i18n-svelte";
   import type { PageProps } from "./$types";
+  import { Badge } from "$lib/components/ui/badge";
   import { Button } from "$lib/components/ui/button";
   import AdminPageHeader from "$lib/components/admin-page-header.svelte";
   import * as Sheet from "$lib/components/ui/sheet";
@@ -88,6 +89,9 @@
                     <Package class="size-3.5" />
                     {membershipType.membershipCount}
                   </span>
+                  {#if !membershipType.purchasable}
+                    <Badge variant="secondary">{$LL.admin.membershipTypes.notPurchasable()}</Badge>
+                  {/if}
                 </Item.Description>
                 {#if getTypeDescription(membershipType)}
                   <Item.Description class="line-clamp-2">

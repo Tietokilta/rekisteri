@@ -3,13 +3,21 @@ import { getRequestEvent, command } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, inArray } from "drizzle-orm";
-import { auditMemberAction, auditBulkMemberAction } from "$lib/server/audit";
-import { memberIdSchema, memberIdWithReasonSchema, bulkMemberIdsSchema, bulkMemberIdsWithReasonSchema } from "./schema";
+import { auditFromEvent, auditMemberAction, auditBulkMemberAction } from "$lib/server/audit";
+import {
+  memberIdSchema,
+  memberIdWithReasonSchema,
+  bulkMemberIdsSchema,
+  bulkMemberIdsWithReasonSchema,
+  createMemberSchema,
+} from "./schema";
 import { getLL } from "$lib/server/i18n";
 import { sendMemberEmail } from "$lib/server/emails";
 import { getMembershipName } from "$lib/server/utils/membership";
 import { getUserLocale } from "$lib/server/utils/user";
 import { isValidTransition } from "$lib/server/utils/member";
+import { generateUserId } from "$lib/server/auth/utils";
+import { getDisplayFirstName } from "$lib/utils";
 
 export const approveMember = command(memberIdSchema, async ({ memberId }) => {
   const event = getRequestEvent();
@@ -51,14 +59,14 @@ export const approveMember = command(memberIdSchema, async ({ memberId }) => {
       },
     });
 
-    if (memberWithDetails && memberWithDetails.user.firstNames) {
+    if (memberWithDetails?.user) {
       const userLocale = getUserLocale(memberWithDetails.user);
 
       await sendMemberEmail({
         recipientEmail: memberWithDetails.user.email,
         emailType: "membership_approved",
         metadata: {
-          firstName: memberWithDetails.user.firstNames.split(" ")[0] || "",
+          firstName: getDisplayFirstName(memberWithDetails.user),
           membershipName: getMembershipName(memberWithDetails.membership, userLocale),
           startDate: memberWithDetails.membership.startTime,
           endDate: memberWithDetails.membership.endTime,
@@ -203,6 +211,107 @@ export const reactivateMember = command(memberIdWithReasonSchema, async ({ membe
   return { success: true, message: "Membership reactivated successfully" };
 });
 
+export const createMember = command(createMemberSchema, async (data) => {
+  const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
+
+  if (!event.locals.session || !event.locals.user?.isAdmin) {
+    error(404, LL.error.resourceNotFound());
+  }
+
+  // Validate that the membership exists
+  const membership = await db.query.membership.findFirst({
+    where: eq(table.membership.id, data.membershipId),
+  });
+  if (!membership) {
+    error(400, LL.admin.members.membershipNotFound());
+  }
+
+  const memberId = crypto.randomUUID();
+
+  // NOTE: error() throws a SvelteKit HttpError which aborts the transaction (auto-rollback)
+  await db.transaction(async (tx) => {
+    if (data.type === "association") {
+      // Check for duplicate — same org name on the same membership period
+      const existingMember = await tx.query.member.findFirst({
+        where: (m, { and }) =>
+          and(eq(m.organizationName, data.organizationName), eq(m.membershipId, data.membershipId)),
+      });
+      if (existingMember) {
+        error(400, LL.admin.members.duplicateMembership());
+      }
+
+      await tx.insert(table.member).values({
+        id: memberId,
+        userId: null,
+        organizationName: data.organizationName,
+        membershipId: data.membershipId,
+        status: data.status,
+        description: data.description || null,
+      });
+    } else {
+      // Person mode: look up or create user
+      let userId: string;
+      const normalizedEmail = data.email.toLowerCase().trim();
+
+      const existingUser = await tx.query.user.findFirst({
+        where: eq(table.user.email, normalizedEmail),
+      });
+
+      if (existingUser) {
+        userId = existingUser.id;
+
+        // Check for duplicate membership before any mutations
+        const existingMember = await tx.query.member.findFirst({
+          where: (m, { and }) => and(eq(m.userId, userId), eq(m.membershipId, data.membershipId)),
+        });
+        if (existingMember) {
+          error(400, LL.admin.members.duplicateMembership());
+        }
+
+        // Fill in empty profile fields from admin-provided data
+        const updates: Partial<{ firstNames: string; lastName: string; homeMunicipality: string }> = {};
+        if (!existingUser.firstNames && data.firstNames) updates.firstNames = data.firstNames;
+        if (!existingUser.lastName && data.lastName) updates.lastName = data.lastName;
+        if (!existingUser.homeMunicipality && data.homeMunicipality) updates.homeMunicipality = data.homeMunicipality;
+        if (Object.keys(updates).length > 0) {
+          await tx.update(table.user).set(updates).where(eq(table.user.id, userId));
+        }
+      } else {
+        // New user — no duplicate possible, create the user
+        userId = generateUserId();
+        await tx.insert(table.user).values({
+          id: userId,
+          email: normalizedEmail,
+          firstNames: data.firstNames || null,
+          lastName: data.lastName || null,
+          homeMunicipality: data.homeMunicipality || null,
+        });
+      }
+
+      await tx.insert(table.member).values({
+        id: memberId,
+        userId,
+        membershipId: data.membershipId,
+        status: data.status,
+        description: data.description || null,
+      });
+    }
+  });
+
+  await auditFromEvent(event, "member.create", {
+    targetType: "member",
+    targetId: memberId,
+    metadata: {
+      type: data.type,
+      status: data.status,
+      ...(data.type === "association" ? { organizationName: data.organizationName } : { email: data.email }),
+    },
+  });
+
+  return { success: true };
+});
+
 // Bulk actions
 export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberIds }) => {
   const event = getRequestEvent();
@@ -250,23 +359,24 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
     });
 
     // Send emails in parallel, don't fail if some emails fail
-    const emailPromises = approvedMembersWithDetails
-      .filter((m) => m.user.firstNames) // Only send to users with names
-      .map(async (memberWithDetails) => {
-        const userLocale = getUserLocale(memberWithDetails.user);
+    const membersWithUsers = approvedMembersWithDetails.filter(
+      (m): m is typeof m & { user: NonNullable<typeof m.user> } => m.user !== null,
+    );
+    const emailPromises = membersWithUsers.map(async (memberWithDetails) => {
+      const userLocale = getUserLocale(memberWithDetails.user);
 
-        return sendMemberEmail({
-          recipientEmail: memberWithDetails.user.email,
-          emailType: "membership_approved",
-          metadata: {
-            firstName: memberWithDetails.user.firstNames?.split(" ")[0] || "",
-            membershipName: getMembershipName(memberWithDetails.membership, userLocale),
-            startDate: memberWithDetails.membership.startTime,
-            endDate: memberWithDetails.membership.endTime,
-          },
-          locale: userLocale,
-        });
+      return sendMemberEmail({
+        recipientEmail: memberWithDetails.user.email,
+        emailType: "membership_approved",
+        metadata: {
+          firstName: getDisplayFirstName(memberWithDetails.user),
+          membershipName: getMembershipName(memberWithDetails.membership, userLocale),
+          startDate: memberWithDetails.membership.startTime,
+          endDate: memberWithDetails.membership.endTime,
+        },
+        locale: userLocale,
       });
+    });
 
     const results = await Promise.allSettled(emailPromises);
     const failedCount = results.filter((r) => r.status === "rejected").length;

@@ -58,6 +58,15 @@ try {
         en: "For persons or legal entities supporting the guild's activities.",
       },
     },
+    {
+      id: "yhteisojasen",
+      name: { fi: "Yhdistysjäsen", en: "Association member" },
+      description: {
+        fi: "Rekisteröity yhdistys, jonka säännöt ja toimintatarkoitus ovat killan hengen mukaisia, eivätkä miltään osalta riko killan sääntöjä.",
+        en: "A registered association whose rules and purpose are in line with the spirit of the guild, and do not in any part violate the guild's rules.",
+      },
+      purchasable: false,
+    },
   ];
 
   await db.insert(table.membershipType).values(membershipTypesToSeed);
@@ -311,6 +320,39 @@ try {
   }
 
   console.log(`Seeded ${membersToInsert.length} member records for ${allUsers.length - 1} users!`);
+
+  // Seed association (yhteisöjäsen) memberships and members
+  const associationMembershipId = crypto.randomUUID();
+  await db.insert(table.membership).values({
+    id: associationMembershipId,
+    membershipTypeId: "yhteisojasen",
+    stripePriceId: null,
+    startTime: new Date("2025-08-01"),
+    endTime: new Date("2026-07-31"),
+    requiresStudentVerification: false,
+  });
+
+  const associationMembers = [
+    {
+      id: crypto.randomUUID(),
+      userId: null,
+      organizationName: "Automaatio- ja systeemitekniikan kilta AS ry",
+      membershipId: associationMembershipId,
+      status: "active" as const,
+      stripeSessionId: null,
+    },
+    {
+      id: crypto.randomUUID(),
+      userId: null,
+      organizationName: "Sähköinsinöörikilta ry",
+      membershipId: associationMembershipId,
+      status: "active" as const,
+      stripeSessionId: null,
+    },
+  ];
+
+  await db.insert(table.member).values(associationMembers);
+  console.log(`Seeded ${associationMembers.length} association members!`);
 
   await client.end();
 } catch (e) {

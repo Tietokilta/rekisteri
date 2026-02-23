@@ -11,7 +11,7 @@ import { encodeBase32LowerCase } from "@oslojs/encoding";
 import { sendMemberEmail } from "$lib/server/emails";
 import { getMembershipName } from "$lib/server/utils/membership";
 import { getUserLocale } from "$lib/server/utils/user";
-import { formatUserName } from "$lib/utils";
+import { formatUserName, getDisplayFirstName } from "$lib/utils";
 
 /**
  * Checks if a Stripe error is due to a non-existent customer.
@@ -112,12 +112,16 @@ async function createCheckoutSessionWithRetry(
 export async function createSession(userId: string, membershipId: string, locale: Locale, description?: string | null) {
   const membership = await db.query.membership.findFirst({
     where: eq(table.membership.id, membershipId),
+    with: { membershipType: true },
   });
   const user = await db.query.user.findFirst({
     where: eq(table.user.id, userId),
   });
   if (!membership || !user) {
     throw new Error("Membership or user not found");
+  }
+  if (!membership.membershipType.purchasable) {
+    throw new Error("This membership type is not available for purchase");
   }
   if (!membership.stripePriceId) {
     throw new Error("Membership has no Stripe price ID (legacy membership)");
@@ -161,13 +165,19 @@ export async function resumeOrCreateSession(memberId: string, locale: Locale) {
   const member = await db.query.member.findFirst({
     where: eq(table.member.id, memberId),
     with: {
-      membership: true,
+      membership: {
+        with: { membershipType: true },
+      },
       user: true,
     },
   });
 
   if (!member || member.status !== "awaiting_payment") {
     throw new Error("Member not found or not in awaiting_payment status");
+  }
+
+  if (!member.membership.membershipType.purchasable) {
+    throw new Error("This membership type is not available for purchase");
   }
 
   // Check if membership period is still valid (not expired)
@@ -204,6 +214,9 @@ export async function resumeOrCreateSession(memberId: string, locale: Locale) {
   const { membership, user } = member;
   if (!membership.stripePriceId) {
     throw new Error("Membership has no Stripe price ID");
+  }
+  if (!user) {
+    throw new Error("Member has no associated user account");
   }
 
   let stripeCustomerId = user.stripeCustomerId;
@@ -261,7 +274,7 @@ export async function fulfillSession(sessionId: string) {
       return;
     }
 
-    const eligible = await checkAutoApprovalEligibility(tx, member.userId, member.membership);
+    const eligible = member.userId ? await checkAutoApprovalEligibility(tx, member.userId, member.membership) : false;
     newStatus = eligible ? "active" : "awaiting_approval";
 
     await tx.update(table.member).set({ status: newStatus }).where(eq(table.member.id, member.id));
@@ -303,7 +316,7 @@ export async function fulfillSession(sessionId: string) {
         },
       });
 
-      if (!memberWithDetails) {
+      if (!memberWithDetails?.user) {
         return;
       }
 
@@ -311,19 +324,17 @@ export async function fulfillSession(sessionId: string) {
 
       if (newStatus === "active") {
         // Auto-approved (renewal): send membership renewed email immediately
-        if (memberWithDetails.user.firstNames) {
-          await sendMemberEmail({
-            recipientEmail: memberWithDetails.user.email,
-            emailType: "membership_renewed",
-            metadata: {
-              firstName: memberWithDetails.user.firstNames.split(" ")[0] || "",
-              membershipName: getMembershipName(memberWithDetails.membership, userLocale),
-              startDate: memberWithDetails.membership.startTime,
-              endDate: memberWithDetails.membership.endTime,
-            },
-            locale: userLocale,
-          });
-        }
+        await sendMemberEmail({
+          recipientEmail: memberWithDetails.user.email,
+          emailType: "membership_renewed",
+          metadata: {
+            firstName: getDisplayFirstName(memberWithDetails.user),
+            membershipName: getMembershipName(memberWithDetails.membership, userLocale),
+            startDate: memberWithDetails.membership.startTime,
+            endDate: memberWithDetails.membership.endTime,
+          },
+          locale: userLocale,
+        });
       } else if (newStatus === "awaiting_approval" && session.amount_total && session.currency) {
         // Requires board approval: send payment success email
         await sendMemberEmail({
