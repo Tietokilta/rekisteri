@@ -12,6 +12,8 @@ type AuthFixtures = {
   authenticatedPage: Page;
   adminPage: Page;
   adminUser: UserInfo;
+  readonlyAdminPage: Page;
+  readonlyAdminUser: UserInfo;
 };
 
 /**
@@ -57,6 +59,33 @@ export const test = base.extend<AuthFixtures>({
   // eslint-disable-next-line no-empty-pattern -- required for playwright fixture
   adminUser: async ({}, use) => {
     const userInfoPath = path.join(process.cwd(), "e2e/.auth/admin-user.json");
+    const userInfo = JSON.parse(fs.readFileSync(userInfoPath, "utf8")) as UserInfo;
+    await use(userInfo);
+  },
+
+  /**
+   * Creates an authenticated page with a readonly admin user session
+   * Uses the pre-created readonly storage state from global setup
+   */
+  readonlyAdminPage: async ({ browser }, use) => {
+    const storageStatePath = path.join(process.cwd(), "e2e/.auth/readonly.json");
+    const context = await browser.newContext({
+      storageState: storageStatePath,
+    });
+    const page = await context.newPage();
+
+    await use(page);
+
+    await context.close();
+  },
+
+  /**
+   * Provides info about the readonly admin user (id, email, adminRole)
+   * Read from file created by global setup
+   */
+  // eslint-disable-next-line no-empty-pattern -- required for playwright fixture
+  readonlyAdminUser: async ({}, use) => {
+    const userInfoPath = path.join(process.cwd(), "e2e/.auth/readonly-user.json");
     const userInfo = JSON.parse(fs.readFileSync(userInfoPath, "utf8")) as UserInfo;
     await use(userInfo);
   },
