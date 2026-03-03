@@ -7,7 +7,7 @@ title: Jäsenrekisterin rekisteri- ja tietosuojaseloste
 Tämä on EU:n yleisen tietosuoja-asetuksen (GDPR) sekä yhdistyslain (503/1989) mukainen rekisteri- ja tietosuojaseloste.
 
 **Laatimispäivämäärä:** 22.5.2018
-**Viimeisin muutos:** 3.2.2026
+**Viimeisin muutos:** 3.3.2026
 
 ---
 
@@ -101,7 +101,7 @@ Lisäksi tietoja saadaan:
 
 ## 7. Tietojen säilytysaika
 
-Poistamme tietoja mahdollisimman pian, kun niitä ei enää tarvita.
+Poistamme tietoja mahdollisimman pian, kun niitä ei enää tarvita tai kunnes niiden lakisääteinen säilytysaika loppuu.
 
 **Keskeneräiset rekisteröitymiset:**
 
@@ -167,8 +167,8 @@ Kaikki tiedonsiirrot tapahtuvat salattuja yhteyksiä (HTTPS/TLS) käyttäen. Tie
 
 **Organisatoriset suojatoimet:**
 
-- Pääsy rajattu hallituksen avainhenkilöille (puheenjohtaja, sihteeri, rahastonhoitaja, kehittäjät)
-- Käyttöoikeudet myönnetään vain tehtävän edellyttämässä laajuudessa
+- Pääsy rajattu killan avainhenkilöille (esim. puheenjohtaja, sihteeri, rahastonhoitaja, pääkehittäjät)
+- Hallitus myöntää käyttöoikeudet vain tehtävän edellyttämässä laajuudessa
 - Kaikki hallinnolliset toimenpiteet kirjataan tarkastuslokiin
 
 **Fyysinen turvallisuus:**
