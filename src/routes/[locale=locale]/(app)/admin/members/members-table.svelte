@@ -118,9 +118,10 @@
     data: RawMemberRow[];
     membershipTypes: MembershipType[];
     years: number[];
+    canWrite: boolean;
   };
 
-  let { data: rawData, membershipTypes, years }: Props = $props();
+  let { data: rawData, membershipTypes, years, canWrite }: Props = $props();
 
   const data = $derived(rawData.map(narrowMemberRow));
 
@@ -390,12 +391,17 @@
 
   // Column definitions
   const columns = $derived<ColumnDef<MemberRow>[]>([
-    {
-      id: "select",
-      header: "",
-      cell: ({ row }) => row.original.id,
-      enableSorting: false,
-    },
+    // Only include select column if user has write access
+    ...(canWrite
+      ? [
+          {
+            id: "select",
+            header: "",
+            cell: ({ row }: { row: TanStackRow<MemberRow> }) => row.original.id,
+            enableSorting: false,
+          } as ColumnDef<MemberRow>,
+        ]
+      : []),
     {
       id: "expand",
       header: "",
@@ -843,8 +849,8 @@
     </div>
   </div>
 
-  <!-- Bulk Action Toolbar -->
-  {#if selectedCount > 0}
+  <!-- Bulk Action Toolbar (only for admins with write access) -->
+  {#if canWrite && selectedCount > 0}
     <div class="flex flex-wrap items-center gap-2 rounded-md border bg-muted/50 p-3" data-testid="bulk-action-toolbar">
       <span class="text-sm font-medium">
         {$LL.admin.members.table.selectedCount({ count: selectedCount })}
@@ -1089,68 +1095,70 @@
                             {/if}
                           </div>
 
-                          <!-- Admin Actions per membership -->
-                          {#if membership.status === "awaiting_approval"}
-                            <div class="flex gap-2 border-t pt-3">
-                              <Button
-                                size="sm"
-                                variant="default"
-                                onclick={() => openIndividualAction("approve", membership.id, memberName)}
-                              >
-                                {$LL.admin.members.table.approve()}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onclick={() => openIndividualAction("reject", membership.id, memberName)}
-                              >
-                                {$LL.admin.members.table.reject()}
-                              </Button>
-                            </div>
-                          {:else if membership.status === "resigned" || membership.status === "rejected"}
-                            <div class="flex gap-2 border-t pt-3">
-                              <Button
-                                size="sm"
-                                variant="default"
-                                onclick={() => openIndividualAction("reactivate", membership.id, memberName)}
-                              >
-                                {$LL.admin.members.table.reactivate()}
-                              </Button>
-                            </div>
-                          {:else if membership.status === "awaiting_payment"}
-                            <div class="flex gap-2 border-t pt-3">
-                              <Button
-                                size="sm"
-                                variant="default"
-                                onclick={() => openIndividualAction("approve", membership.id, memberName)}
-                              >
-                                {$LL.admin.members.table.approve()}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onclick={() => openIndividualAction("reject", membership.id, memberName)}
-                              >
-                                {$LL.admin.members.table.reject()}
-                              </Button>
-                            </div>
-                          {:else if membership.status === "active"}
-                            <div class="flex gap-2 border-t pt-3">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onclick={() => openIndividualAction("deemResigned", membership.id, memberName)}
-                              >
-                                {$LL.admin.members.table.deemResigned()}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onclick={() => openIndividualAction("resign", membership.id, memberName)}
-                              >
-                                {$LL.admin.members.table.resignMembership()}
-                              </Button>
-                            </div>
+                          <!-- Admin Actions per membership (only for admins with write access) -->
+                          {#if canWrite}
+                            {#if membership.status === "awaiting_approval"}
+                              <div class="flex gap-2 border-t pt-3">
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  onclick={() => openIndividualAction("approve", membership.id, memberName)}
+                                >
+                                  {$LL.admin.members.table.approve()}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onclick={() => openIndividualAction("reject", membership.id, memberName)}
+                                >
+                                  {$LL.admin.members.table.reject()}
+                                </Button>
+                              </div>
+                            {:else if membership.status === "resigned" || membership.status === "rejected"}
+                              <div class="flex gap-2 border-t pt-3">
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  onclick={() => openIndividualAction("reactivate", membership.id, memberName)}
+                                >
+                                  {$LL.admin.members.table.reactivate()}
+                                </Button>
+                              </div>
+                            {:else if membership.status === "awaiting_payment"}
+                              <div class="flex gap-2 border-t pt-3">
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  onclick={() => openIndividualAction("approve", membership.id, memberName)}
+                                >
+                                  {$LL.admin.members.table.approve()}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onclick={() => openIndividualAction("reject", membership.id, memberName)}
+                                >
+                                  {$LL.admin.members.table.reject()}
+                                </Button>
+                              </div>
+                            {:else if membership.status === "active"}
+                              <div class="flex gap-2 border-t pt-3">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onclick={() => openIndividualAction("deemResigned", membership.id, memberName)}
+                                >
+                                  {$LL.admin.members.table.deemResigned()}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onclick={() => openIndividualAction("resign", membership.id, memberName)}
+                                >
+                                  {$LL.admin.members.table.resignMembership()}
+                                </Button>
+                              </div>
+                            {/if}
                           {/if}
                         </div>
                       {/each}

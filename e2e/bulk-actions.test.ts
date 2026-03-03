@@ -108,7 +108,7 @@ test.describe("Admin Bulk Actions", () => {
           firstNames: "Bulk Test",
           lastName: "User",
           homeMunicipality: "Helsinki",
-          isAdmin: false,
+          adminRole: "none" as const,
         })),
       );
 
@@ -217,7 +217,7 @@ test.describe("Admin Bulk Actions", () => {
         firstNames: "Status Test",
         lastName: "User",
         homeMunicipality: "Helsinki",
-        isAdmin: false,
+        adminRole: "none",
       });
 
       // Get a membership
@@ -339,7 +339,7 @@ test.describe("Admin Bulk Actions", () => {
           firstNames: "Mixed Test",
           lastName: "User",
           homeMunicipality: "Helsinki",
-          isAdmin: false,
+          adminRole: "none" as const,
         })),
       );
 

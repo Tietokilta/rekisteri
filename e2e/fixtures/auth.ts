@@ -5,7 +5,7 @@ import fs from "node:fs";
 export type UserInfo = {
   id: string;
   email: string;
-  isAdmin: boolean;
+  adminRole: "none" | "readonly" | "admin";
 };
 
 type AuthFixtures = {
@@ -51,7 +51,7 @@ export const test = base.extend<AuthFixtures>({
   },
 
   /**
-   * Provides info about the admin user (id, email, isAdmin)
+   * Provides info about the admin user (id, email, adminRole)
    * Read from file created by global setup
    */
   // eslint-disable-next-line no-empty-pattern -- required for playwright fixture

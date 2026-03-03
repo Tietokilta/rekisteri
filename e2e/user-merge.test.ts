@@ -35,7 +35,7 @@ test.describe("User Merge Feature", () => {
         email: testUser.email,
         firstNames: "UI Access",
         lastName: "Test",
-        isAdmin: false,
+        adminRole: "none",
       });
     });
 
@@ -109,14 +109,14 @@ test.describe("User Merge Feature", () => {
           email: primaryUser.email,
           firstNames: "Primary",
           lastName: "User",
-          isAdmin: false,
+          adminRole: "none",
         },
         {
           id: secondaryUser.id,
           email: secondaryUser.email,
           firstNames: "Secondary",
           lastName: "User",
-          isAdmin: false,
+          adminRole: "none",
         },
       ]);
 
@@ -315,7 +315,7 @@ test.describe("User Merge Feature", () => {
           firstNames: "Success Primary",
           lastName: "Test",
           homeMunicipality: "Helsinki",
-          isAdmin: false,
+          adminRole: "none",
         },
         {
           id: secondaryUser.id,
@@ -323,7 +323,7 @@ test.describe("User Merge Feature", () => {
           firstNames: "Success Secondary",
           lastName: "Test",
           homeMunicipality: "Espoo",
-          isAdmin: false,
+          adminRole: "none",
         },
       ]);
 
@@ -508,14 +508,14 @@ test.describe("User Merge Feature", () => {
           email: testUser.email,
           firstNames: "Edge Case",
           lastName: "One",
-          isAdmin: false,
+          adminRole: "none",
         },
         {
           id: testUser2.id,
           email: testUser2.email,
           firstNames: "Edge Case",
           lastName: "Two",
-          isAdmin: false,
+          adminRole: "none",
         },
       ]);
     });

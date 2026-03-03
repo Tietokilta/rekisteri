@@ -1,11 +1,9 @@
 import * as v from "valibot";
+import { ADMIN_ROLE_VALUES } from "$lib/shared/enums";
 
-export const promoteToAdminSchema = v.object({
+export const updateUserRoleSchema = v.object({
   userId: v.pipe(v.string(), v.minLength(1)),
-});
-
-export const demoteFromAdminSchema = v.object({
-  userId: v.pipe(v.string(), v.minLength(1)),
+  role: v.picklist(ADMIN_ROLE_VALUES),
 });
 
 export const mergeUsersSchema = v.object({

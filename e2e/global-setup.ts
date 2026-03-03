@@ -84,7 +84,7 @@ async function globalSetup(_config: FullConfig) {
   const userInfo = {
     id: adminUser.id,
     email: adminUser.email,
-    isAdmin: adminUser.isAdmin,
+    adminRole: adminUser.adminRole,
   };
   const fs = await import("node:fs");
   fs.writeFileSync("e2e/.auth/admin-user.json", JSON.stringify(userInfo, null, 2));

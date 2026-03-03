@@ -3,11 +3,14 @@ import type { PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { asc, count, sql } from "drizzle-orm";
+import { hasAdminAccess, hasAdminWriteAccess } from "$lib/server/auth/admin";
 
 export const load: PageServerLoad = async (event) => {
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
+  if (!event.locals.session || !hasAdminAccess(event.locals.user)) {
     return error(404, "Not found");
   }
+
+  const canWrite = hasAdminWriteAccess(event.locals.user);
 
   // Load all membership types with their membership count
   const membershipTypes = await db
@@ -27,5 +30,6 @@ export const load: PageServerLoad = async (event) => {
 
   return {
     membershipTypes,
+    canWrite,
   };
 };

@@ -4,6 +4,29 @@
  */
 
 /**
+ * Available admin role values.
+ * - none: Regular user with no admin access
+ * - readonly: Can view all admin pages but cannot make changes
+ * - admin: Full admin access with read/write permissions
+ */
+export const ADMIN_ROLE_VALUES = ["none", "readonly", "admin"] as const;
+export type AdminRole = (typeof ADMIN_ROLE_VALUES)[number];
+
+/**
+ * Client-safe helper to check if a user has any admin access (readonly or admin)
+ */
+export function hasClientAdminAccess(role: AdminRole): boolean {
+  return role === "readonly" || role === "admin";
+}
+
+/**
+ * Client-safe helper to check if a user has write access (admin only)
+ */
+export function hasClientAdminWriteAccess(role: AdminRole): boolean {
+  return role === "admin";
+}
+
+/**
  * Available preferred language options for users
  */
 export const PREFERRED_LANGUAGE_VALUES = ["unspecified", "finnish", "english"] as const;
