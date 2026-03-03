@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { Label } from "$lib/components/ui/label/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import { LL } from "$lib/i18n/i18n-svelte";
@@ -11,6 +12,11 @@
   let { data }: { data: PageData } = $props();
 
   let verifyFormEl: HTMLFormElement;
+
+  async function handleComplete() {
+    await tick();
+    verifyFormEl.requestSubmit();
+  }
 </script>
 
 <main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
@@ -28,7 +34,7 @@
           name={verifyCode.fields.code.as("text").name}
           required
           class="capitalize"
-          onComplete={() => verifyFormEl.requestSubmit()}
+          onComplete={handleComplete}
         >
           {#snippet children({ cells })}
             <InputOTP.Group>
