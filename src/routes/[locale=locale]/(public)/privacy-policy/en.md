@@ -9,7 +9,7 @@ This is a registry and privacy statement in accordance with the EU General Data 
 _Note: The legally binding version of this document is in Finnish. This English translation is provided for convenience only._
 
 **Created:** May 22, 2018
-**Last updated:** February 3, 2026
+**Last updated:** March 3, 2026
 
 ---
 
@@ -103,7 +103,7 @@ Additionally, data is obtained from:
 
 ## 7. Data Retention Period
 
-We delete data as soon as it is no longer needed.
+We delete data as soon as it is no longer needed or when the statutory retention period expires.
 
 **Incomplete registrations:**
 
@@ -169,8 +169,8 @@ All transfers use encrypted connections (HTTPS/TLS). Data is not sold, rented, o
 
 **Organizational safeguards:**
 
-- Access restricted to key board members (Chair, Secretary, Treasurer, System Admins)
-- Access granted only as required by specific tasks
+- Access restricted to key guild personnel (e.g., Chair, Secretary, Treasurer, Lead Developers)
+- The board grants access only as required by specific tasks
 - All administrative actions recorded in audit log
 
 **Physical security:**
