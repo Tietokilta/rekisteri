@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { Label } from "$lib/components/ui/label/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import { page } from "$app/stores";
@@ -15,6 +16,11 @@
   const next = $derived($page.url.searchParams.get("next") ?? "");
 
   let verifyFormEl: HTMLFormElement;
+
+  async function handleComplete() {
+    await tick();
+    verifyFormEl.requestSubmit();
+  }
 </script>
 
 <Card.Root class="mx-auto w-full max-w-md">
@@ -39,7 +45,7 @@
             required
             class="justify-center capitalize"
             data-testid="otp-input"
-            onComplete={() => verifyFormEl.requestSubmit()}
+            onComplete={handleComplete}
           >
             {#snippet children({ cells })}
               <InputOTP.Group>

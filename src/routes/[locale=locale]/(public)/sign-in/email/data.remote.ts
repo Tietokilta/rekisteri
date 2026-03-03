@@ -70,17 +70,34 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }, issue) => {
   // SECURITY: Only verified secondary emails can be used for authentication
   const existingUser = await getUserByEmail(otp.email);
 
-  const userId = existingUser?.id ?? generateUserId();
-  if (!existingUser) {
+  let userId: string;
+  if (existingUser) {
+    userId = existingUser.id;
+  } else {
     // SECURITY: Delete any unverified secondary email claims for this email
     // This prevents email squatting attacks where an attacker adds someone else's
     // email as a secondary email to hijack their account when they sign up
     await deleteUnverifiedSecondaryEmailClaims(otp.email);
 
-    await db.insert(table.user).values({
-      id: userId,
-      email: otp.email,
-    });
+    // Use upsert with RETURNING to handle race conditions atomically.
+    // ON CONFLICT DO UPDATE ensures RETURNING works even if row already exists.
+    // This handles concurrent sign-in requests for the same email.
+    const [user] = await db
+      .insert(table.user)
+      .values({
+        id: generateUserId(),
+        email: otp.email,
+      })
+      .onConflictDoUpdate({
+        target: table.user.email,
+        set: { lastActiveAt: new Date() }, // Update last active on concurrent login
+      })
+      .returning({ id: table.user.id });
+
+    if (!user) {
+      error(500, LL.error.serverError());
+    }
+    userId = user.id;
   }
 
   const token = generateSessionToken();

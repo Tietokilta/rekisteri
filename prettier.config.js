@@ -3,7 +3,7 @@ export default {
   useTabs: false,
   tabWidth: 2,
   printWidth: 120,
-  plugins: ["prettier-plugin-svelte", "prettier-plugin-tailwindcss"],
+  plugins: ["@prettier/plugin-oxc", "prettier-plugin-svelte", "prettier-plugin-tailwindcss"],
   overrides: [
     {
       files: "*.svelte",
