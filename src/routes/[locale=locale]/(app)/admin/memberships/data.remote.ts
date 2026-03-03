@@ -4,11 +4,12 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { count, eq } from "drizzle-orm";
 import { createMembershipSchema, deleteMembershipSchema, updateMembershipSchema } from "./schema";
+import { hasAdminWriteAccess } from "$lib/server/auth/admin";
 
 export const createMembership = form(createMembershipSchema, async (data) => {
   const event = getRequestEvent();
 
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
+  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
     error(404, "Not found");
   }
 
@@ -40,7 +41,7 @@ export const createMembership = form(createMembershipSchema, async (data) => {
 export const deleteMembership = form(deleteMembershipSchema, async ({ id }) => {
   const event = getRequestEvent();
 
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
+  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
     error(404, "Not found");
   }
 
@@ -62,7 +63,7 @@ export const deleteMembership = form(deleteMembershipSchema, async ({ id }) => {
 export const updateMembership = form(updateMembershipSchema, async (data) => {
   const event = getRequestEvent();
 
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
+  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
     error(404, "Not found");
   }
 

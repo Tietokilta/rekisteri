@@ -31,7 +31,7 @@ describe("GDPR - lastActiveAt trigger", () => {
     await db.insert(table.user).values({
       id: userId,
       email: testEmail,
-      isAdmin: false,
+      adminRole: "none",
       lastActiveAt: null,
     });
 
@@ -77,7 +77,7 @@ describe("GDPR - lastActiveAt trigger", () => {
     await db.insert(table.user).values({
       id: userId,
       email: testEmail,
-      isAdmin: false,
+      adminRole: "none",
       lastActiveAt: oldDate,
     });
 

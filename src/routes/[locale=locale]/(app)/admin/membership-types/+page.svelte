@@ -43,10 +43,12 @@
 <main class="container mx-auto max-w-350 px-4 py-6">
   <AdminPageHeader title={$LL.admin.membershipTypes.title()} description={$LL.admin.membershipTypes.description()}>
     {#snippet actions()}
-      <Button onclick={() => (createSheetOpen = true)}>
-        <Plus class="size-4" />
-        {$LL.admin.membershipTypes.createNew()}
-      </Button>
+      {#if data.canWrite}
+        <Button onclick={() => (createSheetOpen = true)}>
+          <Plus class="size-4" />
+          {$LL.admin.membershipTypes.createNew()}
+        </Button>
+      {/if}
     {/snippet}
   </AdminPageHeader>
 
@@ -59,12 +61,14 @@
         </Empty.Media>
       </Empty.Header>
       <Empty.Title>{$LL.admin.membershipTypes.noTypes()}</Empty.Title>
-      <Empty.Content>
-        <Button onclick={() => (createSheetOpen = true)}>
-          <Plus class="size-4" />
-          {$LL.admin.membershipTypes.createNew()}
-        </Button>
-      </Empty.Content>
+      {#if data.canWrite}
+        <Empty.Content>
+          <Button onclick={() => (createSheetOpen = true)}>
+            <Plus class="size-4" />
+            {$LL.admin.membershipTypes.createNew()}
+          </Button>
+        </Empty.Content>
+      {/if}
     </Empty.Root>
   {:else}
     <!-- Membership types list -->
@@ -75,8 +79,11 @@
             <button
               type="button"
               {...props}
-              class="{props.class} transition-colors hover:bg-accent/50"
-              onclick={() => openEditSheet(membershipType)}
+              class="{props.class} {data.canWrite
+                ? 'cursor-pointer transition-colors hover:bg-accent/50'
+                : 'cursor-default'}"
+              onclick={() => data.canWrite && openEditSheet(membershipType)}
+              disabled={!data.canWrite}
             >
               <Item.Media variant="icon">
                 <Tag />
@@ -107,34 +114,36 @@
   {/if}
 </main>
 
-<!-- Create Membership Type Sheet -->
-<Sheet.Root bind:open={createSheetOpen}>
-  <Sheet.Content class="flex flex-col overflow-y-auto">
-    <Sheet.Header>
-      <Sheet.Title>{$LL.admin.membershipTypes.createNew()}</Sheet.Title>
-      <Sheet.Description>{$LL.admin.membershipTypes.createDescription()}</Sheet.Description>
-    </Sheet.Header>
-    {#key createSheetOpen}
-      {#if createSheetOpen}
-        <CreateMembershipTypeForm onClose={() => (createSheetOpen = false)} />
-      {/if}
-    {/key}
-  </Sheet.Content>
-</Sheet.Root>
-
-<!-- Edit Membership Type Sheet -->
-<Sheet.Root bind:open={editSheetOpen}>
-  <Sheet.Content class="flex flex-col overflow-y-auto">
-    <Sheet.Header>
-      <Sheet.Title>{$LL.admin.membershipTypes.editType()}</Sheet.Title>
-      {#if editingMembershipType}
-        <Sheet.Description class="font-mono">{editingMembershipType.id}</Sheet.Description>
-      {/if}
-    </Sheet.Header>
-    {#if editingMembershipType}
-      {#key editingMembershipType.id}
-        <EditMembershipTypeForm membershipType={editingMembershipType} onClose={() => (editSheetOpen = false)} />
+{#if data.canWrite}
+  <!-- Create Membership Type Sheet -->
+  <Sheet.Root bind:open={createSheetOpen}>
+    <Sheet.Content class="flex flex-col overflow-y-auto">
+      <Sheet.Header>
+        <Sheet.Title>{$LL.admin.membershipTypes.createNew()}</Sheet.Title>
+        <Sheet.Description>{$LL.admin.membershipTypes.createDescription()}</Sheet.Description>
+      </Sheet.Header>
+      {#key createSheetOpen}
+        {#if createSheetOpen}
+          <CreateMembershipTypeForm onClose={() => (createSheetOpen = false)} />
+        {/if}
       {/key}
-    {/if}
-  </Sheet.Content>
-</Sheet.Root>
+    </Sheet.Content>
+  </Sheet.Root>
+
+  <!-- Edit Membership Type Sheet -->
+  <Sheet.Root bind:open={editSheetOpen}>
+    <Sheet.Content class="flex flex-col overflow-y-auto">
+      <Sheet.Header>
+        <Sheet.Title>{$LL.admin.membershipTypes.editType()}</Sheet.Title>
+        {#if editingMembershipType}
+          <Sheet.Description class="font-mono">{editingMembershipType.id}</Sheet.Description>
+        {/if}
+      </Sheet.Header>
+      {#if editingMembershipType}
+        {#key editingMembershipType.id}
+          <EditMembershipTypeForm membershipType={editingMembershipType} onClose={() => (editSheetOpen = false)} />
+        {/key}
+      {/if}
+    </Sheet.Content>
+  </Sheet.Root>
+{/if}
