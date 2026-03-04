@@ -21,3 +21,6 @@ export function loadEnvFile() {
     console.warn("Could not load .env file:", e);
   }
 }
+
+// Re-export testcontainer utilities for convenience
+export { getDatabaseUrl, loadContainerState } from "./testcontainer";
