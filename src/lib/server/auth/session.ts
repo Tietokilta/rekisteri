@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeBase64url, encodeHexLowerCase } from "@oslojs/encoding";
 import { dev } from "$app/environment";
+import { env } from "$lib/server/env";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 
@@ -75,17 +76,31 @@ export async function invalidateSession(sessionId: string) {
 }
 
 export function setSessionTokenCookie(event: RequestEvent, token: string, expiresAt: Date) {
-  event.cookies.set(sessionCookieName, token, {
+  const cookieOptions: Parameters<typeof event.cookies.set>[2] = {
     expires: expiresAt,
     path: "/",
     httpOnly: true,
     secure: !dev,
     sameSite: "lax",
-  });
+  };
+
+  // Add domain if COOKIE_DOMAIN is set (for sharing across subdomains)
+  if (env.COOKIE_DOMAIN) {
+    cookieOptions.domain = env.COOKIE_DOMAIN;
+  }
+
+  event.cookies.set(sessionCookieName, token, cookieOptions);
 }
 
 export function deleteSessionTokenCookie(event: RequestEvent) {
-  event.cookies.delete(sessionCookieName, {
+  const cookieOptions: Parameters<typeof event.cookies.delete>[1] = {
     path: "/",
-  });
+  };
+
+  // Add domain if COOKIE_DOMAIN is set (for sharing across subdomains)
+  if (env.COOKIE_DOMAIN) {
+    cookieOptions.domain = env.COOKIE_DOMAIN;
+  }
+
+  event.cookies.delete(sessionCookieName, cookieOptions);
 }
