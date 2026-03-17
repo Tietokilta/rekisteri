@@ -75,6 +75,9 @@ const en = {
   // Authentication
   auth: {
     signIn: "Sign in",
+    signInOrCreateAccount: "Sign in or create account",
+    signInDescription: "Enter your email to sign in or create a new account.",
+    continue: "Continue",
     signOut: "Sign out",
     email: "Email",
     code: "Code",
@@ -92,6 +95,7 @@ const en = {
     passkey: {
       signInWithPasskey: "Sign in with passkey",
       sendEmailCode: "Send email code",
+      newUserHint: "New here? Choose email code to create your account.",
       signingInAs: "Signing in as:",
       useDifferentEmail: "Use a different email",
       or: "or",

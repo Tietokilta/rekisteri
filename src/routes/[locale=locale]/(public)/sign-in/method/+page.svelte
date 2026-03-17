@@ -75,7 +75,7 @@
 <main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
   <Card.Root class="w-full max-w-md">
     <Card.Header>
-      <Card.Title>{$LL.auth.signIn()}</Card.Title>
+      <Card.Title>{$LL.auth.signInOrCreateAccount()}</Card.Title>
       <Card.Description>
         {$LL.auth.passkey.signingInAs()} <strong class="font-medium text-foreground">{data.email}</strong>
       </Card.Description>
@@ -139,6 +139,7 @@
           {/if}
         </div>
       </form>
+      <p class="text-center text-sm text-muted-foreground">{$LL.auth.passkey.newUserHint()}</p>
 
       <!-- Change email -->
       <form {...changeEmail} class="w-full">
