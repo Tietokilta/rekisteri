@@ -174,7 +174,7 @@ Required for development:
 ## Important Notes
 
 - Node.js version: `^24.5.0` (specified in package.json engines)
-- Package manager: pnpm (`10.26.0`)
+- Package manager: pnpm (`10.28.0`)
 - Using `rolldown-vite` instead of standard Vite (via overrides)
 - Schema changes require `pnpm db:generate` and `pnpm db:migrate`
 - For Stripe webhook testing, run `stripe listen --forward-to localhost:$PORT/api/webhook/stripe` in parallel with dev server

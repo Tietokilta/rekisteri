@@ -6,11 +6,7 @@ import { mdsvex } from "mdsvex";
 const config = {
   // Consult https://svelte.dev/docs/kit/integrations
   // for more information about preprocessors
-  preprocess: [
-    vitePreprocess(),
-    // @ts-expect-error mdsvex types are incompatible with latest svelte
-    mdsvex({ extensions: [".md"] }),
-  ],
+  preprocess: [vitePreprocess(), mdsvex({ extensions: [".md"] })],
 
   extensions: [".svelte", ".md"],
 
