@@ -179,7 +179,7 @@ test.describe("Secondary Email OTP Flow", () => {
     try {
       await victimPage.goto(route("/[locale=locale]/sign-in", { locale: "fi" }));
       await victimPage.fill('input[type="email"]', targetEmail);
-      await victimPage.getByRole("button", { name: /kirjaudu|sign in/i }).click();
+      await victimPage.getByRole("button", { name: /jatka|continue/i }).click();
 
       await victimPage.waitForURL(/sign-in\/method/);
       await victimPage.getByRole("button", { name: /lähetä sähköpostikoodi|send email code/i }).click();
