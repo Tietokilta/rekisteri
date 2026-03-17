@@ -75,6 +75,9 @@ const fi = {
   // Authentication
   auth: {
     signIn: "Kirjaudu sisään",
+    signInOrCreateAccount: "Kirjaudu sisään tai luo tili",
+    signInDescription: "Syötä sähköpostisi kirjautuaksesi tai luodaksesi uuden tilin.",
+    continue: "Jatka",
     signOut: "Kirjaudu ulos",
     email: "Sähköposti",
     code: "Koodi",
@@ -92,6 +95,7 @@ const fi = {
     passkey: {
       signInWithPasskey: "Kirjaudu avainkoodilla",
       sendEmailCode: "Lähetä sähköpostikoodi",
+      newUserHint: "Uusi käyttäjä? Valitse sähköpostikoodi luodaksesi tilin.",
       signingInAs: "Kirjaudutaan sisään:",
       useDifferentEmail: "Käytä toista sähköpostiosoitetta",
       or: "tai",

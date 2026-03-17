@@ -8,7 +8,8 @@
 </script>
 
 <main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
-  <h1 class="font-mono text-lg">{$LL.auth.signIn()}</h1>
+  <h1 class="font-mono text-lg">{$LL.auth.signInOrCreateAccount()}</h1>
+  <p class="max-w-xs text-center text-sm text-balance text-muted-foreground">{$LL.auth.signInDescription()}</p>
   <form {...signIn.preflight(signInSchema)} class="flex w-full max-w-xs flex-col gap-4">
     <p>
       <Label for="email">{$LL.auth.email()}</Label>
@@ -22,7 +23,7 @@
         required
       />
     </p>
-    <Button type="submit">{$LL.auth.signIn()}</Button>
+    <Button type="submit">{$LL.auth.continue()}</Button>
   </form>
   {#each signIn.fields.allIssues() as issue, i (i)}
     <p style="color: red">{issue.message}</p>

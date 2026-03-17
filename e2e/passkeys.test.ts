@@ -202,7 +202,7 @@ test.describe("Passkey Authentication", () => {
 
     // Enter email
     await adminPage.getByLabel(/sähköposti/i).fill(adminUser.email);
-    await adminPage.getByRole("button", { name: /kirjaudu/i }).click();
+    await adminPage.getByRole("button", { name: /jatka/i }).click();
     await adminPage.waitForURL(/sign-in\/method/);
 
     // Select passkey authentication
@@ -219,7 +219,7 @@ test.describe("Passkey Authentication", () => {
 
     // Enter email
     await adminPage.getByLabel(/sähköposti/i).fill(adminUser.email);
-    await adminPage.getByRole("button", { name: /kirjaudu/i }).click();
+    await adminPage.getByRole("button", { name: /jatka/i }).click();
     await adminPage.waitForURL(/sign-in\/method/);
 
     // Verify passkey option is shown
