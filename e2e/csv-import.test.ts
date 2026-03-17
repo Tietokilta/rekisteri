@@ -170,7 +170,7 @@ Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
       firstNames: "Original",
       lastName: "Name",
       homeMunicipality: "Tampere",
-      isAdmin: false,
+      adminRole: "none",
       isAllowedEmails: false,
     });
 
@@ -235,7 +235,7 @@ Test,User,Helsinki,${secondaryEmail},varsinainen-jasen,2025-08-01`;
       firstNames: "Existing",
       lastName: "User",
       homeMunicipality: "Tampere",
-      isAdmin: false,
+      adminRole: "none",
       isAllowedEmails: false,
     });
 

@@ -16,12 +16,14 @@
   import X from "@lucide/svelte/icons/x";
   import Languages from "@lucide/svelte/icons/languages";
 
+  import { hasClientAdminAccess, type AdminRole } from "$lib/shared/enums";
+
   interface Props {
     user: {
       email: string;
       firstNames?: string | null;
       lastName?: string | null;
-      isAdmin: boolean;
+      adminRole: AdminRole;
     };
   }
 
@@ -130,8 +132,8 @@
             </ul>
           </div>
 
-          <!-- Admin section (only visible if isAdmin) -->
-          {#if user.isAdmin}
+          <!-- Admin section (only visible if has admin access) -->
+          {#if hasClientAdminAccess(user.adminRole)}
             <div class="mt-2">
               <div
                 class="flex items-center gap-2 px-3 py-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase"

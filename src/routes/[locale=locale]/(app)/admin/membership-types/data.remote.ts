@@ -5,12 +5,13 @@ import * as table from "$lib/server/db/schema";
 import { count, eq } from "drizzle-orm";
 import { createMembershipTypeSchema, deleteMembershipTypeSchema, updateMembershipTypeSchema } from "./schema";
 import { getLL } from "$lib/server/i18n";
+import { hasAdminWriteAccess } from "$lib/server/auth/admin";
 
 export const createMembershipType = form(createMembershipTypeSchema, async (data) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
+  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
@@ -45,7 +46,7 @@ export const updateMembershipType = form(updateMembershipTypeSchema, async (data
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
+  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
@@ -80,7 +81,7 @@ export const deleteMembershipType = form(deleteMembershipTypeSchema, async ({ id
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
+  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 

@@ -9,6 +9,8 @@
   import { getMainNavItems, getSettingsNavItems, getAdminNavItems } from "$lib/navigation";
   import RatasLogo from "$lib/icons/ratas-logo.svelte";
   import { formatUserName } from "$lib/utils";
+  import { hasClientAdminAccess } from "$lib/shared/enums";
+  import type { AdminRole } from "$lib/shared/enums";
 
   // Icons from @lucide/svelte
   import User from "@lucide/svelte/icons/user";
@@ -20,7 +22,7 @@
       email: string;
       firstNames?: string | null;
       lastName?: string | null;
-      isAdmin: boolean;
+      adminRole: AdminRole;
     };
   }
 
@@ -105,8 +107,8 @@
       </Sidebar.SidebarGroupContent>
     </Sidebar.SidebarGroup>
 
-    <!-- Admin section (only visible if isAdmin) -->
-    {#if user.isAdmin}
+    <!-- Admin section (only visible for admin or readonly admin) -->
+    {#if hasClientAdminAccess(user.adminRole)}
       <Sidebar.SidebarGroup>
         <Sidebar.SidebarGroupLabel>{$LL.nav.admin.title()}</Sidebar.SidebarGroupLabel>
         <Sidebar.SidebarGroupContent>

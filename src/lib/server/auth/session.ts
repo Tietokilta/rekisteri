@@ -40,7 +40,7 @@ export async function validateSessionToken(token: string) {
         homeMunicipality: table.user.homeMunicipality,
         preferredLanguage: table.user.preferredLanguage,
         isAllowedEmails: table.user.isAllowedEmails,
-        isAdmin: table.user.isAdmin,
+        adminRole: table.user.adminRole,
       },
       session: table.session,
     })

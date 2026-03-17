@@ -161,7 +161,7 @@ async function createMemberWithStatus(status: MemberStatus) {
   await testDb.db.insert(table.user).values({
     id: userId,
     email: `test-${userId}@example.com`,
-    isAdmin: false,
+    adminRole: "none",
   });
 
   await testDb.db.insert(table.member).values({

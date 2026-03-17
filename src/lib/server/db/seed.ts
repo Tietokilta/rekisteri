@@ -81,7 +81,7 @@ try {
     homeMunicipality: "Espoo",
     preferredLanguage: "unspecified",
     isAllowedEmails: true,
-    isAdmin: true,
+    adminRole: "admin",
   });
 
   const membershipsToSeed = [

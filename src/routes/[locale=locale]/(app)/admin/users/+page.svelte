@@ -2,23 +2,22 @@
   import type { PageProps } from "./$types";
   import { LL } from "$lib/i18n/i18n-svelte";
   import * as Table from "$lib/components/ui/table";
+  import * as Select from "$lib/components/ui/select";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { Badge } from "$lib/components/ui/badge";
   import AdminPageHeader from "$lib/components/admin-page-header.svelte";
   import * as Card from "$lib/components/ui/card";
   import * as Alert from "$lib/components/ui/alert";
-  import ChevronUp from "@lucide/svelte/icons/chevron-up";
-  import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import Merge from "@lucide/svelte/icons/merge";
   import X from "@lucide/svelte/icons/x";
   import AlertCircle from "@lucide/svelte/icons/alert-circle";
   import CheckCircle from "@lucide/svelte/icons/check-circle-2";
-  import { promoteToAdmin, demoteFromAdmin, mergeUsers } from "./data.remote";
-  import { promoteToAdminSchema, demoteFromAdminSchema } from "./schema";
+  import { updateUserRole, mergeUsers } from "./data.remote";
   import { toast } from "svelte-sonner";
   import { invalidateAll } from "$app/navigation";
   import { formatUserName } from "$lib/utils";
+  import type { AdminRole } from "$lib/shared/enums";
 
   const { data }: PageProps = $props();
 
@@ -115,9 +114,9 @@
     }
   }
 
-  // Split users into admins and non-admins
-  const admins = $derived(data.users.filter((u) => u.isAdmin));
-  const regularUsers = $derived(data.users.filter((u) => !u.isAdmin));
+  // Split users into admins (admin or readonly) and non-admins
+  const admins = $derived(data.users.filter((u) => u.adminRole !== "none"));
+  const regularUsers = $derived(data.users.filter((u) => u.adminRole === "none"));
 
   // Filter function
   function matchesSearch(user: (typeof data.users)[number]) {
@@ -154,15 +153,39 @@
     return lastActiveAt.toLocaleString();
   }
 
-  // Check if user is the last admin (use total admins, not filtered)
-  const isLastAdmin = $derived(admins.length === 1);
+  // Check if there's only one full admin (use total admins with 'admin' role, not filtered)
+  const fullAdminCount = $derived(data.users.filter((u) => u.adminRole === "admin").length);
+
+  // Role display labels
+  function getRoleLabel(role: AdminRole): string {
+    switch (role) {
+      case "admin":
+        return $LL.admin.users.table.roleAdmin();
+      case "readonly":
+        return $LL.admin.users.table.roleReadonly();
+      default:
+        return $LL.admin.users.table.roleNone();
+    }
+  }
+
+  // Role badge variant
+  function getRoleBadgeVariant(role: AdminRole): "default" | "secondary" | "outline" {
+    switch (role) {
+      case "admin":
+        return "default";
+      case "readonly":
+        return "secondary";
+      default:
+        return "outline";
+    }
+  }
 </script>
 
 <main class="container mx-auto max-w-[1400px] px-4 py-6">
   <AdminPageHeader title={$LL.admin.users.title()} description={$LL.admin.users.description()} />
 
-  <!-- Merge Users Modal/Card -->
-  {#if mergeModalOpen && primaryUser}
+  <!-- Merge Users Modal/Card (only for users with write access) -->
+  {#if data.canWrite && mergeModalOpen && primaryUser}
     <Card.Root class="mb-6 border-2 border-primary" data-testid="merge-wizard">
       <Card.Header>
         <div class="flex items-start justify-between">
@@ -220,8 +243,8 @@
                         </p>
                       {/if}
                     </div>
-                    <Badge variant={user.isAdmin ? "default" : "secondary"}>
-                      {user.isAdmin ? "ADMIN" : "USER"}
+                    <Badge variant={getRoleBadgeVariant(user.adminRole)}>
+                      {getRoleLabel(user.adminRole)}
                     </Badge>
                   </button>
                 {/each}
@@ -252,9 +275,9 @@
                       {formatUserName(primaryUser)}
                     </p>
                   {/if}
-                  {#if primaryUser.isAdmin}
-                    <Badge variant="default" class="mt-2">ADMIN</Badge>
-                  {/if}
+                  <Badge variant={getRoleBadgeVariant(primaryUser.adminRole)} class="mt-2">
+                    {getRoleLabel(primaryUser.adminRole)}
+                  </Badge>
                 </div>
               </div>
 
@@ -269,9 +292,9 @@
                       {formatUserName(secondaryUser)}
                     </p>
                   {/if}
-                  {#if secondaryUser.isAdmin}
-                    <Badge variant="default" class="mt-2">ADMIN</Badge>
-                  {/if}
+                  <Badge variant={getRoleBadgeVariant(secondaryUser.adminRole)} class="mt-2">
+                    {getRoleLabel(secondaryUser.adminRole)}
+                  </Badge>
                 </div>
               </div>
             </div>
@@ -364,9 +387,11 @@
               <Table.Head class="w-[150px]">{$LL.admin.users.table.id()}</Table.Head>
               <Table.Head class="w-[200px]">{$LL.admin.users.table.email()}</Table.Head>
               <Table.Head class="w-[150px]">{$LL.admin.users.table.name()}</Table.Head>
-              <Table.Head class="w-[80px]">{$LL.admin.users.table.role()}</Table.Head>
+              <Table.Head class="w-[120px]">{$LL.admin.users.table.role()}</Table.Head>
               <Table.Head class="w-[200px]">{$LL.admin.users.table.lastActive()}</Table.Head>
-              <Table.Head class="w-[220px] text-right">{$LL.admin.users.table.actions()}</Table.Head>
+              {#if data.canWrite}
+                <Table.Head class="w-[220px] text-right">{$LL.admin.users.table.actions()}</Table.Head>
+              {/if}
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -377,34 +402,58 @@
                 <Table.Cell class="w-[200px]">
                   {formatUserName(user) || "-"}
                 </Table.Cell>
-                <Table.Cell class="w-[100px]">
-                  <Badge variant="default">ADMIN</Badge>
+                <Table.Cell class="w-[120px]">
+                  <Badge variant={getRoleBadgeVariant(user.adminRole)}>
+                    {getRoleLabel(user.adminRole)}
+                  </Badge>
                 </Table.Cell>
                 <Table.Cell class="w-[250px]">
                   <span class="text-sm text-muted-foreground">
                     {formatLastActive(user.lastActiveAt)}
                   </span>
                 </Table.Cell>
-                <Table.Cell class="w-[220px] text-right">
-                  <div class="flex justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onclick={() => openMergeModal(user)}
-                      title={$LL.admin.users.table.merge()}
-                      aria-label={$LL.admin.users.table.merge()}
-                    >
-                      <Merge class="size-4" />
-                    </Button>
-                    <form {...demoteFromAdmin.for(user.id).preflight(demoteFromAdminSchema)}>
-                      <input {...demoteFromAdmin.for(user.id).fields.userId.as("hidden", user.id)} />
-                      <Button type="submit" size="sm" variant="outline" disabled={isLastAdmin}>
-                        <ChevronDown class="mr-2 size-4" />
-                        {$LL.admin.users.table.demote()}
+                {#if data.canWrite}
+                  <Table.Cell class="w-[220px] text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onclick={() => openMergeModal(user)}
+                        title={$LL.admin.users.table.merge()}
+                        aria-label={$LL.admin.users.table.merge()}
+                      >
+                        <Merge class="size-4" />
                       </Button>
-                    </form>
-                  </div>
-                </Table.Cell>
+                      <Select.Root
+                        type="single"
+                        value={user.adminRole}
+                        onValueChange={async (newRole) => {
+                          if (!newRole || newRole === user.adminRole) return;
+                          // Check if we're trying to demote the last admin
+                          if (user.adminRole === "admin" && newRole !== "admin" && fullAdminCount <= 1) {
+                            toast.error($LL.admin.users.cannotDemoteLastAdmin());
+                            return;
+                          }
+                          try {
+                            await updateUserRole({ userId: user.id, role: newRole as AdminRole });
+                            await invalidateAll();
+                          } catch {
+                            toast.error($LL.error.updateFailed());
+                          }
+                        }}
+                      >
+                        <Select.Trigger class="w-[140px]">
+                          {getRoleLabel(user.adminRole)}
+                        </Select.Trigger>
+                        <Select.Content>
+                          <Select.Item value="admin">{$LL.admin.users.table.roleAdmin()}</Select.Item>
+                          <Select.Item value="readonly">{$LL.admin.users.table.roleReadonly()}</Select.Item>
+                          <Select.Item value="none">{$LL.admin.users.table.roleNone()}</Select.Item>
+                        </Select.Content>
+                      </Select.Root>
+                    </div>
+                  </Table.Cell>
+                {/if}
               </Table.Row>
             {/each}
           </Table.Body>
@@ -443,15 +492,17 @@
             <Table.Head class="w-[150px]">{$LL.admin.users.table.id()}</Table.Head>
             <Table.Head class="w-[200px]">{$LL.admin.users.table.email()}</Table.Head>
             <Table.Head class="w-[150px]">{$LL.admin.users.table.name()}</Table.Head>
-            <Table.Head class="w-[80px]">{$LL.admin.users.table.role()}</Table.Head>
+            <Table.Head class="w-[120px]">{$LL.admin.users.table.role()}</Table.Head>
             <Table.Head class="w-[200px]">{$LL.admin.users.table.lastActive()}</Table.Head>
-            <Table.Head class="w-[220px] text-right">{$LL.admin.users.table.actions()}</Table.Head>
+            {#if data.canWrite}
+              <Table.Head class="w-[220px] text-right">{$LL.admin.users.table.actions()}</Table.Head>
+            {/if}
           </Table.Row>
         </Table.Header>
         <Table.Body>
           {#if filteredRegularUsers.length === 0}
             <Table.Row>
-              <Table.Cell colspan={6} class="text-center text-muted-foreground">
+              <Table.Cell colspan={data.canWrite ? 6 : 5} class="text-center text-muted-foreground">
                 {searchQuery ? $LL.admin.users.table.noResults() : $LL.admin.users.table.noUsers()}
               </Table.Cell>
             </Table.Row>
@@ -463,32 +514,49 @@
                 <Table.Cell class="w-[200px]">
                   {formatUserName(user) || "-"}
                 </Table.Cell>
-                <Table.Cell class="w-[100px]">-</Table.Cell>
+                <Table.Cell class="w-[120px]">-</Table.Cell>
                 <Table.Cell class="w-[250px]">
                   <span class="text-sm text-muted-foreground">
                     {formatLastActive(user.lastActiveAt)}
                   </span>
                 </Table.Cell>
-                <Table.Cell class="w-[220px] text-right">
-                  <div class="flex justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onclick={() => openMergeModal(user)}
-                      title={$LL.admin.users.table.merge()}
-                      aria-label={$LL.admin.users.table.merge()}
-                    >
-                      <Merge class="size-4" />
-                    </Button>
-                    <form {...promoteToAdmin.for(user.id).preflight(promoteToAdminSchema)}>
-                      <input {...promoteToAdmin.for(user.id).fields.userId.as("hidden", user.id)} />
-                      <Button type="submit" size="sm" variant="default">
-                        <ChevronUp class="mr-2 size-4" />
-                        {$LL.admin.users.table.promote()}
+                {#if data.canWrite}
+                  <Table.Cell class="w-[220px] text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onclick={() => openMergeModal(user)}
+                        title={$LL.admin.users.table.merge()}
+                        aria-label={$LL.admin.users.table.merge()}
+                      >
+                        <Merge class="size-4" />
                       </Button>
-                    </form>
-                  </div>
-                </Table.Cell>
+                      <Select.Root
+                        type="single"
+                        value={user.adminRole}
+                        onValueChange={async (newRole) => {
+                          if (!newRole || newRole === user.adminRole) return;
+                          try {
+                            await updateUserRole({ userId: user.id, role: newRole as AdminRole });
+                            await invalidateAll();
+                          } catch {
+                            toast.error($LL.error.updateFailed());
+                          }
+                        }}
+                      >
+                        <Select.Trigger class="w-[140px]">
+                          {getRoleLabel(user.adminRole)}
+                        </Select.Trigger>
+                        <Select.Content>
+                          <Select.Item value="admin">{$LL.admin.users.table.roleAdmin()}</Select.Item>
+                          <Select.Item value="readonly">{$LL.admin.users.table.roleReadonly()}</Select.Item>
+                          <Select.Item value="none">{$LL.admin.users.table.roleNone()}</Select.Item>
+                        </Select.Content>
+                      </Select.Root>
+                    </div>
+                  </Table.Cell>
+                {/if}
               </Table.Row>
             {/each}
           {/if}
