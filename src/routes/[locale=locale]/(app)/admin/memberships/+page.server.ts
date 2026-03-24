@@ -1,17 +1,9 @@
-import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { asc, count, desc, sql } from "drizzle-orm";
-import { hasAdminAccess, hasAdminWriteAccess } from "$lib/server/auth/admin";
 
-export const load: PageServerLoad = async (event) => {
-  if (!event.locals.session || !hasAdminAccess(event.locals.user)) {
-    return error(404, "Not found");
-  }
-
-  const canWrite = hasAdminWriteAccess(event.locals.user);
-
+export const load: PageServerLoad = async () => {
   // Load all membership types for the dropdown
   const membershipTypes = await db
     .select()
@@ -48,6 +40,5 @@ export const load: PageServerLoad = async (event) => {
       endTime: formatDate(new Date(currentYear + 1, 6, 31, 12)),
       requiresStudentVerification: false,
     },
-    canWrite,
   };
 };

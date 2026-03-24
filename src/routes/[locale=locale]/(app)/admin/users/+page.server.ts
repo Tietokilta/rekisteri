@@ -1,17 +1,9 @@
-import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { asc, sql } from "drizzle-orm";
-import { hasAdminAccess, hasAdminWriteAccess } from "$lib/server/auth/admin";
 
-export const load: PageServerLoad = async (event) => {
-  if (!event.locals.session || !hasAdminAccess(event.locals.user)) {
-    return error(404, "Not found");
-  }
-
-  const canWrite = hasAdminWriteAccess(event.locals.user);
-
+export const load: PageServerLoad = async () => {
   // Fetch all users with activity info
   // Sort by admin role (admin first, then readonly, then none), then by email
   const users = await db
@@ -32,6 +24,5 @@ export const load: PageServerLoad = async (event) => {
 
   return {
     users,
-    canWrite,
   };
 };

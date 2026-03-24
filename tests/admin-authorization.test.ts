@@ -4,11 +4,16 @@ import * as table from "../src/lib/server/db/schema";
 import { eq, sql } from "drizzle-orm";
 import {
   ADMIN_ROLE_VALUES,
-  hasClientAdminAccess,
-  hasClientAdminWriteAccess,
+  hasAdminAccess,
+  hasAdminWriteAccess,
+  isReadOnlyAdmin,
   type AdminRole,
 } from "../src/lib/shared/enums";
-import { hasAdminAccess, hasAdminWriteAccess, isReadOnlyAdmin } from "../src/lib/server/auth/admin";
+import {
+  hasAdminAccess as userHasAdminAccess,
+  hasAdminWriteAccess as userHasAdminWriteAccess,
+  isReadOnlyAdmin as userIsReadOnlyAdmin,
+} from "../src/lib/server/auth/admin";
 
 /**
  * Admin authorization tests.
@@ -19,104 +24,104 @@ import { hasAdminAccess, hasAdminWriteAccess, isReadOnlyAdmin } from "../src/lib
  * - admin: Full admin access with read/write permissions
  */
 
-// ─── Unit tests for server-side authorization helpers ──────────────────────
+// ─── Shared role helpers (from enums.ts) ───────────────────────────────────
 
-describe("hasAdminAccess", () => {
-  it("returns true for admin role", () => {
-    expect(hasAdminAccess({ adminRole: "admin" })).toBe(true);
+describe("hasAdminAccess (role)", () => {
+  it("returns true for admin", () => expect(hasAdminAccess("admin")).toBe(true));
+  it("returns true for readonly", () => expect(hasAdminAccess("readonly")).toBe(true));
+  it("returns false for none", () => expect(hasAdminAccess("none")).toBe(false));
+});
+
+describe("hasAdminWriteAccess (role)", () => {
+  it("returns true for admin", () => expect(hasAdminWriteAccess("admin")).toBe(true));
+  it("returns false for readonly", () => expect(hasAdminWriteAccess("readonly")).toBe(false));
+  it("returns false for none", () => expect(hasAdminWriteAccess("none")).toBe(false));
+});
+
+describe("isReadOnlyAdmin (role)", () => {
+  it("returns true for readonly", () => expect(isReadOnlyAdmin("readonly")).toBe(true));
+  it("returns false for admin", () => expect(isReadOnlyAdmin("admin")).toBe(false));
+  it("returns false for none", () => expect(isReadOnlyAdmin("none")).toBe(false));
+});
+
+// ─── Server-side null-safe wrappers (from server/auth/admin.ts) ────────────
+
+describe("server-side hasAdminAccess (user object)", () => {
+  it("delegates to shared helper for valid users", () => {
+    for (const role of ADMIN_ROLE_VALUES) {
+      expect(userHasAdminAccess({ adminRole: role })).toBe(hasAdminAccess(role));
+    }
   });
 
-  it("returns true for readonly role", () => {
-    expect(hasAdminAccess({ adminRole: "readonly" })).toBe(true);
-  });
-
-  it("returns false for none role", () => {
-    expect(hasAdminAccess({ adminRole: "none" })).toBe(false);
-  });
-
-  it("returns false for null user", () => {
-    expect(hasAdminAccess(null)).toBe(false);
-  });
+  it("returns false for null user", () => expect(userHasAdminAccess(null)).toBe(false));
 
   it("returns false for undefined user", () => {
     // eslint-disable-next-line unicorn/no-useless-undefined
-    expect(hasAdminAccess(undefined)).toBe(false);
+    expect(userHasAdminAccess(undefined)).toBe(false);
   });
 });
 
-describe("hasAdminWriteAccess", () => {
-  it("returns true for admin role", () => {
-    expect(hasAdminWriteAccess({ adminRole: "admin" })).toBe(true);
+describe("server-side hasAdminWriteAccess (user object)", () => {
+  it("delegates to shared helper for valid users", () => {
+    for (const role of ADMIN_ROLE_VALUES) {
+      expect(userHasAdminWriteAccess({ adminRole: role })).toBe(hasAdminWriteAccess(role));
+    }
   });
 
-  it("returns false for readonly role", () => {
-    expect(hasAdminWriteAccess({ adminRole: "readonly" })).toBe(false);
-  });
-
-  it("returns false for none role", () => {
-    expect(hasAdminWriteAccess({ adminRole: "none" })).toBe(false);
-  });
-
-  it("returns false for null user", () => {
-    expect(hasAdminWriteAccess(null)).toBe(false);
-  });
+  it("returns false for null user", () => expect(userHasAdminWriteAccess(null)).toBe(false));
 
   it("returns false for undefined user", () => {
     // eslint-disable-next-line unicorn/no-useless-undefined
-    expect(hasAdminWriteAccess(undefined)).toBe(false);
+    expect(userHasAdminWriteAccess(undefined)).toBe(false);
   });
 });
 
-describe("isReadOnlyAdmin", () => {
-  it("returns true for readonly role", () => {
-    expect(isReadOnlyAdmin({ adminRole: "readonly" })).toBe(true);
+describe("server-side isReadOnlyAdmin (user object)", () => {
+  it("delegates to shared helper for valid users", () => {
+    for (const role of ADMIN_ROLE_VALUES) {
+      expect(userIsReadOnlyAdmin({ adminRole: role })).toBe(isReadOnlyAdmin(role));
+    }
   });
 
-  it("returns false for admin role", () => {
-    expect(isReadOnlyAdmin({ adminRole: "admin" })).toBe(false);
-  });
-
-  it("returns false for none role", () => {
-    expect(isReadOnlyAdmin({ adminRole: "none" })).toBe(false);
-  });
-
-  it("returns false for null user", () => {
-    expect(isReadOnlyAdmin(null)).toBe(false);
-  });
+  it("returns false for null user", () => expect(userIsReadOnlyAdmin(null)).toBe(false));
 
   it("returns false for undefined user", () => {
     // eslint-disable-next-line unicorn/no-useless-undefined
-    expect(isReadOnlyAdmin(undefined)).toBe(false);
+    expect(userIsReadOnlyAdmin(undefined)).toBe(false);
   });
 });
 
-// ─── Unit tests for client-side authorization helpers ──────────────────────
+// ─── Role hierarchy tests ──────────────────────────────────────────────────
 
-describe("hasClientAdminAccess", () => {
-  it("returns true for admin role", () => {
-    expect(hasClientAdminAccess("admin")).toBe(true);
+describe("Role hierarchy", () => {
+  it("admin has both read and write access", () => {
+    expect(hasAdminAccess("admin")).toBe(true);
+    expect(hasAdminWriteAccess("admin")).toBe(true);
   });
 
-  it("returns true for readonly role", () => {
-    expect(hasClientAdminAccess("readonly")).toBe(true);
+  it("readonly has read access but not write access", () => {
+    expect(hasAdminAccess("readonly")).toBe(true);
+    expect(hasAdminWriteAccess("readonly")).toBe(false);
   });
 
-  it("returns false for none role", () => {
-    expect(hasClientAdminAccess("none")).toBe(false);
-  });
-});
-
-describe("hasClientAdminWriteAccess", () => {
-  it("returns true for admin role", () => {
-    expect(hasClientAdminWriteAccess("admin")).toBe(true);
+  it("none has neither read nor write access", () => {
+    expect(hasAdminAccess("none")).toBe(false);
+    expect(hasAdminWriteAccess("none")).toBe(false);
   });
 
-  it("returns false for readonly role", () => {
-    expect(hasClientAdminWriteAccess("readonly")).toBe(false);
+  it("write access implies read access", () => {
+    for (const role of ADMIN_ROLE_VALUES) {
+      if (hasAdminWriteAccess(role)) {
+        expect(hasAdminAccess(role)).toBe(true);
+      }
+    }
   });
 
-  it("returns false for none role", () => {
-    expect(hasClientAdminWriteAccess("none")).toBe(false);
+  it("all roles are covered in ADMIN_ROLE_VALUES", () => {
+    expect(ADMIN_ROLE_VALUES).toContain("none");
+    expect(ADMIN_ROLE_VALUES).toContain("readonly");
+    expect(ADMIN_ROLE_VALUES).toContain("admin");
+    expect(ADMIN_ROLE_VALUES.length).toBe(3);
   });
 });
 
@@ -156,7 +161,6 @@ describe("Admin role database operations", () => {
     const { db } = testDb;
     const userId = crypto.randomUUID();
 
-    // Insert without specifying adminRole
     await db.insert(table.user).values({
       id: userId,
       email: `test-default-${userId}@example.com`,
@@ -270,7 +274,6 @@ describe("Last admin protection", () => {
     const { db } = testDb;
     const localUserIds: string[] = [];
 
-    // Create two admins
     const admin1Id = await createUserWithRole(db, "admin");
     localUserIds.push(admin1Id);
     const admin2Id = await createUserWithRole(db, "admin");
@@ -278,12 +281,10 @@ describe("Last admin protection", () => {
 
     expect(await countAdmins(db, localUserIds)).toBe(2);
 
-    // Demote first admin to readonly
     await db.update(table.user).set({ adminRole: "readonly" }).where(eq(table.user.id, admin1Id));
 
     expect(await countAdmins(db, localUserIds)).toBe(1);
 
-    // Second admin should still exist
     const admin2 = await db.query.user.findFirst({
       where: eq(table.user.id, admin2Id),
     });
@@ -294,19 +295,15 @@ describe("Last admin protection", () => {
     const { db } = testDb;
     const localUserIds: string[] = [];
 
-    // Create single admin
     const adminId = await createUserWithRole(db, "admin");
     localUserIds.push(adminId);
 
-    // Get admin count before demotion
     const adminCount = await countAdmins(db, localUserIds);
     expect(adminCount).toBe(1);
 
-    // Simulate the protection check that would happen in updateUserRole
     const shouldBlockDemotion = adminCount <= 1;
     expect(shouldBlockDemotion).toBe(true);
 
-    // Verify admin is still admin (we didn't actually demote)
     const admin = await db.query.user.findFirst({
       where: eq(table.user.id, adminId),
     });
@@ -317,7 +314,6 @@ describe("Last admin protection", () => {
     const { db } = testDb;
     const localUserIds: string[] = [];
 
-    // Create one admin and one readonly
     const adminId = await createUserWithRole(db, "admin");
     localUserIds.push(adminId);
     const readonlyId = await createUserWithRole(db, "readonly");
@@ -326,54 +322,13 @@ describe("Last admin protection", () => {
     const initialAdminCount = await countAdmins(db, localUserIds);
     expect(initialAdminCount).toBe(1);
 
-    // Demoting readonly to none should not affect admin count
     await db.update(table.user).set({ adminRole: "none" }).where(eq(table.user.id, readonlyId));
 
     expect(await countAdmins(db, localUserIds)).toBe(initialAdminCount);
 
-    // Admin should still be admin
     const admin = await db.query.user.findFirst({
       where: eq(table.user.id, adminId),
     });
     expect(admin?.adminRole).toBe("admin");
-  });
-});
-
-// ─── Role hierarchy tests ──────────────────────────────────────────────────
-
-describe("Role hierarchy", () => {
-  const roles: AdminRole[] = ["none", "readonly", "admin"];
-
-  it("admin has both read and write access", () => {
-    const role: AdminRole = "admin";
-    expect(hasClientAdminAccess(role)).toBe(true);
-    expect(hasClientAdminWriteAccess(role)).toBe(true);
-  });
-
-  it("readonly has read access but not write access", () => {
-    const role: AdminRole = "readonly";
-    expect(hasClientAdminAccess(role)).toBe(true);
-    expect(hasClientAdminWriteAccess(role)).toBe(false);
-  });
-
-  it("none has neither read nor write access", () => {
-    const role: AdminRole = "none";
-    expect(hasClientAdminAccess(role)).toBe(false);
-    expect(hasClientAdminWriteAccess(role)).toBe(false);
-  });
-
-  it("write access implies read access", () => {
-    for (const role of roles) {
-      if (hasClientAdminWriteAccess(role)) {
-        expect(hasClientAdminAccess(role)).toBe(true);
-      }
-    }
-  });
-
-  it("all roles are covered in ADMIN_ROLE_VALUES", () => {
-    expect(ADMIN_ROLE_VALUES).toContain("none");
-    expect(ADMIN_ROLE_VALUES).toContain("readonly");
-    expect(ADMIN_ROLE_VALUES).toContain("admin");
-    expect(ADMIN_ROLE_VALUES.length).toBe(3);
   });
 });

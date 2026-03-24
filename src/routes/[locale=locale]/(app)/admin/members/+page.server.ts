@@ -1,18 +1,10 @@
-import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import type { NonEmptyArray } from "$lib/utils";
-import { hasAdminAccess, hasAdminWriteAccess } from "$lib/server/auth/admin";
 
-export const load: PageServerLoad = async (event) => {
-  if (!event.locals.session || !hasAdminAccess(event.locals.user)) {
-    return error(404, "Not found");
-  }
-
-  const canWrite = hasAdminWriteAccess(event.locals.user);
-
+export const load: PageServerLoad = async () => {
   const subQuery = db
     .select({
       id: table.member.id,
@@ -129,6 +121,5 @@ export const load: PageServerLoad = async (event) => {
     membershipTypes,
     years,
     availableMemberships,
-    canWrite,
   };
 };

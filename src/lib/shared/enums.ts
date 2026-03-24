@@ -13,17 +13,27 @@ export const ADMIN_ROLE_VALUES = ["none", "readonly", "admin"] as const;
 export type AdminRole = (typeof ADMIN_ROLE_VALUES)[number];
 
 /**
- * Client-safe helper to check if a user has any admin access (readonly or admin)
+ * Check if a role has any admin access (readonly or admin).
+ * Safe to use in both client and server code.
  */
-export function hasClientAdminAccess(role: AdminRole): boolean {
+export function hasAdminAccess(role: AdminRole): boolean {
   return role === "readonly" || role === "admin";
 }
 
 /**
- * Client-safe helper to check if a user has write access (admin only)
+ * Check if a role has full admin write access (admin only).
+ * Safe to use in both client and server code.
  */
-export function hasClientAdminWriteAccess(role: AdminRole): boolean {
+export function hasAdminWriteAccess(role: AdminRole): boolean {
   return role === "admin";
+}
+
+/**
+ * Check if a role is read-only admin (can view but not modify).
+ * Safe to use in both client and server code.
+ */
+export function isReadOnlyAdmin(role: AdminRole): boolean {
+  return role === "readonly";
 }
 
 /**
