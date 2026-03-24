@@ -120,12 +120,7 @@ async function createCheckoutSessionWithRetry(
  *
  * @see {@link https://docs.stripe.com/checkout/quickstart}
  */
-export async function createSession(
-  userId: string,
-  membershipId: string,
-  locale: Locale,
-  description?: string | null,
-) {
+export async function createSession(userId: string, membershipId: string, locale: Locale, description?: string | null) {
   return logger.startSpan("stripe.checkout.create_session", async (span) => {
     span.setAttribute("user.id", userId);
     span.setAttribute("membership.id", membershipId);
@@ -226,7 +221,7 @@ export async function resumeOrCreateSession(memberId: string, locale: Locale) {
       throw new Error("This membership type is not available for purchase");
     }
 
-    span.setAttribute("user.id", member.userId);
+    if (member.userId) span.setAttribute("user.id", member.userId);
     span.setAttribute("membership.id", member.membershipId);
 
     // Check if membership period is still valid (not expired)
@@ -373,9 +368,7 @@ export async function fulfillSession(sessionId: string) {
         return;
       }
 
-      const eligible = member.userId
-        ? await checkAutoApprovalEligibility(tx, member.userId, member.membership)
-        : false;
+      const eligible = member.userId ? await checkAutoApprovalEligibility(tx, member.userId, member.membership) : false;
       newStatus = eligible ? "active" : "awaiting_approval";
 
       await tx.update(table.member).set({ status: newStatus }).where(eq(table.member.id, member.id));
@@ -399,14 +392,14 @@ export async function fulfillSession(sessionId: string) {
       }
 
       span.setAttribute("member.id", member.id);
-      span.setAttribute("user.id", member.userId);
+      if (member.userId) span.setAttribute("user.id", member.userId);
 
       logger.info("stripe.session.fulfilled", {
         "stripe.session.id": sessionId,
         "member.id": member.id,
-        "user.id": member.userId,
-        "status": newStatus,
-        "auto_approved": eligible,
+        "user.id": member.userId ?? "unknown",
+        status: newStatus,
+        auto_approved: eligible,
       });
     });
 
@@ -515,12 +508,12 @@ export async function cancelSession(sessionId: string) {
       await tx.update(table.member).set({ status: "rejected" }).where(eq(table.member.id, member.id));
 
       span.setAttribute("member.id", member.id);
-      span.setAttribute("user.id", member.userId);
+      if (member.userId) span.setAttribute("user.id", member.userId);
 
       logger.info("stripe.session.cancelled", {
         "stripe.session.id": sessionId,
         "member.id": member.id,
-        "user.id": member.userId,
+        "user.id": member.userId ?? "unknown",
       });
     });
   });
