@@ -1,9 +1,15 @@
+import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { asc, count, sql } from "drizzle-orm";
+import { hasAdminAccess } from "$lib/server/auth/admin";
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async (event) => {
+  if (!event.locals.session || !hasAdminAccess(event.locals.user)) {
+    return error(404, "Not found");
+  }
+
   // Load all membership types with their membership count
   const membershipTypes = await db
     .select({
