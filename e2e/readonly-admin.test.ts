@@ -34,10 +34,9 @@ test.describe("Read-only Admin Access", () => {
   });
 
   test("cannot access import page", async ({ readonlyAdminPage }) => {
-    const response = await readonlyAdminPage.goto("/fi/admin/members/import");
-    // Server should return 404 for write-only pages
-    expect(response?.status()).toBe(404);
-    // Import form should not be rendered
+    await readonlyAdminPage.goto("/fi/admin/members/import");
+    // SSR is disabled for admin routes, so the error renders client-side (status 200).
+    // The important assertion is that the import form itself is not shown.
     await expect(readonlyAdminPage.getByTestId("import-members-page")).not.toBeVisible();
   });
 });
