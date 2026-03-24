@@ -358,6 +358,7 @@ Computer Science Guild`,
   // Admin
   admin: {
     title: "Admin panel",
+    readonlyBanner: "You have read-only access. You cannot modify data.",
 
     memberships: {
       title: "Manage memberships",

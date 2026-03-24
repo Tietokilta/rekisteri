@@ -5,7 +5,7 @@ import * as table from "$lib/server/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { isNonEmpty } from "$lib/utils";
 import { updateUserRoleSchema, mergeUsersSchema } from "./schema";
-import { BLOCKING_MEMBER_STATUSES, type AdminRole } from "$lib/shared/enums";
+import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
 import { auditUserAdminAction } from "$lib/server/audit";
 import { getLL } from "$lib/server/i18n";
 import { hasAdminWriteAccess } from "$lib/server/auth/admin";
@@ -46,10 +46,7 @@ export const updateUserRole = command(updateUserRoleSchema, async ({ userId, rol
     }
   }
 
-  await db
-    .update(table.user)
-    .set({ adminRole: role as AdminRole })
-    .where(eq(table.user.id, userId));
+  await db.update(table.user).set({ adminRole: role }).where(eq(table.user.id, userId));
 
   // Log the action
   await auditUserAdminAction(event, "user.role_change", userId, {

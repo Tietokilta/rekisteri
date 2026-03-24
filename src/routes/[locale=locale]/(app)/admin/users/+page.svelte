@@ -17,7 +17,7 @@
   import { toast } from "svelte-sonner";
   import { invalidateAll } from "$app/navigation";
   import { formatUserName } from "$lib/utils";
-  import type { AdminRole } from "$lib/shared/enums";
+  import { ADMIN_ROLE_VALUES, type AdminRole } from "$lib/shared/enums";
 
   const { data }: PageProps = $props();
 
@@ -155,6 +155,25 @@
 
   // Check if there's only one full admin (use total admins with 'admin' role, not filtered)
   const fullAdminCount = $derived(data.users.filter((u) => u.adminRole === "admin").length);
+
+  function isAdminRole(value: string): value is AdminRole {
+    return (ADMIN_ROLE_VALUES as readonly string[]).includes(value);
+  }
+
+  // Shared handler for role selector changes
+  async function handleRoleChange(userId: string, currentRole: AdminRole, newRole: string) {
+    if (!newRole || newRole === currentRole || !isAdminRole(newRole)) return;
+    if (currentRole === "admin" && newRole !== "admin" && fullAdminCount <= 1) {
+      toast.error($LL.admin.users.cannotDemoteLastAdmin());
+      return;
+    }
+    try {
+      await updateUserRole({ userId, role: newRole });
+      await invalidateAll();
+    } catch {
+      toast.error($LL.error.updateFailed());
+    }
+  }
 
   // Role display labels
   function getRoleLabel(role: AdminRole): string {
@@ -429,22 +448,14 @@
                       <Select.Root
                         type="single"
                         value={user.adminRole}
-                        onValueChange={async (newRole) => {
-                          if (!newRole || newRole === user.adminRole) return;
-                          // Check if we're trying to demote the last admin
-                          if (user.adminRole === "admin" && newRole !== "admin" && fullAdminCount <= 1) {
-                            toast.error($LL.admin.users.cannotDemoteLastAdmin());
-                            return;
-                          }
-                          try {
-                            await updateUserRole({ userId: user.id, role: newRole as AdminRole });
-                            await invalidateAll();
-                          } catch {
-                            toast.error($LL.error.updateFailed());
-                          }
-                        }}
+                        disabled={user.id === data.currentUserId}
+                        onValueChange={(newRole) => handleRoleChange(user.id, user.adminRole, newRole)}
                       >
-                        <Select.Trigger class="w-[140px]" data-testid="role-selector">
+                        <Select.Trigger
+                          class="w-[140px]"
+                          data-testid="role-selector"
+                          title={user.id === data.currentUserId ? $LL.admin.users.cannotChangeOwnRole() : undefined}
+                        >
                           {getRoleLabel(user.adminRole)}
                         </Select.Trigger>
                         <Select.Content>
@@ -537,15 +548,7 @@
                       <Select.Root
                         type="single"
                         value={user.adminRole}
-                        onValueChange={async (newRole) => {
-                          if (!newRole || newRole === user.adminRole) return;
-                          try {
-                            await updateUserRole({ userId: user.id, role: newRole as AdminRole });
-                            await invalidateAll();
-                          } catch {
-                            toast.error($LL.error.updateFailed());
-                          }
-                        }}
+                        onValueChange={(newRole) => handleRoleChange(user.id, user.adminRole, newRole)}
                       >
                         <Select.Trigger class="w-[140px]" data-testid="role-selector">
                           {getRoleLabel(user.adminRole)}

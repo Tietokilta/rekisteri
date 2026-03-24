@@ -30,5 +30,6 @@ export const load: PageServerLoad = async (event) => {
 
   return {
     users,
+    currentUserId: event.locals.user?.id ?? null,
   };
 };

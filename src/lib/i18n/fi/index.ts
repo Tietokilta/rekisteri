@@ -360,6 +360,7 @@ Tietokilta`,
   // Admin
   admin: {
     title: "Hallintapaneeli",
+    readonlyBanner: "Sinulla on vain lukuoikeus. Et voi muokata tietoja.",
 
     memberships: {
       title: "Hallinnoi jäsenyyksiä",

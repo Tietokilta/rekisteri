@@ -217,7 +217,7 @@ test.describe("Admin Bulk Actions", () => {
         firstNames: "Status Test",
         lastName: "User",
         homeMunicipality: "Helsinki",
-        adminRole: "none",
+        adminRole: "none" as const,
       });
 
       // Get a membership

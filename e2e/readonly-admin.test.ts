@@ -34,8 +34,10 @@ test.describe("Read-only Admin Access", () => {
   });
 
   test("cannot access import page", async ({ readonlyAdminPage }) => {
-    await readonlyAdminPage.goto("/fi/admin/members/import");
-    // The import page should not render for readonly admin
+    const response = await readonlyAdminPage.goto("/fi/admin/members/import");
+    // Server should return 404 for write-only pages
+    expect(response?.status()).toBe(404);
+    // Import form should not be rendered
     await expect(readonlyAdminPage.getByTestId("import-members-page")).not.toBeVisible();
   });
 });
