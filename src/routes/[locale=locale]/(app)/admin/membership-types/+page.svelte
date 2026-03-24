@@ -40,11 +40,11 @@
   }
 </script>
 
-<main class="container mx-auto max-w-350 px-4 py-6">
+<main class="container mx-auto max-w-350 px-4 py-6" data-testid="admin-membership-types-page">
   <AdminPageHeader title={$LL.admin.membershipTypes.title()} description={$LL.admin.membershipTypes.description()}>
     {#snippet actions()}
       {#if data.canWrite}
-        <Button onclick={() => (createSheetOpen = true)}>
+        <Button onclick={() => (createSheetOpen = true)} data-testid="create-membership-type-button">
           <Plus class="size-4" />
           {$LL.admin.membershipTypes.createNew()}
         </Button>

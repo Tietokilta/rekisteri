@@ -67,11 +67,11 @@
   const membershipsByYear = $derived(groupByYear(data.memberships));
 </script>
 
-<main class="container mx-auto max-w-350 px-4 py-6">
+<main class="container mx-auto max-w-350 px-4 py-6" data-testid="admin-memberships-page">
   <AdminPageHeader title={$LL.admin.memberships.title()} description={$LL.admin.memberships.description()}>
     {#snippet actions()}
       {#if data.canWrite}
-        <Button onclick={() => (createSheetOpen = true)}>
+        <Button onclick={() => (createSheetOpen = true)} data-testid="create-membership-button">
           <Plus class="size-4" />
           {$LL.membership.createNew()}
         </Button>

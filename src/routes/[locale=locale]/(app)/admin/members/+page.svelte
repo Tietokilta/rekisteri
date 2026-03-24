@@ -15,15 +15,19 @@
   let createSheetOpen = $state(false);
 </script>
 
-<main class="container mx-auto max-w-[1400px] px-4 py-6">
+<main class="container mx-auto max-w-[1400px] px-4 py-6" data-testid="admin-members-page">
   <AdminPageHeader title={$LL.admin.members.title()} description={$LL.admin.members.description()}>
     {#snippet actions()}
       {#if data.canWrite}
-        <Button onclick={() => (createSheetOpen = true)}>
+        <Button onclick={() => (createSheetOpen = true)} data-testid="add-member-button">
           <Plus class="size-4" />
           {$LL.admin.members.addMember()}
         </Button>
-        <Button href={route("/[locale=locale]/admin/members/import", { locale: $locale })} variant="outline">
+        <Button
+          href={route("/[locale=locale]/admin/members/import", { locale: $locale })}
+          variant="outline"
+          data-testid="import-members-button"
+        >
           <Upload />
           {$LL.admin.import.title()}
         </Button>

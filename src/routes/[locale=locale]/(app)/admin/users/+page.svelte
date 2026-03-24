@@ -181,7 +181,7 @@
   }
 </script>
 
-<main class="container mx-auto max-w-[1400px] px-4 py-6">
+<main class="container mx-auto max-w-[1400px] px-4 py-6" data-testid="admin-users-page">
   <AdminPageHeader title={$LL.admin.users.title()} description={$LL.admin.users.description()} />
 
   <!-- Merge Users Modal/Card (only for users with write access) -->
@@ -378,7 +378,7 @@
 
   <!-- Admins Section -->
   {#if filteredAdmins.length > 0}
-    <div class="mb-8">
+    <div class="mb-8" data-testid="admins-section">
       <h2 class="mb-4 text-xl font-semibold">{$LL.admin.users.adminsSection()}</h2>
       <div class="rounded-md border">
         <Table.Root>
@@ -390,7 +390,9 @@
               <Table.Head class="w-[120px]">{$LL.admin.users.table.role()}</Table.Head>
               <Table.Head class="w-[200px]">{$LL.admin.users.table.lastActive()}</Table.Head>
               {#if data.canWrite}
-                <Table.Head class="w-[220px] text-right">{$LL.admin.users.table.actions()}</Table.Head>
+                <Table.Head class="w-[220px] text-right" data-testid="actions-column"
+                  >{$LL.admin.users.table.actions()}</Table.Head
+                >
               {/if}
             </Table.Row>
           </Table.Header>
@@ -442,7 +444,7 @@
                           }
                         }}
                       >
-                        <Select.Trigger class="w-[140px]">
+                        <Select.Trigger class="w-[140px]" data-testid="role-selector">
                           {getRoleLabel(user.adminRole)}
                         </Select.Trigger>
                         <Select.Content>
@@ -545,7 +547,7 @@
                           }
                         }}
                       >
-                        <Select.Trigger class="w-[140px]">
+                        <Select.Trigger class="w-[140px]" data-testid="role-selector">
                           {getRoleLabel(user.adminRole)}
                         </Select.Trigger>
                         <Select.Content>

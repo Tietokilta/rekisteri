@@ -481,7 +481,7 @@
   }
 </script>
 
-<main class="container mx-auto max-w-[1400px] px-4 py-6">
+<main class="container mx-auto max-w-[1400px] px-4 py-6" data-testid="import-members-page">
   <AdminPageHeader title={$LL.admin.import.title()} />
 
   <div class="flex w-full flex-col gap-8 lg:flex-row">
