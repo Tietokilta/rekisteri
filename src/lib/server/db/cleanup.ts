@@ -105,6 +105,29 @@ export async function cleanupOldAuditLogs(): Promise<void> {
   }
 }
 
+/**
+ * Clean up old email logs (180-day retention).
+ * Email logs are used for delivery tracking and reminder deduplication.
+ */
+export async function cleanupOldEmailLogs(retentionDays: number = 180): Promise<void> {
+  try {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+    const deletedLogs = await db
+      .delete(table.emailLog)
+      .where(lt(table.emailLog.createdAt, cutoffDate))
+      .returning({ id: table.emailLog.id });
+
+    if (deletedLogs.length > 0) {
+      console.log(`[DB Cleanup] Removed ${deletedLogs.length} email logs older than ${retentionDays} days`);
+    }
+  } catch (error) {
+    console.error("[DB Cleanup] Error during email log cleanup:", error);
+    throw error;
+  }
+}
+
 const YEARS_IN_MS = 1000 * 60 * 60 * 24 * 365;
 
 /**

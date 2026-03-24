@@ -204,6 +204,51 @@ Thank you for continuing as a member!
 Best regards,
 Computer Science Guild`,
     },
+    membershipRejected: {
+      subject: "Your membership application",
+      body: `Hi {firstName}!
+
+Unfortunately, your membership application ({membershipName}) was not approved.
+
+If you have questions about this decision, please contact the board.
+
+Best regards,
+Computer Science Guild`,
+    },
+    membershipResigned: {
+      subject: "Membership termination notice",
+      body: `Hi {firstName}!
+
+Your membership ({membershipName}) has ended.
+{reason}
+If you wish to rejoin, you can purchase a new membership from the registry.
+
+Best regards,
+Computer Science Guild`,
+    },
+    membershipReactivated: {
+      subject: "Your membership has been reactivated!",
+      body: `Hi {firstName}!
+
+Your membership ({membershipName}) has been reactivated.
+
+You can once again participate in guild activities and enjoy member benefits.
+
+Best regards,
+Computer Science Guild`,
+    },
+    paymentReminder: {
+      subject: "Reminder: Membership fee due date approaching",
+      body: `Hi {firstName}!
+
+Your membership fee ({membershipName}) is due on {dueDate}.
+
+You can pay your membership fee at:
+{paymentLink}
+
+Best regards,
+Computer Science Guild`,
+    },
   },
 
   // User
@@ -327,6 +372,8 @@ Computer Science Guild`,
     noMembership: "No membership",
     requiresStudentVerification: "Requires student verification",
     isStudent: "I am a student in Aalto University",
+    paymentDueDate: "Membership fee due date",
+    paymentDueDateDescription: "Due date set by annual meeting (§7). Reminders are sent automatically.",
     description: "Motivation for applying for membership",
     descriptionPlaceholder: "Describe why you are applying for membership...",
     descriptionRequired: "Motivation for applying for membership is required",

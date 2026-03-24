@@ -1,21 +1,24 @@
 import type { TranslationFunctions } from "$lib/i18n/i18n-types";
 
-export type EmailType = "otp" | "payment_success" | "membership_approved" | "membership_renewed";
+export type EmailType =
+  | "otp"
+  | "payment_success"
+  | "membership_approved"
+  | "membership_renewed"
+  | "membership_rejected"
+  | "membership_resigned"
+  | "membership_reactivated"
+  | "payment_reminder";
 
 export interface EmailContent {
   subject: string;
   text: string;
-  html?: string; // Optional for future
+  html?: string;
 }
 
 export interface EmailTemplate<TMetadata = Record<string, unknown>> {
   type: EmailType;
-
-  // Generate email content
   render(locale: "fi" | "en", metadata: TMetadata, LL: TranslationFunctions): EmailContent;
-
-  // For future: batching, deduplication config
-  // (keep interface extensible but don't implement yet)
 }
 
 // Specific metadata types
@@ -34,4 +37,22 @@ export interface MembershipApprovedMetadata {
   membershipName: string;
   startDate: Date;
   endDate: Date;
+}
+
+export interface MembershipResignedMetadata {
+  firstName: string;
+  membershipName: string;
+  reason?: string;
+}
+
+export interface MembershipReactivatedMetadata {
+  firstName: string;
+  membershipName: string;
+}
+
+export interface PaymentReminderMetadata {
+  firstName: string;
+  membershipName: string;
+  dueDate: Date;
+  paymentLink: string;
 }

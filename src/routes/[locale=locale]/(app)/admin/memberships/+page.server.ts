@@ -25,6 +25,7 @@ export const load: PageServerLoad = async (event) => {
       startTime: table.membership.startTime,
       endTime: table.membership.endTime,
       requiresStudentVerification: table.membership.requiresStudentVerification,
+      paymentDueDate: table.membership.paymentDueDate,
       memberCount: count(table.member.userId),
     })
     .from(table.membership)
@@ -45,6 +46,7 @@ export const load: PageServerLoad = async (event) => {
       startTime: formatDate(new Date(currentYear, 7, 1, 12)),
       endTime: formatDate(new Date(currentYear + 1, 6, 31, 12)),
       requiresStudentVerification: false,
+      paymentDueDate: "",
     },
   };
 };

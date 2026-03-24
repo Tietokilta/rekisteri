@@ -127,6 +127,7 @@ export const membership = pgTable("membership", {
   startTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
   endTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
   requiresStudentVerification: boolean().notNull().default(false),
+  paymentDueDate: timestamp({ withTimezone: true, mode: "date" }), // Set by annual meeting (§7), null = no reminders
 });
 
 export const member = pgTable(
@@ -206,6 +207,26 @@ export type Session = typeof session.$inferSelect;
 export type User = typeof user.$inferSelect;
 
 export type AuditLog = typeof auditLog.$inferSelect;
+
+export const emailLog = pgTable(
+  "email_log",
+  {
+    id: text().primaryKey(),
+    userId: text().references(() => user.id),
+    emailType: text().notNull(),
+    relatedMemberId: text().references(() => member.id),
+    status: text().notNull(), // 'sent' | 'failed'
+    mailgunMessageId: text(),
+    sentAt: timestamp({ withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    index("idx_email_log_user_id").on(table.userId),
+    index("idx_email_log_type_member").on(table.emailType, table.relatedMemberId),
+  ],
+);
+
+export type EmailLog = typeof emailLog.$inferSelect;
 
 export type Passkey = typeof passkey.$inferSelect;
 

@@ -334,6 +334,8 @@ export async function fulfillSession(sessionId: string) {
             endDate: memberWithDetails.membership.endTime,
           },
           locale: userLocale,
+          userId: memberWithDetails.user.id,
+          relatedMemberId: memberId,
         });
       } else if (newStatus === "awaiting_approval" && session.amount_total && session.currency) {
         // Requires board approval: send payment success email
@@ -346,6 +348,8 @@ export async function fulfillSession(sessionId: string) {
             currency: session.currency,
           },
           locale: userLocale,
+          userId: memberWithDetails.user.id,
+          relatedMemberId: memberId,
         });
       }
     } catch (emailError) {

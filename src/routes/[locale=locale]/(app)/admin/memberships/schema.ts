@@ -16,6 +16,12 @@ export const createMembershipSchema = v.pipeAsync(
     // For checkbox inputs in remote forms, use optional boolean with default
     // since unchecked checkboxes don't submit values
     requiresStudentVerification: v.optional(v.boolean(), false),
+    paymentDueDate: v.optional(
+      v.pipe(
+        v.string(),
+        v.transform((s) => s.trim() || undefined),
+      ),
+    ),
   }),
   v.checkAsync(async (input) => {
     // If no stripePriceId provided (legacy membership), skip validation
@@ -47,6 +53,12 @@ export const updateMembershipSchema = v.pipeAsync(
       ),
     ),
     requiresStudentVerification: v.optional(v.boolean(), false),
+    paymentDueDate: v.optional(
+      v.pipe(
+        v.string(),
+        v.transform((s) => s.trim() || undefined),
+      ),
+    ),
   }),
   v.checkAsync(async (input) => {
     // If no stripePriceId provided (legacy membership), skip validation
