@@ -120,12 +120,7 @@ async function createCheckoutSessionWithRetry(
  *
  * @see {@link https://docs.stripe.com/checkout/quickstart}
  */
-export async function createSession(
-  userId: string,
-  membershipId: string,
-  locale: Locale,
-  description?: string | null,
-) {
+export async function createSession(userId: string, membershipId: string, locale: Locale, description?: string | null) {
   return logger.startSpan("stripe.checkout.create_session", async (span) => {
     span.setAttribute("user.id", userId);
     span.setAttribute("membership.id", membershipId);
@@ -378,9 +373,7 @@ export async function fulfillSession(sessionId: string) {
         return;
       }
 
-      const eligible = member.userId
-        ? await checkAutoApprovalEligibility(tx, member.userId, member.membership)
-        : false;
+      const eligible = member.userId ? await checkAutoApprovalEligibility(tx, member.userId, member.membership) : false;
       newStatus = eligible ? "active" : "awaiting_approval";
 
       await tx.update(table.member).set({ status: newStatus }).where(eq(table.member.id, member.id));

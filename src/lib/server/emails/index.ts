@@ -52,7 +52,7 @@ export async function sendMemberEmail<T extends EmailType>({
   const LL = i18nObject(locale);
 
   // Render content - TypeScript now knows metadata matches template's expected type
-  const { subject, text, html } = template.render(locale, metadata, LL);
+  const { subject, text, html: _html } = template.render(locale, metadata, LL);
 
   // Send immediately
   await sendEmail({

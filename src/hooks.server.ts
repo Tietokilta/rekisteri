@@ -45,7 +45,7 @@ const handleAuth: Handle = async ({ event, resolve }) => {
   // Add user context to trace
   if (user && event.tracing?.root) {
     event.tracing.root.setAttribute("user.id", user.id);
-    event.tracing.root.setAttribute("user.is_admin", user.isAdmin);
+    event.tracing.root.setAttribute("user.admin_role", user.adminRole);
   }
 
   return resolve(event);
