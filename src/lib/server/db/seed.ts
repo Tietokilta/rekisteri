@@ -227,7 +227,7 @@ try {
       columns: {
         homeMunicipality: f.state(),
         preferredLanguage: f.default({ defaultValue: "unspecified" }),
-        isAdmin: f.default({ defaultValue: false }),
+        adminRole: f.default({ defaultValue: "none" }),
         stripeCustomerId: f.default({ defaultValue: null }),
       },
     },

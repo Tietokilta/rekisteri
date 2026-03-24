@@ -399,7 +399,7 @@
             header: "",
             cell: ({ row }: { row: TanStackRow<MemberRow> }) => row.original.id,
             enableSorting: false,
-          } as ColumnDef<MemberRow>,
+          } satisfies ColumnDef<MemberRow>,
         ]
       : []),
     {

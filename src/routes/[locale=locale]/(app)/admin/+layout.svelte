@@ -9,8 +9,9 @@
 
 {#if !data.canWrite}
   <div class="container mx-auto max-w-[1400px] px-4 pt-4">
-    <Alert.Root>
+    <Alert.Root variant="default">
       <Eye class="size-4" />
+      <Alert.Title class="sr-only">{$LL.admin.users.table.roleReadonly()}</Alert.Title>
       <Alert.Description>{$LL.admin.readonlyBanner()}</Alert.Description>
     </Alert.Root>
   </div>
