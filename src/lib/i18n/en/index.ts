@@ -626,9 +626,6 @@ Computer Science Guild`,
 
       // Server errors
       userNotFound: "User not found",
-      alreadyAdmin: "User is already an admin",
-      notAdmin: "User is not an admin",
-      cannotDemoteSelf: "You cannot demote yourself",
       cannotDemoteLastAdmin: "Cannot demote the last admin",
       cannotChangeOwnRole: "You cannot change your own role",
       cannotMergeSelf: "Cannot merge a user with themselves",

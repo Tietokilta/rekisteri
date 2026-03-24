@@ -34,19 +34,26 @@ export const updateUserRole = command(updateUserRoleSchema, async ({ userId, rol
 
   const previousRole = user.adminRole;
 
-  // If changing from admin to a non-admin role, check we're not removing the last admin
-  if (previousRole === "admin" && role !== "admin") {
-    const adminCount = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(table.user)
-      .where(eq(table.user.adminRole, "admin"));
-
-    if (!isNonEmpty(adminCount) || adminCount[0].count <= 1) {
-      error(400, LL.admin.users.cannotDemoteLastAdmin());
-    }
+  // No-op if role is unchanged
+  if (previousRole === role) {
+    return { success: true, message: "No change" };
   }
 
-  await db.update(table.user).set({ adminRole: role }).where(eq(table.user.id, userId));
+  await db.transaction(async (tx) => {
+    // If demoting from admin, check we're not removing the last admin
+    if (previousRole === "admin" && role !== "admin") {
+      const adminCount = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(table.user)
+        .where(eq(table.user.adminRole, "admin"));
+
+      if (!isNonEmpty(adminCount) || adminCount[0].count <= 1) {
+        error(400, LL.admin.users.cannotDemoteLastAdmin());
+      }
+    }
+
+    await tx.update(table.user).set({ adminRole: role }).where(eq(table.user.id, userId));
+  });
 
   // Log the action
   await auditUserAdminAction(event, "user.role_change", userId, {

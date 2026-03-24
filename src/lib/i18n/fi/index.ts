@@ -629,9 +629,6 @@ Tietokilta`,
 
       // Server errors
       userNotFound: "Käyttäjää ei löytynyt",
-      alreadyAdmin: "Käyttäjä on jo ylläpitäjä",
-      notAdmin: "Käyttäjä ei ole ylläpitäjä",
-      cannotDemoteSelf: "Et voi poistaa omaa ylläpitäjyyttäsi",
       cannotDemoteLastAdmin: "Viimeisen ylläpitäjän ylläpitäjyyttä ei voi poistaa",
       cannotChangeOwnRole: "Et voi muuttaa omaa rooliasi",
       cannotMergeSelf: "Käyttäjää ei voi yhdistää itsensä kanssa",
