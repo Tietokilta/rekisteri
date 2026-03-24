@@ -4,6 +4,39 @@
  */
 
 /**
+ * Available admin role values.
+ * - none: Regular user with no admin access
+ * - readonly: Can view all admin pages but cannot make changes
+ * - admin: Full admin access with read/write permissions
+ */
+export const ADMIN_ROLE_VALUES = ["none", "readonly", "admin"] as const;
+export type AdminRole = (typeof ADMIN_ROLE_VALUES)[number];
+
+/**
+ * Check if a role has any admin access (readonly or admin).
+ * Safe to use in both client and server code.
+ */
+export function hasAdminAccess(role: AdminRole): boolean {
+  return role === "readonly" || role === "admin";
+}
+
+/**
+ * Check if a role has full admin write access (admin only).
+ * Safe to use in both client and server code.
+ */
+export function hasAdminWriteAccess(role: AdminRole): boolean {
+  return role === "admin";
+}
+
+/**
+ * Check if a role is read-only admin (can view but not modify).
+ * Safe to use in both client and server code.
+ */
+export function isReadOnlyAdmin(role: AdminRole): boolean {
+  return role === "readonly";
+}
+
+/**
  * Available preferred language options for users
  */
 export const PREFERRED_LANGUAGE_VALUES = ["unspecified", "finnish", "english"] as const;

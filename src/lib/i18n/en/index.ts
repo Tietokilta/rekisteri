@@ -358,6 +358,7 @@ Computer Science Guild`,
   // Admin
   admin: {
     title: "Admin panel",
+    readonlyBanner: "You have read-only access. You cannot modify data.",
 
     memberships: {
       title: "Manage memberships",
@@ -618,14 +619,15 @@ Computer Science Guild`,
         noUsers: "No users",
         noResults: "No search results",
         showing: "Showing {current} of {total} users",
+        roleAdmin: "Admin",
+        roleReadonly: "Read-only",
+        roleNone: "User",
       },
 
       // Server errors
       userNotFound: "User not found",
-      alreadyAdmin: "User is already an admin",
-      notAdmin: "User is not an admin",
-      cannotDemoteSelf: "You cannot demote yourself",
       cannotDemoteLastAdmin: "Cannot demote the last admin",
+      cannotChangeOwnRole: "You cannot change your own role",
       cannotMergeSelf: "Cannot merge a user with themselves",
       primaryUserNotFound: "Primary user not found",
       secondaryUserNotFound: "Secondary user not found",

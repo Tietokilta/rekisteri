@@ -360,6 +360,7 @@ Tietokilta`,
   // Admin
   admin: {
     title: "Hallintapaneeli",
+    readonlyBanner: "Sinulla on vain lukuoikeus. Et voi muokata tietoja.",
 
     memberships: {
       title: "Hallinnoi jäsenyyksiä",
@@ -620,15 +621,16 @@ Tietokilta`,
         merge: "Yhdistä käyttäjät",
         noUsers: "Ei käyttäjiä",
         noResults: "Ei hakutuloksia",
-        showing: "Näytetään {current} / {total} käyttäjää",
+        showing: "Näytetään {current:number} / {total:number} käyttäjää",
+        roleAdmin: "Ylläpitäjä",
+        roleReadonly: "Lukuoikeus",
+        roleNone: "Käyttäjä",
       },
 
       // Server errors
       userNotFound: "Käyttäjää ei löytynyt",
-      alreadyAdmin: "Käyttäjä on jo ylläpitäjä",
-      notAdmin: "Käyttäjä ei ole ylläpitäjä",
-      cannotDemoteSelf: "Et voi poistaa omaa ylläpitäjyyttäsi",
       cannotDemoteLastAdmin: "Viimeisen ylläpitäjän ylläpitäjyyttä ei voi poistaa",
+      cannotChangeOwnRole: "Et voi muuttaa omaa rooliasi",
       cannotMergeSelf: "Käyttäjää ei voi yhdistää itsensä kanssa",
       primaryUserNotFound: "Ensisijaista käyttäjää ei löytynyt",
       secondaryUserNotFound: "Toissijaista käyttäjää ei löytynyt",

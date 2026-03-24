@@ -71,7 +71,7 @@ export const test = dbTest.extend<IsolatedUserFixtures>({
       homeMunicipality: "Helsinki",
       preferredLanguage: "unspecified",
       isAllowedEmails: false,
-      isAdmin: false,
+      adminRole: "none",
     });
 
     await use({ id: userId, email });

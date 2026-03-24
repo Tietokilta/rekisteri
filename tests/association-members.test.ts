@@ -70,7 +70,7 @@ describe("member_user_or_org CHECK constraint", () => {
     await testDb.db.insert(table.user).values({
       id: userId,
       email: `person-${userId}@example.com`,
-      isAdmin: false,
+      adminRole: "none",
     });
 
     await testDb.db.insert(table.member).values({
@@ -115,7 +115,7 @@ describe("member_user_or_org CHECK constraint", () => {
     await testDb.db.insert(table.user).values({
       id: userId,
       email: `both-${userId}@example.com`,
-      isAdmin: false,
+      adminRole: "none",
     });
 
     await expect(

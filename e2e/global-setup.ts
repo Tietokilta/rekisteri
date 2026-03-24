@@ -84,15 +84,79 @@ async function globalSetup(_config: FullConfig) {
   const userInfo = {
     id: adminUser.id,
     email: adminUser.email,
-    isAdmin: adminUser.isAdmin,
+    adminRole: adminUser.adminRole,
   };
   const fs = await import("node:fs");
   fs.writeFileSync("e2e/.auth/admin-user.json", JSON.stringify(userInfo, null, 2));
 
+  // Create readonly admin user and session
+  const readonlyEmail = "readonly@tietokilta.fi";
+  let readonlyUser = await db.query.user.findFirst({
+    where: eq(table.user.email, readonlyEmail),
+  });
+
+  if (!readonlyUser) {
+    const [newUser] = await db
+      .insert(table.user)
+      .values({
+        id: crypto.randomUUID(),
+        email: readonlyEmail,
+        adminRole: "readonly",
+        firstNames: "Read",
+        lastName: "Only",
+      })
+      .returning();
+    if (!newUser) {
+      throw new Error("Failed to create readonly admin user");
+    }
+    readonlyUser = newUser;
+    console.log("✓ Created readonly admin user");
+  } else if (readonlyUser.adminRole !== "readonly") {
+    // Ensure the user has readonly role
+    await db.update(table.user).set({ adminRole: "readonly" }).where(eq(table.user.id, readonlyUser.id));
+    readonlyUser = { ...readonlyUser, adminRole: "readonly" as const };
+  }
+
+  // Create session for readonly admin
+  const readonlySessionToken = generateSessionToken();
+  const readonlySessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(readonlySessionToken)));
+  const readonlyExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
+
+  await db.insert(table.session).values({
+    id: readonlySessionId,
+    userId: readonlyUser.id,
+    expiresAt: readonlyExpiresAt,
+  });
+
+  const readonlyContext = await browser.newContext();
+  await readonlyContext.addCookies([
+    {
+      name: "auth-session",
+      value: readonlySessionToken,
+      domain: "localhost",
+      path: "/",
+      expires: Math.floor(readonlyExpiresAt.getTime() / 1000),
+      httpOnly: false,
+      secure: false,
+      sameSite: "Lax",
+    },
+  ]);
+
+  await readonlyContext.storageState({ path: "e2e/.auth/readonly.json" });
+
+  // Write readonly user info
+  const readonlyUserInfo = {
+    id: readonlyUser.id,
+    email: readonlyUser.email,
+    adminRole: readonlyUser.adminRole,
+  };
+  fs.writeFileSync("e2e/.auth/readonly-user.json", JSON.stringify(readonlyUserInfo, null, 2));
+
+  await readonlyContext.close();
   await browser.close();
   await client.end();
 
-  console.log("✓ Created authenticated admin session for tests");
+  console.log("✓ Created authenticated admin and readonly admin sessions for tests");
 }
 
 function generateSessionToken() {

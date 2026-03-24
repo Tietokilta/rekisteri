@@ -13,7 +13,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import * as v from "valibot";
-import { MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
+import { ADMIN_ROLE_VALUES, MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 
 export type LocalizedString = { fi: string; en: string };
@@ -26,6 +26,10 @@ const timestamps = {
     .$onUpdateFn(() => new Date()),
 };
 
+export const adminRoleEnum = pgEnum("admin_role", ADMIN_ROLE_VALUES);
+
+export const adminRoleEnumSchema = v.picklist(ADMIN_ROLE_VALUES);
+
 export const preferredLanguageEnum = pgEnum("preferred_language", PREFERRED_LANGUAGE_VALUES);
 
 export const preferredLanguageEnumSchema = v.picklist(PREFERRED_LANGUAGE_VALUES);
@@ -37,7 +41,7 @@ export const memberStatusEnumSchema = v.picklist(MEMBER_STATUS_VALUES);
 export const user = pgTable("user", {
   id: text().primaryKey(),
   email: text().notNull().unique(),
-  isAdmin: boolean().notNull().default(false),
+  adminRole: adminRoleEnum().notNull().default("none"),
   firstNames: text(),
   lastName: text(),
   homeMunicipality: text(),
@@ -188,6 +192,8 @@ export type Member = typeof member.$inferSelect;
 export type MemberStatus = v.InferOutput<typeof memberStatusEnumSchema>;
 
 export type PreferredLanguage = v.InferOutput<typeof preferredLanguageEnumSchema>;
+
+export type AdminRole = v.InferOutput<typeof adminRoleEnumSchema>;
 
 export type MembershipType = typeof membershipType.$inferSelect;
 

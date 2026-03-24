@@ -23,8 +23,7 @@ export type AuditAction =
   | "member.bulk_reactivate"
   | "membership.create"
   | "membership.delete"
-  | "user.promote_to_admin"
-  | "user.demote_from_admin"
+  | "user.role_change"
   | "user.merge"
   | "user.change_primary_email"
   | "user.update_profile";
@@ -208,7 +207,7 @@ export async function auditPasskeyDeleted(
  */
 export async function auditUserAdminAction(
   event: RequestEvent,
-  action: Extract<AuditAction, "user.promote_to_admin" | "user.demote_from_admin" | "user.merge">,
+  action: Extract<AuditAction, "user.role_change" | "user.merge">,
   targetUserId: string,
   metadata?: Record<string, unknown>,
 ): Promise<void> {

@@ -36,7 +36,7 @@ async function createUser(db: TestDatabase["db"], opts: { id: string; email: str
   await db.insert(table.user).values({
     id: opts.id,
     email: opts.email,
-    isAdmin: false,
+    adminRole: "none",
   });
 }
 

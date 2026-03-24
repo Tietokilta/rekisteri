@@ -63,7 +63,9 @@ export const getAuthenticationOptions = command(
  */
 export const verifyAuthentication = command(
   v.any(), // AuthenticationResponseJSON from SimpleWebAuthn
-  async (response): Promise<{ success: boolean; user: { id: string; email: string; isAdmin: boolean } }> => {
+  async (
+    response,
+  ): Promise<{ success: boolean; user: { id: string; email: string; adminRole: "none" | "readonly" | "admin" } }> => {
     const { cookies, request, getClientAddress, locals } = getRequestEvent();
     const LL = getLL(locals.locale);
 
@@ -125,7 +127,7 @@ export const verifyAuthentication = command(
         user: {
           id: user.id,
           email: user.email,
-          isAdmin: user.isAdmin,
+          adminRole: user.adminRole,
         },
       };
     } catch (err) {

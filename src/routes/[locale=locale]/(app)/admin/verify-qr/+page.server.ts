@@ -1,10 +1,10 @@
-import { redirect } from "@sveltejs/kit";
+import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { route } from "$lib/ROUTES";
+import { hasAdminAccess } from "$lib/server/auth/admin";
 
 export const load: PageServerLoad = async (event) => {
-  if (!event.locals.user?.isAdmin) {
-    return redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
+  if (!event.locals.session || !hasAdminAccess(event.locals.user)) {
+    return error(404, "Not found");
   }
 
   return {};

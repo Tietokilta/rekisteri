@@ -1,19 +1,21 @@
 import { error } from "@sveltejs/kit";
-import { form, getRequestEvent, command } from "$app/server";
+import { getRequestEvent, command } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { isNonEmpty } from "$lib/utils";
-import { promoteToAdminSchema, demoteFromAdminSchema, mergeUsersSchema } from "./schema";
+import { updateUserRoleSchema, mergeUsersSchema } from "./schema";
 import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
 import { auditUserAdminAction } from "$lib/server/audit";
 import { getLL } from "$lib/server/i18n";
+import { hasAdminWriteAccess } from "$lib/server/auth/admin";
 
-export const promoteToAdmin = form(promoteToAdminSchema, async ({ userId }) => {
+export const updateUserRole = command(updateUserRoleSchema, async ({ userId, role }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
+  const currentUser = event.locals.user;
 
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
+  if (!event.locals.session || !currentUser || !hasAdminWriteAccess(currentUser)) {
     error(404, LL.error.resourceNotFound());
   }
 
@@ -25,63 +27,42 @@ export const promoteToAdmin = form(promoteToAdminSchema, async ({ userId }) => {
     error(404, LL.admin.users.userNotFound());
   }
 
-  if (user.isAdmin) {
-    error(400, LL.admin.users.alreadyAdmin());
+  // Prevent changing your own role
+  if (user.id === currentUser.id) {
+    error(400, LL.admin.users.cannotChangeOwnRole());
   }
 
-  await db.update(table.user).set({ isAdmin: true }).where(eq(table.user.id, userId));
+  const previousRole = user.adminRole;
+
+  // No-op if role is unchanged
+  if (previousRole === role) {
+    return { success: true, message: "No change" };
+  }
+
+  await db.transaction(async (tx) => {
+    // If demoting from admin, check we're not removing the last admin
+    if (previousRole === "admin" && role !== "admin") {
+      const adminCount = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(table.user)
+        .where(eq(table.user.adminRole, "admin"));
+
+      if (!isNonEmpty(adminCount) || adminCount[0].count <= 1) {
+        error(400, LL.admin.users.cannotDemoteLastAdmin());
+      }
+    }
+
+    await tx.update(table.user).set({ adminRole: role }).where(eq(table.user.id, userId));
+  });
 
   // Log the action
-  await auditUserAdminAction(event, "user.promote_to_admin", userId, {
-    promotedUserEmail: user.email,
+  await auditUserAdminAction(event, "user.role_change", userId, {
+    userEmail: user.email,
+    previousRole,
+    newRole: role,
   });
 
-  return { success: true, message: "User promoted to admin successfully" };
-});
-
-export const demoteFromAdmin = form(demoteFromAdminSchema, async ({ userId }) => {
-  const event = getRequestEvent();
-  const LL = getLL(event.locals.locale);
-
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
-    error(404, LL.error.resourceNotFound());
-  }
-
-  const user = await db.query.user.findFirst({
-    where: eq(table.user.id, userId),
-  });
-
-  if (!user) {
-    error(404, LL.admin.users.userNotFound());
-  }
-
-  if (!user.isAdmin) {
-    error(400, LL.admin.users.notAdmin());
-  }
-
-  // Prevent demoting yourself
-  if (user.id === event.locals.user.id) {
-    error(400, LL.admin.users.cannotDemoteSelf());
-  }
-
-  // Count total admins to prevent removing the last one
-  const adminCount = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(table.user)
-    .where(eq(table.user.isAdmin, true));
-
-  if (!isNonEmpty(adminCount) || adminCount[0].count <= 1) {
-    error(400, LL.admin.users.cannotDemoteLastAdmin());
-  }
-
-  await db.update(table.user).set({ isAdmin: false }).where(eq(table.user.id, userId));
-
-  // Log the action
-  await auditUserAdminAction(event, "user.demote_from_admin", userId, {
-    demotedUserEmail: user.email,
-  });
-
-  return { success: true, message: "User demoted from admin successfully" };
+  return { success: true, message: "User role updated successfully" };
 });
 
 export const mergeUsers = command(
@@ -89,13 +70,11 @@ export const mergeUsers = command(
   async ({ primaryUserId, secondaryUserId, confirmPrimaryEmail, confirmSecondaryEmail }) => {
     const event = getRequestEvent();
     const LL = getLL(event.locals.locale);
+    const adminUser = event.locals.user;
 
-    if (!event.locals.session || !event.locals.user?.isAdmin) {
+    if (!event.locals.session || !adminUser || !hasAdminWriteAccess(adminUser)) {
       error(404, LL.error.resourceNotFound());
     }
-
-    // Type guard: we know event.locals.user is not null after the check above
-    const adminUser = event.locals.user;
 
     // Validate that users are not the same
     if (primaryUserId === secondaryUserId) {

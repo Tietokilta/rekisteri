@@ -3,9 +3,10 @@ import type { PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { asc, count, desc, sql } from "drizzle-orm";
+import { hasAdminAccess } from "$lib/server/auth/admin";
 
 export const load: PageServerLoad = async (event) => {
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
+  if (!event.locals.session || !hasAdminAccess(event.locals.user)) {
     return error(404, "Not found");
   }
 

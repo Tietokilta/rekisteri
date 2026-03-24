@@ -67,13 +67,15 @@
   const membershipsByYear = $derived(groupByYear(data.memberships));
 </script>
 
-<main class="container mx-auto max-w-350 px-4 py-6">
+<main class="container mx-auto max-w-350 px-4 py-6" data-testid="admin-memberships-page">
   <AdminPageHeader title={$LL.admin.memberships.title()} description={$LL.admin.memberships.description()}>
     {#snippet actions()}
-      <Button onclick={() => (createSheetOpen = true)}>
-        <Plus class="size-4" />
-        {$LL.membership.createNew()}
-      </Button>
+      {#if data.canWrite}
+        <Button onclick={() => (createSheetOpen = true)} data-testid="create-membership-button">
+          <Plus class="size-4" />
+          {$LL.membership.createNew()}
+        </Button>
+      {/if}
     {/snippet}
   </AdminPageHeader>
 
@@ -88,12 +90,14 @@
         </Empty.Media>
       </Empty.Header>
       <Empty.Title>{$LL.membership.noMembership()}</Empty.Title>
-      <Empty.Content>
-        <Button onclick={() => (createSheetOpen = true)}>
-          <Plus class="size-4" />
-          {$LL.membership.createNew()}
-        </Button>
-      </Empty.Content>
+      {#if data.canWrite}
+        <Empty.Content>
+          <Button onclick={() => (createSheetOpen = true)}>
+            <Plus class="size-4" />
+            {$LL.membership.createNew()}
+          </Button>
+        </Empty.Content>
+      {/if}
     </Empty.Root>
   {:else}
     <!-- Memberships grouped by year -->
@@ -108,8 +112,11 @@
                   <button
                     type="button"
                     {...props}
-                    class="{props.class} transition-colors hover:bg-accent/50"
-                    onclick={() => openEditSheet(membership)}
+                    class="{props.class} {data.canWrite
+                      ? 'cursor-pointer transition-colors hover:bg-accent/50'
+                      : 'cursor-default'}"
+                    onclick={() => data.canWrite && openEditSheet(membership)}
+                    disabled={!data.canWrite}
                   >
                     <Item.Header>
                       <span class="font-medium">{getMembershipTypeName(membership.membershipTypeId, $locale)}</span>
@@ -177,45 +184,47 @@
   {/if}
 </main>
 
-<!-- Create Membership Sheet -->
-<Sheet.Root bind:open={createSheetOpen}>
-  <Sheet.Content class="flex flex-col overflow-y-auto">
-    <Sheet.Header>
-      <Sheet.Title>{$LL.membership.createNew()}</Sheet.Title>
-      <Sheet.Description>{$LL.admin.memberships.description()}</Sheet.Description>
-    </Sheet.Header>
-    {#key createSheetOpen}
-      {#if createSheetOpen}
-        <CreateMembershipForm
-          defaultValues={data.defaultValues}
-          membershipTypes={data.membershipTypes}
-          onClose={() => (createSheetOpen = false)}
-        />
-      {/if}
-    {/key}
-  </Sheet.Content>
-</Sheet.Root>
-
-<!-- Edit Membership Sheet -->
-<Sheet.Root bind:open={editSheetOpen}>
-  <Sheet.Content class="flex flex-col overflow-y-auto">
-    <Sheet.Header>
-      <Sheet.Title>{$LL.admin.memberships.editMembership()}</Sheet.Title>
-      {#if editingMembership}
-        <Sheet.Description class="flex items-center gap-2">
-          <Calendar class="size-4" />
-          {formatDateRange(editingMembership.startTime, editingMembership.endTime, $locale)}
-        </Sheet.Description>
-      {/if}
-    </Sheet.Header>
-    {#if editingMembership}
-      {#key editingMembership.id}
-        <EditMembershipForm
-          membership={editingMembership}
-          membershipTypes={data.membershipTypes}
-          onClose={() => (editSheetOpen = false)}
-        />
+{#if data.canWrite}
+  <!-- Create Membership Sheet -->
+  <Sheet.Root bind:open={createSheetOpen}>
+    <Sheet.Content class="flex flex-col overflow-y-auto">
+      <Sheet.Header>
+        <Sheet.Title>{$LL.membership.createNew()}</Sheet.Title>
+        <Sheet.Description>{$LL.admin.memberships.description()}</Sheet.Description>
+      </Sheet.Header>
+      {#key createSheetOpen}
+        {#if createSheetOpen}
+          <CreateMembershipForm
+            defaultValues={data.defaultValues}
+            membershipTypes={data.membershipTypes}
+            onClose={() => (createSheetOpen = false)}
+          />
+        {/if}
       {/key}
-    {/if}
-  </Sheet.Content>
-</Sheet.Root>
+    </Sheet.Content>
+  </Sheet.Root>
+
+  <!-- Edit Membership Sheet -->
+  <Sheet.Root bind:open={editSheetOpen}>
+    <Sheet.Content class="flex flex-col overflow-y-auto">
+      <Sheet.Header>
+        <Sheet.Title>{$LL.admin.memberships.editMembership()}</Sheet.Title>
+        {#if editingMembership}
+          <Sheet.Description class="flex items-center gap-2">
+            <Calendar class="size-4" />
+            {formatDateRange(editingMembership.startTime, editingMembership.endTime, $locale)}
+          </Sheet.Description>
+        {/if}
+      </Sheet.Header>
+      {#if editingMembership}
+        {#key editingMembership.id}
+          <EditMembershipForm
+            membership={editingMembership}
+            membershipTypes={data.membershipTypes}
+            onClose={() => (editSheetOpen = false)}
+          />
+        {/key}
+      {/if}
+    </Sheet.Content>
+  </Sheet.Root>
+{/if}

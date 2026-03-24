@@ -14,12 +14,13 @@ import {
   type CsvRow,
 } from "./schema";
 import { getLL } from "$lib/server/i18n";
+import { hasAdminWriteAccess } from "$lib/server/auth/admin";
 
 export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
+  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
@@ -197,7 +198,7 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
       firstNames: p.row.firstNames,
       lastName: p.row.lastName,
       homeMunicipality: p.row.homeMunicipality,
-      isAdmin: false,
+      adminRole: "none" as const,
       isAllowedEmails: false,
     }));
 
@@ -337,7 +338,7 @@ export const createLegacyMembership = command(createLegacyMembershipSchema, asyn
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
+  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
@@ -361,7 +362,7 @@ export const createLegacyMemberships = command(createLegacyMembershipsBatchSchem
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !event.locals.user?.isAdmin) {
+  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
