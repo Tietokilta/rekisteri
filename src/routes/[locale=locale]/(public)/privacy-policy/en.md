@@ -9,7 +9,7 @@ This is a registry and privacy statement in accordance with the EU General Data 
 _Note: The legally binding version of this document is in Finnish. This English translation is provided for convenience only._
 
 **Created:** May 22, 2018
-**Last updated:** March 3, 2026
+**Last updated:** March 24, 2026
 
 ---
 
@@ -135,12 +135,13 @@ User accounts that have been inactive for more than 7 years are automatically de
 
 ## 8. Data Disclosure and Transfers
 
-| Service Provider | Location     | Purpose                  |
-| ---------------- | ------------ | ------------------------ |
-| Microsoft Azure  | EU (Ireland) | Database and application |
-| Stripe           | EU           | Payment processing       |
-| Mailgun          | EU           | Email service            |
-| Google Workspace | EU/Global\*  | Mailing lists            |
+| Service Provider | Location                  | Purpose                    |
+| ---------------- | ------------------------- | -------------------------- |
+| Microsoft Azure  | EU (Ireland)              | Database and application   |
+| Stripe           | EU                        | Payment processing         |
+| Mailgun          | EU                        | Email service              |
+| Google Workspace | EU/Global\*               | Mailing lists              |
+| Hetzner          | EU (Germany, Falkenstein) | Encrypted database backups |
 
 _\*Google may process data outside the EU using Standard Contractual Clauses (SCCs)._
 
@@ -175,7 +176,7 @@ All transfers use encrypted connections (HTTPS/TLS). Data is not sold, rented, o
 
 **Physical security:**
 
-Servers located in Microsoft Azure North Europe (Ireland) data center (ISO 27001, SOC 2).
+Servers located in Microsoft Azure North Europe (Ireland) data center (ISO 27001, SOC 2). Encrypted database backups are stored at Hetzner's data center in Falkenstein, Germany (ISO 27001).
 
 ## 10. Data Subject Rights
 

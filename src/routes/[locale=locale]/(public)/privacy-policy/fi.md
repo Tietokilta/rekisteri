@@ -7,7 +7,7 @@ title: Jäsenrekisterin rekisteri- ja tietosuojaseloste
 Tämä on EU:n yleisen tietosuoja-asetuksen (GDPR) sekä yhdistyslain (503/1989) mukainen rekisteri- ja tietosuojaseloste.
 
 **Laatimispäivämäärä:** 22.5.2018
-**Viimeisin muutos:** 3.3.2026
+**Viimeisin muutos:** 24.3.2026
 
 ---
 
@@ -133,12 +133,13 @@ Käyttäjätilit, jotka ovat olleet passiivisia yli 7 vuotta, poistetaan automaa
 
 ## 8. Tietojen luovutus ja siirrot
 
-| Palveluntarjoaja | Sijainti      | Käyttötarkoitus        |
-| ---------------- | ------------- | ---------------------- |
-| Microsoft Azure  | EU (Irlanti)  | Tietokanta ja sovellus |
-| Stripe           | EU            | Maksujenkäsittely      |
-| Mailgun          | EU            | Sähköpostipalvelu      |
-| Google Workspace | EU/Globaali\* | Postituslistat         |
+| Palveluntarjoaja | Sijainti                | Käyttötarkoitus                 |
+| ---------------- | ----------------------- | ------------------------------- |
+| Microsoft Azure  | EU (Irlanti)            | Tietokanta ja sovellus          |
+| Stripe           | EU                      | Maksujenkäsittely               |
+| Mailgun          | EU                      | Sähköpostipalvelu               |
+| Google Workspace | EU/Globaali\*           | Postituslistat                  |
+| Hetzner          | EU (Saksa, Falkenstein) | Salatut tietokantavarmuuskopiot |
 
 _\*Google voi käsitellä tietoja EU:n ulkopuolella vakiolausekkein (SCCs)._
 
@@ -173,7 +174,7 @@ Kaikki tiedonsiirrot tapahtuvat salattuja yhteyksiä (HTTPS/TLS) käyttäen. Tie
 
 **Fyysinen turvallisuus:**
 
-Palvelimet sijaitsevat Microsoft Azure North Europe (Irlanti) -datakeskuksessa (ISO 27001, SOC 2).
+Palvelimet sijaitsevat Microsoft Azure North Europe (Irlanti) -datakeskuksessa (ISO 27001, SOC 2). Salatut tietokantavarmuuskopiot tallennetaan Hetznerin datakeskukseen Falkensteinissa, Saksassa (ISO 27001).
 
 ## 10. Rekisteröidyn oikeudet
 
