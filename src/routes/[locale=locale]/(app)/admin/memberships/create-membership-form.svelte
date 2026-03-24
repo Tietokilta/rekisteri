@@ -21,6 +21,7 @@
     startTime: string;
     endTime: string;
     requiresStudentVerification: boolean;
+    paymentDueDate: string;
   }
 
   interface Props {
@@ -221,6 +222,13 @@
       <GraduationCap class="size-5 text-muted-foreground" />
     </label>
   {/if}
+
+  <!-- Payment due date (optional) -->
+  <div class="space-y-2">
+    <Label for="paymentDueDate">{$LL.membership.paymentDueDate()}</Label>
+    <Input {...createMembership.fields.paymentDueDate.as("date")} id="paymentDueDate" />
+    <p class="text-sm text-muted-foreground">{$LL.membership.paymentDueDateDescription()}</p>
+  </div>
 
   <Sheet.Footer>
     <Button type="button" variant="outline" class="flex-1" onclick={onClose}>

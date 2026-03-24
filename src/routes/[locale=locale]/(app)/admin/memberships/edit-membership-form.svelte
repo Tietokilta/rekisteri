@@ -24,6 +24,7 @@
     startTime: Date;
     endTime: Date;
     requiresStudentVerification: boolean;
+    paymentDueDate: Date | null;
     memberCount: number;
   }
 
@@ -51,6 +52,7 @@
         membershipTypeId: membership.membershipTypeId,
         stripePriceId: membership.stripePriceId ?? "",
         requiresStudentVerification: membership.requiresStudentVerification,
+        paymentDueDate: membership.paymentDueDate?.toISOString().slice(0, 10) ?? "",
       });
     });
   });
@@ -221,6 +223,13 @@
       <GraduationCap class="size-5 text-muted-foreground" />
     </label>
   {/if}
+
+  <!-- Payment due date (optional) -->
+  <div class="space-y-2">
+    <Label for={`edit-paymentDueDate-${membership.id}`}>{$LL.membership.paymentDueDate()}</Label>
+    <Input {...editForm.fields.paymentDueDate.as("date")} id={`edit-paymentDueDate-${membership.id}`} />
+    <p class="text-sm text-muted-foreground">{$LL.membership.paymentDueDateDescription()}</p>
+  </div>
 </form>
 
 <Sheet.Footer class="flex-col gap-3">

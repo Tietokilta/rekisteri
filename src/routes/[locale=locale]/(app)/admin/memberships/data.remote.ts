@@ -36,6 +36,7 @@ export const createMembership = form(createMembershipSchema, async (data) => {
       startTime: new Date(data.startTime),
       endTime: new Date(data.endTime),
       requiresStudentVerification,
+      paymentDueDate: data.paymentDueDate ? new Date(data.paymentDueDate) : null,
     })
     .execute();
 
@@ -110,6 +111,7 @@ export const updateMembership = form(updateMembershipSchema, async (data) => {
       membershipTypeId: data.membershipTypeId,
       stripePriceId,
       requiresStudentVerification,
+      paymentDueDate: data.paymentDueDate ? new Date(data.paymentDueDate) : null,
     })
     .where(eq(table.membership.id, data.id))
     .execute();

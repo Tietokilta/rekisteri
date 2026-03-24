@@ -6,7 +6,13 @@ import { hasAdminAccess } from "$lib/server/auth/admin";
 import { baseLocale, locales, preferredLanguageToLocale, type Locale } from "$lib/i18n/routing";
 import { dev } from "$app/environment";
 import cron from "node-cron";
-import { cleanupExpiredTokens, cleanupInactiveUsers, cleanupOldAuditLogs } from "$lib/server/db/cleanup";
+import {
+  cleanupExpiredTokens,
+  cleanupInactiveUsers,
+  cleanupOldAuditLogs,
+  cleanupOldEmailLogs,
+} from "$lib/server/db/cleanup";
+import { processPaymentReminders } from "$lib/server/emails/payment-reminders";
 import { createInitialModeExpression } from "mode-watcher";
 
 const handleAuth: Handle = async ({ event, resolve }) => {
@@ -130,6 +136,7 @@ export const init: ServerInit = () => {
     try {
       await cleanupExpiredTokens();
       await cleanupOldAuditLogs(); // 90 day retention (default)
+      await cleanupOldEmailLogs(); // 180 day retention
     } catch (error) {
       console.error("[Cron] Database cleanup failed:", error);
     }
@@ -145,4 +152,18 @@ export const init: ServerInit = () => {
       console.error("[Cron] GDPR cleanup failed:", error);
     }
   });
+
+  // Send payment due date reminders on weekdays at 10 AM Helsinki time
+  cron.schedule(
+    "0 10 * * 1-5",
+    async () => {
+      console.log("[Cron] Running payment reminder check...");
+      try {
+        await processPaymentReminders();
+      } catch (error) {
+        console.error("[Cron] Payment reminder check failed:", error);
+      }
+    },
+    { timezone: "Europe/Helsinki" },
+  );
 };

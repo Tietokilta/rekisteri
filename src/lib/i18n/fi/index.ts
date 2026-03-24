@@ -204,6 +204,51 @@ Kiitos, että jatkat jäsenenämme!
 Terveisin,
 Tietokilta`,
     },
+    membershipRejected: {
+      subject: "Jäsenhakemuksesi käsittely",
+      body: `Hei {firstName}!
+
+Valitettavasti jäsenhakemustasi ({membershipName}) ei ole hyväksytty.
+
+Jos sinulla on kysyttävää päätöksestä, ota yhteyttä hallitukseen.
+
+Terveisin,
+Tietokilta`,
+    },
+    membershipResigned: {
+      subject: "Ilmoitus jäsenyyden päättymisestä",
+      body: `Hei {firstName}!
+
+Jäsenyytesi ({membershipName}) on päättynyt.
+{reason}
+Jos haluat liittyä uudelleen, voit ostaa uuden jäsenyyden rekisteristä.
+
+Terveisin,
+Tietokilta`,
+    },
+    membershipReactivated: {
+      subject: "Jäsenyytesi on palautettu!",
+      body: `Hei {firstName}!
+
+Jäsenyytesi ({membershipName}) on palautettu aktiiviseksi.
+
+Voit jälleen osallistua killan toimintaan ja hyödyntää jäsenetuja.
+
+Terveisin,
+Tietokilta`,
+    },
+    paymentReminder: {
+      subject: "Muistutus: Jäsenmaksun eräpäivä lähestyy",
+      body: `Hei {firstName}!
+
+Jäsenmaksusi ({membershipName}) eräpäivä on {dueDate}.
+
+Voit maksaa jäsenmaksun osoitteessa:
+{paymentLink}
+
+Terveisin,
+Tietokilta`,
+    },
   },
 
   // User
@@ -328,6 +373,8 @@ Tietokilta`,
     noMembership: "Ei jäsenyyttä",
     requiresStudentVerification: "Edellyttää opiskelijastatusta",
     isStudent: "Olen opiskelija Aalto-yliopistossa",
+    paymentDueDate: "Jäsenmaksun eräpäivä",
+    paymentDueDateDescription: "Eräpäivä vuosikokouksen päätöksellä (§7). Muistutukset lähetetään automaattisesti.",
     description: "Perustelut jäsenhakemukselle",
     descriptionPlaceholder: "Kerro, miksi haet jäsenyyttä...",
     descriptionRequired: "Perustelut jäsenhakemukselle vaaditaan",

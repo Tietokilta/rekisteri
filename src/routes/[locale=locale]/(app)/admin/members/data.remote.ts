@@ -75,6 +75,8 @@ export const approveMember = command(memberIdSchema, async ({ memberId }) => {
           endDate: memberWithDetails.membership.endTime,
         },
         locale: userLocale,
+        userId: memberWithDetails.user.id,
+        relatedMemberId: memberId,
       });
     }
   } catch (emailError) {
@@ -113,6 +115,35 @@ export const rejectMember = command(memberIdWithReasonSchema, async ({ memberId,
     reason,
   });
 
+  // Send rejection notification email
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const memberWithDetails = await db._query.member.findFirst({
+      where: eq(table.member.id, memberId),
+      with: { user: true, membership: { with: { membershipType: true } } },
+    });
+
+    if (memberWithDetails?.user) {
+      const userLocale = getUserLocale(memberWithDetails.user);
+
+      await sendMemberEmail({
+        recipientEmail: memberWithDetails.user.email,
+        emailType: "membership_rejected",
+        metadata: {
+          firstName: getDisplayFirstName(memberWithDetails.user),
+          membershipName: getMembershipName(memberWithDetails.membership, userLocale),
+          startDate: memberWithDetails.membership.startTime,
+          endDate: memberWithDetails.membership.endTime,
+        },
+        locale: userLocale,
+        userId: memberWithDetails.user.id,
+        relatedMemberId: memberId,
+      });
+    }
+  } catch (emailError) {
+    console.error("[rejectMember] Failed to send rejection email:", emailError);
+  }
+
   return { success: true, message: "Member rejected successfully" };
 });
 
@@ -149,6 +180,34 @@ export const markMemberResigned = command(memberIdWithReasonSchema, async ({ mem
     reason,
   });
 
+  // Send resignation notification email (§8 p2 requires email notification)
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const memberWithDetails = await db._query.member.findFirst({
+      where: eq(table.member.id, memberId),
+      with: { user: true, membership: { with: { membershipType: true } } },
+    });
+
+    if (memberWithDetails?.user) {
+      const userLocale = getUserLocale(memberWithDetails.user);
+
+      await sendMemberEmail({
+        recipientEmail: memberWithDetails.user.email,
+        emailType: "membership_resigned",
+        metadata: {
+          firstName: getDisplayFirstName(memberWithDetails.user),
+          membershipName: getMembershipName(memberWithDetails.membership, userLocale),
+          reason,
+        },
+        locale: userLocale,
+        userId: memberWithDetails.user.id,
+        relatedMemberId: memberId,
+      });
+    }
+  } catch (emailError) {
+    console.error("[markMemberResigned] Failed to send resignation email:", emailError);
+  }
+
   return { success: true, message: "Member deemed resigned" };
 });
 
@@ -184,6 +243,34 @@ export const resignMember = command(memberIdWithReasonSchema, async ({ memberId,
     reason,
   });
 
+  // Send resignation confirmation email
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const memberWithDetails = await db._query.member.findFirst({
+      where: eq(table.member.id, memberId),
+      with: { user: true, membership: { with: { membershipType: true } } },
+    });
+
+    if (memberWithDetails?.user) {
+      const userLocale = getUserLocale(memberWithDetails.user);
+
+      await sendMemberEmail({
+        recipientEmail: memberWithDetails.user.email,
+        emailType: "membership_resigned",
+        metadata: {
+          firstName: getDisplayFirstName(memberWithDetails.user),
+          membershipName: getMembershipName(memberWithDetails.membership, userLocale),
+          reason,
+        },
+        locale: userLocale,
+        userId: memberWithDetails.user.id,
+        relatedMemberId: memberId,
+      });
+    }
+  } catch (emailError) {
+    console.error("[resignMember] Failed to send resignation email:", emailError);
+  }
+
   return { success: true, message: "Membership resignation recorded" };
 });
 
@@ -214,6 +301,33 @@ export const reactivateMember = command(memberIdWithReasonSchema, async ({ membe
     previousStatus: member.status,
     reason,
   });
+
+  // Send reactivation notification email
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const memberWithDetails = await db._query.member.findFirst({
+      where: eq(table.member.id, memberId),
+      with: { user: true, membership: { with: { membershipType: true } } },
+    });
+
+    if (memberWithDetails?.user) {
+      const userLocale = getUserLocale(memberWithDetails.user);
+
+      await sendMemberEmail({
+        recipientEmail: memberWithDetails.user.email,
+        emailType: "membership_reactivated",
+        metadata: {
+          firstName: getDisplayFirstName(memberWithDetails.user),
+          membershipName: getMembershipName(memberWithDetails.membership, userLocale),
+        },
+        locale: userLocale,
+        userId: memberWithDetails.user.id,
+        relatedMemberId: memberId,
+      });
+    }
+  } catch (emailError) {
+    console.error("[reactivateMember] Failed to send reactivation email:", emailError);
+  }
 
   return { success: true, message: "Membership reactivated successfully" };
 });
@@ -388,6 +502,8 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
           endDate: memberWithDetails.membership.endTime,
         },
         locale: userLocale,
+        userId: memberWithDetails.user.id,
+        relatedMemberId: memberWithDetails.id,
       });
     });
 
@@ -453,6 +569,46 @@ export const bulkMarkMembersResigned = command(bulkMemberIdsWithReasonSchema, as
     processedCount: validIds.length,
     reason,
   });
+
+  // Send resignation notification emails (§8 p2 requires email notification)
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const resignedMembersWithDetails = await db._query.member.findMany({
+      where: inArray(table.member.id, validIds),
+      with: { user: true, membership: { with: { membershipType: true } } },
+    });
+
+    const membersWithUsers = resignedMembersWithDetails.filter(
+      (m): m is typeof m & { user: NonNullable<typeof m.user> } => m.user !== null,
+    );
+    const emailPromises = membersWithUsers.map(async (memberWithDetails) => {
+      const userLocale = getUserLocale(memberWithDetails.user);
+
+      return sendMemberEmail({
+        recipientEmail: memberWithDetails.user.email,
+        emailType: "membership_resigned",
+        metadata: {
+          firstName: getDisplayFirstName(memberWithDetails.user),
+          membershipName: getMembershipName(memberWithDetails.membership, userLocale),
+          reason,
+        },
+        locale: userLocale,
+        userId: memberWithDetails.user.id,
+        relatedMemberId: memberWithDetails.id,
+      });
+    });
+
+    const results = await Promise.allSettled(emailPromises);
+    const failedCount = results.filter((r) => r.status === "rejected").length;
+
+    if (failedCount > 0) {
+      console.error(
+        `[bulkMarkMembersResigned] Failed to send ${failedCount}/${emailPromises.length} resignation emails`,
+      );
+    }
+  } catch (emailError) {
+    console.error("[bulkMarkMembersResigned] Failed to send resignation emails:", emailError);
+  }
 
   return {
     success: true,

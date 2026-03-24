@@ -1,17 +1,27 @@
 import { sendEmail } from "$lib/server/mailgun";
 import { loadLocale } from "$lib/i18n/i18n-util.sync";
 import { i18nObject } from "$lib/i18n/i18n-util";
+import { db as defaultDb, type Schema } from "$lib/server/db";
+import * as table from "$lib/server/db/schema";
 import type {
   EmailType,
   EmailTemplate,
   OTPMetadata,
   PaymentSuccessMetadata,
   MembershipApprovedMetadata,
+  MembershipResignedMetadata,
+  MembershipReactivatedMetadata,
+  PaymentReminderMetadata,
 } from "./types";
 import { otpTemplate } from "./templates/otp";
 import { paymentSuccessTemplate } from "./templates/payment-success";
 import { membershipApprovedTemplate } from "./templates/membership-approved";
 import { membershipRenewedTemplate } from "./templates/membership-renewed";
+import { membershipRejectedTemplate } from "./templates/membership-rejected";
+import { membershipResignedTemplate } from "./templates/membership-resigned";
+import { membershipReactivatedTemplate } from "./templates/membership-reactivated";
+import { paymentReminderTemplate } from "./templates/payment-reminder";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 // Map email types to their metadata types
 interface EmailMetadataMap {
@@ -19,6 +29,10 @@ interface EmailMetadataMap {
   payment_success: PaymentSuccessMetadata;
   membership_approved: MembershipApprovedMetadata;
   membership_renewed: MembershipApprovedMetadata;
+  membership_rejected: MembershipApprovedMetadata;
+  membership_resigned: MembershipResignedMetadata;
+  membership_reactivated: MembershipReactivatedMetadata;
+  payment_reminder: PaymentReminderMetadata;
 }
 
 // Index into the map to get the metadata type for a given email type
@@ -30,6 +44,10 @@ const templates: { [K in EmailType]: EmailTemplate<EmailMetadataMap[K]> } = {
   payment_success: paymentSuccessTemplate,
   membership_approved: membershipApprovedTemplate,
   membership_renewed: membershipRenewedTemplate,
+  membership_rejected: membershipRejectedTemplate,
+  membership_resigned: membershipResignedTemplate,
+  membership_reactivated: membershipReactivatedTemplate,
+  payment_reminder: paymentReminderTemplate,
 };
 
 export async function sendMemberEmail<T extends EmailType>({
@@ -38,29 +56,59 @@ export async function sendMemberEmail<T extends EmailType>({
   metadata,
   locale = "fi",
   headers,
+  userId,
+  relatedMemberId,
+  db,
 }: {
   recipientEmail: string;
   emailType: T;
   metadata: EmailMetadata<T>;
   locale?: "fi" | "en";
   headers?: Record<string, string>;
+  /** If provided, the send is logged to email_log for dedup and tracking */
+  userId?: string;
+  relatedMemberId?: string;
+  db?: PostgresJsDatabase<Schema>;
 }): Promise<void> {
-  // Get template - TypeScript knows this is EmailTemplate<EmailMetadata[T]>
   const template = templates[emailType];
 
-  // Load translations
   loadLocale(locale);
   const LL = i18nObject(locale);
 
-  // Render content - TypeScript now knows metadata matches template's expected type
   const { subject, text, html } = template.render(locale, metadata, LL);
 
-  // Send immediately
-  await sendEmail({
-    to: recipientEmail,
-    subject,
-    text,
-    html,
-    headers,
-  });
+  const dbInstance = db ?? defaultDb;
+  let mailgunMessageId: string | undefined;
+  let status: "sent" | "failed" = "sent";
+
+  try {
+    const result = await sendEmail({
+      to: recipientEmail,
+      subject,
+      text,
+      html,
+      headers,
+    });
+    mailgunMessageId = result.id;
+  } catch (error) {
+    status = "failed";
+    throw error;
+  } finally {
+    // Log to email_log if userId is provided (skip for anonymous emails like OTP)
+    if (userId) {
+      try {
+        await dbInstance.insert(table.emailLog).values({
+          id: crypto.randomUUID(),
+          userId,
+          emailType,
+          relatedMemberId,
+          status,
+          mailgunMessageId,
+          sentAt: status === "sent" ? new Date() : null,
+        });
+      } catch (logError) {
+        console.error("[Email] Failed to log email send:", logError);
+      }
+    }
+  }
 }

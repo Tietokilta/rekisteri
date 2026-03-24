@@ -1,5 +1,15 @@
 import { relations } from "drizzle-orm/_relations";
-import { user, session, passkey, secondaryEmail, membershipType, membership, member, auditLog } from "./schema";
+import {
+  user,
+  session,
+  passkey,
+  secondaryEmail,
+  membershipType,
+  membership,
+  member,
+  auditLog,
+  emailLog,
+} from "./schema";
 
 export const userRelations = relations(user, ({ many }) => ({
   members: many(member),
@@ -57,5 +67,16 @@ export const auditLogRelations = relations(auditLog, ({ one }) => ({
   user: one(user, {
     fields: [auditLog.userId],
     references: [user.id],
+  }),
+}));
+
+export const emailLogRelations = relations(emailLog, ({ one }) => ({
+  user: one(user, {
+    fields: [emailLog.userId],
+    references: [user.id],
+  }),
+  member: one(member, {
+    fields: [emailLog.relatedMemberId],
+    references: [member.id],
   }),
 }));
