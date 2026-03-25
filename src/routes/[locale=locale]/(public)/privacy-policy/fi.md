@@ -7,7 +7,7 @@ title: Jäsenrekisterin rekisteri- ja tietosuojaseloste
 Tämä on EU:n yleisen tietosuoja-asetuksen (GDPR) sekä yhdistyslain (503/1989) mukainen rekisteri- ja tietosuojaseloste.
 
 **Laatimispäivämäärä:** 22.5.2018
-**Viimeisin muutos:** 24.3.2026
+**Viimeisin muutos:** 26.3.2026
 
 ---
 
@@ -20,7 +20,7 @@ Sähköposti: hallitus@tietokilta.fi
 
 ## 2. Yhteyshenkilö tietosuoja-asioissa
 
-Tietosuoja-asioissa voit ottaa yhteyttä hallitukseen osoitteessa hallitus@tietokilta.fi
+Tietosuoja-asioissa voit ottaa yhteyttä hallitukseen osoitteessa hallitus@tietokilta.fi.
 
 ## 3. Rekisterin nimi
 
@@ -41,7 +41,7 @@ Tietokillan jäsenrekisteri
 - Jäsenmaksujen käsittely
 - Viestintä jäsenille (tapahtumat, tiedotteet, jäsenedut)
 - Yhdistyksen lakisääteisten velvoitteiden täyttäminen
-- Tunnistautumispalveluiden tarjoaminen muihin killan sähköisiin palveluihin
+- Tunnistautumispalveluiden tarjoaminen killan muihin sähköisiin palveluihin
 
 ## 5. Rekisterin tietosisältö
 
@@ -55,37 +55,42 @@ Tietokillan jäsenrekisteri
 **Jäsenyystiedot:**
 
 - Jäsenyyden tyyppi (varsinainen jäsen, alumnijäsen jne.), alkamis- ja päättymispäivä, tila
-- Opiskelijastatus (itse ilmoitettu; voidaan vahvistaa Aalto-sähköpostilla)
+- Opiskelija-asema (itse ilmoitettu; voidaan vahvistaa Aalto-sähköpostilla)
 - Maksuhistoria, Stripe-asiakastunnus
 
-**Suostumukset:**
+**Suostumukset (vapaaehtoisia):**
 
 - Jäsenyyteen liittymättömien sähköpostien vastaanotto
 
-**Avainkoodit (Passkeys):**
+**Kokouksiin osallistuminen:**
+
+- Osallistumistiedot yhdistyksen kokouksista (päivämäärä, kokouksen tyyppi)
+- Kirjataan yhdistyslain mukaisia pöytäkirjavaatimuksia varten
+
+**Avainkoodit / Passkeys (valinnaisia):**
 
 - Julkiset avaimet salasanattomaan kirjautumiseen
-- Laitteen nimi, kuljetustavat, synkronointitila
+- Laitteen nimi, yhteystavat, synkronointitila
 - Viimeisimmän käyttökerran ajankohta
 
-**Toissijaiset sähköpostiosoitteet (valinnainen):**
+**Toissijaiset sähköpostiosoitteet:**
 
 - Lisäsähköpostiosoitteet vaihtoehtoiseen kirjautumiseen
 - Sähköpostin verkkotunnus (esim. aalto.fi)
 - Vahvistuksen tila ja ajankohta
-- Vanhenemispäivä verkkotunnusvarmennetuille sähköposteille
+- Vanhenemispäivä verkkotunnuksella vahvistetuille sähköposteille
 
-_Huom: Toissijaiset sähköpostit ovat täysin vapaaehtoisia, lukuun ottamatta aalto.fi-sähköpostin vahvistusta, joka vaaditaan tietyille jäsenyystyypeille (esim. opiskelijajäsenyys)._
+_Huom: Toissijaiset sähköpostit ovat vapaaehtoisia, paitsi että aalto.fi-sähköpostin vahvistus vaaditaan tietyille jäsenyystyypeille (esim. opiskelijajäsenyys)._
 
 **Tekniset tiedot:**
 
 - Istuntotunnisteet, kirjautumiskoodit
-- Tarkastusloki (audit log) eri säilytysajoilla:
+- Tarkastusloki eri säilytysajoilla:
   - Turvallisuustapahtumat (kirjautumiset, epäonnistuneet yritykset): 6 kuukautta
-  - Jäsenyys- ja maksutapahtumat: noin 7 vuotta (kirjanpitolaki)
+  - Jäsenyys- ja maksutapahtumat: 6 vuotta tilikauden päättymisestä (kirjanpitolaki)
   - Käyttäjätietojen muutokset (sähköposti, ylläpitäjäoikeudet): 3 vuotta
-- IP-osoitteet ja selaintiedot (user agent): säilytetään lokien mukana
-- Kuormituksenrajoitustiedot (rate limiting) (vain muistissa)
+- IP-osoitteet ja selaintiedot: säilytetään lokien mukana
+- Pyyntörajoitustiedot (tilapäisiä, poistetaan automaattisesti)
 
 ## 6. Säännönmukaiset tietolähteet
 
@@ -101,7 +106,7 @@ Lisäksi tietoja saadaan:
 
 ## 7. Tietojen säilytysaika
 
-Poistamme tietoja mahdollisimman pian, kun niitä ei enää tarvita tai kunnes niiden lakisääteinen säilytysaika loppuu.
+Poistamme tiedot heti kun niitä ei enää tarvita, tai kun niiden lakisääteinen säilytysaika päättyy.
 
 **Keskeneräiset rekisteröitymiset:**
 
@@ -114,22 +119,23 @@ Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröit
 - Avainkoodit: kunnes käyttäjä poistaa tai tili poistetaan
 - Toissijaiset sähköpostit: kunnes käyttäjä poistaa tai tili poistetaan
 - Aalto.fi-sähköpostin vahvistus: voimassa 6 kuukautta, jonka jälkeen vaaditaan uudelleenvahvistus
-- Tarkastusloki (audit log):
+- Tarkastusloki:
   - Turvallisuustapahtumat (kirjautumiset yms.): 6 kuukautta
-  - Jäsenyys- ja maksutapahtumat: noin 7 vuotta (kirjanpitolaki)
+  - Jäsenyys- ja maksutapahtumat: 6 vuotta tilikauden päättymisestä (kirjanpitolaki)
   - Käyttäjätietojen muutokset: 3 vuotta
-- Kuormituksenrajoitustiedot: vain muistissa
+- Pyyntörajoitustiedot: tilapäisiä, poistetaan automaattisesti
 
 **Lakisääteiset säilytysvelvoitteet:**
 
 - **Kirjanpitolaki:** Maksut, laskut ja tositteet vähintään 6 vuotta tilikauden päättymisestä
 - **Yhdistyslaki:** Jäsentiedot säilytetään lakisääteisten velvoitteiden täyttämiseksi
+- **Yhdistyslaki:** Kokousten osallistumistiedot säilytetään osana pöytäkirjoja yhdistyksen olemassaolon ajan
 
 **Käytännössä jäsenyyden päätyttyä:** Tekniset tiedot poistetaan automaattisesti niiden vanhennuttua. Jäsenrekisteritiedot ja kirjanpitotiedot säilytetään lakisääteisten velvoitteiden mukaisesti.
 
 **Passiivisten käyttäjien automaattinen poisto (GDPR):**
 
-Käyttäjätilit, jotka ovat olleet passiivisia yli 7 vuotta, poistetaan automaattisesti GDPR:n tietojen minimointi -periaatteen mukaisesti. Käyttäjä katsotaan passiiviseksi, jos hän ei ole kirjautunut järjestelmään 7 vuoteen. Säilytysaika vastaa kirjanpitolain mukaista pitkintä säilytysaikaa. Poisto sisältää kaikki käyttäjään liittyvät tiedot (jäsenyydet, istunnot, lokit, avaimet, sähköpostit).
+Käyttäjätilit, jotka ovat olleet passiivisia yli 7 vuotta, poistetaan automaattisesti GDPR:n tietojen minimoinnin periaatteen mukaisesti. Käyttäjä katsotaan passiiviseksi, jos hän ei ole kirjautunut järjestelmään 7 vuoteen. Säilytysaika vastaa kirjanpitolain mukaista pisintä säilytysaikaa. Poisto sisältää kaikki käyttäjään liittyvät tiedot (jäsenyydet, istunnot, lokit, avaimet, sähköpostit).
 
 ## 8. Tietojen luovutus ja siirrot
 
@@ -145,7 +151,7 @@ _\*Google voi käsitellä tietoja EU:n ulkopuolella vakiolausekkein (SCCs)._
 
 **Tietokillan muut palvelut:**
 
-Rekisteriä voidaan käyttää jäsenen suostumuksella tunnistautumiseen muissa killan tarjoamissa sähköisissä palveluissa. Tällöin palvelulle luovutetaan vain välttämättömät tiedot (esim. nimi, sähköpostiosoite, jäsenyysstatus).
+Rekisteriä voidaan käyttää jäsenen suostumuksella tunnistautumiseen muissa killan tarjoamissa sähköisissä palveluissa. Tällöin palvelulle luovutetaan vain välttämättömät tiedot (esim. nimi, sähköpostiosoite, jäsenyyden tila).
 
 **Satunnaiset luovutukset:**
 
@@ -159,10 +165,10 @@ Kaikki tiedonsiirrot tapahtuvat salattuja yhteyksiä (HTTPS/TLS) käyttäen. Tie
 
 **Tekniset suojatoimet:**
 
-- Tietokannan pääsy rajattu autentikaatiolla
+- Tietokannan pääsy rajattu tunnistautumisella
 - Kaikki tietoliikenne salattu (HTTPS/TLS)
 - Ei salasanoja – sähköpostipohjainen kertakäyttökoodi ja avainkoodit
-- Istuntotunnisteet tallennetaan hajautettuna (hashed)
+- Istuntotunnisteet tallennetaan tiivistettyinä (hashed)
 - Tarkastusloki kaikista hallinnollisista toimenpiteistä
 - Säännölliset automaattiset varmuuskopiot
 
@@ -189,7 +195,7 @@ Rekisteröidyllä on oikeus:
 
 **Huomautus tietojen poistamisesta:**
 
-Yhdistyslaki (503/1989 § 11) edellyttää jäsenluettelon ylläpitoa. Tämä lakisääteinen velvoite menee GDPR:n poisto-oikeuden edelle.
+Yhdistyslaki (503/1989 § 11) edellyttää jäsenluettelon ylläpitoa. Tämä lakisääteinen velvoite syrjäyttää GDPR:n mukaisen poisto-oikeuden.
 
 ## 11. Tarkastusoikeus ja oikaisu
 
