@@ -1,8 +1,8 @@
 ---
-title: Member Registry Privacy Statement
+title: Member Registry and Privacy Statement
 ---
 
-# Member Registry Privacy Statement
+# Member Registry and Privacy Statement
 
 This is a registry and privacy statement in accordance with the EU General Data Protection Regulation (GDPR) and the Finnish Associations Act (503/1989).
 
@@ -43,7 +43,7 @@ Tietokilta Membership Registry
 - Processing membership fees
 - Communication with members (events, newsletters, member benefits)
 - Fulfilling the association's legal obligations
-- Providing authentication services for other guild digital services
+- Providing authentication services for the guild's other digital services
 
 ## 5. Data Content of the Register
 
@@ -57,7 +57,7 @@ Tietokilta Membership Registry
 **Membership information:**
 
 - Membership type (e.g., regular member, alumni member), start/end dates, status
-- Student status (self-reported; may be verified via Aalto email)
+- Student status (self-reported; can be verified via Aalto email)
 - Payment history, Stripe customer ID
 
 **Consents (voluntary):**
@@ -137,7 +137,7 @@ No personal data is retained for users who do not complete the registration proc
 
 **Automatic deletion of inactive users (GDPR):**
 
-User accounts that have been inactive for more than 7 years are automatically deleted in accordance with GDPR data minimization principles. A user is considered inactive if they have not logged into the system for 7 years. The retention period matches the longest audit log retention requirement under the Finnish Accounting Act. Deletion includes all user-related data (memberships, sessions, logs, passkeys, emails).
+User accounts that have been inactive for more than 7 years are automatically deleted in accordance with GDPR data minimization principles. A user is considered inactive if they have not logged into the system for 7 years. The retention period matches the longest retention period required under the Finnish Accounting Act. Deletion includes all user-related data (memberships, sessions, logs, passkeys, emails).
 
 ## 8. Data Disclosure and Transfers
 
@@ -191,7 +191,7 @@ Data subjects have the right to:
 - Access their personal data
 - Request rectification of their data
 - Restrict or object to processing
-- Request data portability
+- Transfer their data to another controller
 - Withdraw consent
 - Lodge a complaint with the Data Protection Ombudsman ([tietosuoja.fi](https://tietosuoja.fi/en/))
 

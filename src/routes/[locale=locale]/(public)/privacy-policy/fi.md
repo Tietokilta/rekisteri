@@ -90,7 +90,7 @@ _Huom: Toissijaiset sähköpostit ovat vapaaehtoisia, paitsi että aalto.fi-säh
   - Jäsenyys- ja maksutapahtumat: 6 vuotta tilikauden päättymisestä (kirjanpitolaki)
   - Käyttäjätietojen muutokset (sähköposti, ylläpitäjäoikeudet): 3 vuotta
 - IP-osoitteet ja selaintiedot: säilytetään lokien mukana
-- Kuormituksenrajoitustiedot (tilapäisiä, poistetaan automaattisesti)
+- Pyyntörajoitustiedot (tilapäisiä, poistetaan automaattisesti)
 
 ## 6. Säännönmukaiset tietolähteet
 
@@ -123,7 +123,7 @@ Henkilötietoja ei säilytetä käyttäjistä, jotka eivät suorita rekisteröit
   - Turvallisuustapahtumat (kirjautumiset yms.): 6 kuukautta
   - Jäsenyys- ja maksutapahtumat: 6 vuotta tilikauden päättymisestä (kirjanpitolaki)
   - Käyttäjätietojen muutokset: 3 vuotta
-- Kuormituksenrajoitustiedot: tilapäisiä, poistetaan automaattisesti
+- Pyyntörajoitustiedot: tilapäisiä, poistetaan automaattisesti
 
 **Lakisääteiset säilytysvelvoitteet:**
 
