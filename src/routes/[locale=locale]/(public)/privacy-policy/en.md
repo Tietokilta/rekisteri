@@ -9,7 +9,7 @@ This is a registry and privacy statement in accordance with the EU General Data 
 _Note: The legally binding version of this document is in Finnish. This English translation is provided for convenience only._
 
 **Created:** May 22, 2018
-**Last updated:** March 24, 2026
+**Last updated:** March 26, 2026
 
 ---
 
