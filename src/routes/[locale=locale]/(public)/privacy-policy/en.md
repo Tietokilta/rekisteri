@@ -22,7 +22,7 @@ Email: hallitus@tietokilta.fi
 
 ## 2. Contact Person for Data Protection Matters
 
-For data protection inquiries, please contact the board at hallitus@tietokilta.fi
+For data protection inquiries, please contact the board at hallitus@tietokilta.fi.
 
 ## 3. Name of the Register
 
@@ -60,34 +60,39 @@ Tietokilta Membership Registry
 - Student status (self-reported; may be verified via Aalto email)
 - Payment history, Stripe customer ID
 
-**Consents:**
+**Consents (voluntary):**
 
-- Reception of non-membership related emails
+- Reception of non-membership-related emails
 
-**Passkeys:**
+**Meeting attendance:**
+
+- Attendance records for association meetings (date, meeting type)
+- Recorded to fulfill Associations Act requirements for meeting minutes
+
+**Passkeys (optional):**
 
 - Public keys for passwordless authentication
 - Device name, transport methods, sync status
 - Last usage timestamp
 
-**Secondary email addresses (optional):**
+**Secondary email addresses:**
 
 - Additional email addresses for alternative sign-in
 - Email domain (e.g., aalto.fi)
 - Verification status and timestamp
 - Expiration date for domain-verified emails
 
-_Note: Secondary emails are entirely optional, except for aalto.fi email verification which is required for certain membership types (e.g., student membership)._
+_Note: Secondary emails are optional, except that aalto.fi email verification is required for certain membership types (e.g., student membership)._
 
 **Technical data:**
 
 - Session tokens, login codes
 - Audit logs with tiered retention periods:
   - Security events (logins, failed attempts): 6 months
-  - Membership and payment events: approximately 7 years (Accounting Act)
+  - Membership and payment events: 6 years from the end of the financial year (per the Accounting Act)
   - User data changes (email, admin rights): 3 years
 - IP addresses and browser information: retained with audit logs
-- Rate limiting data (in memory only)
+- Rate limiting data (temporary, automatically discarded)
 
 ## 6. Regular Sources of Data
 
@@ -118,14 +123,15 @@ No personal data is retained for users who do not complete the registration proc
 - Aalto.fi email verification: valid for 6 months, then requires re-verification
 - Audit logs:
   - Security events (logins, etc.): 6 months
-  - Membership and payment events: approximately 7 years (Accounting Act)
+  - Membership and payment events: 6 years from the end of the financial year (per the Accounting Act)
   - User data changes: 3 years
-- Rate limiting data: in memory only
+- Rate limiting data: temporary, automatically discarded
 
 **Statutory retention obligations:**
 
 - **Accounting Act:** Payments, invoices, and receipts for at least 6 years from end of fiscal year
 - **Associations Act:** Member data retained to fulfill legal obligations
+- **Associations Act:** Meeting attendance records retained as part of meeting minutes for the duration of the association's existence
 
 **In practice after membership ends:** Technical data is automatically deleted when it expires. Member registry data and accounting records are retained in accordance with statutory obligations.
 
@@ -157,14 +163,14 @@ Data may be disclosed to authorities based on statutory obligations.
 
 All transfers use encrypted connections (HTTPS/TLS). Data is not sold, rented, or disclosed for marketing purposes.
 
-## 9. Principles of Register Protection
+## 9. Register Protection
 
 **Technical safeguards:**
 
 - Database access restricted by authentication
 - All traffic encrypted (HTTPS/TLS)
 - No passwords – email-based OTP and passkeys used
-- Session tokens stored hashed
+- Session tokens stored in hashed form
 - Comprehensive audit logging of administrative actions
 - Regular automated backups
 
@@ -172,7 +178,7 @@ All transfers use encrypted connections (HTTPS/TLS). Data is not sold, rented, o
 
 - Access restricted to key guild personnel (e.g., Chair, Secretary, Treasurer, Lead Developers)
 - The board grants access only as required by specific tasks
-- All administrative actions recorded in audit log
+- All administrative actions recorded in the audit log
 
 **Physical security:**
 
@@ -185,7 +191,7 @@ Data subjects have the right to:
 - Access their personal data
 - Request rectification of their data
 - Restrict or object to processing
-- Data portability
+- Request data portability
 - Withdraw consent
 - Lodge a complaint with the Data Protection Ombudsman ([tietosuoja.fi](https://tietosuoja.fi/en/))
 
@@ -197,7 +203,7 @@ The Finnish Associations Act (503/1989 § 11) requires associations to maintain 
 
 **Right of access:**
 
-Members can view and manage their own data by signing into the system. Technical data (sessions, logs, IP addresses) can be requested separately at hallitus@tietokilta.fi.
+Members can view and manage their own data by signing into the system. Technical data (sessions, logs, IP addresses) can be requested separately by contacting hallitus@tietokilta.fi.
 
 **Right to rectification:**
 
