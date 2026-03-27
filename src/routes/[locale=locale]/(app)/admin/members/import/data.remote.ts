@@ -15,6 +15,7 @@ import {
 } from "./schema";
 import { getLL } from "$lib/server/i18n";
 import { hasAdminWriteAccess } from "$lib/server/auth/admin";
+import { normalizeEmail } from "$lib/utils";
 
 export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }) => {
   const event = getRequestEvent();
@@ -95,11 +96,18 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
     emailToUserId.set(email, user.id);
   }
 
-  // Validate and prepare all rows
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row) continue;
+  // Normalize emails: trim whitespace (including internal spaces) and lowercase
+  for (const row of rows) {
+    row.email = normalizeEmail(row.email);
+  }
 
+  // Sort rows by start date descending so the latest user info wins during dedup
+  const sortedRows = rows
+    .map((row, i) => ({ row, originalIndex: i }))
+    .toSorted((a, b) => new Date(b.row.membershipStartDate).getTime() - new Date(a.row.membershipStartDate).getTime());
+
+  // Validate and prepare all rows
+  for (const { row, originalIndex: i } of sortedRows) {
     try {
       // Parse the membership start date
       const membershipStartDate = new Date(row.membershipStartDate);
@@ -199,7 +207,7 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
       lastName: p.row.lastName,
       homeMunicipality: p.row.homeMunicipality,
       adminRole: "none" as const,
-      isAllowedEmails: p.row.isAllowedEmails?.toLowerCase().trim() === "true",
+      isAllowedEmails: ["true", "yes"].includes(p.row.isAllowedEmails?.toLowerCase().trim() ?? ""),
     }));
 
     if (userValues.length > 0) {

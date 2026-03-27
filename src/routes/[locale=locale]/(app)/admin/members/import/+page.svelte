@@ -48,6 +48,7 @@
   import { LL, locale } from "$lib/i18n/i18n-svelte";
   import * as v from "valibot";
   import AdminPageHeader from "$lib/components/admin-page-header.svelte";
+  import { normalizeEmail } from "$lib/utils";
 
   import CircleCheck from "@lucide/svelte/icons/circle-check";
   import CircleAlert from "@lucide/svelte/icons/circle-alert";
@@ -252,7 +253,10 @@
       const errors: Array<{ row: number; message: string; code?: string }> = [];
 
       for (let i = 0; i < csv.data.length; i++) {
-        const rowData = csv.data[i];
+        const rowData = csv.data[i] as Record<string, unknown>;
+        if (typeof rowData?.email === "string") {
+          rowData.email = normalizeEmail(rowData.email);
+        }
         const validation = v.safeParse(csvRowSchema, rowData);
 
         if (validation.success) {

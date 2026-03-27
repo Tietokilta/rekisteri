@@ -68,3 +68,10 @@ export function formatShortDateRange(start: Date, end: Date, locale: string): st
   const endStr = end.toLocaleDateString(`${locale}-FI`, { day: "numeric", month: "numeric", year: "numeric" });
   return `${startStr} – ${endStr}`;
 }
+
+/**
+ * Normalize an email address: remove all whitespace and lowercase.
+ */
+export function normalizeEmail(email: string): string {
+  return email.replaceAll(/\s/g, "").toLowerCase();
+}
