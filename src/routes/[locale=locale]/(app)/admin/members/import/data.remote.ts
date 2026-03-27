@@ -199,7 +199,7 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
       lastName: p.row.lastName,
       homeMunicipality: p.row.homeMunicipality,
       adminRole: "none" as const,
-      isAllowedEmails: false,
+      isAllowedEmails: p.row.isAllowedEmails ?? false,
     }));
 
     if (userValues.length > 0) {

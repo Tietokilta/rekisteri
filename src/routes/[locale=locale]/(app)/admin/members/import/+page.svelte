@@ -68,7 +68,7 @@
   let unmatchedRows = $state<AnalyzedRow[]>([]);
   let unmatchedMemberships = $state<UnmatchedMembership[]>([]);
 
-  const expectedColumns = [
+  const requiredColumns = [
     "firstNames",
     "lastName",
     "homeMunicipality",
@@ -76,6 +76,10 @@
     "membershipTypeId",
     "membershipStartDate",
   ] as const;
+
+  const optionalColumns = ["isAllowedEmails"] as const;
+
+  const allKnownColumns = new Set<string>([...requiredColumns, ...optionalColumns]);
 
   // Helper to get localized membership type name
   function getTypeName(membershipTypeId: string) {
@@ -218,19 +222,28 @@
       const csvString = (await file.text()).trim();
       const csv = Papa.parse(csvString, { header: true });
 
-      // Validate columns
-      const hasCorrectColumns =
-        csv.meta.fields?.length === expectedColumns.length &&
-        csv.meta.fields.every((field, i) => field === expectedColumns[i]);
+      // Validate columns: all required columns must be present, no unknown columns allowed
+      const fields = csv.meta.fields ?? [];
+      const missingRequired = requiredColumns.filter((c) => !fields.includes(c));
+      const unknownFields = fields.filter((f) => !allKnownColumns.has(f));
 
-      if (!hasCorrectColumns) {
-        validationErrors = [
-          {
+      if (missingRequired.length > 0 || unknownFields.length > 0) {
+        const errors: Array<{ row: number; message: string; code?: string }> = [];
+        if (missingRequired.length > 0) {
+          errors.push({
             row: 0,
-            message: $LL.admin.import.csvColumnsMismatch({ columns: expectedColumns.join(", ") }),
+            message: $LL.admin.import.csvMissingColumns({ columns: missingRequired.join(", ") }),
             code: "csv_columns_mismatch",
-          },
-        ];
+          });
+        }
+        if (unknownFields.length > 0) {
+          errors.push({
+            row: 0,
+            message: $LL.admin.import.csvUnknownColumns({ columns: unknownFields.join(", ") }),
+            code: "csv_columns_mismatch",
+          });
+        }
+        validationErrors = errors;
         return;
       }
 
@@ -495,8 +508,14 @@
         <div class="rounded-md bg-muted p-4 text-sm">
           <p class="mb-2 font-medium">{$LL.admin.import.expectedColumns()}</p>
           <ul class="list-inside list-disc space-y-1 text-muted-foreground">
-            {#each expectedColumns as column (column)}
+            {#each requiredColumns as column (column)}
               <li><code class="rounded bg-background px-1">{column}</code></li>
+            {/each}
+            {#each optionalColumns as column (column)}
+              <li>
+                <code class="rounded bg-background px-1">{column}</code>
+                <span class="italic">({$LL.admin.import.optional()})</span>
+              </li>
             {/each}
           </ul>
         </div>

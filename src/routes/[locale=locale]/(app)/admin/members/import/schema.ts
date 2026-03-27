@@ -7,6 +7,12 @@ export const csvRowSchema = v.object({
   email: v.pipe(v.string(), v.email()),
   membershipTypeId: v.pipe(v.string(), v.minLength(1)),
   membershipStartDate: v.pipe(v.string(), v.minLength(1)),
+  isAllowedEmails: v.optional(
+    v.pipe(
+      v.string(),
+      v.transform((s) => s.toLowerCase().trim() === "true"),
+    ),
+  ),
 });
 
 export const importMembersSchema = v.object({
