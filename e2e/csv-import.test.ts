@@ -97,9 +97,10 @@ value1,value2,value3`;
     const fileInput = adminPage.locator('input[type="file"]');
     await fileInput.setInputFiles(tempPath);
 
-    // Verify error message shows (heading only shows when there are no valid rows)
+    // Verify error messages show (missing required + unknown columns)
     await expect(adminPage.getByRole("heading", { name: "Vahvistusvirheet:" })).toBeVisible();
-    await expect(adminPage.getByTestId("validation-error")).toBeVisible();
+    await expect(adminPage.getByText("Puuttuvat pakolliset sarakkeet")).toBeVisible();
+    await expect(adminPage.getByText("Tuntemattomat sarakkeet")).toBeVisible();
   });
 
   test("CSV import validates invalid email format", async ({ adminPage }) => {
@@ -744,6 +745,124 @@ Test,User,Helsinki,${email},varsinainen-jasen,2015-08-01`;
         testMembershipIds.push(createdMembership.id);
       }
     });
+  });
+
+  test("CSV import with isAllowedEmails column sets value for new users", async ({ adminPage }) => {
+    const email1 = getTestEmail("allowed-true");
+    const email2 = getTestEmail("allowed-false");
+    const email3 = getTestEmail("allowed-empty");
+
+    const tempPath = path.join(process.cwd(), `temp-allowed-emails-${crypto.randomUUID()}.csv`);
+    tempFiles.push(tempPath);
+    const csvContent = `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate,isAllowedEmails
+Allowed,User,Helsinki,${email1},varsinainen-jasen,2025-08-01,true
+NotAllowed,User,Espoo,${email2},varsinainen-jasen,2025-08-01,false
+Empty,User,Tampere,${email3},varsinainen-jasen,2025-08-01,`;
+    fs.writeFileSync(tempPath, csvContent);
+
+    await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
+      waitUntil: "networkidle",
+    });
+    const fileInput = adminPage.locator('input[type="file"]');
+    await fileInput.setInputFiles(tempPath);
+
+    await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
+
+    const importButton = adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i });
+    await importButton.click();
+
+    await expect(adminPage.getByText(/tuonti onnistui|import successful/i)).toBeVisible({ timeout: 10_000 });
+
+    // Verify isAllowedEmails values
+    const [user1] = await db.select().from(table.user).where(eq(table.user.email, email1));
+    const [user2] = await db.select().from(table.user).where(eq(table.user.email, email2));
+    const [user3] = await db.select().from(table.user).where(eq(table.user.email, email3));
+
+    expect(user1?.isAllowedEmails).toBe(true);
+    expect(user2?.isAllowedEmails).toBe(false);
+    expect(user3?.isAllowedEmails).toBe(false); // empty defaults to false
+
+    // Track for cleanup
+    for (const u of [user1, user2, user3]) {
+      if (u) testUserIds.push(u.id);
+    }
+  });
+
+  test("CSV import does not overwrite existing user's isAllowedEmails", async ({ adminPage }) => {
+    const email = getTestEmail("keep-allowed");
+    const testUserId = crypto.randomUUID();
+    testUserIds.push(testUserId);
+
+    // Create user with isAllowedEmails = true
+    await db.insert(table.user).values({
+      id: testUserId,
+      email,
+      firstNames: "Original",
+      lastName: "Name",
+      homeMunicipality: "Helsinki",
+      adminRole: "none",
+      isAllowedEmails: true,
+    });
+
+    // Import CSV with isAllowedEmails = false for this user
+    const tempPath = path.join(process.cwd(), `temp-keep-allowed-${crypto.randomUUID()}.csv`);
+    tempFiles.push(tempPath);
+    const csvContent = `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate,isAllowedEmails
+Updated,Name,Espoo,${email},varsinainen-jasen,2025-08-01,false`;
+    fs.writeFileSync(tempPath, csvContent);
+
+    await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
+      waitUntil: "networkidle",
+    });
+    const fileInput = adminPage.locator('input[type="file"]');
+    await fileInput.setInputFiles(tempPath);
+
+    await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
+
+    const importButton = adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i });
+    await importButton.click();
+
+    await expect(adminPage.getByText(/tuonti onnistui|import successful/i)).toBeVisible({ timeout: 10_000 });
+
+    // Verify isAllowedEmails was NOT overwritten
+    const [user] = await db.select().from(table.user).where(eq(table.user.id, testUserId));
+    expect(user?.isAllowedEmails).toBe(true); // kept original value
+    // But other fields were updated
+    expect(user?.firstNames).toBe("Updated");
+    expect(user?.homeMunicipality).toBe("Espoo");
+  });
+
+  test("CSV import accepts columns in any order", async ({ adminPage }) => {
+    const email = getTestEmail("reorder");
+
+    const tempPath = path.join(process.cwd(), `temp-reorder-${crypto.randomUUID()}.csv`);
+    tempFiles.push(tempPath);
+    // Columns in different order than default
+    const csvContent = `email,membershipTypeId,membershipStartDate,firstNames,lastName,homeMunicipality
+${email},varsinainen-jasen,2025-08-01,Reorder,Test,Vantaa`;
+    fs.writeFileSync(tempPath, csvContent);
+
+    await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
+      waitUntil: "networkidle",
+    });
+    const fileInput = adminPage.locator('input[type="file"]');
+    await fileInput.setInputFiles(tempPath);
+
+    await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
+
+    const importButton = adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i });
+    await importButton.click();
+
+    await expect(adminPage.getByText(/tuonti onnistui|import successful/i)).toBeVisible({ timeout: 10_000 });
+
+    // Verify user was created correctly despite reordered columns
+    const [user] = await db.select().from(table.user).where(eq(table.user.email, email));
+    expect(user).toBeDefined();
+    expect(user?.firstNames).toBe("Reorder");
+    expect(user?.lastName).toBe("Test");
+    expect(user?.homeMunicipality).toBe("Vantaa");
+
+    if (user) testUserIds.push(user.id);
   });
 
   test("CSV import is idempotent (running twice doesn't duplicate)", async ({ adminPage }) => {
