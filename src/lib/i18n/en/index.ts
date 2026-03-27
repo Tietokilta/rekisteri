@@ -155,12 +155,12 @@ const en = {
   // Emails
   emails: {
     otp: {
-      subject: "CSG Membership Registry Sign In Code",
+      subject: "{organizationName} Membership Registry Sign In Code",
       body: `Your login code is: {code}
 
 This code will expire in 10 minutes.
 
-@{domain} #{code}`,
+@{domain} #{code} {organizationName}`,
     },
     paymentSuccess: {
       subject: "Payment received - Awaiting board approval",
@@ -171,13 +171,13 @@ Your payment has been received and your membership application is awaiting appro
 You will receive an email once your membership is approved.
 
 Best regards,
-Computer Science Guild`,
+{organizationName}`,
     },
     membershipApproved: {
-      subject: "Welcome to the Computer Science Guild!",
+      subject: "Welcome to {organizationName}!",
       body: `Hi {firstName}!
 
-Your membership application has been approved. Welcome as a member of the Computer Science Guild!
+Your membership application has been approved. Welcome as a member of {organizationName}!
 
 Membership details:
 - Type: {membershipName}
@@ -188,7 +188,7 @@ You can now participate in guild activities and enjoy member benefits.
 See you at events!
 
 Best regards,
-Computer Science Guild`,
+{organizationName}`,
     },
     membershipRenewed: {
       subject: "Your membership has been renewed!",
@@ -203,7 +203,7 @@ Membership details:
 Thank you for continuing as a member!
 
 Best regards,
-Computer Science Guild`,
+{organizationName}`,
     },
   },
 
@@ -508,8 +508,8 @@ Computer Science Guild`,
         approve: "Approve",
         reject: "Reject",
         reactivate: "Reactivate",
-        deemResigned: "Deem resigned (§8)",
-        resignMembership: "Resign (§8)",
+        deemResigned: "Deem resigned",
+        resignMembership: "Resign",
 
         // Pagination
         showing: "Showing {current} of {total} members",
