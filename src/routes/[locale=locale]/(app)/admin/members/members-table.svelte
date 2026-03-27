@@ -1145,22 +1145,28 @@
                                 </Button>
                               </div>
                             {:else if membership.status === "active"}
-                              <div class="flex gap-2 border-t pt-3">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onclick={() => openIndividualAction("deemResigned", membership.id, memberName)}
-                                >
-                                  {$LL.admin.members.table.deemResigned()}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onclick={() => openIndividualAction("resign", membership.id, memberName)}
-                                >
-                                  {$LL.admin.members.table.resignMembership()}
-                                </Button>
-                              </div>
+                            <div class="flex gap-2 border-t pt-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onclick={() => openIndividualAction("deemResigned", membership.id, memberName)}
+                              >
+                                {$LL.admin.members.table.deemResigned() +
+                                  " (" +
+                                  page.data.customisations.memberResignRule +
+                                  ")"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onclick={() => openIndividualAction("resign", membership.id, memberName)}
+                              >
+                                {$LL.admin.members.table.resignMembership() +
+                                  " (" +
+                                  page.data.customisations.memberResignRule +
+                                  ")"}
+                              </Button>
+                            </div>
                             {/if}
                           {/if}
                         </div>
