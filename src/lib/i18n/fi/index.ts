@@ -155,55 +155,55 @@ const fi = {
   // Emails
   emails: {
     otp: {
-      subject: "Tietokillan jäsenrekisterin sisäänkirjautumiskoodi",
-      body: `Kirjautumiskoodisi on: {code}
+      subject: "{organizationName:string} jäsen_rekisterin sisään_kirjautumiskoodi",
+      body: `Kirjautumiskoodisi on: {code:string}
 
 Koodi vanhenee 10 minuutin kuluttua.
 
-@{domain} #{code}`,
+@{domain:string} #{code:string} {organizationName:string}`,
     },
     paymentSuccess: {
       subject: "Maksu vastaanotettu - Odottaa hallituksen hyväksyntää",
-      body: `Kiitos {membershipName}-jäsenyytesi maksusta ({amount})!
+      body: `Kiitos {membershipName:string}-jäsenyytesi maksusta ({amount:string})!
 
 Maksusi on vastaanotettu ja jäsenhakemuksesi odottaa hallituksen hyväksyntää seuraavassa kokouksessa.
 
 Saat sähköpostiviestin, kun jäsenyytesi on hyväksytty.
 
 Terveisin,
-Tietokilta`,
+{organizationName:string}`,
     },
     membershipApproved: {
-      subject: "Tervetuloa Tietokiltaan!",
-      body: `Hei {firstName}!
+      subject: "Tervetuloa {organizationName:string} jäseneksi!",
+      body: `Hei {firstName:string}!
 
-Jäsenhakemuksesi on hyväksytty. Tervetuloa Tietokillan jäseneksi!
+Jäsenhakemuksesi on hyväksytty. Tervetuloa {organizationName:string} jäseneksi!
 
 Jäsenyystiedot:
-- Jäsenyystyyppi: {membershipName}
-- Voimassa: {startDate} - {endDate}
+- Jäsenyystyyppi: {membershipName:string}
+- Voimassa: {startDate:string} - {endDate:string}
 
-Voit nyt osallistua killan toimintaan ja hyödyntää jäsenetuja.
+Voit nyt osallistua organisaation toimintaan ja hyödyntää jäsenetuja.
 
 Nähdään tapahtumissa!
 
 Terveisin,
-Tietokilta`,
+{organizationName:string}`,
     },
     membershipRenewed: {
       subject: "Jäsenyytesi on uusittu!",
-      body: `Hei {firstName}!
+      body: `Hei {firstName:string}!
 
 Jäsenyytesi on uusittu automaattisesti maksun jälkeen.
 
 Jäsenyystiedot:
-- Jäsenyystyyppi: {membershipName}
-- Voimassa: {startDate} - {endDate}
+- Jäsenyystyyppi: {membershipName:string}
+- Voimassa: {startDate:string} - {endDate:string}
 
 Kiitos, että jatkat jäsenenämme!
 
 Terveisin,
-Tietokilta`,
+{organizationName:string}`,
     },
   },
 
@@ -511,8 +511,8 @@ Tietokilta`,
         approve: "Hyväksy",
         reject: "Hylkää",
         reactivate: "Aktivoi uudelleen",
-        deemResigned: "Katso eronneeksi (§8)",
-        resignMembership: "Erota (§8)",
+        deemResigned: "Katso eronneeksi",
+        resignMembership: "Erota",
 
         // Pagination
         showing: "Näytetään {start}–{end} / {total} jäsentä",
