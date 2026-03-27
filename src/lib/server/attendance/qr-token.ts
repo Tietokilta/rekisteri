@@ -22,7 +22,7 @@ export function generateQrToken(): string {
  * @throws Error if user not found
  */
 export async function ensureUserHasQrToken(userId: string): Promise<string> {
-  const user = await db.query.user.findFirst({
+  const user = await db._query.user.findFirst({
     where: eq(table.user.id, userId),
     columns: {
       id: true,
@@ -46,7 +46,7 @@ export async function ensureUserHasQrToken(userId: string): Promise<string> {
     .where(and(eq(table.user.id, userId), isNull(table.user.qrToken)));
 
   // Re-read to get the actual token (ours or the concurrent one)
-  const updated = await db.query.user.findFirst({
+  const updated = await db._query.user.findFirst({
     where: eq(table.user.id, userId),
     columns: { qrToken: true },
   });
@@ -65,7 +65,7 @@ export async function ensureUserHasQrToken(userId: string): Promise<string> {
  * @returns User ID if valid, null otherwise
  */
 export async function verifyQrToken(token: string): Promise<string | null> {
-  const user = await db.query.user.findFirst({
+  const user = await db._query.user.findFirst({
     where: eq(table.user.qrToken, token),
     columns: {
       id: true,
