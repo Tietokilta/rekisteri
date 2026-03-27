@@ -14,6 +14,7 @@ import Calendar from "@lucide/svelte/icons/calendar";
 import Tag from "@lucide/svelte/icons/tag";
 import UserCog from "@lucide/svelte/icons/user-cog";
 import QrCode from "@lucide/svelte/icons/qr-code";
+import PaintBrush from "@lucide/svelte/icons/paintbrush";
 
 export interface NavItem {
   title: string;
@@ -82,6 +83,11 @@ export function getAdminNavItems(locale: Locale, LL: TranslationFunctions): NavI
       title: LL.nav.admin.users(),
       href: route("/[locale=locale]/admin/users", { locale }),
       icon: UserCog,
+    },
+    {
+      title: LL.nav.admin.customise(),
+      href: route("/[locale=locale]/admin/customise", { locale }),
+      icon: PaintBrush,
     },
   ];
 }

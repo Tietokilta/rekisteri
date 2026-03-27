@@ -94,6 +94,7 @@
     "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.4",
     "runed": "^0.37.1",
+    "snarkdown": "^2.0.0",
     "stripe": "^20.4.1",
     "svelte": "^5.53.12",
     "typesafe-i18n": "^5.27.1",
