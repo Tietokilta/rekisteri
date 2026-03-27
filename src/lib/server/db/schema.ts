@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  bytea,
   check,
   index,
   integer,
@@ -13,6 +14,8 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import * as v from "valibot";
+
+import { DEFAULT_CUSTOMISATION } from "../customisation/defaults";
 import { ADMIN_ROLE_VALUES, MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 
@@ -173,6 +176,33 @@ export const auditLog = pgTable("audit_log", {
   ...timestamps,
 });
 
+export const appCustomisation = pgTable("app_customisation", {
+  id: integer().primaryKey().default(1),
+  accentColor: text().notNull().default(DEFAULT_CUSTOMISATION.accentColor),
+  organizationName: jsonb()
+    .$type<LocalizedString>()
+    .notNull()
+    .default(DEFAULT_CUSTOMISATION.organizationName),
+  appName: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMISATION.appName),
+  logo: bytea(),
+  logoDark: bytea(),
+  favicon: bytea(),
+  faviconDark: bytea(),
+  businessId: text().notNull().default(DEFAULT_CUSTOMISATION.businessId),
+  overseerContact: text().notNull().default(DEFAULT_CUSTOMISATION.overseerContact),
+  overseerAddress: text().notNull().default(DEFAULT_CUSTOMISATION.overseerAddress),
+  privacyPolicy: jsonb()
+    .$type<LocalizedString>()
+    .notNull()
+    .default(DEFAULT_CUSTOMISATION.privacyPolicy),
+  organizationRulesUrl: text().notNull().default(DEFAULT_CUSTOMISATION.organizationRulesUrl),
+  memberResignRule: text().default(DEFAULT_CUSTOMISATION.memberResignRule),
+  memberResignDefaultReason: jsonb()
+    .$type<LocalizedString>()
+    .default(DEFAULT_CUSTOMISATION.memberResignDefaultReason),
+  ...timestamps,
+});
+
 export type Member = typeof member.$inferSelect;
 
 export type MemberStatus = v.InferOutput<typeof memberStatusEnumSchema>;
@@ -196,3 +226,5 @@ export type AuditLog = typeof auditLog.$inferSelect;
 export type Passkey = typeof passkey.$inferSelect;
 
 export type SecondaryEmail = typeof secondaryEmail.$inferSelect;
+
+export type AppCustomisation = typeof appCustomisation.$inferSelect;

@@ -6,6 +6,7 @@ import * as table from "./schema";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { generateUserId } from "../auth/utils";
+import { DEFAULT_CUSTOMISATION } from "../customisation/defaults";
 
 try {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set");
@@ -18,6 +19,13 @@ try {
   console.log("Database reset!");
 
   console.log("Seeding database...");
+
+  // Seed initial app customisation
+  await db.insert(table.appCustomisation).values({
+    id: 1,
+    ...DEFAULT_CUSTOMISATION,
+  });
+  console.log("Seeded app customisation!");
 
   // Seed membership types first
   const membershipTypesToSeed = [
