@@ -592,14 +592,26 @@
 
             <!-- Errors -->
             {#if validationErrors.length > 0}
-              <div class="flex items-center gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-3">
-                <CircleAlert class="size-5 text-destructive" />
-                <div>
-                  <p class="font-medium text-destructive">{$LL.admin.import.errors()}</p>
-                  <p class="text-sm text-destructive/80">
-                    {$LL.admin.import.errorsDesc({ count: validationErrors.length })}
-                  </p>
+              <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
+                <div class="flex items-center gap-3">
+                  <CircleAlert class="size-5 text-destructive" />
+                  <div>
+                    <p class="font-medium text-destructive">{$LL.admin.import.errors()}</p>
+                    <p class="text-sm text-destructive/80">
+                      {$LL.admin.import.errorsDesc({ count: validationErrors.length })}
+                    </p>
+                  </div>
                 </div>
+                <details class="mt-2">
+                  <summary class="cursor-pointer text-sm text-destructive"
+                    >{$LL.admin.import.viewErrors({ errorCount: validationErrors.length })}</summary
+                  >
+                  <ul class="mt-2 list-inside list-disc space-y-1 text-sm text-destructive/80">
+                    {#each validationErrors as error, i (i)}
+                      <li>{$LL.admin.import.rowError({ row: error.row, message: error.message })}</li>
+                    {/each}
+                  </ul>
+                </details>
               </div>
             {/if}
           </div>
