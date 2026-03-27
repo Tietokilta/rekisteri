@@ -1,5 +1,5 @@
 import { stripe } from "$lib/server/payment";
-import * as table from "$lib/server/db/schema";
+import * as table from "$lib/server/db";
 import { db } from "$lib/server/db";
 import { eq } from "drizzle-orm";
 import { env } from "$lib/server/env";
@@ -110,11 +110,11 @@ async function createCheckoutSessionWithRetry(
  * @see {@link https://docs.stripe.com/checkout/quickstart}
  */
 export async function createSession(userId: string, membershipId: string, locale: Locale, description?: string | null) {
-  const membership = await db.query.membership.findFirst({
+  const membership = await db._query.membership.findFirst({
     where: eq(table.membership.id, membershipId),
     with: { membershipType: true },
   });
-  const user = await db.query.user.findFirst({
+  const user = await db._query.user.findFirst({
     where: eq(table.user.id, userId),
   });
   if (!membership || !user) {
@@ -162,7 +162,7 @@ export async function createSession(userId: string, membershipId: string, locale
  * This is used when a user with "awaiting_payment" status wants to complete their payment.
  */
 export async function resumeOrCreateSession(memberId: string, locale: Locale) {
-  const member = await db.query.member.findFirst({
+  const member = await db._query.member.findFirst({
     where: eq(table.member.id, memberId),
     with: {
       membership: {
@@ -306,7 +306,7 @@ export async function fulfillSession(sessionId: string) {
   // 3. Email failures are caught and logged without failing the transaction
   if (newStatus) {
     try {
-      const memberWithDetails = await db.query.member.findFirst({
+      const memberWithDetails = await db._query.member.findFirst({
         where: eq(table.member.id, memberId),
         with: {
           user: true,

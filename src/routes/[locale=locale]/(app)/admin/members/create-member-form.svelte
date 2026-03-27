@@ -9,7 +9,7 @@
   import { Label } from "$lib/components/ui/label";
   import * as Sheet from "$lib/components/ui/sheet";
   import * as NativeSelect from "$lib/components/ui/native-select";
-  import type { LocalizedString } from "$lib/server/db/schema";
+  import type { LocalizedString } from "$lib/server/db";
 
   interface AvailableMembership {
     id: string;

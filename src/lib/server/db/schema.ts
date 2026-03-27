@@ -1,4 +1,4 @@
-import { relations, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
@@ -155,29 +155,6 @@ export const member = pgTable(
     ),
   ],
 );
-
-export const memberRelations = relations(member, ({ one }) => ({
-  user: one(user, {
-    fields: [member.userId],
-    references: [user.id],
-  }),
-  membership: one(membership, {
-    fields: [member.membershipId],
-    references: [membership.id],
-  }),
-}));
-
-export const membershipTypeRelations = relations(membershipType, ({ many }) => ({
-  memberships: many(membership),
-}));
-
-export const membershipRelations = relations(membership, ({ one, many }) => ({
-  membershipType: one(membershipType, {
-    fields: [membership.membershipTypeId],
-    references: [membershipType.id],
-  }),
-  members: many(member),
-}));
 
 export const auditLog = pgTable("audit_log", {
   id: text().primaryKey(),

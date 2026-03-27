@@ -1,7 +1,7 @@
 import { error, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
 import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import * as table from "$lib/server/db";
 import { eq, and } from "drizzle-orm";
 import { resumeOrCreateSession } from "$lib/server/payment/session";
 import { retryPaymentSchema } from "./retry-payment.schema";
@@ -14,7 +14,7 @@ export const retryPayment = form(retryPaymentSchema, async ({ memberId }) => {
   }
 
   // Verify the member belongs to this user and is awaiting_payment
-  const member = await db.query.member.findFirst({
+  const member = await db._query.member.findFirst({
     where: and(eq(table.member.id, memberId), eq(table.member.userId, event.locals.user.id)),
   });
 

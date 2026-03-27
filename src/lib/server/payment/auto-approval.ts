@@ -27,7 +27,7 @@ export async function checkAutoApprovalEligibility(
 ): Promise<boolean> {
   // Find the immediately preceding membership of the same type
   // (same membershipTypeId, endTime <= newMembership.startTime, most recent)
-  const precedingMembership = await db.query.membership.findFirst({
+  const precedingMembership = await db._query.membership.findFirst({
     where: and(
       eq(table.membership.membershipTypeId, newMembership.membershipTypeId),
       lte(table.membership.endTime, newMembership.startTime),
@@ -48,7 +48,7 @@ export async function checkAutoApprovalEligibility(
   // Check if user had an active member record for that preceding membership.
   // Only "active" qualifies — resigned members were deliberately removed by the
   // board at year-end (§8 p2) and should go through board review again.
-  const previousMember = await db.query.member.findFirst({
+  const previousMember = await db._query.member.findFirst({
     where: and(
       eq(table.member.userId, userId),
       eq(table.member.membershipId, precedingMembership.id),
@@ -76,7 +76,7 @@ export async function checkAutoApprovalEligibility(
  */
 async function checkStudentEmail(db: DbHandle, userId: string): Promise<boolean> {
   // Check primary email
-  const user = await db.query.user.findFirst({
+  const user = await db._query.user.findFirst({
     where: eq(table.user.id, userId),
     columns: { email: true },
   });
