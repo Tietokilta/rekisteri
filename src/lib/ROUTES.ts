@@ -12,6 +12,9 @@ const PAGES = {
   "/[locale=locale]": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
     return `/${params['locale']}`
   },
+  "/[locale=locale]/admin/customise": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/admin/customise`
+  },
   "/[locale=locale]/admin/members": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
     return `/${params['locale']}/admin/members`
   },
@@ -70,6 +73,9 @@ const PAGES = {
  */
 const SERVERS = {
   "GET /api/health": `/api/health`,
+  "GET /api/image/[type]": (params: { type: (string | number) }) => {
+    return `/api/image/${params['type']}`
+  },
   "POST /api/webhook/stripe": `/api/webhook/stripe`
 }
 
@@ -77,7 +83,9 @@ const SERVERS = {
  * ACTIONS
  */
 const ACTIONS = {
-  
+  "default /[locale=locale]/admin/customise": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/admin/customise`
+  }
 }
 
 /**
@@ -196,9 +204,9 @@ type ExtractParamType<T extends (param: any) => any> = ExtractFnPredicate<T> ext
 * ```
 */
 export type KIT_ROUTES = {
-  PAGES: { '/[locale=locale]': 'locale', '/[locale=locale]/admin/members': 'locale', '/[locale=locale]/admin/members/import': 'locale', '/[locale=locale]/admin/membership-types': 'locale', '/[locale=locale]/admin/memberships': 'locale', '/[locale=locale]/admin/users': 'locale', '/[locale=locale]/admin/verify-qr': 'locale', '/[locale=locale]/membership': 'locale', '/[locale=locale]/new': 'locale', '/[locale=locale]/settings/emails': 'locale', '/[locale=locale]/settings/emails/add': 'locale', '/[locale=locale]/settings/emails/verify': 'locale', '/[locale=locale]/settings/passkeys': 'locale', '/[locale=locale]/settings/profile': 'locale', '/[locale=locale]/privacy-policy': 'locale', '/[locale=locale]/sign-in': 'locale', '/[locale=locale]/sign-in/email': 'locale', '/[locale=locale]/sign-in/method': 'locale' }
-  SERVERS: { 'GET /api/health': never, 'POST /api/webhook/stripe': never }
-  ACTIONS: Record<string, never>
+  PAGES: { '/[locale=locale]': 'locale', '/[locale=locale]/admin/customise': 'locale', '/[locale=locale]/admin/members': 'locale', '/[locale=locale]/admin/members/import': 'locale', '/[locale=locale]/admin/membership-types': 'locale', '/[locale=locale]/admin/memberships': 'locale', '/[locale=locale]/admin/users': 'locale', '/[locale=locale]/admin/verify-qr': 'locale', '/[locale=locale]/membership': 'locale', '/[locale=locale]/new': 'locale', '/[locale=locale]/settings/emails': 'locale', '/[locale=locale]/settings/emails/add': 'locale', '/[locale=locale]/settings/emails/verify': 'locale', '/[locale=locale]/settings/passkeys': 'locale', '/[locale=locale]/settings/profile': 'locale', '/[locale=locale]/privacy-policy': 'locale', '/[locale=locale]/sign-in': 'locale', '/[locale=locale]/sign-in/email': 'locale', '/[locale=locale]/sign-in/method': 'locale' }
+  SERVERS: { 'GET /api/health': never, 'GET /api/image/[type]': 'type', 'POST /api/webhook/stripe': never }
+  ACTIONS: { 'default /[locale=locale]/admin/customise': 'locale' }
   LINKS: Record<string, never>
-  Params: { 'locale': never }
+  Params: { 'locale': never, 'type': never }
 }
