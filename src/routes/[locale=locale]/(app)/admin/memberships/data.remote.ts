@@ -1,8 +1,8 @@
 import { error } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
 import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
-import { count, eq } from "drizzle-orm";
+import * as table from "$lib/server/db";
+import { eq, count } from "drizzle-orm";
 import { createMembershipSchema, deleteMembershipSchema, updateMembershipSchema } from "./schema";
 import { hasAdminWriteAccess } from "$lib/server/auth/admin";
 import { auditFromEvent } from "$lib/server/audit";
@@ -15,7 +15,7 @@ export const createMembership = form(createMembershipSchema, async (data) => {
   }
 
   // For non-purchasable types, ignore stripePriceId and requiresStudentVerification
-  const membershipType = await db.query.membershipType.findFirst({
+  const membershipType = await db._query.membershipType.findFirst({
     where: eq(table.membershipType.id, data.membershipTypeId),
   });
   if (!membershipType) {
@@ -93,7 +93,7 @@ export const updateMembership = form(updateMembershipSchema, async (data) => {
   }
 
   // For non-purchasable types, ignore stripePriceId and requiresStudentVerification
-  const membershipType = await db.query.membershipType.findFirst({
+  const membershipType = await db._query.membershipType.findFirst({
     where: eq(table.membershipType.id, data.membershipTypeId),
   });
   if (!membershipType) {

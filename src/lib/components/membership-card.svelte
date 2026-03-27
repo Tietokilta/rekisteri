@@ -5,7 +5,7 @@
   import { LL, locale } from "$lib/i18n/i18n-svelte";
   import { route } from "$lib/ROUTES";
   import type { MemberStatus } from "$lib/shared/enums";
-  import type { LocalizedString } from "$lib/server/db/schema";
+  import type { LocalizedString } from "$lib/server/db";
   import { retryPayment } from "$lib/api/retry-payment.remote";
   import { retryPaymentSchema } from "$lib/api/retry-payment.schema";
   import MemberQrModal from "$lib/components/member-qr-modal.svelte";

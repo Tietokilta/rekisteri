@@ -1,8 +1,8 @@
 import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import * as v from "valibot";
 import { db } from "../db";
-import * as table from "../db/schema";
-import type { SecondaryEmail, User } from "../db/schema";
+import * as table from "../db";
+import type { SecondaryEmail, User } from "../db";
 import type { RequestEvent } from "@sveltejs/kit";
 import { auditEmailChange } from "../audit";
 

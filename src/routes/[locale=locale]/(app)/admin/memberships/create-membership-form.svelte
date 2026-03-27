@@ -13,7 +13,7 @@
   import * as Sheet from "$lib/components/ui/sheet";
   import * as NativeSelect from "$lib/components/ui/native-select";
   import GraduationCap from "@lucide/svelte/icons/graduation-cap";
-  import type { MembershipType } from "$lib/server/db/schema";
+  import type { MembershipType } from "$lib/server/db";
 
   interface DefaultValues {
     membershipTypeId: string;

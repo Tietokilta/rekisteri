@@ -1,5 +1,6 @@
 import { test, expect } from "./fixtures/db";
-import * as table from "../src/lib/server/db/schema";
+import * as table from "../src/lib/server/db";
+import type { Schema } from "../src/lib/server/db";
 import { eq, isNotNull, and, gt } from "drizzle-orm";
 import { route } from "../src/lib/ROUTES";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
@@ -39,7 +40,7 @@ test.describe("Member Purchase Flow", () => {
   });
 
   // Helper to get a membership with Stripe price ID
-  async function getMembershipWithStripePrice(db: PostgresJsDatabase<typeof table>) {
+  async function getMembershipWithStripePrice(db: PostgresJsDatabase<Schema>) {
     const [membership] = await db
       .select()
       .from(table.membership)
