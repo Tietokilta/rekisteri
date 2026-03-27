@@ -97,9 +97,10 @@ value1,value2,value3`;
     const fileInput = adminPage.locator('input[type="file"]');
     await fileInput.setInputFiles(tempPath);
 
-    // Verify error message shows (heading only shows when there are no valid rows)
+    // Verify error messages show (missing required + unknown columns)
     await expect(adminPage.getByRole("heading", { name: "Vahvistusvirheet:" })).toBeVisible();
-    await expect(adminPage.getByTestId("validation-error")).toBeVisible();
+    await expect(adminPage.getByText("Puuttuvat pakolliset sarakkeet")).toBeVisible();
+    await expect(adminPage.getByText("Tuntemattomat sarakkeet")).toBeVisible();
   });
 
   test("CSV import validates invalid email format", async ({ adminPage }) => {
