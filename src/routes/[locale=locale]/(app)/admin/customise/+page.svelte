@@ -254,7 +254,9 @@
                 class="max-w-md"
               />
             </div>
-            {#if errors.memberResignDefaultReasonFi}<p class="mt-2 text-sm text-red-600">{errors.memberResignDefaultReasonFi}</p>{/if}
+            {#if errors.memberResignDefaultReasonFi}<p class="mt-2 text-sm text-red-600">
+                {errors.memberResignDefaultReasonFi}
+              </p>{/if}
           </div>
 
           <div class="sm:col-span-1">
@@ -270,7 +272,9 @@
                 class="max-w-md"
               />
             </div>
-            {#if errors.memberResignDefaultReasonEn}<p class="mt-2 text-sm text-red-600">{errors.memberResignDefaultReasonEn}</p>{/if}
+            {#if errors.memberResignDefaultReasonEn}<p class="mt-2 text-sm text-red-600">
+                {errors.memberResignDefaultReasonEn}
+              </p>{/if}
           </div>
         </div>
       </div>
