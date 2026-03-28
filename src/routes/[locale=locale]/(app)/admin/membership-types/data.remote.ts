@@ -6,6 +6,7 @@ import { count, eq } from "drizzle-orm";
 import { createMembershipTypeSchema, deleteMembershipTypeSchema, updateMembershipTypeSchema } from "./schema";
 import { getLL } from "$lib/server/i18n";
 import { hasAdminWriteAccess } from "$lib/server/auth/admin";
+import { auditFromEvent } from "$lib/server/audit";
 
 export const createMembershipType = form(createMembershipTypeSchema, async (data) => {
   const event = getRequestEvent();
@@ -38,6 +39,12 @@ export const createMembershipType = form(createMembershipTypeSchema, async (data
       purchasable: data.purchasable,
     })
     .execute();
+
+  await auditFromEvent(event, "membership_type.create", {
+    targetType: "membership_type",
+    targetId: data.id,
+    metadata: { nameFi: data.nameFi, nameEn: data.nameEn, purchasable: data.purchasable },
+  });
 
   return { success: true };
 });
@@ -74,6 +81,12 @@ export const updateMembershipType = form(updateMembershipTypeSchema, async (data
     .where(eq(table.membershipType.id, data.id))
     .execute();
 
+  await auditFromEvent(event, "membership_type.update", {
+    targetType: "membership_type",
+    targetId: data.id,
+    metadata: { nameFi: data.nameFi, nameEn: data.nameEn, purchasable: data.purchasable },
+  });
+
   return { success: true };
 });
 
@@ -97,6 +110,11 @@ export const deleteMembershipType = form(deleteMembershipTypeSchema, async ({ id
   }
 
   await db.delete(table.membershipType).where(eq(table.membershipType.id, id)).execute();
+
+  await auditFromEvent(event, "membership_type.delete", {
+    targetType: "membership_type",
+    targetId: id,
+  });
 
   return { success: true };
 });

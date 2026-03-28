@@ -5,6 +5,7 @@ import * as table from "$lib/server/db/schema";
 import { count, eq } from "drizzle-orm";
 import { createMembershipSchema, deleteMembershipSchema, updateMembershipSchema } from "./schema";
 import { hasAdminWriteAccess } from "$lib/server/auth/admin";
+import { auditFromEvent } from "$lib/server/audit";
 
 export const createMembership = form(createMembershipSchema, async (data) => {
   const event = getRequestEvent();
@@ -35,6 +36,11 @@ export const createMembership = form(createMembershipSchema, async (data) => {
     })
     .execute();
 
+  await auditFromEvent(event, "membership.create", {
+    targetType: "membership",
+    metadata: { membershipTypeId: data.membershipTypeId, startTime: data.startTime, endTime: data.endTime },
+  });
+
   return { success: true };
 });
 
@@ -56,6 +62,11 @@ export const deleteMembership = form(deleteMembershipSchema, async ({ id }) => {
   }
 
   await db.delete(table.membership).where(eq(table.membership.id, id)).execute();
+
+  await auditFromEvent(event, "membership.delete", {
+    targetType: "membership",
+    targetId: id,
+  });
 
   return { success: true };
 });
@@ -97,6 +108,12 @@ export const updateMembership = form(updateMembershipSchema, async (data) => {
     })
     .where(eq(table.membership.id, data.id))
     .execute();
+
+  await auditFromEvent(event, "membership.update", {
+    targetType: "membership",
+    targetId: data.id,
+    metadata: { membershipTypeId: data.membershipTypeId, stripePriceId, requiresStudentVerification },
+  });
 
   return { success: true };
 });
