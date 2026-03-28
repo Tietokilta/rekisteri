@@ -15,6 +15,7 @@ export const createMembership = form(createMembershipSchema, async (data) => {
   }
 
   // For non-purchasable types, ignore stripePriceId and requiresStudentVerification
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const membershipType = await db._query.membershipType.findFirst({
     where: eq(table.membershipType.id, data.membershipTypeId),
   });
@@ -93,6 +94,7 @@ export const updateMembership = form(updateMembershipSchema, async (data) => {
   }
 
   // For non-purchasable types, ignore stripePriceId and requiresStudentVerification
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const membershipType = await db._query.membershipType.findFirst({
     where: eq(table.membershipType.id, data.membershipTypeId),
   });
