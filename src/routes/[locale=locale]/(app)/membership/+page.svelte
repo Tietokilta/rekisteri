@@ -15,6 +15,7 @@
   import Banknote from "@lucide/svelte/icons/banknote";
   import CreditCard from "@lucide/svelte/icons/credit-card";
   import History from "@lucide/svelte/icons/history";
+  import RotateCw from "@lucide/svelte/icons/rotate-cw";
 
   let { data }: { data: PageServerData } = $props();
 
@@ -27,7 +28,22 @@
 
   const pastMemberships = $derived(data.memberships.filter((m) => m.status === "resigned" || m.status === "rejected"));
 
-  function getStatusConfig(status: MemberStatus) {
+  // Check if a resigned membership was renewed (has an adjacent later membership of the same type).
+  // "Adjacent" means the next period starts within ~6 months of this period's end,
+  // matching the auto-approval logic in src/lib/server/payment/auto-approval.ts.
+  const MAX_RENEWAL_GAP_MS = 6 * 30 * 24 * 60 * 60 * 1000; // ~6 months
+
+  function wasRenewed(membership: (typeof data.memberships)[number]): boolean {
+    if (membership.status !== "resigned") return false;
+    const endTime = new Date(membership.endTime).getTime();
+    return data.memberships.some((m) => {
+      if (m.membershipTypeId !== membership.membershipTypeId) return false;
+      const startTime = new Date(m.startTime).getTime();
+      return startTime > endTime && startTime - endTime <= MAX_RENEWAL_GAP_MS;
+    });
+  }
+
+  function getStatusConfig(status: MemberStatus | "renewed") {
     switch (status) {
       case "active":
         return {
@@ -46,6 +62,12 @@
           variant: "secondary" as const,
           icon: Hourglass,
           label: $LL.membership.status.awaitingApproval(),
+        };
+      case "renewed":
+        return {
+          variant: "outline" as const,
+          icon: RotateCw,
+          label: $LL.membership.status.renewed(),
         };
       case "resigned":
         return {
@@ -148,7 +170,8 @@
               {$LL.membership.pastMemberships()}
             </h3>
             {#each pastMemberships as membership (membership.unique_id)}
-              {@const config = getStatusConfig(membership.status)}
+              {@const displayStatus = wasRenewed(membership) ? "renewed" : membership.status}
+              {@const config = getStatusConfig(displayStatus)}
               <Item.Root variant="outline" class="opacity-75">
                 <Item.Media variant="icon">
                   <config.icon class="text-muted-foreground" />

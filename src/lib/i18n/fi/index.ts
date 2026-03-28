@@ -350,6 +350,7 @@ Tietokilta`,
     status: {
       active: "Voimassa oleva jäsenyys",
       resigned: "Eronnut",
+      renewed: "Uusittu",
       rejected: "Hylätty",
       awaitingPayment: "Odottaa maksua",
       awaitingApproval: "Odottaa hyväksyntää",
