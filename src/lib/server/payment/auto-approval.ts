@@ -1,9 +1,17 @@
 import { and, eq, lte, desc } from "drizzle-orm";
-import * as table from "$lib/server/db/schema";
-import type { Membership, SecondaryEmail } from "$lib/server/db/schema";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import {
+  type Schema,
+  type Membership,
+  type SecondaryEmail,
+  membership,
+  member,
+  user,
+  secondaryEmail,
+} from "$lib/server/db";
+import type { PostgresJsDatabase, PostgresJsTransaction } from "drizzle-orm/postgres-js";
 
-type DbHandle = PostgresJsDatabase<typeof table>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DbHandle = PostgresJsDatabase<Schema> | PostgresJsTransaction<Schema, any, any>;
 
 /** Maximum gap (in ms) between preceding period end and new period start for auto-approval. */
 const MAX_PRECEDING_GAP_MS = 6 * 30 * 24 * 60 * 60 * 1000; // ~6 months
@@ -20,20 +28,21 @@ const MAX_PRECEDING_GAP_MS = 6 * 30 * 24 * 60 * 60 * 1000; // ~6 months
  * @param userId - The user purchasing the membership
  * @param newMembership - The membership being purchased
  */
-export async function checkAutoApprovalEligibility(
-  db: DbHandle,
+export async function checkAutoApprovalEligibility<T extends DbHandle>(
+  db: T,
   userId: string,
   newMembership: Membership,
 ): Promise<boolean> {
   // Find the immediately preceding membership of the same type
   // (same membershipTypeId, endTime <= newMembership.startTime, most recent)
+  // @ts-expect-error - union type callability issue
   // eslint-disable-next-line @typescript-eslint/no-deprecated
   const precedingMembership = await db._query.membership.findFirst({
     where: and(
-      eq(table.membership.membershipTypeId, newMembership.membershipTypeId),
-      lte(table.membership.endTime, newMembership.startTime),
+      eq(membership.membershipTypeId, newMembership.membershipTypeId),
+      lte(membership.endTime, newMembership.startTime),
     ),
-    orderBy: desc(table.membership.endTime),
+    orderBy: desc(membership.endTime),
   });
 
   if (!precedingMembership) {
@@ -49,13 +58,10 @@ export async function checkAutoApprovalEligibility(
   // Check if user had an active member record for that preceding membership.
   // Only "active" qualifies — resigned members were deliberately removed by the
   // board at year-end (§8 p2) and should go through board review again.
+  // @ts-expect-error - union type callability issue
   // eslint-disable-next-line @typescript-eslint/no-deprecated
   const previousMember = await db._query.member.findFirst({
-    where: and(
-      eq(table.member.userId, userId),
-      eq(table.member.membershipId, precedingMembership.id),
-      eq(table.member.status, "active"),
-    ),
+    where: and(eq(member.userId, userId), eq(member.membershipId, precedingMembership.id), eq(member.status, "active")),
   });
 
   if (!previousMember) {
@@ -78,17 +84,18 @@ export async function checkAutoApprovalEligibility(
  */
 async function checkStudentEmail(db: DbHandle, userId: string): Promise<boolean> {
   // Check primary email
+  // @ts-expect-error - union type callability issue
   // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const user = await db._query.user.findFirst({
-    where: eq(table.user.id, userId),
+  const u = await db._query.user.findFirst({
+    where: eq(user.id, userId),
     columns: { email: true },
   });
 
-  if (!user) {
+  if (!u) {
     return false;
   }
 
-  const primaryDomain = user.email.split("@")[1]?.toLowerCase();
+  const primaryDomain = u.email.split("@")[1]?.toLowerCase();
   if (primaryDomain === "aalto.fi") {
     return true;
   }
@@ -96,12 +103,12 @@ async function checkStudentEmail(db: DbHandle, userId: string): Promise<boolean>
   // Check secondary emails using the passed db handle, filtering at DB level
   const aaltoEmails = await db
     .select({
-      verifiedAt: table.secondaryEmail.verifiedAt,
-      expiresAt: table.secondaryEmail.expiresAt,
+      verifiedAt: secondaryEmail.verifiedAt,
+      expiresAt: secondaryEmail.expiresAt,
     })
-    .from(table.secondaryEmail)
-    .where(and(eq(table.secondaryEmail.userId, userId), eq(table.secondaryEmail.domain, "aalto.fi")));
-  return aaltoEmails.some((e) => isEmailValid(e));
+    .from(secondaryEmail)
+    .where(and(eq(secondaryEmail.userId, userId), eq(secondaryEmail.domain, "aalto.fi")));
+  return aaltoEmails.some((e: Pick<SecondaryEmail, "verifiedAt" | "expiresAt">) => isEmailValid(e));
 }
 
 /**
