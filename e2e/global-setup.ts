@@ -1,7 +1,7 @@
 import { chromium, type FullConfig } from "@playwright/test";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as table from "../src/lib/server/db/schema";
+import * as table from "../src/lib/server/db";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeBase64url, encodeHexLowerCase } from "@oslojs/encoding";
 import { eq } from "drizzle-orm";
@@ -34,7 +34,7 @@ async function globalSetup(_config: FullConfig) {
   }
 
   const client = postgres(dbUrl);
-  const db = drizzle(client, { schema: table, casing: "snake_case" });
+  const db = drizzle({ client, schema: table, casing: "snake_case" });
 
   console.log("✓ Pushing schema to test database...");
   execSync(`DATABASE_URL="${dbUrl}" pnpm drizzle-kit push --force`, { stdio: "inherit" });
@@ -91,7 +91,8 @@ async function globalSetup(_config: FullConfig) {
 
   // Create readonly admin user and session
   const readonlyEmail = "readonly@tietokilta.fi";
-  let readonlyUser = await db.query.user.findFirst({
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  let readonlyUser = await db._query.user.findFirst({
     where: eq(table.user.email, readonlyEmail),
   });
 

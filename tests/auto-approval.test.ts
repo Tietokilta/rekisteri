@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createTestDatabase, stopTestDatabase, type TestDatabase } from "./utils/db";
-import * as table from "../src/lib/server/db/schema";
+import * as table from "../src/lib/server/db";
 import { checkAutoApprovalEligibility } from "../src/lib/server/payment/auto-approval";
 
 // Helper to create a membership type
@@ -80,7 +80,8 @@ async function createSecondaryEmail(
 
 // Helper to fetch a membership by ID with assertion
 async function getMembership(db: TestDatabase["db"], id: string) {
-  const membership = await db.query.membership.findFirst({
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const membership = await db._query.membership.findFirst({
     where: (m, { eq }) => eq(m.id, id),
   });
   if (!membership) throw new Error(`Membership ${id} not found`);

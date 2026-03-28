@@ -268,7 +268,8 @@ export async function fulfillSession(sessionId: string) {
   // Use transaction to prevent race condition if multiple webhooks arrive simultaneously
   let newStatus: "active" | "awaiting_approval" | null = null;
   await db.transaction(async (tx) => {
-    const member = await tx.query.member.findFirst({
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const member = await tx._query.member.findFirst({
       where: eq(table.member.id, memberId),
       with: { membership: true },
     });
@@ -379,7 +380,8 @@ export async function cancelSession(sessionId: string) {
 
   // Use transaction to prevent race condition if multiple webhooks arrive simultaneously
   await db.transaction(async (tx) => {
-    const member = await tx.query.member.findFirst({
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const member = await tx._query.member.findFirst({
       where: eq(table.member.id, memberId),
     });
     if (!member || member.status !== "awaiting_payment") {
