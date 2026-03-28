@@ -1148,14 +1148,20 @@
                                   variant="outline"
                                   onclick={() => openIndividualAction("deemResigned", membership.id, memberName)}
                                 >
-                                  {$LL.admin.members.table.deemResigned()}
+                                  {$LL.admin.members.table.deemResigned() +
+                                    " (" +
+                                    page.data.customisations.memberResignRule +
+                                    ")"}
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="destructive"
                                   onclick={() => openIndividualAction("resign", membership.id, memberName)}
                                 >
-                                  {$LL.admin.members.table.resignMembership()}
+                                  {$LL.admin.members.table.resignMembership() +
+                                    " (" +
+                                    page.data.customisations.memberResignRule +
+                                    ")"}
                                 </Button>
                               </div>
                             {/if}

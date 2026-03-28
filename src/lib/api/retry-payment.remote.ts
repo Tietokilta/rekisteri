@@ -14,7 +14,7 @@ export const retryPayment = form(retryPaymentSchema, async ({ memberId }) => {
   }
 
   // Verify the member belongs to this user and is awaiting_payment
-  const member = await db.query.member.findFirst({
+  const member = await db._query.member.findFirst({
     where: and(eq(table.member.id, memberId), eq(table.member.userId, event.locals.user.id)),
   });
 

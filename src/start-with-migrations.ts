@@ -23,7 +23,7 @@ async function runMigrations(databaseUrl: string) {
     max: 1,
     ssl: "prefer", // Prefer SSL (required for Azure), but allow non-SSL for CI/local
   });
-  const db = drizzle(migrationClient, { casing: "snake_case" });
+  const db = drizzle({ client: migrationClient, casing: "snake_case" });
 
   // The drizzle folder is at the same level as this script
   const migrationsFolder = path.join(__dirname, "drizzle");

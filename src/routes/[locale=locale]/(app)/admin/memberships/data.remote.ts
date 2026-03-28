@@ -14,7 +14,7 @@ export const createMembership = form(createMembershipSchema, async (data) => {
   }
 
   // For non-purchasable types, ignore stripePriceId and requiresStudentVerification
-  const membershipType = await db.query.membershipType.findFirst({
+  const membershipType = await db._query.membershipType.findFirst({
     where: eq(table.membershipType.id, data.membershipTypeId),
   });
   if (!membershipType) {
@@ -79,7 +79,7 @@ export const updateMembership = form(updateMembershipSchema, async (data) => {
   }
 
   // For non-purchasable types, ignore stripePriceId and requiresStudentVerification
-  const membershipType = await db.query.membershipType.findFirst({
+  const membershipType = await db._query.membershipType.findFirst({
     where: eq(table.membershipType.id, data.membershipTypeId),
   });
   if (!membershipType) {

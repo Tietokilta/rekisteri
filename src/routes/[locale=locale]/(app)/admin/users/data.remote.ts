@@ -19,7 +19,7 @@ export const updateUserRole = command(updateUserRoleSchema, async ({ userId, rol
     error(404, LL.error.resourceNotFound());
   }
 
-  const user = await db.query.user.findFirst({
+  const user = await db._query.user.findFirst({
     where: eq(table.user.id, userId),
   });
 
@@ -83,8 +83,8 @@ export const mergeUsers = command(
 
     // Fetch both users
     const [primaryUser, secondaryUser] = await Promise.all([
-      db.query.user.findFirst({ where: eq(table.user.id, primaryUserId) }),
-      db.query.user.findFirst({ where: eq(table.user.id, secondaryUserId) }),
+      db._query.user.findFirst({ where: eq(table.user.id, primaryUserId) }),
+      db._query.user.findFirst({ where: eq(table.user.id, secondaryUserId) }),
     ]);
 
     if (!primaryUser) {
@@ -106,11 +106,11 @@ export const mergeUsers = command(
 
     // Check for overlapping memberships
     const [primaryMembers, secondaryMembers] = await Promise.all([
-      db.query.member.findMany({
+      db._query.member.findMany({
         where: eq(table.member.userId, primaryUserId),
         with: { membership: true },
       }),
-      db.query.member.findMany({
+      db._query.member.findMany({
         where: eq(table.member.userId, secondaryUserId),
         with: { membership: true },
       }),
@@ -155,7 +155,7 @@ export const mergeUsers = command(
       }
 
       // 3. Move all secondary emails from secondary to primary
-      const secondaryUserSecondaryEmails = await tx.query.secondaryEmail.findMany({
+      const secondaryUserSecondaryEmails = await tx._query.secondaryEmail.findMany({
         where: eq(table.secondaryEmail.userId, secondaryUserId),
       });
 
@@ -167,7 +167,7 @@ export const mergeUsers = command(
       }
 
       // 4. Move all passkeys from secondary to primary
-      const secondaryUserPasskeys = await tx.query.passkey.findMany({
+      const secondaryUserPasskeys = await tx._query.passkey.findMany({
         where: eq(table.passkey.userId, secondaryUserId),
       });
 

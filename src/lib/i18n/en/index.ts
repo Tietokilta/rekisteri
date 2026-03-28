@@ -22,6 +22,7 @@ const en = {
       membershipTypes: "Membership Types",
       users: "Users",
       verifyQr: "Verify QR",
+      customise: "Customise",
     },
     signOut: "Sign out",
   },
@@ -154,12 +155,12 @@ const en = {
   // Emails
   emails: {
     otp: {
-      subject: "CSG Membership Registry Sign In Code",
+      subject: "{organizationName} Membership Registry Sign In Code",
       body: `Your login code is: {code}
 
 This code will expire in 10 minutes.
 
-@{domain} #{code}`,
+@{domain} #{code} {organizationName}`,
     },
     paymentSuccess: {
       subject: "Payment received - Awaiting board approval",
@@ -170,13 +171,13 @@ Your payment has been received and your membership application is awaiting appro
 You will receive an email once your membership is approved.
 
 Best regards,
-Computer Science Guild`,
+{organizationName}`,
     },
     membershipApproved: {
-      subject: "Welcome to the Computer Science Guild!",
+      subject: "Welcome to {organizationName}!",
       body: `Hi {firstName}!
 
-Your membership application has been approved. Welcome as a member of the Computer Science Guild!
+Your membership application has been approved. Welcome as a member of {organizationName}!
 
 Membership details:
 - Type: {membershipName}
@@ -187,7 +188,7 @@ You can now participate in guild activities and enjoy member benefits.
 See you at events!
 
 Best regards,
-Computer Science Guild`,
+{organizationName}`,
     },
     membershipRenewed: {
       subject: "Your membership has been renewed!",
@@ -202,7 +203,7 @@ Membership details:
 Thank you for continuing as a member!
 
 Best regards,
-Computer Science Guild`,
+{organizationName}`,
     },
   },
 
@@ -400,6 +401,48 @@ Computer Science Guild`,
       membershipTypeNotFound: "Membership type not found",
     },
 
+    customise: {
+      title: "App Customisations",
+      description: "Manage the high-level application settings, colors, and branding details.",
+      success: "Settings updated successfully",
+      error: "Failed to update settings",
+      brandingDefaults: {
+        title: "General Branding",
+        accentColor: "Accent Color",
+        appNameFi: "App Name (FI)",
+        appNameEn: "App Name (EN)",
+      },
+      organizationDetails: {
+        title: "Organization Details",
+        nameFi: "Organization Name (FI)",
+        nameEn: "Organization Name (EN)",
+        businessId: "Business ID (Y-tunnus)",
+        overseerContact: "Registry Overseer Contact Email",
+        overseerAddress: "Registry Overseer Address",
+        organizationRulesUrl: "Organization Rules URL",
+      },
+      resignation: {
+        title: "Resigning a member",
+        rule: "Organizations rule on resignation (e.g. §67)",
+        defaultReasonFi: "Default reason for the resignation (FI)",
+        defaultReasonEn: "Default reason for the resignation (EN)",
+      },
+      privacyPolicy: {
+        title: "Privacy Policy",
+        fi: "In Finnish",
+        en: "In English",
+      },
+      images: {
+        title: "Logo (SVG) & Favicon (PNG)",
+        logoLight: "Logo (Light Mode)",
+        logoDark: "Logo (Dark Mode)",
+        faviconLight: "Favicon (Light Mode)",
+        faviconDark: "Favicon (Dark Mode)",
+        current: "Current:",
+      },
+      save: "Save customisations",
+    },
+
     members: {
       title: "Manage members",
       description: "Manage individual members",
@@ -465,8 +508,8 @@ Computer Science Guild`,
         approve: "Approve",
         reject: "Reject",
         reactivate: "Reactivate",
-        deemResigned: "Deem resigned (§8)",
-        resignMembership: "Resign (§8)",
+        deemResigned: "Deem resigned",
+        resignMembership: "Resign",
 
         // Pagination
         showing: "Showing {current} of {total} members",
