@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "membership_type_start_unique" ON "membership" USING btree ("membership_type_id","start_time");

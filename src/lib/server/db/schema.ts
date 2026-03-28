@@ -118,16 +118,20 @@ export const membershipType = pgTable("membership_type", {
   ...timestamps,
 });
 
-export const membership = pgTable("membership", {
-  id: text().primaryKey(),
-  membershipTypeId: text()
-    .notNull()
-    .references(() => membershipType.id),
-  stripePriceId: text(), // null for legacy memberships (pre-2025)
-  startTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
-  endTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
-  requiresStudentVerification: boolean().notNull().default(false),
-});
+export const membership = pgTable(
+  "membership",
+  {
+    id: text().primaryKey(),
+    membershipTypeId: text()
+      .notNull()
+      .references(() => membershipType.id),
+    stripePriceId: text(), // null for legacy memberships (pre-2025)
+    startTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
+    endTime: timestamp({ withTimezone: true, mode: "date" }).notNull(),
+    requiresStudentVerification: boolean().notNull().default(false),
+  },
+  (table) => [uniqueIndex("membership_type_start_unique").on(table.membershipTypeId, table.startTime)],
+);
 
 export const member = pgTable(
   "member",
