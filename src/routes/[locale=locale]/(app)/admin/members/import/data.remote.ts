@@ -16,6 +16,7 @@ import {
 import { getLL } from "$lib/server/i18n";
 import { hasAdminWriteAccess } from "$lib/server/auth/admin";
 import { normalizeEmail } from "$lib/utils";
+import { auditFromEvent } from "$lib/server/audit";
 
 export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }) => {
   const event = getRequestEvent();
@@ -333,6 +334,17 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
   const errorRowIndices = new Set(errors.map((e) => e.row - 1));
   successCount = rows.length - errorRowIndices.size;
 
+  await auditFromEvent(event, "member.bulk_import", {
+    targetType: "member",
+    metadata: {
+      totalRows: rows.length,
+      successCount,
+      errorCount: errors.length,
+      newUsersCreated: uniqueNewUsers.length,
+      membersCreated: membersToInsert.length,
+    },
+  });
+
   return {
     success: true,
     successCount,
@@ -360,7 +372,18 @@ export const createLegacyMembership = command(createLegacyMembershipSchema, asyn
       endTime: new Date(data.endTime),
       requiresStudentVerification: false,
     })
+    .onConflictDoNothing({ target: [table.membership.membershipTypeId, table.membership.startTime] })
     .returning();
+
+  await auditFromEvent(event, "membership.create", {
+    targetType: "membership",
+    metadata: {
+      membershipTypeId: data.membershipTypeId,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      legacy: true,
+    },
+  });
 
   return { success: true, membership: membership[0] };
 });
@@ -386,7 +409,13 @@ export const createLegacyMemberships = command(createLegacyMembershipsBatchSchem
         requiresStudentVerification: false,
       })),
     )
+    .onConflictDoNothing({ target: [table.membership.membershipTypeId, table.membership.startTime] })
     .returning();
+
+  await auditFromEvent(event, "membership.create", {
+    targetType: "membership",
+    metadata: { count: created.length, legacy: true, batch: true },
+  });
 
   return { success: true, count: created.length };
 });
