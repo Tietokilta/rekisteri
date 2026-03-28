@@ -179,13 +179,17 @@
   }
 
   // Restore persisted state into instance $state variables.
+  // Re-analyzes rows against current memberships so that newly created
+  // memberships are automatically matched instead of showing as unmatched.
   function restorePersistedState(): void {
     if (!persistedState) return;
     validRows = persistedState.validRows;
     validationErrors = persistedState.validationErrors;
-    matchedRows = persistedState.matchedRows;
-    unmatchedRows = persistedState.unmatchedRows;
-    unmatchedMemberships = persistedState.unmatchedMemberships;
+
+    const analysis = analyzeRows(persistedState.validRows, data.memberships);
+    matchedRows = analysis.matched;
+    unmatchedRows = analysis.unmatched;
+    unmatchedMemberships = analysis.unmatchedMemberships;
   }
 
   // Parse and analyze CSV when file changes.
