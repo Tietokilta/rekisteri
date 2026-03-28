@@ -110,10 +110,12 @@ async function createCheckoutSessionWithRetry(
  * @see {@link https://docs.stripe.com/checkout/quickstart}
  */
 export async function createSession(userId: string, membershipId: string, locale: Locale, description?: string | null) {
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const membership = await db._query.membership.findFirst({
     where: eq(table.membership.id, membershipId),
     with: { membershipType: true },
   });
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const user = await db._query.user.findFirst({
     where: eq(table.user.id, userId),
   });
@@ -162,6 +164,7 @@ export async function createSession(userId: string, membershipId: string, locale
  * This is used when a user with "awaiting_payment" status wants to complete their payment.
  */
 export async function resumeOrCreateSession(memberId: string, locale: Locale) {
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const member = await db._query.member.findFirst({
     where: eq(table.member.id, memberId),
     with: {
@@ -306,6 +309,7 @@ export async function fulfillSession(sessionId: string) {
   // 3. Email failures are caught and logged without failing the transaction
   if (newStatus) {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
       const memberWithDetails = await db._query.member.findFirst({
         where: eq(table.member.id, memberId),
         with: {

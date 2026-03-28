@@ -28,6 +28,7 @@ export const approveMember = command(memberIdSchema, async ({ memberId }) => {
     error(404, LL.error.resourceNotFound());
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const member = await db._query.member.findFirst({
     where: eq(table.member.id, memberId),
   });
@@ -50,6 +51,7 @@ export const approveMember = command(memberIdSchema, async ({ memberId }) => {
 
   // Send membership approved email
   try {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     const memberWithDetails = await db._query.member.findFirst({
       where: eq(table.member.id, memberId),
       with: {
@@ -91,6 +93,7 @@ export const rejectMember = command(memberIdWithReasonSchema, async ({ memberId,
     error(404, LL.error.resourceNotFound());
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const member = await db._query.member.findFirst({
     where: eq(table.member.id, memberId),
   });
@@ -126,6 +129,7 @@ export const markMemberResigned = command(memberIdWithReasonSchema, async ({ mem
     error(404, LL.error.resourceNotFound());
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const member = await db._query.member.findFirst({
     where: eq(table.member.id, memberId),
   });
@@ -160,6 +164,7 @@ export const resignMember = command(memberIdWithReasonSchema, async ({ memberId,
     error(404, LL.error.resourceNotFound());
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const member = await db._query.member.findFirst({
     where: eq(table.member.id, memberId),
   });
@@ -190,6 +195,7 @@ export const reactivateMember = command(memberIdWithReasonSchema, async ({ membe
     error(404, LL.error.resourceNotFound());
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const member = await db._query.member.findFirst({
     where: eq(table.member.id, memberId),
   });
@@ -221,6 +227,7 @@ export const createMember = command(createMemberSchema, async (data) => {
   }
 
   // Validate that the membership exists
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const membership = await db._query.membership.findFirst({
     where: eq(table.membership.id, data.membershipId),
   });
@@ -234,6 +241,7 @@ export const createMember = command(createMemberSchema, async (data) => {
   await db.transaction(async (tx) => {
     if (data.type === "association") {
       // Check for duplicate — same org name on the same membership period
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
       const existingMember = await tx._query.member.findFirst({
         where: (m, { and }) =>
           and(eq(m.organizationName, data.organizationName), eq(m.membershipId, data.membershipId)),
@@ -255,6 +263,7 @@ export const createMember = command(createMemberSchema, async (data) => {
       let userId: string;
       const normalizedEmail = data.email.toLowerCase().trim();
 
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
       const existingUser = await tx._query.user.findFirst({
         where: eq(table.user.email, normalizedEmail),
       });
@@ -263,6 +272,7 @@ export const createMember = command(createMemberSchema, async (data) => {
         userId = existingUser.id;
 
         // Check for duplicate membership before any mutations
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
         const existingMember = await tx._query.member.findFirst({
           where: (m, { and }) => and(eq(m.userId, userId), eq(m.membershipId, data.membershipId)),
         });
@@ -323,6 +333,7 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
   }
 
   // Fetch all members to validate they exist and can be approved
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const members = await db._query.member.findMany({
     where: inArray(table.member.id, memberIds),
   });
@@ -349,6 +360,7 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
 
   // Send membership approved emails to all approved members
   try {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     const approvedMembersWithDetails = await db._query.member.findMany({
       where: inArray(table.member.id, validIds),
       with: {
@@ -418,6 +430,7 @@ export const bulkMarkMembersResigned = command(bulkMemberIdsWithReasonSchema, as
   }
 
   // Fetch all members to validate they exist and can be deemed resigned
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const members = await db._query.member.findMany({
     where: inArray(table.member.id, memberIds),
   });
