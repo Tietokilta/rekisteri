@@ -94,14 +94,8 @@ export const actions: Actions = {
         organizationRulesUrl: validated.output.organizationRulesUrl || existing.organizationRulesUrl,
         memberResignRule: validated.output.memberResignRule || existing.memberResignRule,
         memberResignDefaultReason: {
-          fi:
-            validated.output.memberResignDefaultReasonFi ||
-            existing.memberResignDefaultReason?.fi ||
-            "",
-          en:
-            validated.output.memberResignDefaultReasonEn ||
-            existing.memberResignDefaultReason?.en ||
-            "",
+          fi: validated.output.memberResignDefaultReasonFi || existing.memberResignDefaultReason?.fi || "",
+          en: validated.output.memberResignDefaultReasonEn || existing.memberResignDefaultReason?.en || "",
         },
         logo: dbLogo ?? (removeLogo ? null : existing.logo),
         logoDark: dbLogoDark ?? (removeLogoDark ? null : existing.logoDark),
@@ -113,13 +107,12 @@ export const actions: Actions = {
       // Upsert logic: check if record with ID 1 exists
       const [record] = await db.select().from(table.appCustomisation).where(eq(table.appCustomisation.id, 1)).limit(1);
 
-      await (record ? db
-          .update(table.appCustomisation)
-          .set(updateData)
-          .where(eq(table.appCustomisation.id, 1)) : db.insert(table.appCustomisation).values({
-          id: 1,
-          ...updateData,
-        }));
+      await (record
+        ? db.update(table.appCustomisation).set(updateData).where(eq(table.appCustomisation.id, 1))
+        : db.insert(table.appCustomisation).values({
+            id: 1,
+            ...updateData,
+          }));
 
       await updateCustomisationCache();
       event.locals.customisations = await getCustomisations();

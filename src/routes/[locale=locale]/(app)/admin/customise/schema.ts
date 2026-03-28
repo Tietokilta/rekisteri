@@ -11,12 +11,7 @@ export const updateCustomisationSchema = v.object({
   overseerAddress: v.optional(v.string()),
   privacyPolicyFi: v.pipe(v.string(), v.minLength(1)),
   privacyPolicyEn: v.pipe(v.string(), v.minLength(1)),
-  organizationRulesUrl: v.optional(
-    v.union([
-      v.literal(""),
-      v.pipe(v.string(), v.url()),
-    ]),
-  ),
+  organizationRulesUrl: v.optional(v.union([v.literal(""), v.pipe(v.string(), v.url())])),
   memberResignRule: v.optional(v.string()),
   memberResignDefaultReasonFi: v.optional(v.string()),
   memberResignDefaultReasonEn: v.optional(v.string()),

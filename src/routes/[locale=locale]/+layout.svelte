@@ -21,6 +21,8 @@
     <link rel="icon" href="/api/image/faviconDark" media="(prefers-color-scheme: dark)" />
   {/if}
   {#if data.customisations?.accentColor}
+    <!-- Inject Accent Color value as primary. Only admin can set and it's validated as an RGB hex -->
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html `<style>:root { --primary: ${data.customisations.accentColor}; }</style>`}
   {/if}
 </svelte:head>

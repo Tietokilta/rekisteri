@@ -12,12 +12,7 @@ export interface EmailTemplate<TMetadata = Record<string, unknown>> {
   type: EmailType;
 
   // Generate email content
-  render(
-    locale: "fi" | "en",
-    metadata: TMetadata,
-    LL: TranslationFunctions,
-    organizationName: string,
-  ): EmailContent;
+  render(locale: "fi" | "en", metadata: TMetadata, LL: TranslationFunctions, organizationName: string): EmailContent;
 
   // For future: batching, deduplication config
   // (keep interface extensible but don't implement yet)

@@ -40,10 +40,8 @@ export function flattenCustomisation(custom: AppCustomisation | null): Customisa
     privacyPolicyEn: c.privacyPolicy?.en || DEFAULT_CUSTOMISATION.privacyPolicy.en,
     organizationRulesUrl: c.organizationRulesUrl || DEFAULT_CUSTOMISATION.organizationRulesUrl,
     memberResignRule: c.memberResignRule || DEFAULT_CUSTOMISATION.memberResignRule,
-    memberResignDefaultReasonFi:
-      c.memberResignDefaultReason?.fi || DEFAULT_CUSTOMISATION.memberResignDefaultReason.fi,
-    memberResignDefaultReasonEn:
-      c.memberResignDefaultReason?.en || DEFAULT_CUSTOMISATION.memberResignDefaultReason.en,
+    memberResignDefaultReasonFi: c.memberResignDefaultReason?.fi || DEFAULT_CUSTOMISATION.memberResignDefaultReason.fi,
+    memberResignDefaultReasonEn: c.memberResignDefaultReason?.en || DEFAULT_CUSTOMISATION.memberResignDefaultReason.en,
   };
 }
 
@@ -51,7 +49,7 @@ export function flattenCustomisation(custom: AppCustomisation | null): Customisa
  * Resizes an SVG to 32x32 by updating its viewBox and width/height attributes.
  */
 export function resizeSvgTo32(buffer: Buffer): Buffer {
-  let svg = buffer.toString("utf-8");
+  let svg = buffer.toString("utf8");
 
   const svgMatch = svg.match(/<svg([^>]*)>/i);
   if (!svgMatch) return buffer;
@@ -62,20 +60,20 @@ export function resizeSvgTo32(buffer: Buffer): Buffer {
     const wMatch = attrs.match(/width\s*=\s*['"]([^'"]+)['"]/i);
     const hMatch = attrs.match(/height\s*=\s*['"]([^'"]+)['"]/i);
     if (wMatch && hMatch) {
-      const w = parseFloat(wMatch[1] as string);
-      const h = parseFloat(hMatch[1] as string);
-      if (!isNaN(w) && !isNaN(h)) {
+      const w = Number.parseFloat(wMatch[1] as string);
+      const h = Number.parseFloat(hMatch[1] as string);
+      if (!Number.isNaN(w) && !Number.isNaN(h)) {
         attrs += ` viewBox="0 0 ${w} ${h}"`;
       }
     }
   }
 
-  attrs = attrs.replace(/\bwidth\s*=\s*['"][^'"]*['"]/gi, "");
-  attrs = attrs.replace(/\bheight\s*=\s*['"][^'"]*['"]/gi, "");
+  attrs = attrs.replaceAll(/\bwidth\s*=\s*['"][^'"]*['"]/gi, "");
+  attrs = attrs.replaceAll(/\bheight\s*=\s*['"][^'"]*['"]/gi, "");
   attrs = attrs.trim() + ' width="32" height="32"';
   svg = svg.replace(svgMatch[0], `<svg ${attrs}>`);
 
-  return Buffer.from(svg, "utf-8");
+  return Buffer.from(svg, "utf8");
 }
 
 /**
