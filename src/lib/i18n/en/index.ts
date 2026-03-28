@@ -348,6 +348,7 @@ Computer Science Guild`,
     status: {
       active: "Valid membership",
       resigned: "Resigned",
+      renewed: "Renewed",
       rejected: "Rejected",
       awaitingPayment: "Awaiting payment",
       awaitingApproval: "Awaiting approval",
