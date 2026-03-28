@@ -1,6 +1,6 @@
 import { test as dbTest } from "./db";
 import type { Page, BrowserContext } from "@playwright/test";
-import * as table from "../../src/lib/server/db/schema";
+import * as table from "../../src/lib/server/db";
 import { eq } from "drizzle-orm";
 import { generateUserId } from "../../src/lib/server/auth/utils";
 import { sha256 } from "@oslojs/crypto/sha2";

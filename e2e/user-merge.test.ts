@@ -1,7 +1,7 @@
 import { test, expect } from "./fixtures/auth";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as table from "../src/lib/server/db/schema";
+import * as table from "../src/lib/server/db";
 import { eq, and } from "drizzle-orm";
 import { generateUserId } from "../src/lib/server/auth/utils";
 
@@ -13,7 +13,7 @@ test.describe("User Merge Feature", () => {
     const dbUrl = process.env.DATABASE_URL_TEST;
     if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
     client = postgres(dbUrl);
-    db = drizzle(client, { schema: table, casing: "snake_case" });
+    db = drizzle({ client, schema: table, casing: "snake_case" });
   });
 
   test.afterAll(async () => {
