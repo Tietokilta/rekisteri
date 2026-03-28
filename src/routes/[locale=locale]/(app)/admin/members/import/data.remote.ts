@@ -375,17 +375,20 @@ export const createLegacyMembership = command(createLegacyMembershipSchema, asyn
     .onConflictDoNothing({ target: [table.membership.membershipTypeId, table.membership.startTime] })
     .returning();
 
-  await auditFromEvent(event, "membership.create", {
-    targetType: "membership",
-    metadata: {
-      membershipTypeId: data.membershipTypeId,
-      startTime: data.startTime,
-      endTime: data.endTime,
-      legacy: true,
-    },
-  });
+  if (membership[0]) {
+    await auditFromEvent(event, "membership.create", {
+      targetType: "membership",
+      targetId: membership[0].id,
+      metadata: {
+        membershipTypeId: data.membershipTypeId,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        legacy: true,
+      },
+    });
+  }
 
-  return { success: true, membership: membership[0] };
+  return { success: true, membership: membership[0] ?? null };
 });
 
 // Batch create multiple legacy memberships
@@ -412,10 +415,12 @@ export const createLegacyMemberships = command(createLegacyMembershipsBatchSchem
     .onConflictDoNothing({ target: [table.membership.membershipTypeId, table.membership.startTime] })
     .returning();
 
-  await auditFromEvent(event, "membership.create", {
-    targetType: "membership",
-    metadata: { count: created.length, legacy: true, batch: true },
-  });
+  if (created.length > 0) {
+    await auditFromEvent(event, "membership.create", {
+      targetType: "membership",
+      metadata: { count: created.length, legacy: true, batch: true },
+    });
+  }
 
   return { success: true, count: created.length };
 });
