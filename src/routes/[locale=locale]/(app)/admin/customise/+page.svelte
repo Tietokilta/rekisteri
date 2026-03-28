@@ -254,7 +254,9 @@
                 class="max-w-md"
               />
             </div>
-            {#if errors.memberResignDefaultReasonFi}<p class="mt-2 text-sm text-red-600">{errors.memberResignDefaultReasonFi}</p>{/if}
+            {#if errors.memberResignDefaultReasonFi}<p class="mt-2 text-sm text-red-600">
+                {errors.memberResignDefaultReasonFi}
+              </p>{/if}
           </div>
 
           <div class="sm:col-span-1">
@@ -270,7 +272,9 @@
                 class="max-w-md"
               />
             </div>
-            {#if errors.memberResignDefaultReasonEn}<p class="mt-2 text-sm text-red-600">{errors.memberResignDefaultReasonEn}</p>{/if}
+            {#if errors.memberResignDefaultReasonEn}<p class="mt-2 text-sm text-red-600">
+                {errors.memberResignDefaultReasonEn}
+              </p>{/if}
           </div>
         </div>
       </div>
@@ -338,7 +342,7 @@
               {/if}
               <button
                 type="button"
-                on:click={() => toggleRemove("logo")}
+                onclick={() => toggleRemove("logo")}
                 class="mt-2 rounded border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
               >
                 {removeImages.logo ? $LL.common.cancel() : $LL.common.delete()}
@@ -372,7 +376,7 @@
               {/if}
               <button
                 type="button"
-                on:click={() => toggleRemove("logoDark")}
+                onclick={() => toggleRemove("logoDark")}
                 class="mt-2 rounded border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
               >
                 {removeImages.logoDark ? $LL.common.cancel() : $LL.common.delete()}
@@ -406,7 +410,7 @@
               {/if}
               <button
                 type="button"
-                on:click={() => toggleRemove("favicon")}
+                onclick={() => toggleRemove("favicon")}
                 class="mt-2 rounded border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
               >
                 {removeImages.favicon ? $LL.common.cancel() : $LL.common.delete()}
@@ -440,7 +444,7 @@
               {/if}
               <button
                 type="button"
-                on:click={() => toggleRemove("faviconDark")}
+                onclick={() => toggleRemove("faviconDark")}
                 class="mt-2 rounded border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
               >
                 {removeImages.faviconDark ? $LL.common.cancel() : $LL.common.delete()}

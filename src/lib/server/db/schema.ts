@@ -179,10 +179,7 @@ export const auditLog = pgTable("audit_log", {
 export const appCustomisation = pgTable("app_customisation", {
   id: integer().primaryKey().default(1),
   accentColor: text().notNull().default(DEFAULT_CUSTOMISATION.accentColor),
-  organizationName: jsonb()
-    .$type<LocalizedString>()
-    .notNull()
-    .default(DEFAULT_CUSTOMISATION.organizationName),
+  organizationName: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMISATION.organizationName),
   appName: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMISATION.appName),
   logo: bytea(),
   logoDark: bytea(),
@@ -191,15 +188,10 @@ export const appCustomisation = pgTable("app_customisation", {
   businessId: text().notNull().default(DEFAULT_CUSTOMISATION.businessId),
   overseerContact: text().notNull().default(DEFAULT_CUSTOMISATION.overseerContact),
   overseerAddress: text().notNull().default(DEFAULT_CUSTOMISATION.overseerAddress),
-  privacyPolicy: jsonb()
-    .$type<LocalizedString>()
-    .notNull()
-    .default(DEFAULT_CUSTOMISATION.privacyPolicy),
+  privacyPolicy: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMISATION.privacyPolicy),
   organizationRulesUrl: text().notNull().default(DEFAULT_CUSTOMISATION.organizationRulesUrl),
   memberResignRule: text().default(DEFAULT_CUSTOMISATION.memberResignRule),
-  memberResignDefaultReason: jsonb()
-    .$type<LocalizedString>()
-    .default(DEFAULT_CUSTOMISATION.memberResignDefaultReason),
+  memberResignDefaultReason: jsonb().$type<LocalizedString>().default(DEFAULT_CUSTOMISATION.memberResignDefaultReason),
   ...timestamps,
 });
 
