@@ -4,13 +4,13 @@ import type { Locale } from "$lib/i18n/routing";
 import type { Component } from "svelte";
 
 // Icons from @lucide/svelte
-import Home from "@lucide/svelte/icons/home";
-import CreditCard from "@lucide/svelte/icons/credit-card";
+import IdCard from "@lucide/svelte/icons/id-card";
+import History from "@lucide/svelte/icons/history";
 import User from "@lucide/svelte/icons/user";
 import Key from "@lucide/svelte/icons/key";
 import Mail from "@lucide/svelte/icons/mail";
-import Users from "@lucide/svelte/icons/users";
-import Tags from "@lucide/svelte/icons/tags";
+import BookUser from "@lucide/svelte/icons/book-user";
+import Calendar from "@lucide/svelte/icons/calendar";
 import Tag from "@lucide/svelte/icons/tag";
 import UserCog from "@lucide/svelte/icons/user-cog";
 import QrCode from "@lucide/svelte/icons/qr-code";
@@ -26,12 +26,12 @@ export function getMainNavItems(locale: Locale, LL: TranslationFunctions): NavIt
     {
       title: LL.nav.dashboard(),
       href: route("/[locale=locale]", { locale }),
-      icon: Home,
+      icon: IdCard,
     },
     {
       title: LL.nav.membership(),
       href: route("/[locale=locale]/membership", { locale }),
-      icon: CreditCard,
+      icon: History,
     },
   ];
 }
@@ -61,12 +61,12 @@ export function getAdminNavItems(locale: Locale, LL: TranslationFunctions): NavI
     {
       title: LL.nav.admin.members(),
       href: route("/[locale=locale]/admin/members", { locale }),
-      icon: Users,
+      icon: BookUser,
     },
     {
       title: LL.nav.admin.memberships(),
       href: route("/[locale=locale]/admin/memberships", { locale }),
-      icon: Tags,
+      icon: Calendar,
     },
     {
       title: LL.nav.admin.membershipTypes(),

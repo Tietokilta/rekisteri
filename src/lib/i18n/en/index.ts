@@ -9,17 +9,17 @@ const en = {
   // Navigation
   nav: {
     title: "Navigation",
-    dashboard: "Dashboard",
-    membership: "Membership",
+    dashboard: "Member card",
+    membership: "Membership history",
     settings: "Settings",
     profile: "Profile",
     passkeys: "Passkeys",
     emails: "Emails",
     admin: {
       title: "Admin",
-      members: "Members",
-      memberships: "Memberships",
-      membershipTypes: "Membership Types",
+      members: "Member registry",
+      memberships: "Membership periods",
+      membershipTypes: "Membership types",
       users: "Users",
       verifyQr: "Verify QR",
     },
@@ -311,7 +311,7 @@ Computer Science Guild`,
 
   // Membership
   membership: {
-    title: "Memberships",
+    title: "Membership history",
     historyDescription: "View and manage your memberships",
     current: "Current memberships",
     createNew: "Create a new membership",
@@ -362,7 +362,7 @@ Computer Science Guild`,
     readonlyBanner: "You have read-only access. You cannot modify data.",
 
     memberships: {
-      title: "Manage memberships",
+      title: "Membership periods",
       description: "Configure price and period",
       editMembership: "Edit membership",
       stripePriceId: "Stripe price ID",
@@ -379,7 +379,7 @@ Computer Science Guild`,
     },
 
     membershipTypes: {
-      title: "Manage membership types",
+      title: "Membership types",
       description: "Create and edit membership types",
       createNew: "Create new type",
       createDescription: "Create a new membership type that can be used for memberships",
@@ -402,7 +402,7 @@ Computer Science Guild`,
     },
 
     members: {
-      title: "Manage members",
+      title: "Member registry",
       description: "Manage individual members",
       listTitle: "Members",
       count: "{count} {{member|members}}",

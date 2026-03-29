@@ -9,16 +9,16 @@ const fi = {
   // Navigation
   nav: {
     title: "Navigaatio",
-    dashboard: "Etusivu",
-    membership: "Jäsenyys",
+    dashboard: "Jäsenkortti",
+    membership: "Jäsenhistoria",
     settings: "Asetukset",
     profile: "Profiili",
     passkeys: "Avaimet",
     emails: "Sähköpostit",
     admin: {
       title: "Hallinta",
-      members: "Jäsenet",
-      memberships: "Jäsenyydet",
+      members: "Jäsenrekisteri",
+      memberships: "Jäsenyyskaudet",
       membershipTypes: "Jäsenyystyypit",
       users: "Käyttäjät",
       verifyQr: "Tarkista QR",
@@ -312,7 +312,7 @@ Tietokilta`,
 
   // Membership
   membership: {
-    title: "Jäsenyydet",
+    title: "Jäsenhistoria",
     historyDescription: "Näytä ja hallitse jäsenyyksiäsi",
     current: "Nykyiset jäsenyydet",
     createNew: "Luo uusi jäsenyys",
@@ -364,7 +364,7 @@ Tietokilta`,
     readonlyBanner: "Sinulla on vain lukuoikeus. Et voi muokata tietoja.",
 
     memberships: {
-      title: "Hallinnoi jäsenyyksiä",
+      title: "Jäsenyyskaudet",
       description: "Muokkaa hintoja ja kausia",
       editMembership: "Muokkaa jäsenyyttä",
       stripePriceId: "Stripe hintakoodi",
@@ -381,7 +381,7 @@ Tietokilta`,
     },
 
     membershipTypes: {
-      title: "Hallinnoi jäsenyystyyppejä",
+      title: "Jäsenyystyypit",
       description: "Luo ja muokkaa jäsenyystyyppejä",
       createNew: "Luo uusi tyyppi",
       createDescription: "Luo uusi jäsenyystyyppi, jota voidaan käyttää jäsenyyksissä",
@@ -404,7 +404,7 @@ Tietokilta`,
     },
 
     members: {
-      title: "Hallinnoi jäseniä",
+      title: "Jäsenrekisteri",
       description: "Hallinnoi yksittäisiä jäseniä",
       listTitle: "Jäsenet",
       count: "{count} {{jäsen|jäsentä}}",

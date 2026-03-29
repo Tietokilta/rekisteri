@@ -25,7 +25,7 @@ test.describe("Admin Bulk Actions", () => {
       await adminPage.goto("/fi/admin/members");
 
       // Wait for page to load
-      await expect(adminPage.getByRole("heading", { name: "Hallinnoi jäseniä" })).toBeVisible();
+      await expect(adminPage.getByRole("heading", { name: "Jäsenrekisteri" })).toBeVisible();
 
       // Check that select all checkbox exists
       const selectAllCheckbox = adminPage.getByTestId("select-all-checkbox");
@@ -49,7 +49,7 @@ test.describe("Admin Bulk Actions", () => {
       await adminPage.goto("/fi/admin/members");
 
       // Wait for page to load
-      await expect(adminPage.getByRole("heading", { name: "Hallinnoi jäseniä" })).toBeVisible();
+      await expect(adminPage.getByRole("heading", { name: "Jäsenrekisteri" })).toBeVisible();
 
       // Initially no toolbar
       await expect(adminPage.getByTestId("bulk-action-toolbar")).not.toBeVisible();
@@ -69,7 +69,7 @@ test.describe("Admin Bulk Actions", () => {
       await adminPage.goto("/fi/admin/members");
 
       // Wait for page to load
-      await expect(adminPage.getByRole("heading", { name: "Hallinnoi jäseniä" })).toBeVisible();
+      await expect(adminPage.getByRole("heading", { name: "Jäsenrekisteri" })).toBeVisible();
 
       // Select first row
       const firstRowCheckbox = adminPage.getByTestId("row-select-checkbox").first();
@@ -151,7 +151,7 @@ test.describe("Admin Bulk Actions", () => {
       await adminPage.goto("/fi/admin/members");
 
       // Wait for page to load
-      await expect(adminPage.getByRole("heading", { name: "Hallinnoi jäseniä" })).toBeVisible();
+      await expect(adminPage.getByRole("heading", { name: "Jäsenrekisteri" })).toBeVisible();
 
       // Filter by awaiting approval status
       await adminPage.getByRole("button", { name: "Odottaa hyväksyntää" }).click();
@@ -247,7 +247,7 @@ test.describe("Admin Bulk Actions", () => {
       });
 
       await adminPage.goto("/fi/admin/members");
-      await expect(adminPage.getByRole("heading", { name: "Hallinnoi jäseniä" })).toBeVisible();
+      await expect(adminPage.getByRole("heading", { name: "Jäsenrekisteri" })).toBeVisible();
 
       // Filter by awaiting approval
       await adminPage.getByRole("button", { name: "Odottaa hyväksyntää" }).click();
@@ -274,7 +274,7 @@ test.describe("Admin Bulk Actions", () => {
       });
 
       await adminPage.goto("/fi/admin/members");
-      await expect(adminPage.getByRole("heading", { name: "Hallinnoi jäseniä" })).toBeVisible();
+      await expect(adminPage.getByRole("heading", { name: "Jäsenrekisteri" })).toBeVisible();
 
       // Filter by active
       await adminPage.getByRole("button", { name: "Aktiivinen" }).click();
@@ -301,7 +301,7 @@ test.describe("Admin Bulk Actions", () => {
       });
 
       await adminPage.goto("/fi/admin/members");
-      await expect(adminPage.getByRole("heading", { name: "Hallinnoi jäseniä" })).toBeVisible();
+      await expect(adminPage.getByRole("heading", { name: "Jäsenrekisteri" })).toBeVisible();
 
       // Filter by resigned
       await adminPage.getByRole("button", { name: "Eronnut" }).click();
@@ -385,7 +385,7 @@ test.describe("Admin Bulk Actions", () => {
 
     test("shows appropriate buttons for mixed status selection", async ({ adminPage }) => {
       await adminPage.goto("/fi/admin/members");
-      await expect(adminPage.getByRole("heading", { name: "Hallinnoi jäseniä" })).toBeVisible();
+      await expect(adminPage.getByRole("heading", { name: "Jäsenrekisteri" })).toBeVisible();
 
       // Search for our test users
       await adminPage.getByPlaceholder("Hae jäseniä").fill("bulk-mixed");

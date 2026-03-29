@@ -25,7 +25,7 @@ test.describe("Memberships Admin", () => {
     });
 
     // Verify page title is visible
-    await expect(adminPage.getByRole("heading", { name: "Hallinnoi jäsenyyksiä" })).toBeVisible();
+    await expect(adminPage.getByRole("heading", { name: "Jäsenyyskaudet" })).toBeVisible();
 
     // Verify create button exists
     await expect(adminPage.getByRole("button", { name: "Luo uusi jäsenyys" })).toBeVisible();
