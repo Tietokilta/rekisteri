@@ -4,7 +4,8 @@
   import { route } from "$lib/ROUTES";
   import { Button } from "$lib/components/ui/button/index.js";
   import AdminPageHeader from "$lib/components/admin-page-header.svelte";
-  import MembersTable from "./members-table.svelte";
+  import MembersTableAsync from "./members-table-async.svelte";
+  import MembersTableSkeleton from "./members-table-skeleton.svelte";
   import CreateMemberForm from "./create-member-form.svelte";
   import * as Sheet from "$lib/components/ui/sheet";
   import Upload from "@lucide/svelte/icons/upload";
@@ -34,12 +35,26 @@
       {/if}
     {/snippet}
   </AdminPageHeader>
-  <MembersTable
-    data={data.members}
-    membershipTypes={data.membershipTypes}
-    years={data.years}
-    canWrite={data.canWrite}
-  />
+
+  <svelte:boundary>
+    <MembersTableAsync
+      membersPromise={data.members}
+      membershipTypes={data.membershipTypes}
+      years={data.years}
+      canWrite={data.canWrite}
+    />
+
+    {#snippet pending()}
+      <MembersTableSkeleton />
+    {/snippet}
+
+    {#snippet failed(error: unknown)}
+      <div class="rounded-md border border-destructive bg-destructive/10 p-6 text-center">
+        <p class="font-medium text-destructive">{$LL.error.genericError()}</p>
+        <p class="mt-1 text-sm text-destructive/80">{error instanceof Error ? error.message : ""}</p>
+      </div>
+    {/snippet}
+  </svelte:boundary>
 </main>
 
 {#if data.canWrite}
