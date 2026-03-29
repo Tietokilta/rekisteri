@@ -21,7 +21,7 @@ test.describe("Membership Types Admin", () => {
     });
 
     // Verify page title is visible
-    await expect(adminPage.getByRole("heading", { name: "Hallinnoi jäsenyystyyppejä" })).toBeVisible();
+    await expect(adminPage.getByRole("heading", { name: "Jäsenyystyypit" })).toBeVisible();
 
     // Verify create button exists
     await expect(adminPage.getByRole("button", { name: "Luo uusi tyyppi" })).toBeVisible();

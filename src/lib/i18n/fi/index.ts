@@ -381,7 +381,7 @@ Tietokilta`,
     },
 
     membershipTypes: {
-      title: "Hallinnoi jäsenyystyyppejä",
+      title: "Jäsenyystyypit",
       description: "Luo ja muokkaa jäsenyystyyppejä",
       createNew: "Luo uusi tyyppi",
       createDescription: "Luo uusi jäsenyystyyppi, jota voidaan käyttää jäsenyyksissä",

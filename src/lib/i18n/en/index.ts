@@ -379,7 +379,7 @@ Computer Science Guild`,
     },
 
     membershipTypes: {
-      title: "Manage membership types",
+      title: "Membership types",
       description: "Create and edit membership types",
       createNew: "Create new type",
       createDescription: "Create a new membership type that can be used for memberships",
