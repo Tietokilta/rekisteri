@@ -1,7 +1,7 @@
 import { error } from "@sveltejs/kit";
 import { command, getRequestEvent } from "$app/server";
 import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import * as table from "$lib/server/db";
 import { eq, desc, and, or } from "drizzle-orm";
 import { verifyQrToken } from "$lib/server/attendance/qr-token";
 import { verifyQrSchema } from "./schema";
@@ -23,7 +23,8 @@ export const verifyQr = command(verifyQrSchema, async ({ token }) => {
     error(422, LL.admin.verifyQr.invalidQr());
   }
 
-  const user = await db.query.user.findFirst({
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const user = await db._query.user.findFirst({
     where: eq(table.user.id, userId),
     columns: {
       id: true,

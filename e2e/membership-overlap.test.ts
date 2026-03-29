@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures/isolated-user";
-import * as table from "../src/lib/server/db/schema";
+import * as table from "../src/lib/server/db";
 import { route } from "../src/lib/ROUTES";
 
 // Use existing membership type from seed data

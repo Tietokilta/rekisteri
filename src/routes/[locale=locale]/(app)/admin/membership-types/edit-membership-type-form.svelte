@@ -10,7 +10,7 @@
   import { Label } from "$lib/components/ui/label";
   import * as Sheet from "$lib/components/ui/sheet";
   import Trash2 from "@lucide/svelte/icons/trash-2";
-  import type { LocalizedString } from "$lib/server/db/schema";
+  import type { LocalizedString } from "$lib/server/db";
 
   interface MembershipType {
     id: string;

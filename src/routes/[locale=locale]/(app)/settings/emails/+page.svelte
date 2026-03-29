@@ -22,7 +22,7 @@
     changePrimaryEmailForm,
   } from "$lib/api/secondary-emails.remote";
   import type { PageData } from "./$types";
-  import type { SecondaryEmail } from "$lib/server/db/schema";
+  import type { SecondaryEmail } from "$lib/server/db";
 
   let { data }: { data: PageData } = $props();
 

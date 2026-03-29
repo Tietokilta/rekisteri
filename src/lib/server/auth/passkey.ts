@@ -11,8 +11,8 @@ import {
   type AuthenticationResponseJSON,
 } from "@simplewebauthn/server";
 import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
-import type { User, Passkey } from "$lib/server/db/schema";
+import * as table from "$lib/server/db";
+import type { User, Passkey } from "$lib/server/db";
 import { encodeBase64url, decodeBase64url } from "@oslojs/encoding";
 import { env } from "$lib/server/env";
 import { getUserSecondaryEmails, isSecondaryEmailValid } from "./secondary-email";
