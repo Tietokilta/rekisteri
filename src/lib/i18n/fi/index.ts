@@ -9,16 +9,16 @@ const fi = {
   // Navigation
   nav: {
     title: "Navigaatio",
-    dashboard: "Etusivu",
-    membership: "Jäsenyys",
+    dashboard: "Jäsenkortti",
+    membership: "Jäsenhistoria",
     settings: "Asetukset",
     profile: "Profiili",
     passkeys: "Avaimet",
     emails: "Sähköpostit",
     admin: {
       title: "Hallinta",
-      members: "Jäsenet",
-      memberships: "Jäsenyydet",
+      members: "Jäsenrekisteri",
+      memberships: "Jäsenyyskaudet",
       membershipTypes: "Jäsenyystyypit",
       users: "Käyttäjät",
       verifyQr: "Tarkista QR",

@@ -9,16 +9,16 @@ const en = {
   // Navigation
   nav: {
     title: "Navigation",
-    dashboard: "Dashboard",
-    membership: "Membership",
+    dashboard: "Member card",
+    membership: "Membership history",
     settings: "Settings",
     profile: "Profile",
     passkeys: "Passkeys",
     emails: "Emails",
     admin: {
       title: "Admin",
-      members: "Members",
-      memberships: "Memberships",
+      members: "Member registry",
+      memberships: "Membership periods",
       membershipTypes: "Membership Types",
       users: "Users",
       verifyQr: "Verify QR",
