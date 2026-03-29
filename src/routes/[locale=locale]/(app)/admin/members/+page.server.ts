@@ -6,11 +6,7 @@ import { asc, desc, eq, sql } from "drizzle-orm";
 import type { NonEmptyArray } from "$lib/utils";
 import { hasAdminAccess } from "$lib/server/auth/admin";
 
-export const load: PageServerLoad = async (event) => {
-  if (!event.locals.session || !hasAdminAccess(event.locals.user)) {
-    return error(404, "Not found");
-  }
-
+async function loadMembers() {
   const subQuery = db
     .select({
       id: table.member.id,
@@ -91,39 +87,48 @@ export const load: PageServerLoad = async (event) => {
       return aLast.localeCompare(bLast);
     });
 
-  // Get membership types for filters
-  const membershipTypes = await db
-    .select()
-    .from(table.membershipType)
-    .orderBy(asc(sql`${table.membershipType.name}->>'fi'`));
+  return members;
+}
 
-  // Get distinct years from memberships
-  const memberships = await db
-    .select({
-      startTime: table.membership.startTime,
-      endTime: table.membership.endTime,
-    })
-    .from(table.membership);
+export const load: PageServerLoad = async (event) => {
+  if (!event.locals.session || !hasAdminAccess(event.locals.user)) {
+    return error(404, "Not found");
+  }
+
+  // Await filter/dropdown data (fast queries, needed for immediate UI)
+  const [membershipTypes, memberships, availableMemberships] = await Promise.all([
+    db
+      .select()
+      .from(table.membershipType)
+      .orderBy(asc(sql`${table.membershipType.name}->>'fi'`)),
+
+    db
+      .select({
+        startTime: table.membership.startTime,
+        endTime: table.membership.endTime,
+      })
+      .from(table.membership),
+
+    db
+      .select({
+        id: table.membership.id,
+        membershipTypeId: table.membership.membershipTypeId,
+        membershipTypeName: table.membershipType.name,
+        startTime: table.membership.startTime,
+        endTime: table.membership.endTime,
+      })
+      .from(table.membership)
+      .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
+      .orderBy(desc(table.membership.startTime)),
+  ]);
 
   const years = Array.from(
     new Set(memberships.flatMap((m) => [m.startTime.getFullYear(), m.endTime.getFullYear()])),
-  ).toSorted((a, b) => b - a); // Most recent first
-
-  // Get all memberships with their types for the "Add member" form
-  const availableMemberships = await db
-    .select({
-      id: table.membership.id,
-      membershipTypeId: table.membership.membershipTypeId,
-      membershipTypeName: table.membershipType.name,
-      startTime: table.membership.startTime,
-      endTime: table.membership.endTime,
-    })
-    .from(table.membership)
-    .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
-    .orderBy(desc(table.membership.startTime));
+  ).toSorted((a, b) => b - a);
 
   return {
-    members,
+    // Not awaited — streamed to client, triggers svelte:boundary pending state
+    members: loadMembers(),
     membershipTypes,
     years,
     availableMemberships,

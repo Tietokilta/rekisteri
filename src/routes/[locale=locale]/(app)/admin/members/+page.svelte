@@ -3,8 +3,9 @@
   import { LL, locale } from "$lib/i18n/i18n-svelte";
   import { route } from "$lib/ROUTES";
   import { Button } from "$lib/components/ui/button/index.js";
+  import { Skeleton } from "$lib/components/ui/skeleton/index.js";
   import AdminPageHeader from "$lib/components/admin-page-header.svelte";
-  import MembersTable from "./members-table.svelte";
+  import MembersTableAsync from "./members-table-async.svelte";
   import CreateMemberForm from "./create-member-form.svelte";
   import * as Sheet from "$lib/components/ui/sheet";
   import Upload from "@lucide/svelte/icons/upload";
@@ -34,12 +35,67 @@
       {/if}
     {/snippet}
   </AdminPageHeader>
-  <MembersTable
-    data={data.members}
-    membershipTypes={data.membershipTypes}
-    years={data.years}
-    canWrite={data.canWrite}
-  />
+
+  <svelte:boundary>
+    <MembersTableAsync
+      membersPromise={data.members}
+      membershipTypes={data.membershipTypes}
+      years={data.years}
+      canWrite={data.canWrite}
+    />
+
+    {#snippet pending()}
+      <div class="space-y-4" data-testid="members-table-loading">
+        <!-- Filter bar skeleton -->
+        <div class="flex flex-wrap items-center gap-3">
+          <Skeleton class="h-9 w-64" />
+          <Skeleton class="h-9 w-32" />
+          <Skeleton class="h-9 w-32" />
+          <Skeleton class="h-9 w-32" />
+        </div>
+        <!-- Table skeleton -->
+        <div class="rounded-md border">
+          <div class="border-b px-4 py-3">
+            <div class="flex gap-4">
+              <Skeleton class="h-4 w-8" />
+              <Skeleton class="h-4 w-32" />
+              <Skeleton class="h-4 w-48" />
+              <Skeleton class="h-4 w-32" />
+              <Skeleton class="h-4 w-24" />
+              <Skeleton class="h-4 w-24" />
+            </div>
+          </div>
+          {#each { length: 10 } as _, i (i)}
+            <div class="border-b px-4 py-3">
+              <div class="flex gap-4">
+                <Skeleton class="h-4 w-8" />
+                <Skeleton class="h-4 w-32" />
+                <Skeleton class="h-4 w-48" />
+                <Skeleton class="h-4 w-32" />
+                <Skeleton class="h-4 w-24" />
+                <Skeleton class="h-4 w-24" />
+              </div>
+            </div>
+          {/each}
+        </div>
+        <!-- Pagination skeleton -->
+        <div class="flex items-center justify-between">
+          <Skeleton class="h-4 w-48" />
+          <div class="flex gap-2">
+            <Skeleton class="h-9 w-20" />
+            <Skeleton class="h-9 w-20" />
+          </div>
+        </div>
+      </div>
+    {/snippet}
+
+    {#snippet failed(error: unknown)}
+      <div class="rounded-md border border-destructive bg-destructive/10 p-6 text-center">
+        <p class="font-medium text-destructive">{$LL.error.genericError()}</p>
+        <p class="mt-1 text-sm text-destructive/80">{error instanceof Error ? error.message : ""}</p>
+      </div>
+    {/snippet}
+  </svelte:boundary>
 </main>
 
 {#if data.canWrite}

@@ -153,6 +153,9 @@ export const member = pgTable(
       "member_user_or_org",
       sql`(${table.userId} IS NOT NULL AND ${table.organizationName} IS NULL) OR (${table.userId} IS NULL AND ${table.organizationName} IS NOT NULL)`,
     ),
+    index("member_user_id_idx").on(table.userId),
+    index("member_membership_id_idx").on(table.membershipId),
+    index("member_status_idx").on(table.status),
   ],
 );
 
