@@ -19,7 +19,7 @@ const en = {
       title: "Admin",
       members: "Member registry",
       memberships: "Membership periods",
-      membershipTypes: "Membership Types",
+      membershipTypes: "Membership types",
       users: "Users",
       verifyQr: "Verify QR",
     },
