@@ -1,0 +1,20 @@
+CREATE TABLE "app_customization" (
+	"id" integer PRIMARY KEY DEFAULT 1,
+	"accent_color" text DEFAULT '#4f46e5' NOT NULL,
+	"organization_name" jsonb DEFAULT '{"fi":"Kilta ry","en":"Guild Registered Association"}' NOT NULL,
+	"organization_name_short" jsonb DEFAULT '{"fi":"Kilta","en":"Guild"}' NOT NULL,
+	"app_name" jsonb DEFAULT '{"fi":"Jäsenrekisteri","en":"Member Registry"}' NOT NULL,
+	"logo" bytea,
+	"logo_dark" bytea,
+	"favicon" bytea,
+	"favicon_dark" bytea,
+	"business_id" text DEFAULT '0123456-7' NOT NULL,
+	"overseer_contact" text DEFAULT 'hallitus@kilta.fi' NOT NULL,
+	"overseer_address" text DEFAULT 'Kiltatalo, Otakaari 1, 02150 Espoo' NOT NULL,
+	"privacy_policy" jsonb DEFAULT '{"fi":"Tämä on jäsenrekisterin tietosuojaseloste.","en":"This is the privacy policy for the membership registry."}' NOT NULL,
+	"organization_rules_url" text DEFAULT 'https://kilta.fi/saannot' NOT NULL,
+	"member_resign_rule" text DEFAULT '§67',
+	"member_resign_default_reason" jsonb DEFAULT '{"fi":"§67 nojalla. Liiallinen brainrot.","en":"By applying of §67. Too much brainrot."}',
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
