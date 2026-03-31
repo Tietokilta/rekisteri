@@ -470,7 +470,7 @@ Computer Science Guild`,
         resignMembership: "Resign (§8)",
 
         // Pagination
-        showing: "Showing {current} of {total} members",
+        showing: "Showing {start}–{end} of {total} members",
         previous: "Previous",
         next: "Next",
 
@@ -622,7 +622,7 @@ Computer Science Guild`,
         merge: "Merge users",
         noUsers: "No users",
         noResults: "No search results",
-        showing: "Showing {current} of {total} users",
+        showing: "Showing {start}–{end} of {total} users",
         roleAdmin: "Admin",
         roleReadonly: "Read-only",
         roleNone: "User",

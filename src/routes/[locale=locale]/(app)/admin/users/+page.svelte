@@ -478,7 +478,8 @@
         <div class="mt-4 flex items-center justify-between">
           <div class="text-sm text-muted-foreground">
             {$LL.admin.users.table.showing({
-              current: paginatedAdmins.length,
+              start: adminPage * pageSize + 1,
+              end: Math.min((adminPage + 1) * pageSize, filteredAdmins.length),
               total: filteredAdmins.length,
             })}
           </div>
@@ -574,7 +575,8 @@
       <div class="mt-4 flex items-center justify-between">
         <div class="text-sm text-muted-foreground">
           {$LL.admin.users.table.showing({
-            current: paginatedRegularUsers.length,
+            start: userPage * pageSize + 1,
+            end: Math.min((userPage + 1) * pageSize, filteredRegularUsers.length),
             total: filteredRegularUsers.length,
           })}
         </div>

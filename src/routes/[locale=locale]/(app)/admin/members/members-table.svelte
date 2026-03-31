@@ -1177,7 +1177,8 @@
   <div class="flex items-center justify-between">
     <div class="text-sm text-muted-foreground">
       {$LL.admin.members.table.showing({
-        current: table.getRowModel().rows.length,
+        start: pagination.pageIndex * pagination.pageSize + 1,
+        end: Math.min((pagination.pageIndex + 1) * pagination.pageSize, table.getFilteredRowModel().rows.length),
         total: table.getFilteredRowModel().rows.length,
       })}
     </div>
