@@ -23,8 +23,17 @@ export async function cleanupExpiredTokens(): Promise<void> {
       .where(lt(table.session.expiresAt, now))
       .returning({ id: table.session.id });
 
+    // Delete unverified secondary emails with no activity for 24 hours
+    // OTP expires after 10 minutes, so any unverified email idle for 24h is abandoned.
+    // Uses updatedAt (not createdAt) so re-adding an email resets the clock.
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const deletedUnverifiedEmails = await db
+      .delete(table.secondaryEmail)
+      .where(and(isNull(table.secondaryEmail.verifiedAt), lt(table.secondaryEmail.updatedAt, oneDayAgo)))
+      .returning({ id: table.secondaryEmail.id });
+
     console.log(
-      `[DB Cleanup] Removed ${deletedOTPs.length} expired OTP codes and ${deletedSessions.length} expired sessions`,
+      `[DB Cleanup] Removed ${deletedOTPs.length} expired OTP codes, ${deletedSessions.length} expired sessions, and ${deletedUnverifiedEmails.length} unverified secondary emails`,
     );
   } catch (error) {
     console.error("[DB Cleanup] Error during cleanup:", error);
