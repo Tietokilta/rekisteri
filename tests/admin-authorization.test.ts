@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createTestDatabase, stopTestDatabase, type TestDatabase } from "./utils/db";
-import * as table from "../src/lib/server/db";
+import * as table from "$lib/server/db/schema";
 import { eq, sql } from "drizzle-orm";
 import {
   ADMIN_ROLE_VALUES,

@@ -1,4 +1,4 @@
-import type { User } from "$lib/server/db";
+import type { User } from "$lib/server/db/schema";
 
 /**
  * Convert user's preferred language to locale code

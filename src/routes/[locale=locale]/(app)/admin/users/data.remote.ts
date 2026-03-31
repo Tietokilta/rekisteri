@@ -1,7 +1,7 @@
 import { error } from "@sveltejs/kit";
 import { getRequestEvent, command } from "$app/server";
 import { db } from "$lib/server/db";
-import * as table from "$lib/server/db";
+import * as table from "$lib/server/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { isNonEmpty } from "$lib/utils";
 import { updateUserRoleSchema, mergeUsersSchema } from "./schema";

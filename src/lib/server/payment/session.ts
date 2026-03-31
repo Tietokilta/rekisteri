@@ -1,5 +1,5 @@
 import { stripe } from "$lib/server/payment";
-import * as table from "$lib/server/db";
+import * as table from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
 import { eq } from "drizzle-orm";
 import { env } from "$lib/server/env";
@@ -115,6 +115,7 @@ export async function createSession(userId: string, membershipId: string, locale
     where: eq(table.membership.id, membershipId),
     with: { membershipType: true },
   });
+
   // eslint-disable-next-line @typescript-eslint/no-deprecated
   const user = await db._query.user.findFirst({
     where: eq(table.user.id, userId),

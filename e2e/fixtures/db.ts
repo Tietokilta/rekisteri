@@ -2,7 +2,11 @@ import { test as authTest, type UserInfo } from "./auth";
 import type { Page } from "@playwright/test";
 import postgres from "postgres";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import { type Schema, dbSchema } from "../../src/lib/server/db";
+import * as table from "../../src/lib/server/db/schema";
+import * as relations from "../../src/lib/server/db/relations";
+
+const dbSchema = { ...table, ...relations } as const;
+type Schema = typeof dbSchema;
 
 type DbFixtures = {
   authenticatedPage: Page;

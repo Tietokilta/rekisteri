@@ -2,7 +2,7 @@ import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { route } from "$lib/ROUTES";
 import { db } from "$lib/server/db";
-import * as table from "$lib/server/db";
+import * as table from "$lib/server/db/schema";
 import { eq, desc, gt, gte, and, isNotNull, count } from "drizzle-orm";
 import { ensureUserHasQrToken } from "$lib/server/attendance/qr-token";
 import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";

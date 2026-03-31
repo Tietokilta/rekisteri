@@ -1,7 +1,7 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
-import * as table from "$lib/server/db";
+import * as table from "$lib/server/db/schema";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import type { NonEmptyArray } from "$lib/utils";
 import { hasAdminAccess } from "$lib/server/auth/admin";

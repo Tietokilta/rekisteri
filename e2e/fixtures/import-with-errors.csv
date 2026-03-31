@@ -1,0 +1,9 @@
+firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
+Matti,Meikäläinen,Helsinki,matti.meikalainen@example.com,varsinainen-jasen,2025-08-01
+Liisa,Virtanen,Espoo,liisa.virtanen@example.com,varsinainen-jasen,2025-08-01
+,Sukunimi,Tampere,missing.firstname@example.com,varsinainen-jasen,2025-08-01
+Etunimi,,Vantaa,missing.lastname@example.com,ulkojasen,2025-08-01
+Anna,Aikanen,Turku,not-an-email,varsinainen-jasen,2025-08-01
+Kari,Tyyppi,Oulu,kari.tyyppi@example.com,nonexistent-type,2025-08-01
+Liisa,Paikaton,,liisa.paikaton@example.com,kannatusjasen,2025-08-01
+Jussi,Jäsen,Lahti,jussi.jasen@example.com,ulkojasen,2025-08-01

@@ -15,7 +15,7 @@
   import * as NativeSelect from "$lib/components/ui/native-select";
   import Trash2 from "@lucide/svelte/icons/trash-2";
   import GraduationCap from "@lucide/svelte/icons/graduation-cap";
-  import type { MembershipType } from "$lib/server/db";
+  import type { MembershipType } from "$lib/server/db/schema";
 
   interface Membership {
     id: string;

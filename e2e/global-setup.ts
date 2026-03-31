@@ -1,7 +1,7 @@
 import { chromium, type FullConfig } from "@playwright/test";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as table from "../src/lib/server/db";
+import * as table from "$lib/server/db/schema";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeBase64url, encodeHexLowerCase } from "@oslojs/encoding";
 import { eq } from "drizzle-orm";

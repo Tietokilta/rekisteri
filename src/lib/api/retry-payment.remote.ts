@@ -1,7 +1,7 @@
 import { error, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
 import { db } from "$lib/server/db";
-import * as table from "$lib/server/db";
+import * as table from "$lib/server/db/schema";
 import { eq, and } from "drizzle-orm";
 import { resumeOrCreateSession } from "$lib/server/payment/session";
 import { retryPaymentSchema } from "./retry-payment.schema";

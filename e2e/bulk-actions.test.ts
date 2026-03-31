@@ -1,7 +1,7 @@
 import { test, expect } from "./fixtures/auth";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as table from "../src/lib/server/db";
+import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { generateUserId } from "../src/lib/server/auth/utils";
 

@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures/db";
-import * as table from "../src/lib/server/db";
+import * as table from "$lib/server/db/schema";
 import type { Schema } from "../src/lib/server/db";
 import { eq, isNotNull, and, gt } from "drizzle-orm";
 import { route } from "../src/lib/ROUTES";

@@ -16,7 +16,7 @@ import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
 import { createSession, generateSessionToken, setSessionTokenCookie } from "$lib/server/auth/session";
 import { getUserByEmail, deleteUnverifiedSecondaryEmailClaims } from "$lib/server/auth/secondary-email";
 import { generateUserId } from "$lib/server/auth/utils";
-import * as table from "$lib/server/db";
+import * as table from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
 import { route } from "$lib/ROUTES";
 import { auditLogin, auditLoginFailed } from "$lib/server/audit";

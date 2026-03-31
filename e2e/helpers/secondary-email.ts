@@ -1,5 +1,5 @@
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import * as table from "../../src/lib/server/db";
+import * as table from "$lib/server/db/schema";
 import type { Schema } from "../../src/lib/server/db";
 
 /**

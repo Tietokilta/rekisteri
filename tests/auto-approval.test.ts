@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createTestDatabase, stopTestDatabase, type TestDatabase } from "./utils/db";
-import * as table from "../src/lib/server/db";
+import * as table from "$lib/server/db/schema";
 import { checkAutoApprovalEligibility } from "../src/lib/server/payment/auto-approval";
 
 // Helper to create a membership type

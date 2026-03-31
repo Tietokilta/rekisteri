@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createTestDatabase, stopTestDatabase, type TestDatabase } from "./utils/db";
-import * as table from "../src/lib/server/db";
+import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import type { MemberStatus } from "../src/lib/shared/enums";
 import { MEMBER_STATUS_VALUES } from "../src/lib/shared/enums";

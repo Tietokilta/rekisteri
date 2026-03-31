@@ -38,7 +38,7 @@
     bulkMarkMembersResigned,
   } from "./data.remote";
 
-  import type { LocalizedString, MembershipType } from "$lib/server/db";
+  import type { LocalizedString, MembershipType } from "$lib/server/db/schema";
 
   type MembershipData = {
     id: string;

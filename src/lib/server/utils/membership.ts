@@ -1,4 +1,4 @@
-import type { Membership, MembershipType, LocalizedString } from "$lib/server/db";
+import type { Membership, MembershipType, LocalizedString } from "$lib/server/db/schema";
 
 /**
  * Get localized membership type name

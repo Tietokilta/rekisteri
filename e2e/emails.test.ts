@@ -2,7 +2,7 @@ import { test, expect, type UserInfo } from "./fixtures/auth";
 import type { Page } from "@playwright/test";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as table from "../src/lib/server/db";
+import * as table from "$lib/server/db/schema";
 import { eq, and, isNull, like } from "drizzle-orm";
 import path from "node:path";
 import fs from "node:fs";

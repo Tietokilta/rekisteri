@@ -2,7 +2,7 @@ import { error } from "@sveltejs/kit";
 import { form, command, getRequestEvent } from "$app/server";
 import * as v from "valibot";
 import { db } from "$lib/server/db";
-import * as table from "$lib/server/db";
+import * as table from "$lib/server/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { generateUserId } from "$lib/server/auth/utils";
 import { getUsersByEmails } from "$lib/server/auth/secondary-email";

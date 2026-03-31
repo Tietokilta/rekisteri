@@ -3,7 +3,11 @@ import postgres from "postgres";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import path from "node:path";
-import { type Schema, dbSchema } from "../../src/lib/server/db";
+import * as table from "../../src/lib/server/db/schema";
+import * as relations from "../../src/lib/server/db/relations";
+
+const dbSchema = { ...table, ...relations } as const;
+type Schema = typeof dbSchema;
 
 export type TestDatabase = {
   container: StartedPostgreSqlContainer;
