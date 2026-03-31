@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, count, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import * as v from "valibot";
 import { db } from "../db";
 import * as table from "../db/schema";
@@ -196,11 +196,14 @@ export async function getSecondaryEmailById(emailId: string, userId: string): Pr
  * Create a new unverified secondary email
  * Validates:
  * - Email format
+ * - Not already owned by this user (returns existing record if so)
  * - Not already a primary email (any user)
- * - Not already a verified secondary email (other users)
+ * - Not already a verified secondary email (any user)
  * - User hasn't exceeded limit (10 emails)
  *
- * Returns existing email if user already has this email (verified or not)
+ * Uses upsert (onConflictDoUpdate) for race condition safety on the
+ * unique (userId, email) index.
+ *
  * Throws error if validation fails
  */
 export async function createSecondaryEmail(userId: string, email: string): Promise<SecondaryEmail> {
@@ -218,7 +221,14 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
 
   const existingEmail = existingUserEmail[0];
   if (existingEmail) {
-    // User is trying to re-add their own email - return it so we can redirect to verify
+    // User is trying to re-add their own email - refresh updatedAt to prevent
+    // the cleanup job from deleting it, then return so we can redirect to verify
+    if (!existingEmail.verifiedAt) {
+      await db
+        .update(table.secondaryEmail)
+        .set({ updatedAt: new Date() })
+        .where(eq(table.secondaryEmail.id, existingEmail.id));
+    }
     return existingEmail;
   }
 
@@ -236,22 +246,26 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
   const existingVerifiedSecondaryEmail = await db
     .select()
     .from(table.secondaryEmail)
-    .where(eq(table.secondaryEmail.email, normalizedEmail))
+    .where(and(eq(table.secondaryEmail.email, normalizedEmail), isNotNull(table.secondaryEmail.verifiedAt)))
     .limit(1);
 
-  const existingVerified = existingVerifiedSecondaryEmail[0];
-  if (existingVerified && existingVerified.verifiedAt !== null) {
+  if (existingVerifiedSecondaryEmail.length > 0) {
     throw new Error("Could not add this email. Please try a different email address.");
   }
 
   // Check user hasn't exceeded limit
-  const userEmailCount = await db.select().from(table.secondaryEmail).where(eq(table.secondaryEmail.userId, userId));
+  const [result] = await db
+    .select({ emailCount: count() })
+    .from(table.secondaryEmail)
+    .where(eq(table.secondaryEmail.userId, userId));
 
-  if (userEmailCount.length >= 10) {
+  if (result && result.emailCount >= 10) {
     throw new Error("Maximum 10 secondary emails allowed");
   }
 
-  // Create unverified secondary email
+  // Upsert: if user already has this email (unverified), update timestamp; otherwise insert.
+  // The unique_user_secondary_email index ensures no duplicates per user.
+  const now = new Date();
   const newEmail: SecondaryEmail = {
     id: crypto.randomUUID(),
     userId,
@@ -259,13 +273,25 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
     domain,
     verifiedAt: null,
     expiresAt: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: now,
+    updatedAt: now,
   };
 
-  await db.insert(table.secondaryEmail).values(newEmail);
+  const [upserted] = await db
+    .insert(table.secondaryEmail)
+    .values(newEmail)
+    .onConflictDoUpdate({
+      target: [table.secondaryEmail.userId, table.secondaryEmail.email],
+      set: { updatedAt: now },
+    })
+    .returning();
 
-  return newEmail;
+  // Should never happen - upsert always returns a row
+  if (!upserted) {
+    throw new Error("Failed to create secondary email");
+  }
+
+  return upserted;
 }
 
 /**

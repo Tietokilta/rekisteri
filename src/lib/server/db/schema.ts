@@ -102,6 +102,8 @@ export const secondaryEmail = pgTable(
   (table) => [
     index("idx_secondary_email_user_id").on(table.userId),
     index("idx_secondary_email_domain").on(table.domain),
+    // Each user can only have one record per email address
+    uniqueIndex("unique_user_secondary_email").on(table.userId, table.email),
     // Partial unique index: only verified emails must be globally unique
     // This prevents email squatting - unverified emails don't block others
     uniqueIndex("unique_verified_secondary_email")
