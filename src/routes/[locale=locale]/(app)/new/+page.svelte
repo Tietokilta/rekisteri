@@ -253,7 +253,11 @@
             </div>
           {/if}
 
-          <Button type="submit" disabled={disableForm} class={disableForm ? "cursor-not-allowed opacity-50" : ""}>
+          <Button
+            type="submit"
+            disabled={disableForm || !!payMembership.pending}
+            class={disableForm ? "cursor-not-allowed opacity-50" : ""}
+          >
             {$LL.membership.buy()}
             {#if payMembership.fields.membershipId.value()}
               {@const selectedMembership = availableMemberships.find(

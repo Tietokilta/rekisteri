@@ -23,7 +23,7 @@
         required
       />
     </p>
-    <Button type="submit">{$LL.auth.continue()}</Button>
+    <Button type="submit" disabled={!!signIn.pending}>{$LL.auth.continue()}</Button>
   </form>
   {#each signIn.fields.allIssues() as issue, i (i)}
     <p style="color: red">{issue.message}</p>

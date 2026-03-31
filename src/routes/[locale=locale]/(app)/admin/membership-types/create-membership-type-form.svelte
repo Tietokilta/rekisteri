@@ -141,6 +141,6 @@
     <Button type="button" variant="outline" class="flex-1" onclick={onClose}>
       {$LL.common.cancel()}
     </Button>
-    <Button type="submit" class="flex-1">{$LL.common.create()}</Button>
+    <Button type="submit" class="flex-1" disabled={!!createMembershipType.pending}>{$LL.common.create()}</Button>
   </Sheet.Footer>
 </form>

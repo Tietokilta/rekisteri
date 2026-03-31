@@ -254,6 +254,7 @@
         type="submit"
         variant="outline"
         class="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+        disabled={!!deleteForm.pending}
       >
         <Trash2 class="size-4" />
         {$LL.common.delete()}
