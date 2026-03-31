@@ -57,7 +57,7 @@
         {/each}
       </div>
 
-      <Button type="submit" class="w-full" data-testid="submit-add-email">
+      <Button type="submit" class="w-full" data-testid="submit-add-email" disabled={!!addSecondaryEmailForm.pending}>
         {$LL.secondaryEmail.addAndVerify()}
       </Button>
 

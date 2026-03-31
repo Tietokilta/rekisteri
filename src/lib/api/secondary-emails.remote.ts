@@ -9,7 +9,13 @@ import {
   createSecondaryEmail,
   changePrimaryEmail,
 } from "$lib/server/auth/secondary-email";
-import { createEmailOTP, sendOTPEmail, emailCookieName, emailOTPCookieName } from "$lib/server/auth/email";
+import {
+  createEmailOTP,
+  sendOTPEmail,
+  sendOTPBucket,
+  emailCookieName,
+  emailOTPCookieName,
+} from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
 import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
 import { addSecondaryEmailSchema } from "./secondary-emails.schema";
@@ -78,6 +84,9 @@ export const reverifySecondaryEmailForm = form(
   async ({ emailId, next }) => {
     const { locals, cookies } = getRequestEvent();
 
+    // Lazy cleanup to prevent memory leaks
+    sendOTPBucket.cleanup();
+
     const LL = getLL(locals.locale);
 
     if (!locals.user) {
@@ -87,6 +96,11 @@ export const reverifySecondaryEmailForm = form(
     const email = await getSecondaryEmailById(emailId, locals.user.id);
     if (!email) {
       throw error(404, LL.secondaryEmail.emailNotFound());
+    }
+
+    // Rate limit OTP sends per email address
+    if (!sendOTPBucket.consume(email.email, 1)) {
+      throw error(429, LL.error.tooManyRequests());
     }
 
     // Create OTP and send email

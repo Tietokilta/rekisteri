@@ -59,16 +59,18 @@
         {#each verifyCode.fields.allIssues() as issue, i (i)}
           <p class="text-red-500" data-testid="otp-error">{issue.message}</p>
         {/each}
-        <Button type="submit" data-testid="verify-otp">{$LL.auth.verify()}</Button>
+        <Button type="submit" data-testid="verify-otp" disabled={!!verifyCode.pending}>{$LL.auth.verify()}</Button>
       </form>
       <form {...resendEmail} class="contents">
-        <Button type="submit" variant="outline">{$LL.auth.resendCode()}</Button>
+        <Button type="submit" variant="outline" disabled={!!resendEmail.pending}>{$LL.auth.resendCode()}</Button>
         {#if resendEmail.result?.message}
           <p>{resendEmail.result.message}</p>
         {/if}
       </form>
       <form {...cancelVerification} class="contents">
-        <Button type="submit" variant="outline">{$LL.auth.passkey.cancel()}</Button>
+        <Button type="submit" variant="outline" disabled={!!cancelVerification.pending}
+          >{$LL.auth.passkey.cancel()}</Button
+        >
       </form>
     </div>
   </Card.Content>

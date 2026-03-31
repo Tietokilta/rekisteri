@@ -155,7 +155,7 @@
         <Switch {...saveUserInfo.fields.isAllowedEmails.as("checkbox")} id="isAllowedEmails" />
       </div>
 
-      <Button type="submit">{$LL.common.save()}</Button>
+      <Button type="submit" disabled={!!saveUserInfo.pending}>{$LL.common.save()}</Button>
     </form>
   </Card.Content>
 </Card.Root>

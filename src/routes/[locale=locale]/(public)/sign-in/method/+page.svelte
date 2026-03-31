@@ -126,7 +126,14 @@
       <!-- Email OTP fallback -->
       <form {...useEmail} class="w-full">
         <div class="relative">
-          <Button type="submit" variant="outline" class="w-full" size="lg" onclick={handleEmailClick}>
+          <Button
+            type="submit"
+            variant="outline"
+            class="w-full"
+            size="lg"
+            onclick={handleEmailClick}
+            disabled={!!useEmail.pending}
+          >
             <Mail class="mr-2 h-5 w-5" />
             {$LL.auth.passkey.sendEmailCode()}
           </Button>
@@ -143,7 +150,9 @@
 
       <!-- Change email -->
       <form {...changeEmail} class="w-full">
-        <Button type="submit" variant="ghost" class="w-full">{$LL.auth.passkey.useDifferentEmail()}</Button>
+        <Button type="submit" variant="ghost" class="w-full" disabled={!!changeEmail.pending}
+          >{$LL.auth.passkey.useDifferentEmail()}</Button
+        >
       </form>
     </Card.Content>
   </Card.Root>
