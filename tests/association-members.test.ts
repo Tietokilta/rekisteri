@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createTestDatabase, stopTestDatabase, type TestDatabase } from "./utils/db";
-import * as table from "../src/lib/server/db/schema";
+import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 
 /**
@@ -81,7 +81,8 @@ describe("member_user_or_org CHECK constraint", () => {
       status: "active",
     });
 
-    const member = await testDb.db.query.member.findFirst({
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const member = await testDb.db._query.member.findFirst({
       where: eq(table.member.id, memberId),
     });
     expect(member).toBeDefined();
@@ -100,7 +101,8 @@ describe("member_user_or_org CHECK constraint", () => {
       status: "active",
     });
 
-    const member = await testDb.db.query.member.findFirst({
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const member = await testDb.db._query.member.findFirst({
       where: eq(table.member.id, memberId),
     });
     expect(member).toBeDefined();
@@ -146,14 +148,16 @@ describe("member_user_or_org CHECK constraint", () => {
 
 describe("purchasable flag on membership types", () => {
   it("stores purchasable=true for person membership types", async () => {
-    const mt = await testDb.db.query.membershipType.findFirst({
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const mt = await testDb.db._query.membershipType.findFirst({
       where: eq(table.membershipType.id, membershipTypeId),
     });
     expect(mt?.purchasable).toBe(true);
   });
 
   it("stores purchasable=false for association membership types", async () => {
-    const mt = await testDb.db.query.membershipType.findFirst({
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const mt = await testDb.db._query.membershipType.findFirst({
       where: eq(table.membershipType.id, associationMembershipTypeId),
     });
     expect(mt?.purchasable).toBe(false);
@@ -166,7 +170,8 @@ describe("purchasable flag on membership types", () => {
       name: { fi: "Oletus", en: "Default" },
     });
 
-    const mt = await testDb.db.query.membershipType.findFirst({
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const mt = await testDb.db._query.membershipType.findFirst({
       where: eq(table.membershipType.id, id),
     });
     expect(mt?.purchasable).toBe(true);
@@ -189,7 +194,8 @@ describe("association member lifecycle", () => {
     // Transition to resigned
     await testDb.db.update(table.member).set({ status: "resigned" }).where(eq(table.member.id, memberId));
 
-    let member = await testDb.db.query.member.findFirst({
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    let member = await testDb.db._query.member.findFirst({
       where: eq(table.member.id, memberId),
     });
     expect(member?.status).toBe("resigned");
@@ -197,7 +203,8 @@ describe("association member lifecycle", () => {
     // Reactivate
     await testDb.db.update(table.member).set({ status: "active" }).where(eq(table.member.id, memberId));
 
-    member = await testDb.db.query.member.findFirst({
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    member = await testDb.db._query.member.findFirst({
       where: eq(table.member.id, memberId),
     });
     expect(member?.status).toBe("active");

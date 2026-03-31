@@ -1,6 +1,6 @@
 import { test, expect } from "./fixtures/db";
 import { route } from "../src/lib/ROUTES";
-import * as table from "../src/lib/server/db/schema";
+import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 
 /**
@@ -64,7 +64,8 @@ test.describe("Association members", () => {
     await expect(adminPage.getByText(orgName)).toBeVisible();
 
     // Track for cleanup
-    const member = await db.query.member.findFirst({
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const member = await db._query.member.findFirst({
       where: eq(table.member.organizationName, orgName),
     });
     if (member) createdMemberIds.push(member.id);
@@ -109,12 +110,14 @@ test.describe("Association members", () => {
     await expect(adminPage.getByText(firstNames)).toBeVisible();
 
     // Track for cleanup
-    const user = await db.query.user.findFirst({
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const user = await db._query.user.findFirst({
       where: eq(table.user.email, email),
     });
     if (user) {
       createdUserIds.push(user.id);
-      const member = await db.query.member.findFirst({
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      const member = await db._query.member.findFirst({
         where: eq(table.member.userId, user.id),
       });
       if (member) createdMemberIds.push(member.id);
@@ -125,7 +128,8 @@ test.describe("Association members", () => {
     const orgName = `Visible Org ${crypto.randomUUID().slice(0, 8)} ry`;
 
     // Get any available membership
-    const membership = await db.query.membership.findFirst();
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const membership = await db._query.membership.findFirst();
     if (!membership) throw new Error("No membership found for test");
 
     // Create association member directly in DB
@@ -154,7 +158,8 @@ test.describe("Association members", () => {
   test("association members can be found via search", async ({ adminPage, db }) => {
     const orgName = `Searchable Guild ${crypto.randomUUID().slice(0, 8)} ry`;
 
-    const membership = await db.query.membership.findFirst();
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const membership = await db._query.membership.findFirst();
     if (!membership) throw new Error("No membership found for test");
 
     const memberId = crypto.randomUUID();

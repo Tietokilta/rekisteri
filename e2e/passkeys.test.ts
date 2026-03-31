@@ -2,7 +2,7 @@ import { test, expect, type UserInfo } from "./fixtures/auth";
 import { WebAuthnHelper } from "./fixtures/webauthn";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as table from "../src/lib/server/db/schema";
+import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import path from "node:path";
 import fs from "node:fs";
@@ -31,7 +31,7 @@ test.describe("Passkey Management", () => {
     const dbUrl = process.env.DATABASE_URL_TEST;
     if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
     client = postgres(dbUrl);
-    db = drizzle(client, { schema: table, casing: "snake_case" });
+    db = drizzle({ client, schema: table, casing: "snake_case" });
 
     // Load admin user info
     const userInfoPath = path.join(process.cwd(), "e2e/.auth/admin-user.json");
@@ -153,7 +153,7 @@ test.describe("Passkey Authentication", () => {
     const dbUrl = process.env.DATABASE_URL_TEST;
     if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
     client = postgres(dbUrl);
-    db = drizzle(client, { schema: table, casing: "snake_case" });
+    db = drizzle({ client, schema: table, casing: "snake_case" });
 
     // Load admin user info
     const userInfoPath = path.join(process.cwd(), "e2e/.auth/admin-user.json");

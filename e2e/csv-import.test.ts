@@ -3,14 +3,19 @@ import path from "node:path";
 import fs from "node:fs";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as table from "../src/lib/server/db/schema";
+import * as table from "$lib/server/db/schema";
+import * as relations from "$lib/server/db/schema";
 import { eq, inArray } from "drizzle-orm";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { createVerifiedSecondaryEmail, createUnverifiedSecondaryEmail } from "./helpers/secondary-email";
 import { route } from "../src/lib/ROUTES";
+import type { Schema } from "$lib/server/db";
+
+const dbSchema = { ...table, ...relations } as Schema;
 
 test.describe("CSV Import", () => {
   let client: ReturnType<typeof postgres>;
-  let db: ReturnType<typeof drizzle>;
+  let db: PostgresJsDatabase<Schema>;
 
   // Track test data for cleanup
   let testUserIds: string[] = [];
@@ -22,7 +27,7 @@ test.describe("CSV Import", () => {
     const dbUrl = process.env.DATABASE_URL_TEST;
     if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
     client = postgres(dbUrl);
-    db = drizzle(client, { schema: table, casing: "snake_case" });
+    db = drizzle({ client, schema: dbSchema, casing: "snake_case" });
   });
 
   test.afterAll(async () => {

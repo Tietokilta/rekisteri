@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createTestDatabase, stopTestDatabase, type TestDatabase } from "./utils/db";
-import * as table from "../src/lib/server/db/schema";
+import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import type { MemberStatus } from "../src/lib/shared/enums";
 import { MEMBER_STATUS_VALUES } from "../src/lib/shared/enums";
@@ -180,7 +180,8 @@ async function transitionStatus(memberId: string, currentStatus: MemberStatus, n
 
   await testDb.db.update(table.member).set({ status: newStatus }).where(eq(table.member.id, memberId));
 
-  const updated = await testDb.db.query.member.findFirst({
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const updated = await testDb.db._query.member.findFirst({
     where: eq(table.member.id, memberId),
   });
 
@@ -249,7 +250,8 @@ describe("DB lifecycle scenarios (using validateTransition)", () => {
     expect(() => validateTransition("active", "rejected")).toThrow("Invalid status transition");
 
     // Verify member is still active in DB
-    const member = await testDb.db.query.member.findFirst({
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const member = await testDb.db._query.member.findFirst({
       where: eq(table.member.id, memberId),
     });
     expect(member?.status).toBe("active");

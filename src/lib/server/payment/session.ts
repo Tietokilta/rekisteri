@@ -110,11 +110,14 @@ async function createCheckoutSessionWithRetry(
  * @see {@link https://docs.stripe.com/checkout/quickstart}
  */
 export async function createSession(userId: string, membershipId: string, locale: Locale, description?: string | null) {
-  const membership = await db.query.membership.findFirst({
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const membership = await db._query.membership.findFirst({
     where: eq(table.membership.id, membershipId),
     with: { membershipType: true },
   });
-  const user = await db.query.user.findFirst({
+
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const user = await db._query.user.findFirst({
     where: eq(table.user.id, userId),
   });
   if (!membership || !user) {
@@ -162,7 +165,8 @@ export async function createSession(userId: string, membershipId: string, locale
  * This is used when a user with "awaiting_payment" status wants to complete their payment.
  */
 export async function resumeOrCreateSession(memberId: string, locale: Locale) {
-  const member = await db.query.member.findFirst({
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const member = await db._query.member.findFirst({
     where: eq(table.member.id, memberId),
     with: {
       membership: {
@@ -265,7 +269,8 @@ export async function fulfillSession(sessionId: string) {
   // Use transaction to prevent race condition if multiple webhooks arrive simultaneously
   let newStatus: "active" | "awaiting_approval" | null = null;
   await db.transaction(async (tx) => {
-    const member = await tx.query.member.findFirst({
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const member = await tx._query.member.findFirst({
       where: eq(table.member.id, memberId),
       with: { membership: true },
     });
@@ -306,7 +311,8 @@ export async function fulfillSession(sessionId: string) {
   // 3. Email failures are caught and logged without failing the transaction
   if (newStatus) {
     try {
-      const memberWithDetails = await db.query.member.findFirst({
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
+      const memberWithDetails = await db._query.member.findFirst({
         where: eq(table.member.id, memberId),
         with: {
           user: true,
@@ -375,7 +381,8 @@ export async function cancelSession(sessionId: string) {
 
   // Use transaction to prevent race condition if multiple webhooks arrive simultaneously
   await db.transaction(async (tx) => {
-    const member = await tx.query.member.findFirst({
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const member = await tx._query.member.findFirst({
       where: eq(table.member.id, memberId),
     });
     if (!member || member.status !== "awaiting_payment") {

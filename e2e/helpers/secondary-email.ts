@@ -1,5 +1,6 @@
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import * as table from "../../src/lib/server/db/schema";
+import * as table from "$lib/server/db/schema";
+import type { Schema } from "../../src/lib/server/db";
 
 /**
  * Test helper: Create a secondary email record directly via database
@@ -8,8 +9,7 @@ import * as table from "../../src/lib/server/db/schema";
  * on SvelteKit's $env imports, making it safe to use in Playwright tests.
  */
 export async function createSecondaryEmail(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  db: PostgresJsDatabase<any>,
+  db: PostgresJsDatabase<Schema>,
   userId: string,
   email: string,
   options: {
@@ -41,8 +41,7 @@ export async function createSecondaryEmail(
  * Test helper: Create a verified secondary email
  */
 export async function createVerifiedSecondaryEmail(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  db: PostgresJsDatabase<any>,
+  db: PostgresJsDatabase<Schema>,
   userId: string,
   email: string,
 ): Promise<table.SecondaryEmail> {
@@ -53,8 +52,7 @@ export async function createVerifiedSecondaryEmail(
  * Test helper: Create an unverified secondary email
  */
 export async function createUnverifiedSecondaryEmail(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  db: PostgresJsDatabase<any>,
+  db: PostgresJsDatabase<Schema>,
   userId: string,
   email: string,
 ): Promise<table.SecondaryEmail> {
