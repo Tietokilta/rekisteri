@@ -472,7 +472,7 @@ Tietokilta`,
         resignMembership: "Erota (§8)",
 
         // Pagination
-        showing: "Näytetään {current} / {total} jäsentä",
+        showing: "Näytetään {start}–{end} / {total} jäsentä",
         previous: "Edellinen",
         next: "Seuraava",
 
@@ -625,7 +625,7 @@ Tietokilta`,
         merge: "Yhdistä käyttäjät",
         noUsers: "Ei käyttäjiä",
         noResults: "Ei hakutuloksia",
-        showing: "Näytetään {current:number} / {total:number} käyttäjää",
+        showing: "Näytetään {start:number}–{end:number} / {total:number} käyttäjää",
         roleAdmin: "Ylläpitäjä",
         roleReadonly: "Lukuoikeus",
         roleNone: "Käyttäjä",
