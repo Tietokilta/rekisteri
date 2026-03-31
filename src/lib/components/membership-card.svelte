@@ -4,6 +4,7 @@
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { LL, locale } from "$lib/i18n/i18n-svelte";
   import { route } from "$lib/ROUTES";
+  import { formatDate } from "$lib/utils";
   import type { MemberStatus } from "$lib/shared/enums";
   import type { LocalizedString } from "$lib/server/db/schema";
   import { retryPayment } from "$lib/api/retry-payment.remote";
@@ -151,11 +152,11 @@
         <p class="text-2xl font-semibold">{getTypeName(currentMembership.membershipType)}</p>
         <p class="text-sm text-muted-foreground">
           <time datetime={currentMembership.startTime.toISOString()}>
-            {currentMembership.startTime.toLocaleDateString(`${$locale}-FI`)}
+            {formatDate(currentMembership.startTime, $locale)}
           </time>
           –
           <time datetime={currentMembership.endTime.toISOString()}>
-            {currentMembership.endTime.toLocaleDateString(`${$locale}-FI`)}
+            {formatDate(currentMembership.endTime, $locale)}
           </time>
         </p>
       </div>
