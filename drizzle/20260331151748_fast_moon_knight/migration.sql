@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "unique_user_secondary_email" ON "secondary_email" ("user_id","email");
