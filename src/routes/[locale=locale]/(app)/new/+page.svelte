@@ -12,7 +12,7 @@
   import { payMembership } from "./data.remote";
   import { payMembershipSchema } from "./schema";
   import { getStripePriceMetadata } from "$lib/api/stripe.remote";
-  import { formatPrice } from "$lib/utils";
+  import { formatDate, formatPrice } from "$lib/utils";
   import { Textarea } from "$lib/components/ui/textarea";
   import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
   import { PersistedState } from "runed";
@@ -161,8 +161,8 @@
                     {/snippet}
                   </svelte:boundary>
                   <span class="text-sm text-muted-foreground">
-                    {new Date(membership.startTime).toLocaleDateString(`${$locale}-FI`)}
-                    – {new Date(membership.endTime).toLocaleDateString(`${$locale}-FI`)}
+                    {formatDate(new Date(membership.startTime), $locale)}
+                    – {formatDate(new Date(membership.endTime), $locale)}
                   </span>
                   {#if membership.willAutoApprove}
                     <span class="text-xs text-green-600 dark:text-green-400">{$LL.membership.willAutoApprove()}</span>
@@ -224,7 +224,7 @@
                     {$LL.secondaryEmail.verifiedDomainEmail()}
                     {#if data.aaltoEmailExpiry}
                       ({$LL.secondaryEmail.expiresOn({
-                        date: new Date(data.aaltoEmailExpiry).toLocaleDateString(`${$locale}-FI`),
+                        date: formatDate(new Date(data.aaltoEmailExpiry), $locale),
                       })})
                     {/if}
                   </Alert.Description>

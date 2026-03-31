@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageProps } from "./$types";
-  import { LL } from "$lib/i18n/i18n-svelte";
+  import { LL, locale } from "$lib/i18n/i18n-svelte";
+  import { formatDateTime } from "$lib/utils";
   import * as Table from "$lib/components/ui/table";
   import * as Select from "$lib/components/ui/select";
   import { Button } from "$lib/components/ui/button";
@@ -150,7 +151,7 @@
   // Format last active date
   function formatLastActive(lastActiveAt: Date | null) {
     if (!lastActiveAt) return $LL.admin.users.table.never();
-    return lastActiveAt.toLocaleString();
+    return formatDateTime(lastActiveAt, $locale);
   }
 
   // Check if there's only one full admin (use total admins with 'admin' role, not filtered)

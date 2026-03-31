@@ -27,7 +27,7 @@
   import { page } from "$app/state";
   import { SvelteURLSearchParams } from "svelte/reactivity";
   import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { isNonEmpty } from "$lib/utils";
+  import { isNonEmpty, formatDate } from "$lib/utils";
   import {
     approveMember,
     rejectMember,
@@ -1059,8 +1059,11 @@
                             <div>
                               <dt class="text-muted-foreground">{$LL.admin.members.table.periodLabel()}</dt>
                               <dd>
-                                {membership.membershipStartTime?.toLocaleDateString() ?? "-"} - {membership.membershipEndTime?.toLocaleDateString() ??
-                                  "-"}
+                                {membership.membershipStartTime
+                                  ? formatDate(membership.membershipStartTime, $locale)
+                                  : "-"} - {membership.membershipEndTime
+                                  ? formatDate(membership.membershipEndTime, $locale)
+                                  : "-"}
                               </dd>
                             </div>
                             <div>
@@ -1079,7 +1082,7 @@
                             </div>
                             <div>
                               <dt class="text-muted-foreground">{$LL.admin.members.table.createdLabel()}</dt>
-                              <dd>{membership.createdAt.toLocaleDateString()}</dd>
+                              <dd>{formatDate(membership.createdAt, $locale)}</dd>
                             </div>
                             {#if membership.stripeSessionId}
                               <div>

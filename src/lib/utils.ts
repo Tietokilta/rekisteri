@@ -50,6 +50,24 @@ export function formatPrice(priceCents: number, currency: string, locale: string
   }).format(priceCents / 100);
 }
 
+/* eslint-disable no-restricted-syntax -- these are the canonical date formatting helpers that enforce locale-FI */
+
+/**
+ * Format a single date using Finnish locale conventions (e.g., "1.8.2024").
+ * Always uses locale-FI to ensure Finnish date formatting regardless of UI language.
+ */
+export function formatDate(date: Date, locale: string): string {
+  return date.toLocaleDateString(`${locale}-FI`);
+}
+
+/**
+ * Format a date with time using Finnish locale conventions.
+ * Always uses locale-FI to ensure Finnish date formatting regardless of UI language.
+ */
+export function formatDateTime(date: Date, locale: string): string {
+  return date.toLocaleString(`${locale}-FI`);
+}
+
 /**
  * Format a date range to a localized string (e.g., "1.8.2024 – 31.7.2025").
  */
@@ -68,6 +86,8 @@ export function formatShortDateRange(start: Date, end: Date, locale: string): st
   const endStr = end.toLocaleDateString(`${locale}-FI`, { day: "numeric", month: "numeric", year: "numeric" });
   return `${startStr} – ${endStr}`;
 }
+
+/* eslint-enable no-restricted-syntax */
 
 /**
  * Normalize an email address: remove all whitespace and lowercase.

@@ -6,7 +6,7 @@
   import CircleX from "@lucide/svelte/icons/circle-x";
   import X from "@lucide/svelte/icons/x";
   import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { cn, formatUserName } from "$lib/utils";
+  import { cn, formatUserName, formatDate as formatDateUtil } from "$lib/utils";
   import AdminPageHeader from "$lib/components/admin-page-header.svelte";
   import { Button } from "$lib/components/ui/button";
   import { Badge } from "$lib/components/ui/badge";
@@ -118,7 +118,7 @@
   }
 
   function formatDate(date: string | Date): string {
-    return new Date(date).toLocaleDateString(`${$locale}-FI`);
+    return formatDateUtil(new Date(date), $locale);
   }
 </script>
 

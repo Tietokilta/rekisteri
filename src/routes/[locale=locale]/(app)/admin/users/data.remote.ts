@@ -3,7 +3,7 @@ import { getRequestEvent, command } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, sql } from "drizzle-orm";
-import { isNonEmpty } from "$lib/utils";
+import { isNonEmpty, formatDate } from "$lib/utils";
 import { updateUserRoleSchema, mergeUsersSchema } from "./schema";
 import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
 import { auditUserAdminAction } from "$lib/server/audit";
@@ -134,8 +134,8 @@ export const mergeUsers = command(
             400,
             LL.admin.users.cannotMergeOverlapping({
               type: secondaryMember.membership.membershipTypeId,
-              startDate: new Date(secondaryMember.membership.startTime).toLocaleDateString(),
-              endDate: new Date(secondaryMember.membership.endTime).toLocaleDateString(),
+              startDate: formatDate(new Date(secondaryMember.membership.startTime), event.locals.locale),
+              endDate: formatDate(new Date(secondaryMember.membership.endTime), event.locals.locale),
             }),
           );
         }

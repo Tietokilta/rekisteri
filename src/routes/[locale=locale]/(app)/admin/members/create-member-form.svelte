@@ -2,6 +2,7 @@
   import { invalidateAll } from "$app/navigation";
   import { toast } from "svelte-sonner";
   import { LL, locale } from "$lib/i18n/i18n-svelte";
+  import { formatDateRange as formatDateRangeUtil } from "$lib/utils";
   import { createMember } from "./data.remote";
   import { Input } from "$lib/components/ui/input";
   import { Textarea } from "$lib/components/ui/textarea";
@@ -48,10 +49,7 @@
   }
 
   function formatDateRange(m: AvailableMembership): string {
-    const dateLocale = $locale === "fi" ? "fi-FI" : "en-US";
-    const start = m.startTime.toLocaleDateString(dateLocale);
-    const end = m.endTime.toLocaleDateString(dateLocale);
-    return `${start} – ${end}`;
+    return formatDateRangeUtil(m.startTime, m.endTime, $locale);
   }
 
   // Group memberships by type for the select dropdown

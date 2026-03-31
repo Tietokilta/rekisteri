@@ -84,6 +84,19 @@ export default ts.config(
           message:
             "Direct access to process.env is not allowed. Import from '$lib/server/env' instead for type-safe, validated environment variables.",
         },
+        {
+          selector: "CallExpression[callee.property.name='toLocaleDateString']",
+          message:
+            "Use formatDate() or formatDateRange() from '$lib/utils' instead to ensure consistent locale-FI formatting.",
+        },
+        {
+          selector: "CallExpression[callee.property.name='toLocaleString']",
+          message: "Use formatDateTime() from '$lib/utils' instead to ensure consistent locale-FI formatting.",
+        },
+        {
+          selector: "CallExpression[callee.property.name='toLocaleTimeString']",
+          message: "Use a date formatting helper from '$lib/utils' instead to ensure consistent locale-FI formatting.",
+        },
       ],
     },
   },

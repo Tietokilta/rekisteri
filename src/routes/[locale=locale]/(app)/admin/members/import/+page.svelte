@@ -48,7 +48,7 @@
   import { LL, locale } from "$lib/i18n/i18n-svelte";
   import * as v from "valibot";
   import AdminPageHeader from "$lib/components/admin-page-header.svelte";
-  import { normalizeEmail } from "$lib/utils";
+  import { normalizeEmail, formatDate } from "$lib/utils";
 
   import CircleCheck from "@lucide/svelte/icons/circle-check";
   import CircleAlert from "@lucide/svelte/icons/circle-alert";
@@ -701,7 +701,7 @@
                           <NativeSelect.OptGroup label={group.typeName}>
                             {#each group.memberships as m (m.id)}
                               <NativeSelect.Option value={m.id}>
-                                {m.startTime.toISOString().split("T")[0]} – {m.endTime.toISOString().split("T")[0]}
+                                {formatDate(m.startTime, $locale)} – {formatDate(m.endTime, $locale)}
                               </NativeSelect.Option>
                             {/each}
                           </NativeSelect.OptGroup>
