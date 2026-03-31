@@ -16,7 +16,7 @@
   import X from "@lucide/svelte/icons/x";
 
   import { invalidateAll } from "$app/navigation";
-  import { LL } from "$lib/i18n/i18n-svelte";
+  import { LL, locale } from "$lib/i18n/i18n-svelte";
   import * as Empty from "$lib/components/ui/empty/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
@@ -105,7 +105,7 @@
   function formatDate(date: Date | string | null): string {
     if (!date) return $LL.auth.passkey.never();
     const dateObj = typeof date === "string" ? new Date(date) : date;
-    return dateObj.toLocaleDateString();
+    return dateObj.toLocaleDateString(`${$locale}-FI`);
   }
 </script>
 

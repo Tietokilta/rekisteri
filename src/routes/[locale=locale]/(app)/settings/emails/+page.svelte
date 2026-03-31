@@ -36,7 +36,7 @@
 
   function formatDate(date: Date | null): string {
     if (!date) return "";
-    return new Date(date).toLocaleDateString();
+    return new Date(date).toLocaleDateString(`${$locale}-FI`);
   }
 </script>
 
