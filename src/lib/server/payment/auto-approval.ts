@@ -1,6 +1,7 @@
 import { and, eq, lte, desc } from "drizzle-orm";
-import { type Schema } from "$lib/server/db";
-import { type Membership, type SecondaryEmail, membership, member, user, secondaryEmail } from "$lib/server/db/schema";
+import type { Schema } from "$lib/server/db";
+import type { Membership, SecondaryEmail } from "$lib/server/db/schema";
+import { membership, member, user, secondaryEmail } from "$lib/server/db/schema";
 import type { PostgresJsDatabase, PostgresJsTransaction } from "drizzle-orm/postgres-js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
