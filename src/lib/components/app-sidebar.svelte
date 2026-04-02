@@ -51,25 +51,25 @@
       <Sidebar.SidebarMenuItem>
         <Sidebar.SidebarMenuButton
           size="lg"
-          tooltipContent={page.data.customisations?.appName?.[$locale] ?? $LL.app.title()}
+          tooltipContent={page.data.customizations?.appName?.[$locale] ?? $LL.app.title()}
         >
           {#snippet child({ props })}
             <a href={route("/[locale=locale]", { locale: $locale })} {...props}>
-              {#if page.data.customisations?.logo || page.data.customisations?.logoDark}
+              {#if page.data.customizations?.logo || page.data.customizations?.logoDark}
                 <img
-                  src={page.data.customisations?.logo ? "/api/image/logo" : "/api/image/logoDark"}
+                  src={page.data.customizations?.logo ? "/api/image/logo" : "/api/image/logoDark"}
                   alt="App logo"
                   class="size-8 dark:hidden"
                 />
                 <img
-                  src={page.data.customisations?.logoDark ? "/api/image/logoDark" : "/api/image/logo"}
+                  src={page.data.customizations?.logoDark ? "/api/image/logoDark" : "/api/image/logo"}
                   alt="App logo"
                   class="hidden size-8 dark:block"
                 />
               {/if}
               <div class="flex flex-col gap-0.5 leading-none">
                 <span class="font-mono font-semibold"
-                  >{page.data.customisations?.appName?.[$locale] ?? $LL.app.title()}</span
+                  >{page.data.customizations?.appName?.[$locale] ?? $LL.app.title()}</span
                 >
               </div>
             </a>

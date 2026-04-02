@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
 import type { RequestEvent } from "./$types";
-import { getCustomisations } from "$lib/server/customisation/cache";
+import { getCustomizations } from "$lib/server/customization/cache";
 
 export async function GET(event: RequestEvent) {
   const type = event.params.type;
@@ -10,12 +10,12 @@ export async function GET(event: RequestEvent) {
     return error(404, "Not found");
   }
 
-  const customisations = await getCustomisations();
-  if (!customisations) {
+  const customizations = await getCustomizations();
+  if (!customizations) {
     return error(404, "Not found");
   }
 
-  const imageBuffer = customisations[type as "logo" | "logoDark" | "favicon" | "faviconDark"];
+  const imageBuffer = customizations[type as "logo" | "logoDark" | "favicon" | "faviconDark"];
 
   if (!imageBuffer) {
     return error(404, "Not found");

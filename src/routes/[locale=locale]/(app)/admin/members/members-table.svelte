@@ -1153,7 +1153,7 @@
                                 >
                                   {$LL.admin.members.table.deemResigned() +
                                     " (" +
-                                    page.data.customisations.memberResignRule +
+                                    page.data.customizations.memberResignRule +
                                     ")"}
                                 </Button>
                                 <Button
@@ -1163,7 +1163,7 @@
                                 >
                                   {$LL.admin.members.table.resignMembership() +
                                     " (" +
-                                    page.data.customisations.memberResignRule +
+                                    page.data.customizations.memberResignRule +
                                     ")"}
                                 </Button>
                               </div>

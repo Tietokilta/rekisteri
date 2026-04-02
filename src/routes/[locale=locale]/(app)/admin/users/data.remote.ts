@@ -122,7 +122,7 @@ export const mergeUsers = command(
     ]);
 
     // Check for overlapping membership periods (only blocking statuses)
-    // Filter out cancelled and expired memberships as they should not block merge
+    // Filter out canceled and expired memberships as they should not block merge
     const activeSecondaryMembers = secondaryMembers.filter((m) => BLOCKING_MEMBER_STATUSES.has(m.status));
     const activePrimaryMembers = primaryMembers.filter((m) => BLOCKING_MEMBER_STATUSES.has(m.status));
 

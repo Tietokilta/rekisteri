@@ -39,7 +39,7 @@
 </script>
 
 <main class="container mx-auto max-w-[1400px] px-4 py-6">
-  <AdminPageHeader title={$LL.admin.customise.title()} description={$LL.admin.customise.description()} />
+  <AdminPageHeader title={$LL.admin.customize.title()} description={$LL.admin.customize.description()} />
 
   <div class="space-y-6">
     <form
@@ -49,10 +49,10 @@
         return async ({ result }) => {
           if (result.type === "success") {
             const data = result.data as { message?: string };
-            toast.success(data?.message || $LL.admin.customise.success());
+            toast.success(data?.message || $LL.admin.customize.success());
           } else if (result.type === "failure") {
             const data = result.data as { message?: string };
-            toast.error(data?.message || $LL.admin.customise.error());
+            toast.error(data?.message || $LL.admin.customize.error());
           }
         };
       }}
@@ -66,14 +66,14 @@
       <!-- Branding Section -->
       <div class="border-b border-gray-200 pb-6 dark:border-gray-700">
         <h4 class="mb-4 text-base font-medium text-gray-900 dark:text-gray-100">
-          {$LL.admin.customise.brandingDefaults.title()}
+          {$LL.admin.customize.brandingDefaults.title()}
         </h4>
 
         <div class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
           <!-- Accent Color -->
           <div class="sm:col-span-1">
             <label for="accentColor" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.brandingDefaults.accentColor()}
+              {$LL.admin.customize.brandingDefaults.accentColor()}
             </label>
             <div class="mt-1 flex items-center gap-4">
               <input
@@ -95,7 +95,7 @@
         <div class="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
           <div class="sm:col-span-1">
             <label for="appNameFI" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.brandingDefaults.appNameFi()}
+              {$LL.admin.customize.brandingDefaults.appNameFi()}
             </label>
             <div class="mt-1">
               <Input type="text" name="appNameFi" id="appNameFI" bind:value={values.appNameFi} class="max-w-md" />
@@ -105,7 +105,7 @@
 
           <div class="sm:col-span-1">
             <label for="appNameEN" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.brandingDefaults.appNameEn()}
+              {$LL.admin.customize.brandingDefaults.appNameEn()}
             </label>
             <div class="mt-1">
               <Input type="text" name="appNameEn" id="appNameEN" bind:value={values.appNameEn} class="max-w-md" />
@@ -118,13 +118,13 @@
       <!-- Organization Details Section -->
       <div class="border-b border-gray-200 pb-6 dark:border-gray-700">
         <h4 class="mb-4 text-base font-medium text-gray-900 dark:text-gray-100">
-          {$LL.admin.customise.organizationDetails.title()}
+          {$LL.admin.customize.organizationDetails.title()}
         </h4>
 
         <div class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
           <div class="sm:col-span-1">
             <label for="orgNameFI" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.organizationDetails.nameFi()}
+              {$LL.admin.customize.organizationDetails.nameFi()}
             </label>
             <div class="mt-1">
               <Input
@@ -140,7 +140,7 @@
 
           <div class="sm:col-span-1">
             <label for="orgNameEN" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.organizationDetails.nameEn()}
+              {$LL.admin.customize.organizationDetails.nameEn()}
             </label>
             <div class="mt-1">
               <Input
@@ -158,7 +158,7 @@
         <div class="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
           <div class="sm:col-span-1">
             <label for="orgNameShortFI" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.organizationDetails.nameShortFi()}
+              {$LL.admin.customize.organizationDetails.nameShortFi()}
             </label>
             <div class="mt-1">
               <Input
@@ -176,7 +176,7 @@
 
           <div class="sm:col-span-1">
             <label for="orgNameShortEN" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.organizationDetails.nameShortEn()}
+              {$LL.admin.customize.organizationDetails.nameShortEn()}
             </label>
             <div class="mt-1">
               <Input
@@ -196,7 +196,7 @@
         <div class="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
           <div class="sm:col-span-1">
             <label for="businessId" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.organizationDetails.businessId()}
+              {$LL.admin.customize.organizationDetails.businessId()}
             </label>
             <div class="mt-1">
               <Input type="text" name="businessId" id="businessId" bind:value={values.businessId} class="max-w-md" />
@@ -206,7 +206,7 @@
 
           <div class="sm:col-span-1">
             <label for="overseerContact" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.organizationDetails.overseerContact()}
+              {$LL.admin.customize.organizationDetails.overseerContact()}
             </label>
             <div class="mt-1">
               <Input
@@ -223,7 +223,7 @@
 
         <div class="mt-6 sm:col-span-2">
           <label for="overseerAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {$LL.admin.customise.organizationDetails.overseerAddress()}
+            {$LL.admin.customize.organizationDetails.overseerAddress()}
           </label>
           <div class="mt-1">
             <Input
@@ -239,7 +239,7 @@
 
         <div class="mt-6 sm:col-span-2">
           <label for="rulesUrl" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {$LL.admin.customise.organizationDetails.organizationRulesUrl()}
+            {$LL.admin.customize.organizationDetails.organizationRulesUrl()}
           </label>
           <div class="mt-1">
             <Input
@@ -257,13 +257,13 @@
       <!-- Resignation Rules Section -->
       <div class="border-b border-gray-200 pb-6 dark:border-gray-700">
         <h4 class="mb-4 text-base font-medium text-gray-900 dark:text-gray-100">
-          {$LL.admin.customise.resignation.title()}
+          {$LL.admin.customize.resignation.title()}
         </h4>
 
         <div class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
           <div class="sm:col-span-1">
             <label for="memberResignRule" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.resignation.rule()}
+              {$LL.admin.customize.resignation.rule()}
             </label>
             <div class="mt-1">
               <Input
@@ -281,7 +281,7 @@
         <div class="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
           <div class="sm:col-span-1">
             <label for="memberResignDefaultReasonFi" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.resignation.defaultReasonFi()}
+              {$LL.admin.customize.resignation.defaultReasonFi()}
             </label>
             <div class="mt-1">
               <Input
@@ -299,7 +299,7 @@
 
           <div class="sm:col-span-1">
             <label for="memberResignDefaultReasonEn" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.resignation.defaultReasonEn()}
+              {$LL.admin.customize.resignation.defaultReasonEn()}
             </label>
             <div class="mt-1">
               <Input
@@ -320,13 +320,13 @@
       <!-- Privacy Policy Section (Markdown) -->
       <div class="border-b border-gray-200 pb-6 dark:border-gray-700">
         <h4 class="mb-4 text-base font-medium text-gray-900 dark:text-gray-100">
-          {$LL.admin.customise.privacyPolicy.title()}
+          {$LL.admin.customize.privacyPolicy.title()}
         </h4>
 
         <div class="space-y-6">
           <div>
             <label for="privacyPolicyFI" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.privacyPolicy.fi()}
+              {$LL.admin.customize.privacyPolicy.fi()}
             </label>
             <MarkdownEditor id="privacyPolicyFI" bind:value={values.privacyPolicyFi} />
             <input type="hidden" name="privacyPolicyFi" bind:value={values.privacyPolicyFi} />
@@ -337,7 +337,7 @@
 
           <div>
             <label for="privacyPolicyEN" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.privacyPolicy.en()}
+              {$LL.admin.customize.privacyPolicy.en()}
             </label>
             <MarkdownEditor id="privacyPolicyEN" bind:value={values.privacyPolicyEn} />
             <input type="hidden" name="privacyPolicyEn" bind:value={values.privacyPolicyEn} />
@@ -351,14 +351,14 @@
       <!-- Images Section -->
       <div class="border-b border-gray-200 pb-6 dark:border-gray-700">
         <h4 class="mb-4 text-base font-medium text-gray-900 dark:text-gray-100">
-          {$LL.admin.customise.images.title()}
+          {$LL.admin.customize.images.title()}
         </h4>
 
         <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2">
           <!-- Logo -->
           <div>
             <label for="logo" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.images.logoLight()}
+              {$LL.admin.customize.images.logoLight()}
             </label>
             <input
               type="file"
@@ -370,7 +370,7 @@
             {#if data.hasImages.logo}
               {#if getImageUrl("logo")}
                 <div class="mt-2 text-xs text-gray-500">
-                  {$LL.admin.customise.images.current()}
+                  {$LL.admin.customize.images.current()}
                   <img
                     src={getImageUrl("logo")}
                     alt="Current Logo"
@@ -392,7 +392,7 @@
           <!-- Logo Dark -->
           <div>
             <label for="logoDark" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.images.logoDark()}
+              {$LL.admin.customize.images.logoDark()}
             </label>
             <input
               type="file"
@@ -404,7 +404,7 @@
             {#if data.hasImages.logoDark}
               {#if getImageUrl("logoDark")}
                 <div class="mt-2 text-xs text-gray-500">
-                  {$LL.admin.customise.images.current()}
+                  {$LL.admin.customize.images.current()}
                   <img
                     src={getImageUrl("logoDark")}
                     alt="Current Logo Dark"
@@ -426,7 +426,7 @@
           <!-- Favicon -->
           <div>
             <label for="favicon" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.images.faviconLight()}
+              {$LL.admin.customize.images.faviconLight()}
             </label>
             <input
               type="file"
@@ -438,7 +438,7 @@
             {#if data.hasImages.favicon}
               {#if getImageUrl("favicon")}
                 <div class="mt-2 text-xs text-gray-500">
-                  {$LL.admin.customise.images.current()}
+                  {$LL.admin.customize.images.current()}
                   <img
                     src={getImageUrl("favicon")}
                     alt="Current Favicon"
@@ -460,7 +460,7 @@
           <!-- Favicon Dark -->
           <div>
             <label for="faviconDark" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customise.images.faviconDark()}
+              {$LL.admin.customize.images.faviconDark()}
             </label>
             <input
               type="file"
@@ -472,7 +472,7 @@
             {#if data.hasImages.faviconDark}
               {#if getImageUrl("faviconDark")}
                 <div class="mt-2 text-xs text-gray-500">
-                  {$LL.admin.customise.images.current()}
+                  {$LL.admin.customize.images.current()}
                   <img
                     src={getImageUrl("faviconDark")}
                     alt="Current Favicon Dark"
@@ -499,9 +499,9 @@
           <button
             type="submit"
             class="ml-3 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
-            data-testid="save-customisations"
+            data-testid="save-customizations"
           >
-            {$LL.admin.customise.save()}
+            {$LL.admin.customize.save()}
           </button>
         </div>
       </div>

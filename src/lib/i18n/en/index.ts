@@ -22,7 +22,7 @@ const en = {
       membershipTypes: "Membership types",
       users: "Users",
       verifyQr: "Verify QR",
-      customise: "Customise",
+      customize: "Customize",
     },
     signOut: "Sign out",
   },
@@ -102,10 +102,10 @@ const en = {
       or: "or",
       authenticating: "Authenticating...",
       authFailed: "Authentication failed. Please try again or use email code.",
-      authCancelled: "Authentication was cancelled",
+      authCanceled: "Authentication was canceled",
       rateLimited: "Too many attempts. Please try again later or use email code.",
       regFailed: "Failed to register passkey. Please try again later.",
-      regCancelled: "Registration was cancelled",
+      regCanceled: "Registration was canceled",
       regAlreadyRegistered:
         "This device is already registered. If you want to re-register, please delete the old passkey first.",
       lastUsed: "last used",
@@ -402,8 +402,8 @@ Best regards,
       membershipTypeNotFound: "Membership type not found",
     },
 
-    customise: {
-      title: "App Customisations",
+    customize: {
+      title: "App Customizations",
       description: "Manage the high-level application settings, colors, and branding details.",
       success: "Settings updated successfully",
       error: "Failed to update settings",
@@ -443,7 +443,7 @@ Best regards,
         faviconDark: "Favicon (Dark Mode)",
         current: "Current:",
       },
-      save: "Save customisations",
+      save: "Save customizations",
     },
 
     members: {

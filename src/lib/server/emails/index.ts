@@ -1,7 +1,7 @@
 import { sendEmail } from "$lib/server/mailgun";
 import { loadLocale } from "$lib/i18n/i18n-util.sync";
 import { i18nObject } from "$lib/i18n/i18n-util";
-import { getCustomisations } from "$lib/server/customisation/cache";
+import { getCustomizations } from "$lib/server/customization/cache";
 import type {
   EmailType,
   EmailTemplate,
@@ -53,12 +53,12 @@ export async function sendMemberEmail<T extends EmailType>({
   loadLocale(locale);
   const LL = i18nObject(locale);
 
-  // Get organization name from customisation settings
-  const customisations = await getCustomisations();
+  // Get organization name from customization settings
+  const customizations = await getCustomizations();
   const organizationName =
-    customisations?.organizationName?.[locale] ?? (locale === "fi" ? "Kilta ry" : "Guild Association");
+    customizations?.organizationName?.[locale] ?? (locale === "fi" ? "Kilta ry" : "Guild Association");
   const organizationNameShort =
-    customisations?.organizationNameShort?.[locale] ?? (locale === "fi" ? "Kilta" : "Guild");
+    customizations?.organizationNameShort?.[locale] ?? (locale === "fi" ? "Kilta" : "Guild");
 
   // Render content - TypeScript now knows metadata matches template's expected type
   const { subject, text, html } = template.render(locale, metadata, LL, organizationName, organizationNameShort);

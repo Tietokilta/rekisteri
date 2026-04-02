@@ -85,8 +85,8 @@ export function getAdminNavItems(locale: Locale, LL: TranslationFunctions): NavI
       icon: UserCog,
     },
     {
-      title: LL.nav.admin.customise(),
-      href: route("/[locale=locale]/admin/customise", { locale }),
+      title: LL.nav.admin.customize(),
+      href: route("/[locale=locale]/admin/customize", { locale }),
       icon: PaintBrush,
     },
   ];

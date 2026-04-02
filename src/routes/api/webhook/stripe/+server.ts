@@ -54,7 +54,7 @@ export async function POST({ request }) {
         console.log(`[Webhook] Successfully fulfilled session: ${event.data.object.id}`);
       } else if (event.type === "checkout.session.async_payment_failed" || event.type === "checkout.session.expired") {
         await cancelSession(event.data.object.id);
-        console.log(`[Webhook] Successfully cancelled session: ${event.data.object.id}`);
+        console.log(`[Webhook] Successfully canceled session: ${event.data.object.id}`);
       }
     } catch (processingError) {
       // Log but don't fail the webhook - Stripe will retry

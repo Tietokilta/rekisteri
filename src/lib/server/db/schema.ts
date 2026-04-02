@@ -15,7 +15,7 @@ import {
 } from "drizzle-orm/pg-core";
 import * as v from "valibot";
 
-import { DEFAULT_CUSTOMISATION } from "../customisation/defaults";
+import { DEFAULT_CUSTOMIZATION } from "../customization/defaults";
 import { ADMIN_ROLE_VALUES, MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 
@@ -176,26 +176,26 @@ export const auditLog = pgTable("audit_log", {
   ...timestamps,
 });
 
-export const appCustomisation = pgTable("app_customisation", {
+export const appCustomization = pgTable("app_customization", {
   id: integer().primaryKey().default(1),
-  accentColor: text().notNull().default(DEFAULT_CUSTOMISATION.accentColor),
-  organizationName: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMISATION.organizationName),
+  accentColor: text().notNull().default(DEFAULT_CUSTOMIZATION.accentColor),
+  organizationName: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMIZATION.organizationName),
   organizationNameShort: jsonb()
     .$type<LocalizedString>()
     .notNull()
-    .default(DEFAULT_CUSTOMISATION.organizationNameShort),
-  appName: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMISATION.appName),
+    .default(DEFAULT_CUSTOMIZATION.organizationNameShort),
+  appName: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMIZATION.appName),
   logo: bytea(),
   logoDark: bytea(),
   favicon: bytea(),
   faviconDark: bytea(),
-  businessId: text().notNull().default(DEFAULT_CUSTOMISATION.businessId),
-  overseerContact: text().notNull().default(DEFAULT_CUSTOMISATION.overseerContact),
-  overseerAddress: text().notNull().default(DEFAULT_CUSTOMISATION.overseerAddress),
-  privacyPolicy: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMISATION.privacyPolicy),
-  organizationRulesUrl: text().notNull().default(DEFAULT_CUSTOMISATION.organizationRulesUrl),
-  memberResignRule: text().default(DEFAULT_CUSTOMISATION.memberResignRule),
-  memberResignDefaultReason: jsonb().$type<LocalizedString>().default(DEFAULT_CUSTOMISATION.memberResignDefaultReason),
+  businessId: text().notNull().default(DEFAULT_CUSTOMIZATION.businessId),
+  overseerContact: text().notNull().default(DEFAULT_CUSTOMIZATION.overseerContact),
+  overseerAddress: text().notNull().default(DEFAULT_CUSTOMIZATION.overseerAddress),
+  privacyPolicy: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMIZATION.privacyPolicy),
+  organizationRulesUrl: text().notNull().default(DEFAULT_CUSTOMIZATION.organizationRulesUrl),
+  memberResignRule: text().default(DEFAULT_CUSTOMIZATION.memberResignRule),
+  memberResignDefaultReason: jsonb().$type<LocalizedString>().default(DEFAULT_CUSTOMIZATION.memberResignDefaultReason),
   ...timestamps,
 });
 
@@ -223,4 +223,4 @@ export type Passkey = typeof passkey.$inferSelect;
 
 export type SecondaryEmail = typeof secondaryEmail.$inferSelect;
 
-export type AppCustomisation = typeof appCustomisation.$inferSelect;
+export type AppCustomization = typeof appCustomization.$inferSelect;
