@@ -1,8 +1,8 @@
 import { test, expect } from "./fixtures/auth";
 
-test.describe("App Customisation", () => {
+test.describe("App Customization", () => {
   test("admin can update general branding", async ({ adminPage }) => {
-    await adminPage.goto("/en/admin/customise");
+    await adminPage.goto("/en/admin/customize");
 
     // Update app name and accent color
     const newAppName = "Test Registry " + Math.random().toString(36).slice(7);
@@ -11,7 +11,7 @@ test.describe("App Customisation", () => {
     await adminPage.fill('input[name="appNameEn"]', newAppName);
     await adminPage.fill('input[name="accentColor"]', newAccentColor);
 
-    await adminPage.getByTestId("save-customisations").click();
+    await adminPage.getByTestId("save-customizations").click();
 
     // Check for success toast - try both languages just in case, or use a more robust locator
     // We expect "Settings updated successfully" (EN) or "Asetukset tallennettu onnistuneesti" (FI)
@@ -38,7 +38,7 @@ test.describe("App Customisation", () => {
   });
 
   test("admin can update organization details", async ({ adminPage }) => {
-    await adminPage.goto("/en/admin/customise");
+    await adminPage.goto("/en/admin/customize");
 
     const newOrgName = "Test Organization " + Math.random().toString(36).slice(7);
     const newOrgShortName = "Test Short " + Math.random().toString(36).slice(7);
@@ -50,7 +50,7 @@ test.describe("App Customisation", () => {
     await adminPage.fill('input[name="businessId"]', newBusinessId);
     await adminPage.fill('input[name="overseerContact"]', newContact);
 
-    await adminPage.getByTestId("save-customisations").click();
+    await adminPage.getByTestId("save-customizations").click();
     await expect(
       adminPage.locator("text=/Settings updated successfully|Asetukset tallennettu onnistuneesti/"),
     ).toBeVisible();
@@ -63,8 +63,8 @@ test.describe("App Customisation", () => {
     await expect(adminPage.locator("footer")).toContainText(newContact);
   });
 
-  test("readonly admin cannot update customisations", async ({ readonlyAdminPage }) => {
-    await readonlyAdminPage.goto("/en/admin/customise");
+  test("readonly admin cannot update customizations", async ({ readonlyAdminPage }) => {
+    await readonlyAdminPage.goto("/en/admin/customize");
 
     // Check if a warning banner is present
     await expect(
@@ -72,7 +72,7 @@ test.describe("App Customisation", () => {
     ).toBeVisible();
 
     // Try to submit anyway (if button is not disabled)
-    const saveButton = readonlyAdminPage.getByTestId("save-customisations");
+    const saveButton = readonlyAdminPage.getByTestId("save-customizations");
 
     const isDisabled = await saveButton.isDisabled();
 

@@ -1,6 +1,6 @@
 import * as v from "valibot";
 
-export const updateCustomisationSchema = v.object({
+export const updateCustomizationSchema = v.object({
   accentColor: v.optional(v.string()),
   organizationNameFi: v.pipe(v.string(), v.minLength(1)),
   organizationNameEn: v.pipe(v.string(), v.minLength(1)),

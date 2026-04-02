@@ -2,10 +2,10 @@ import { error, fail } from "@sveltejs/kit";
 import type { PageServerLoad, Actions } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { updateCustomisationSchema } from "./schema";
+import { updateCustomizationSchema } from "./schema";
 import { eq } from "drizzle-orm";
-import { updateCustomisationCache, getCustomisations } from "$lib/server/customisation/cache";
-import { flattenCustomisation, processUploadedFile } from "$lib/server/customisation/utils";
+import { updateCustomizationCache, getCustomizations } from "$lib/server/customization/cache";
+import { flattenCustomization, processUploadedFile } from "$lib/server/customization/utils";
 import { getLL } from "$lib/server/i18n";
 import * as v from "valibot";
 import { hasAdminAccess, hasAdminWriteAccess } from "$lib/shared/enums";
@@ -15,15 +15,15 @@ export const load: PageServerLoad = async (event) => {
     return error(404, "Not found");
   }
 
-  // Use the pre-populated customisations from locals (cached)
-  const customisations = event.locals.customisations;
-  const values = flattenCustomisation(customisations);
+  // Use the pre-populated customizations from locals (cached)
+  const customizations = event.locals.customizations;
+  const values = flattenCustomization(customizations);
 
   const hasImages = {
-    logo: !!customisations?.logo,
-    logoDark: !!customisations?.logoDark,
-    favicon: !!customisations?.favicon,
-    faviconDark: !!customisations?.faviconDark,
+    logo: !!customizations?.logo,
+    logoDark: !!customizations?.logoDark,
+    favicon: !!customizations?.favicon,
+    faviconDark: !!customizations?.faviconDark,
   };
 
   return {
@@ -35,7 +35,7 @@ export const load: PageServerLoad = async (event) => {
 export const actions: Actions = {
   default: async (event) => {
     if (!event.locals.session || !hasAdminWriteAccess(event.locals.user?.adminRole ?? "none")) {
-      console.error("Access denied to customise page (action)", {
+      console.error("Access denied to customize page (action)", {
         hasSession: !!event.locals.session,
         adminRole: event.locals.user?.adminRole,
       });
@@ -55,7 +55,7 @@ export const actions: Actions = {
     const removeFavicon = formData.get("removeFavicon") === "true";
     const removeFaviconDark = formData.get("removeFaviconDark") === "true";
 
-    const validated = v.safeParse(updateCustomisationSchema, {
+    const validated = v.safeParse(updateCustomizationSchema, {
       ...data,
       logo,
       logoDark,
@@ -78,7 +78,7 @@ export const actions: Actions = {
       const dbFavicon = await processUploadedFile(favicon);
       const dbFaviconDark = await processUploadedFile(faviconDark);
 
-      const existing = await getCustomisations();
+      const existing = await getCustomizations();
 
       const updateData = {
         accentColor: validated.output.accentColor || existing.accentColor,
@@ -109,24 +109,24 @@ export const actions: Actions = {
       };
 
       // Upsert logic: check if record with ID 1 exists
-      const [record] = await db.select().from(table.appCustomisation).where(eq(table.appCustomisation.id, 1)).limit(1);
+      const [record] = await db.select().from(table.appCustomization).where(eq(table.appCustomization.id, 1)).limit(1);
 
       await (record
-        ? db.update(table.appCustomisation).set(updateData).where(eq(table.appCustomisation.id, 1))
-        : db.insert(table.appCustomisation).values({
+        ? db.update(table.appCustomization).set(updateData).where(eq(table.appCustomization.id, 1))
+        : db.insert(table.appCustomization).values({
             id: 1,
             ...updateData,
           }));
 
-      await updateCustomisationCache();
-      event.locals.customisations = await getCustomisations();
+      await updateCustomizationCache();
+      event.locals.customizations = await getCustomizations();
 
       const LL = getLL(event.locals.locale);
-      return { success: true, message: LL.admin.customise.success() };
+      return { success: true, message: LL.admin.customize.success() };
     } catch (e) {
-      console.error("Failed to update customisations", e);
+      console.error("Failed to update customizations", e);
       const LL = getLL(event.locals.locale);
-      return fail(500, { message: LL.admin.customise.error() });
+      return fail(500, { message: LL.admin.customize.error() });
     }
   },
 };

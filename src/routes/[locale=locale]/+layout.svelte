@@ -12,18 +12,18 @@
 
 <svelte:head>
   <title>
-    {data.customisations?.appName?.[$locale] ?? $LL.app.title()}
+    {data.customizations?.appName?.[$locale] ?? $LL.app.title()}
   </title>
-  {#if data.customisations?.favicon}
+  {#if data.customizations?.favicon}
     <link rel="icon" href="/api/image/favicon" media="(prefers-color-scheme: light)" />
   {/if}
-  {#if data.customisations?.faviconDark}
+  {#if data.customizations?.faviconDark}
     <link rel="icon" href="/api/image/faviconDark" media="(prefers-color-scheme: dark)" />
   {/if}
-  {#if data.customisations?.accentColor}
+  {#if data.customizations?.accentColor}
     <!-- Inject Accent Color value as primary. Only admin can set and it's validated as an RGB hex -->
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-    {@html `<style>:root { --primary: ${data.customisations.accentColor}; }</style>`}
+    {@html `<style>:root { --primary: ${data.customizations.accentColor}; }</style>`}
   {/if}
 </svelte:head>
 

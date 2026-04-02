@@ -12,7 +12,7 @@
       ? "https://youtu.be/dQw4w9WgXcQ"
       : `https://github.com/Tietokilta/rekisteri/tree/${versionSha}`;
 
-  const customisations = $derived(page.data.customisations);
+  const customizations = $derived(page.data.customizations);
 </script>
 
 <footer class="mt-auto border-t border-border/40 bg-muted/50">
@@ -21,15 +21,15 @@
     <div class="flex flex-wrap items-start justify-between gap-4 text-xs text-muted-foreground">
       <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
         <span class="font-medium text-foreground"
-          >{customisations?.organizationName?.[$locale] ?? $LL.documents.footer.organization()}</span
+          >{customizations?.organizationName?.[$locale] ?? $LL.documents.footer.organization()}</span
         >
-        <span>{customisations?.businessId ?? $LL.documents.footer.businessId()}</span>
+        <span>{customizations?.businessId ?? $LL.documents.footer.businessId()}</span>
         <a
-          href="mailto:{customisations?.overseerContact ?? 'hallitus@tietokilta.fi'}"
+          href="mailto:{customizations?.overseerContact ?? 'hallitus@tietokilta.fi'}"
           class="underline underline-offset-2 hover:text-foreground"
-          >{customisations?.overseerContact ?? $LL.documents.footer.email()}</a
+          >{customizations?.overseerContact ?? $LL.documents.footer.email()}</a
         >
-        <span class="hidden sm:inline">{customisations?.overseerAddress ?? $LL.documents.footer.address()}</span>
+        <span class="hidden sm:inline">{customizations?.overseerAddress ?? $LL.documents.footer.address()}</span>
       </div>
       <div class="flex items-center gap-4">
         <a
@@ -40,7 +40,7 @@
         </a>
         <span>
           &copy; {new Date().getFullYear()}
-          {customisations?.organizationName?.[$locale] ?? "Tietokilta ry"}
+          {customizations?.organizationName?.[$locale] ?? "Tietokilta ry"}
           {#if showVersionSha}
             |
             <a

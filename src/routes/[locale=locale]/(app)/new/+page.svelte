@@ -33,7 +33,7 @@
   const memberships = $derived(data.memberships);
   const availableMemberships = $derived(data.availableMemberships);
   // Only show memberships that have a Stripe price ID
-  // Only block memberships that are active or pending - allow repurchasing cancelled/expired memberships
+  // Only block memberships that are active or pending - allow repurchasing canceled/expired memberships
   const filteredMemberships = $derived(
     availableMemberships.filter(
       (a): a is typeof a & { stripePriceId: string } =>

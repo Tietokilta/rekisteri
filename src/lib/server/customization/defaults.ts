@@ -1,9 +1,9 @@
 /**
- * The default application customisation settings.
+ * The default application customization settings.
  * These are used as defaults in the database schema and as fallbacks in the application code.
  */
 
-export const DEFAULT_CUSTOMISATION = {
+export const DEFAULT_CUSTOMIZATION = {
   accentColor: "#4f46e5", // Indigo-600
   organizationName: { fi: "Kilta ry", en: "Guild Registered Association" },
   organizationNameShort: { fi: "Kilta", en: "Guild" },

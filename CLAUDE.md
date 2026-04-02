@@ -114,7 +114,7 @@ Core tables:
 - `membership`: Membership types with Stripe price IDs, time ranges, and pricing
 - `member`: Links users to memberships with status tracking
 
-Member statuses: `awaiting_payment`, `awaiting_approval`, `active`, `expired`, `cancelled`
+Member statuses: `awaiting_payment`, `awaiting_approval`, `active`, `expired`, `canceled`
 
 Database configuration in `drizzle.config.ts` uses snake_case for column names.
 

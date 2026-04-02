@@ -1,10 +1,10 @@
-import type { AppCustomisation } from "$lib/server/db/schema";
-import { DEFAULT_CUSTOMISATION } from "./defaults";
+import type { AppCustomization } from "$lib/server/db/schema";
+import { DEFAULT_CUSTOMIZATION } from "./defaults";
 
 /**
- * The flat version of customisation used in the admin UI form.
+ * The flat version of customization used in the admin UI form.
  */
-export type CustomisationFormValues = {
+export type CustomizationFormValues = {
   accentColor: string;
   organizationNameFi: string;
   organizationNameEn: string;
@@ -24,28 +24,28 @@ export type CustomisationFormValues = {
 };
 
 /**
- * Maps a database customisation record (nested JSON) to flat form values.
+ * Maps a database customization record (nested JSON) to flat form values.
  */
-export function flattenCustomisation(custom: AppCustomisation | null): CustomisationFormValues {
-  const c = custom || (DEFAULT_CUSTOMISATION as AppCustomisation);
+export function flattenCustomization(custom: AppCustomization | null): CustomizationFormValues {
+  const c = custom || (DEFAULT_CUSTOMIZATION as AppCustomization);
 
   return {
-    accentColor: c.accentColor || DEFAULT_CUSTOMISATION.accentColor,
-    organizationNameFi: c.organizationName?.fi || DEFAULT_CUSTOMISATION.organizationName.fi,
-    organizationNameEn: c.organizationName?.en || DEFAULT_CUSTOMISATION.organizationName.en,
-    organizationNameShortFi: c.organizationNameShort?.fi || DEFAULT_CUSTOMISATION.organizationNameShort.fi,
-    organizationNameShortEn: c.organizationNameShort?.en || DEFAULT_CUSTOMISATION.organizationNameShort.en,
-    appNameFi: c.appName?.fi || DEFAULT_CUSTOMISATION.appName.fi,
-    appNameEn: c.appName?.en || DEFAULT_CUSTOMISATION.appName.en,
-    businessId: c.businessId || DEFAULT_CUSTOMISATION.businessId,
-    overseerContact: c.overseerContact || DEFAULT_CUSTOMISATION.overseerContact,
-    overseerAddress: c.overseerAddress || DEFAULT_CUSTOMISATION.overseerAddress,
-    privacyPolicyFi: c.privacyPolicy?.fi || DEFAULT_CUSTOMISATION.privacyPolicy.fi,
-    privacyPolicyEn: c.privacyPolicy?.en || DEFAULT_CUSTOMISATION.privacyPolicy.en,
-    organizationRulesUrl: c.organizationRulesUrl || DEFAULT_CUSTOMISATION.organizationRulesUrl,
-    memberResignRule: c.memberResignRule || DEFAULT_CUSTOMISATION.memberResignRule,
-    memberResignDefaultReasonFi: c.memberResignDefaultReason?.fi || DEFAULT_CUSTOMISATION.memberResignDefaultReason.fi,
-    memberResignDefaultReasonEn: c.memberResignDefaultReason?.en || DEFAULT_CUSTOMISATION.memberResignDefaultReason.en,
+    accentColor: c.accentColor || DEFAULT_CUSTOMIZATION.accentColor,
+    organizationNameFi: c.organizationName?.fi || DEFAULT_CUSTOMIZATION.organizationName.fi,
+    organizationNameEn: c.organizationName?.en || DEFAULT_CUSTOMIZATION.organizationName.en,
+    organizationNameShortFi: c.organizationNameShort?.fi || DEFAULT_CUSTOMIZATION.organizationNameShort.fi,
+    organizationNameShortEn: c.organizationNameShort?.en || DEFAULT_CUSTOMIZATION.organizationNameShort.en,
+    appNameFi: c.appName?.fi || DEFAULT_CUSTOMIZATION.appName.fi,
+    appNameEn: c.appName?.en || DEFAULT_CUSTOMIZATION.appName.en,
+    businessId: c.businessId || DEFAULT_CUSTOMIZATION.businessId,
+    overseerContact: c.overseerContact || DEFAULT_CUSTOMIZATION.overseerContact,
+    overseerAddress: c.overseerAddress || DEFAULT_CUSTOMIZATION.overseerAddress,
+    privacyPolicyFi: c.privacyPolicy?.fi || DEFAULT_CUSTOMIZATION.privacyPolicy.fi,
+    privacyPolicyEn: c.privacyPolicy?.en || DEFAULT_CUSTOMIZATION.privacyPolicy.en,
+    organizationRulesUrl: c.organizationRulesUrl || DEFAULT_CUSTOMIZATION.organizationRulesUrl,
+    memberResignRule: c.memberResignRule || DEFAULT_CUSTOMIZATION.memberResignRule,
+    memberResignDefaultReasonFi: c.memberResignDefaultReason?.fi || DEFAULT_CUSTOMIZATION.memberResignDefaultReason.fi,
+    memberResignDefaultReasonEn: c.memberResignDefaultReason?.en || DEFAULT_CUSTOMIZATION.memberResignDefaultReason.en,
   };
 }
 

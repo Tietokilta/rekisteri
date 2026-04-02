@@ -21,20 +21,20 @@
     <div class="mx-auto w-full max-w-[1400px]">
       <div class="container mx-auto flex h-14 items-center justify-between gap-2 px-4 md:gap-4">
         <a href={route("/[locale=locale]", { locale: $locale })} class="flex items-center gap-2">
-          {#if page.data.customisations?.logo || page.data.customisations?.logoDark}
+          {#if page.data.customizations?.logo || page.data.customizations?.logoDark}
             <img
-              src={page.data.customisations?.logo ? "/api/image/logo" : "/api/image/logoDark"}
+              src={page.data.customizations?.logo ? "/api/image/logo" : "/api/image/logoDark"}
               alt="App logo"
               class="h-12 w-12 dark:hidden"
             />
             <img
-              src={page.data.customisations?.logoDark ? "/api/image/logoDark" : "/api/image/logo"}
+              src={page.data.customizations?.logoDark ? "/api/image/logoDark" : "/api/image/logo"}
               alt="App logo"
               class="hidden h-12 w-12 dark:block"
             />
           {/if}
           <span class="sr-only font-mono font-medium sm:not-sr-only sm:text-xl"
-            >{page.data.customisations?.appName?.[$locale] ?? $LL.app.title()}</span
+            >{page.data.customizations?.appName?.[$locale] ?? $LL.app.title()}</span
           >
         </a>
         <ToggleGroup.Root type="single" value={$locale} data-sveltekit-reload>

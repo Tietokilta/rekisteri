@@ -22,7 +22,7 @@ const fi = {
       membershipTypes: "Jäsenyystyypit",
       users: "Käyttäjät",
       verifyQr: "Tarkista QR",
-      customise: "Muokkaa ulkoasua",
+      customize: "Muokkaa ulkoasua",
     },
     signOut: "Kirjaudu ulos",
   },
@@ -102,10 +102,10 @@ const fi = {
       or: "tai",
       authenticating: "Tunnistaudutaan...",
       authFailed: "Tunnistautuminen epäonnistui. Yritä uudelleen tai käytä sähköpostikoodia.",
-      authCancelled: "Tunnistautuminen peruttiin",
+      authCanceled: "Tunnistautuminen peruttiin",
       rateLimited: "Liian monta yritystä. Yritä myöhemmin uudelleen tai käytä sähköpostikoodia.",
       regFailed: "Avainkoodin rekisteröinti epäonnistui. Yritä myöhemmin uudelleen.",
-      regCancelled: "Rekisteröinti peruttiin",
+      regCanceled: "Rekisteröinti peruttiin",
       regAlreadyRegistered:
         "Tämä laite on jo rekisteröity. Jos haluat rekisteröidä uudelleen, poista vanha avainkoodi ensin.",
       lastUsed: "viimeksi käytetty",
@@ -404,7 +404,7 @@ Terveisin,
       membershipTypeNotFound: "Jäsenyystyyppiä ei löytynyt",
     },
 
-    customise: {
+    customize: {
       title: "Sovelluksen mukautus",
       description: "Hallitse sovelluksen yleisiä asetuksia ja ulkonäköä.",
       success: "Asetukset tallennettu onnistuneesti",
