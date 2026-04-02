@@ -1,21 +1,30 @@
 <script lang="ts">
   import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import FiContent, { metadata as fiMetadata } from "./fi.md";
-  import EnContent, { metadata as enMetadata } from "./en.md";
+  import { page } from "$app/state";
 
-  const metadata = { fi: fiMetadata, en: enMetadata } as const;
+  const appName = $derived(page.data.customizations?.appName?.[$locale] ?? $LL.app.title());
+
+  // Custom content from DB (if any)
+  const fiCustom = $derived(page.data.customizations?.privacyPolicy?.fi);
+  const enCustom = $derived(page.data.customizations?.privacyPolicy?.en);
+
+  // Only use custom if it's not the default placeholder
+  const hasCustom = $derived(
+    ($locale === "fi" && fiCustom && fiCustom !== "Rekisteri- ja tietosuojaseloste") ||
+      ($locale === "en" && enCustom && enCustom !== "Privacy Policy"),
+  );
+
+  const customContent = $derived($locale === "fi" ? fiCustom : enCustom);
 </script>
 
 <svelte:head>
-  <title>{metadata[$locale].title} - {$LL.app.title()}</title>
+  <title>{$LL.admin.customize.privacyPolicy.title()} - {appName}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-4xl px-4 py-8">
   <div class="mx-auto prose dark:prose-invert">
-    {#if $locale === "fi"}
-      <FiContent />
-    {:else}
-      <EnContent />
+    {#if hasCustom}
+      <div class="whitespace-pre-wrap">{customContent}</div>
     {/if}
   </div>
 </div>

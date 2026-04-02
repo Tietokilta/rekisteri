@@ -3,7 +3,7 @@ import type { EmailTemplate, MembershipApprovedMetadata } from "../types";
 export const membershipApprovedTemplate: EmailTemplate<MembershipApprovedMetadata> = {
   type: "membership_approved",
 
-  render(locale, metadata, LL) {
+  render(locale, metadata, LL, organizationName, organizationNameShort) {
     const { firstName, membershipName, startDate, endDate } = metadata;
 
     // Use Finnish region for formatting (e.g., 'fi-FI' or 'en-FI')
@@ -13,12 +13,14 @@ export const membershipApprovedTemplate: EmailTemplate<MembershipApprovedMetadat
     });
 
     return {
-      subject: LL.emails.membershipApproved.subject(),
+      subject: LL.emails.membershipApproved.subject({ organizationName }),
       text: LL.emails.membershipApproved.body({
         firstName,
         membershipName,
         startDate: dateFormatter.format(startDate),
         endDate: dateFormatter.format(endDate),
+        organizationName,
+        organizationNameShort,
       }),
     };
   },

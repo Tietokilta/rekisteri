@@ -46,9 +46,9 @@
 
       // Handle different error types
       if (error instanceof Error) {
-        // User cancelled the passkey prompt
+        // User canceled the passkey prompt
         if (error.name === "NotAllowedError") {
-          errorMessage = $LL.auth.passkey.authCancelled();
+          errorMessage = $LL.auth.passkey.authCanceled();
         }
         // Rate limit error
         else if ("status" in error && error.status === 429) {

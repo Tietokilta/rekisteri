@@ -7,7 +7,6 @@
   import { signOut } from "$lib/api/auth.remote";
   import { stripLocaleFromPathname, type Locale } from "$lib/i18n/routing";
   import { getMainNavItems, getSettingsNavItems, getAdminNavItems } from "$lib/navigation";
-  import RatasLogo from "$lib/icons/ratas-logo.svelte";
   import { formatUserName } from "$lib/utils";
   import { hasAdminAccess, type AdminRole } from "$lib/shared/enums";
 
@@ -50,12 +49,28 @@
   <Sidebar.SidebarHeader>
     <Sidebar.SidebarMenu>
       <Sidebar.SidebarMenuItem>
-        <Sidebar.SidebarMenuButton size="lg" tooltipContent={$LL.app.title()}>
+        <Sidebar.SidebarMenuButton
+          size="lg"
+          tooltipContent={page.data.customizations?.appName?.[$locale] ?? $LL.app.title()}
+        >
           {#snippet child({ props })}
             <a href={route("/[locale=locale]", { locale: $locale })} {...props}>
-              <RatasLogo class="size-8" />
+              {#if page.data.customizations?.logo || page.data.customizations?.logoDark}
+                <img
+                  src={page.data.customizations?.logo ? "/api/image/logo" : "/api/image/logoDark"}
+                  alt="App logo"
+                  class="size-8 dark:hidden"
+                />
+                <img
+                  src={page.data.customizations?.logoDark ? "/api/image/logoDark" : "/api/image/logo"}
+                  alt="App logo"
+                  class="hidden size-8 dark:block"
+                />
+              {/if}
               <div class="flex flex-col gap-0.5 leading-none">
-                <span class="font-mono font-semibold">{$LL.app.title()}</span>
+                <span class="font-mono font-semibold"
+                  >{page.data.customizations?.appName?.[$locale] ?? $LL.app.title()}</span
+                >
               </div>
             </a>
           {/snippet}

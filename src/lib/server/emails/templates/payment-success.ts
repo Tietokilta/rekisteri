@@ -3,7 +3,7 @@ import type { EmailTemplate, PaymentSuccessMetadata } from "../types";
 export const paymentSuccessTemplate: EmailTemplate<PaymentSuccessMetadata> = {
   type: "payment_success",
 
-  render(locale, metadata, LL) {
+  render(locale, metadata, LL, organizationName, organizationNameShort) {
     const { membershipName, amount, currency } = metadata;
 
     // Use Finnish region for formatting (e.g., 'fi-FI' or 'en-FI')
@@ -18,6 +18,7 @@ export const paymentSuccessTemplate: EmailTemplate<PaymentSuccessMetadata> = {
       text: LL.emails.paymentSuccess.body({
         membershipName,
         amount: formatter.format(amount / 100), // Stripe amounts in cents
+        organizationNameShort,
       }),
     };
   },

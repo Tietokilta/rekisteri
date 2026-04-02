@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  bytea,
   check,
   index,
   integer,
@@ -13,6 +14,8 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import * as v from "valibot";
+
+import { DEFAULT_CUSTOMIZATION } from "../customization/defaults";
 import { ADMIN_ROLE_VALUES, MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 
@@ -173,6 +176,29 @@ export const auditLog = pgTable("audit_log", {
   ...timestamps,
 });
 
+export const appCustomization = pgTable("app_customization", {
+  id: integer().primaryKey().default(1),
+  accentColor: text().notNull().default(DEFAULT_CUSTOMIZATION.accentColor),
+  organizationName: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMIZATION.organizationName),
+  organizationNameShort: jsonb()
+    .$type<LocalizedString>()
+    .notNull()
+    .default(DEFAULT_CUSTOMIZATION.organizationNameShort),
+  appName: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMIZATION.appName),
+  logo: bytea(),
+  logoDark: bytea(),
+  favicon: bytea(),
+  faviconDark: bytea(),
+  businessId: text().notNull().default(DEFAULT_CUSTOMIZATION.businessId),
+  overseerContact: text().notNull().default(DEFAULT_CUSTOMIZATION.overseerContact),
+  overseerAddress: text().notNull().default(DEFAULT_CUSTOMIZATION.overseerAddress),
+  privacyPolicy: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMIZATION.privacyPolicy),
+  organizationRulesUrl: text().notNull().default(DEFAULT_CUSTOMIZATION.organizationRulesUrl),
+  memberResignRule: text().default(DEFAULT_CUSTOMIZATION.memberResignRule),
+  memberResignDefaultReason: jsonb().$type<LocalizedString>().default(DEFAULT_CUSTOMIZATION.memberResignDefaultReason),
+  ...timestamps,
+});
+
 export type Member = typeof member.$inferSelect;
 
 export type MemberStatus = v.InferOutput<typeof memberStatusEnumSchema>;
@@ -196,3 +222,5 @@ export type AuditLog = typeof auditLog.$inferSelect;
 export type Passkey = typeof passkey.$inferSelect;
 
 export type SecondaryEmail = typeof secondaryEmail.$inferSelect;
+
+export type AppCustomization = typeof appCustomization.$inferSelect;

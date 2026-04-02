@@ -112,7 +112,7 @@ export const reverifySecondaryEmailForm = form(
       expires: otp.expiresAt,
       path: "/",
       httpOnly: true,
-      secure: !dev,
+      secure: !dev && !env.TEST,
       sameSite: "lax",
     });
 
@@ -121,7 +121,7 @@ export const reverifySecondaryEmailForm = form(
       expires: otp.expiresAt,
       path: "/",
       httpOnly: true,
-      secure: !dev,
+      secure: !dev && !env.TEST,
       sameSite: "lax",
     });
 
@@ -196,7 +196,7 @@ export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ emai
       expires: otp.expiresAt,
       path: "/",
       httpOnly: true,
-      secure: !dev,
+      secure: !dev && !env.TEST,
       sameSite: "lax",
     });
 
@@ -205,7 +205,7 @@ export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ emai
       expires: otp.expiresAt,
       path: "/",
       httpOnly: true,
-      secure: !dev,
+      secure: !dev && !env.TEST,
       sameSite: "lax",
     });
 

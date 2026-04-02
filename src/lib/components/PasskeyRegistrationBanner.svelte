@@ -73,7 +73,7 @@
       if (error instanceof Error) {
         // Map WebAuthn error types to user-friendly messages
         if (error.name === "NotAllowedError") {
-          errorMessage = $LL.auth.passkey.regCancelled();
+          errorMessage = $LL.auth.passkey.regCanceled();
         } else if (error.name === "InvalidStateError") {
           errorMessage = $LL.auth.passkey.regAlreadyRegistered();
         } else {

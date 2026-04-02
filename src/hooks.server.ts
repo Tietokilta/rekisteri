@@ -8,6 +8,12 @@ import { dev } from "$app/environment";
 import cron from "node-cron";
 import { cleanupExpiredTokens, cleanupInactiveUsers, cleanupOldAuditLogs } from "$lib/server/db/cleanup";
 import { createInitialModeExpression } from "mode-watcher";
+import { getCustomizations } from "$lib/server/customization/cache";
+
+const handleCustomizations: Handle = async ({ event, resolve }) => {
+  event.locals.customizations = await getCustomizations();
+  return resolve(event);
+};
 
 const handleAuth: Handle = async ({ event, resolve }) => {
   const sessionToken = event.cookies.get(auth.sessionCookieName);
@@ -115,6 +121,7 @@ const handleAdminAuthorization: Handle = async ({ event, resolve }) => {
 };
 
 export const handle: Handle = sequence(
+  handleCustomizations,
   handleAuth,
   handleLocaleRedirect,
   handleAdminAuthorization,
@@ -123,6 +130,9 @@ export const handle: Handle = sequence(
 );
 
 export const init: ServerInit = () => {
+  // Warm up customization cache
+  getCustomizations().catch((err) => console.error("[Init] Failed to warm Customization cache:", err));
+
   // Schedule cleanup tasks
   // Run database cleanup daily at 3 AM (when traffic is typically lowest)
   cron.schedule("0 3 * * *", async () => {

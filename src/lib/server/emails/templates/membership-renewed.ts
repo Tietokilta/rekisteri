@@ -6,7 +6,7 @@ import type { EmailTemplate, MembershipApprovedMetadata } from "../types";
 export const membershipRenewedTemplate: EmailTemplate<MembershipApprovedMetadata> = {
   type: "membership_renewed",
 
-  render(locale, metadata, LL) {
+  render(locale, metadata, LL, organizationName, organizationNameShort) {
     // Use Finnish region for formatting (e.g., 'fi-FI' or 'en-FI')
     // This ensures locale-appropriate formatting with Finnish regional conventions
     const dateFormatter = new Intl.DateTimeFormat(`${locale}-FI`, { dateStyle: "long" });
@@ -18,6 +18,7 @@ export const membershipRenewedTemplate: EmailTemplate<MembershipApprovedMetadata
         membershipName: metadata.membershipName,
         startDate: dateFormatter.format(metadata.startDate),
         endDate: dateFormatter.format(metadata.endDate),
+        organizationNameShort,
       }),
     };
   },

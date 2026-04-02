@@ -22,6 +22,7 @@ const fi = {
       membershipTypes: "Jäsenyystyypit",
       users: "Käyttäjät",
       verifyQr: "Tarkista QR",
+      customize: "Muokkaa ulkoasua",
     },
     signOut: "Kirjaudu ulos",
   },
@@ -101,10 +102,10 @@ const fi = {
       or: "tai",
       authenticating: "Tunnistaudutaan...",
       authFailed: "Tunnistautuminen epäonnistui. Yritä uudelleen tai käytä sähköpostikoodia.",
-      authCancelled: "Tunnistautuminen peruttiin",
+      authCanceled: "Tunnistautuminen peruttiin",
       rateLimited: "Liian monta yritystä. Yritä myöhemmin uudelleen tai käytä sähköpostikoodia.",
       regFailed: "Avainkoodin rekisteröinti epäonnistui. Yritä myöhemmin uudelleen.",
-      regCancelled: "Rekisteröinti peruttiin",
+      regCanceled: "Rekisteröinti peruttiin",
       regAlreadyRegistered:
         "Tämä laite on jo rekisteröity. Jos haluat rekisteröidä uudelleen, poista vanha avainkoodi ensin.",
       lastUsed: "viimeksi käytetty",
@@ -154,55 +155,55 @@ const fi = {
   // Emails
   emails: {
     otp: {
-      subject: "Tietokillan jäsenrekisterin sisäänkirjautumiskoodi",
-      body: `Kirjautumiskoodisi on: {code}
+      subject: "{organizationName:string} jäsen_rekisterin sisään_kirjautumiskoodi",
+      body: `Kirjautumiskoodisi on: {code:string}
 
 Koodi vanhenee 10 minuutin kuluttua.
 
-@{domain} #{code}`,
+@{domain:string} #{code:string} {organizationNameShort:string}`,
     },
     paymentSuccess: {
       subject: "Maksu vastaanotettu - Odottaa hallituksen hyväksyntää",
-      body: `Kiitos {membershipName}-jäsenyytesi maksusta ({amount})!
+      body: `Kiitos {membershipName:string}-jäsenyytesi maksusta ({amount:string})!
 
 Maksusi on vastaanotettu ja jäsenhakemuksesi odottaa hallituksen hyväksyntää seuraavassa kokouksessa.
 
 Saat sähköpostiviestin, kun jäsenyytesi on hyväksytty.
 
 Terveisin,
-Tietokilta`,
+{organizationNameShort:string}`,
     },
     membershipApproved: {
-      subject: "Tervetuloa Tietokiltaan!",
-      body: `Hei {firstName}!
+      subject: "Tervetuloa {organizationName:string} jäseneksi!",
+      body: `Hei {firstName:string}!
 
-Jäsenhakemuksesi on hyväksytty. Tervetuloa Tietokillan jäseneksi!
+Jäsenhakemuksesi on hyväksytty. Tervetuloa {organizationName:string} jäseneksi!
 
 Jäsenyystiedot:
-- Jäsenyystyyppi: {membershipName}
-- Voimassa: {startDate} - {endDate}
+- Jäsenyystyyppi: {membershipName:string}
+- Voimassa: {startDate:string} - {endDate:string}
 
-Voit nyt osallistua killan toimintaan ja hyödyntää jäsenetuja.
+Voit nyt osallistua organisaation toimintaan ja hyödyntää jäsenetuja.
 
 Nähdään tapahtumissa!
 
 Terveisin,
-Tietokilta`,
+{organizationNameShort:string}`,
     },
     membershipRenewed: {
       subject: "Jäsenyytesi on uusittu!",
-      body: `Hei {firstName}!
+      body: `Hei {firstName:string}!
 
 Jäsenyytesi on uusittu automaattisesti maksun jälkeen.
 
 Jäsenyystiedot:
-- Jäsenyystyyppi: {membershipName}
-- Voimassa: {startDate} - {endDate}
+- Jäsenyystyyppi: {membershipName:string}
+- Voimassa: {startDate:string} - {endDate:string}
 
 Kiitos, että jatkat jäsenenämme!
 
 Terveisin,
-Tietokilta`,
+{organizationNameShort:string}`,
     },
   },
 
@@ -403,6 +404,50 @@ Tietokilta`,
       membershipTypeNotFound: "Jäsenyystyyppiä ei löytynyt",
     },
 
+    customize: {
+      title: "Sovelluksen mukautus",
+      description: "Hallitse sovelluksen yleisiä asetuksia ja ulkonäköä.",
+      success: "Asetukset tallennettu onnistuneesti",
+      error: "Asetusten tallentaminen epäonnistui",
+      brandingDefaults: {
+        title: "Yleisilme",
+        accentColor: "Korostusväri",
+        appNameFi: "Sovelluksen nimi (FI)",
+        appNameEn: "Sovelluksen nimi (EN)",
+      },
+      organizationDetails: {
+        title: "Organisaation tiedot",
+        nameFi: "Organisaation nimi (FI)",
+        nameEn: "Organisaation nimi (EN)",
+        nameShortFi: "Organisaation lyhyt nimi (FI)",
+        nameShortEn: "Organisaation lyhyt nimi (EN)",
+        businessId: "Y-tunnus",
+        overseerContact: "Rekisterin ylläpitäjän sähköpostiosoite",
+        overseerAddress: "Rekisterin ylläpitäjän postiosoite",
+        organizationRulesUrl: "Organisaation sääntöjen URL-osoite",
+      },
+      resignation: {
+        title: "Jäsenen erottaminen",
+        rule: "Organisaation sääntö jäsenen erottamisesta (esim. §67)",
+        defaultReasonFi: "Oletus syy erottamiselle (FI)",
+        defaultReasonEn: "Oletus syy erottamiselle (EN)",
+      },
+      privacyPolicy: {
+        title: "Rekisteri- ja tietosuojaseloste",
+        fi: "Suomeksi",
+        en: "Englanniksi",
+      },
+      images: {
+        title: "Logo (SVG) ja Favicon (PNG)",
+        logoLight: "Logo (Vaalea tila)",
+        logoDark: "Logo (Tumma tila)",
+        faviconLight: "Favicon (Vaalea tila)",
+        faviconDark: "Favicon (Tumma tila)",
+        current: "Nykyinen:",
+      },
+      save: "Tallenna",
+    },
+
     members: {
       title: "Jäsenrekisteri",
       description: "Hallinnoi yksittäisiä jäseniä",
@@ -468,8 +513,8 @@ Tietokilta`,
         approve: "Hyväksy",
         reject: "Hylkää",
         reactivate: "Aktivoi uudelleen",
-        deemResigned: "Katso eronneeksi (§8)",
-        resignMembership: "Erota (§8)",
+        deemResigned: "Katso eronneeksi",
+        resignMembership: "Erota",
 
         // Pagination
         showing: "Näytetään {start}–{end} / {total} jäsentä",
