@@ -180,6 +180,10 @@ export const appCustomisation = pgTable("app_customisation", {
   id: integer().primaryKey().default(1),
   accentColor: text().notNull().default(DEFAULT_CUSTOMISATION.accentColor),
   organizationName: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMISATION.organizationName),
+  organizationNameShort: jsonb()
+    .$type<LocalizedString>()
+    .notNull()
+    .default(DEFAULT_CUSTOMISATION.organizationNameShort),
   appName: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMISATION.appName),
   logo: bytea(),
   logoDark: bytea(),

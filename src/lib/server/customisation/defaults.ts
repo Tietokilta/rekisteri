@@ -6,6 +6,7 @@
 export const DEFAULT_CUSTOMISATION = {
   accentColor: "#4f46e5", // Indigo-600
   organizationName: { fi: "Kilta ry", en: "Guild Registered Association" },
+  organizationNameShort: { fi: "Kilta", en: "Guild" },
   appName: { fi: "Jäsenrekisteri", en: "Member Registry" },
   businessId: "0123456-7",
   overseerContact: "hallitus@kilta.fi",

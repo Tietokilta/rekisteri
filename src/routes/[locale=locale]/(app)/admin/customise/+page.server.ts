@@ -86,6 +86,10 @@ export const actions: Actions = {
           fi: validated.output.organizationNameFi,
           en: validated.output.organizationNameEn,
         },
+        organizationNameShort: {
+          fi: validated.output.organizationNameShortFi,
+          en: validated.output.organizationNameShortEn,
+        },
         appName: { fi: validated.output.appNameFi, en: validated.output.appNameEn },
         businessId: validated.output.businessId || existing.businessId,
         overseerContact: validated.output.overseerContact || existing.overseerContact,

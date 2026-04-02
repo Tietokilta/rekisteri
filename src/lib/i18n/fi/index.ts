@@ -160,7 +160,7 @@ const fi = {
 
 Koodi vanhenee 10 minuutin kuluttua.
 
-@{domain:string} #{code:string} {organizationName:string}`,
+@{domain:string} #{code:string} {organizationNameShort:string}`,
     },
     paymentSuccess: {
       subject: "Maksu vastaanotettu - Odottaa hallituksen hyväksyntää",
@@ -171,7 +171,7 @@ Maksusi on vastaanotettu ja jäsenhakemuksesi odottaa hallituksen hyväksyntää
 Saat sähköpostiviestin, kun jäsenyytesi on hyväksytty.
 
 Terveisin,
-{organizationName:string}`,
+{organizationNameShort:string}`,
     },
     membershipApproved: {
       subject: "Tervetuloa {organizationName:string} jäseneksi!",
@@ -188,7 +188,7 @@ Voit nyt osallistua organisaation toimintaan ja hyödyntää jäsenetuja.
 Nähdään tapahtumissa!
 
 Terveisin,
-{organizationName:string}`,
+{organizationNameShort:string}`,
     },
     membershipRenewed: {
       subject: "Jäsenyytesi on uusittu!",
@@ -203,7 +203,7 @@ Jäsenyystiedot:
 Kiitos, että jatkat jäsenenämme!
 
 Terveisin,
-{organizationName:string}`,
+{organizationNameShort:string}`,
     },
   },
 
@@ -419,6 +419,8 @@ Terveisin,
         title: "Organisaation tiedot",
         nameFi: "Organisaation nimi (FI)",
         nameEn: "Organisaation nimi (EN)",
+        nameShortFi: "Organisaation lyhyt nimi (FI)",
+        nameShortEn: "Organisaation lyhyt nimi (EN)",
         businessId: "Y-tunnus",
         overseerContact: "Rekisterin ylläpitäjän sähköpostiosoite",
         overseerAddress: "Rekisterin ylläpitäjän postiosoite",

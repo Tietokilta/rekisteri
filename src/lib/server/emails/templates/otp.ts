@@ -4,7 +4,7 @@ import { env } from "$lib/server/env";
 export const otpTemplate: EmailTemplate<OTPMetadata> = {
   type: "otp",
 
-  render(locale, metadata, LL, organizationName) {
+  render(locale, metadata, LL, organizationName, organizationNameShort) {
     const { code } = metadata;
 
     // Format for auto-extraction (Apple/Android)
@@ -14,7 +14,7 @@ export const otpTemplate: EmailTemplate<OTPMetadata> = {
       text: LL.emails.otp.body({
         code,
         domain: env.RP_ID,
-        organizationName,
+        organizationNameShort,
       }),
     };
   },

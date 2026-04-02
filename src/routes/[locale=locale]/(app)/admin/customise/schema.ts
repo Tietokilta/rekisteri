@@ -4,6 +4,8 @@ export const updateCustomisationSchema = v.object({
   accentColor: v.optional(v.string()),
   organizationNameFi: v.pipe(v.string(), v.minLength(1)),
   organizationNameEn: v.pipe(v.string(), v.minLength(1)),
+  organizationNameShortFi: v.pipe(v.string(), v.minLength(1)),
+  organizationNameShortEn: v.pipe(v.string(), v.minLength(1)),
   appNameFi: v.pipe(v.string(), v.minLength(1)),
   appNameEn: v.pipe(v.string(), v.minLength(1)),
   businessId: v.optional(v.string()),
