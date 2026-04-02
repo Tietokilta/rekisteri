@@ -8,6 +8,8 @@ export type CustomisationFormValues = {
   accentColor: string;
   organizationNameFi: string;
   organizationNameEn: string;
+  organizationNameShortFi: string;
+  organizationNameShortEn: string;
   appNameFi: string;
   appNameEn: string;
   businessId: string;
@@ -31,6 +33,8 @@ export function flattenCustomisation(custom: AppCustomisation | null): Customisa
     accentColor: c.accentColor || DEFAULT_CUSTOMISATION.accentColor,
     organizationNameFi: c.organizationName?.fi || DEFAULT_CUSTOMISATION.organizationName.fi,
     organizationNameEn: c.organizationName?.en || DEFAULT_CUSTOMISATION.organizationName.en,
+    organizationNameShortFi: c.organizationNameShort?.fi || DEFAULT_CUSTOMISATION.organizationNameShort.fi,
+    organizationNameShortEn: c.organizationNameShort?.en || DEFAULT_CUSTOMISATION.organizationNameShort.en,
     appNameFi: c.appName?.fi || DEFAULT_CUSTOMISATION.appName.fi,
     appNameEn: c.appName?.en || DEFAULT_CUSTOMISATION.appName.en,
     businessId: c.businessId || DEFAULT_CUSTOMISATION.businessId,

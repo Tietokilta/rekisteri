@@ -157,6 +157,44 @@
 
         <div class="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
           <div class="sm:col-span-1">
+            <label for="orgNameShortFI" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customise.organizationDetails.nameShortFi()}
+            </label>
+            <div class="mt-1">
+              <Input
+                type="text"
+                name="organizationNameShortFi"
+                id="orgNameShortFI"
+                bind:value={values.organizationNameShortFi}
+                class="max-w-md"
+              />
+            </div>
+            {#if errors.organizationNameShortFi}<p class="mt-2 text-sm text-red-600">
+                {errors.organizationNameShortFi}
+              </p>{/if}
+          </div>
+
+          <div class="sm:col-span-1">
+            <label for="orgNameShortEN" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customise.organizationDetails.nameShortEn()}
+            </label>
+            <div class="mt-1">
+              <Input
+                type="text"
+                name="organizationNameShortEn"
+                id="orgNameShortEN"
+                bind:value={values.organizationNameShortEn}
+                class="max-w-md"
+              />
+            </div>
+            {#if errors.organizationNameShortEn}<p class="mt-2 text-sm text-red-600">
+                {errors.organizationNameShortEn}
+              </p>{/if}
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+          <div class="sm:col-span-1">
             <label for="businessId" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
               {$LL.admin.customise.organizationDetails.businessId()}
             </label>

@@ -160,7 +160,7 @@ const en = {
 
 This code will expire in 10 minutes.
 
-@{domain} #{code} {organizationName}`,
+@{domain} #{code} {organizationNameShort}`,
     },
     paymentSuccess: {
       subject: "Payment received - Awaiting board approval",
@@ -171,7 +171,7 @@ Your payment has been received and your membership application is awaiting appro
 You will receive an email once your membership is approved.
 
 Best regards,
-{organizationName}`,
+{organizationNameShort}`,
     },
     membershipApproved: {
       subject: "Welcome to {organizationName}!",
@@ -188,7 +188,7 @@ You can now participate in guild activities and enjoy member benefits.
 See you at events!
 
 Best regards,
-{organizationName}`,
+{organizationNameShort}`,
     },
     membershipRenewed: {
       subject: "Your membership has been renewed!",
@@ -203,7 +203,7 @@ Membership details:
 Thank you for continuing as a member!
 
 Best regards,
-{organizationName}`,
+{organizationNameShort}`,
     },
   },
 
@@ -417,6 +417,8 @@ Best regards,
         title: "Organization Details",
         nameFi: "Organization Name (FI)",
         nameEn: "Organization Name (EN)",
+        nameShortFi: "Organization Short Name (FI)",
+        nameShortEn: "Organization Short Name (EN)",
         businessId: "Business ID (Y-tunnus)",
         overseerContact: "Registry Overseer Contact Email",
         overseerAddress: "Registry Overseer Address",

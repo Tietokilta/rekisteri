@@ -57,9 +57,11 @@ export async function sendMemberEmail<T extends EmailType>({
   const customisations = await getCustomisations();
   const organizationName =
     customisations?.organizationName?.[locale] ?? (locale === "fi" ? "Kilta ry" : "Guild Association");
+  const organizationNameShort =
+    customisations?.organizationNameShort?.[locale] ?? (locale === "fi" ? "Kilta" : "Guild");
 
   // Render content - TypeScript now knows metadata matches template's expected type
-  const { subject, text, html } = template.render(locale, metadata, LL, organizationName);
+  const { subject, text, html } = template.render(locale, metadata, LL, organizationName, organizationNameShort);
 
   // Send immediately
   await sendEmail({
