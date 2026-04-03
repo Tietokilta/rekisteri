@@ -33,10 +33,10 @@ jobs:
       - name: Restore and save Nix store
         uses: nix-community/cache-nix-action@76f6697d63b7378f7161d52f3d81784130ecd90d
         with:
-          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock', 'pnpm-lock.yaml') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - name: nix flake check
-        run: nix flake check --no-pure-eval --all-systems --accept-flake-config -L
+        run: nix flake check --no-pure-eval --accept-flake-config -L
 
   checks:
     name: validate and test
@@ -141,7 +141,7 @@ jobs:
       - name: Restore and save Nix store
         uses: nix-community/cache-nix-action@76f6697d63b7378f7161d52f3d81784130ecd90d
         with:
-          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock', 'pnpm-lock.yaml') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - name: nix build
         run: nix build . --accept-flake-config -L
