@@ -8,7 +8,6 @@
   import { stripLocaleFromPathname, type Locale } from "$lib/i18n/routing";
   import { getMainNavItems, getSettingsNavItems, getAdminNavItems } from "$lib/navigation";
   import RatasLogo from "$lib/icons/ratas-logo.svelte";
-  import { formatUserName } from "$lib/utils";
   import { hasAdminAccess, type AdminRole } from "$lib/shared/enums";
 
   // Icons from @lucide/svelte
@@ -21,6 +20,7 @@
       email: string;
       firstNames?: string | null;
       lastName?: string | null;
+      preferredName?: string | null;
       adminRole: AdminRole;
     };
   }
@@ -42,7 +42,7 @@
   }
 
   // Get user display name
-  const displayName = $derived(formatUserName(user, user.email));
+  const displayName = $derived([user.preferredName, user.lastName].filter(Boolean).join(" ") || user.email);
 </script>
 
 <Sidebar.Sidebar>

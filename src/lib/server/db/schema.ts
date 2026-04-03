@@ -44,6 +44,7 @@ export const user = pgTable("user", {
   adminRole: adminRoleEnum().notNull().default("none"),
   firstNames: text(),
   lastName: text(),
+  preferredName: text(),
   homeMunicipality: text(),
   preferredLanguage: preferredLanguageEnum().notNull().default("unspecified"),
   isAllowedEmails: boolean().notNull().default(false),

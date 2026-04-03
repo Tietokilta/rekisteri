@@ -23,6 +23,7 @@
       saveUserInfo.fields.set({
         firstNames: data.user.firstNames ?? "",
         lastName: data.user.lastName ?? "",
+        preferredName: data.user.preferredName ?? "",
         homeMunicipality: data.user.homeMunicipality ?? "",
         preferredLanguage: data.user.preferredLanguage ?? "unspecified",
         isAllowedEmails: data.user.isAllowedEmails,
@@ -94,6 +95,22 @@
         />
         {#each saveUserInfo.fields.firstNames.issues() as issue, i (i)}
           <p class="text-sm text-destructive" data-testid="firstNames-error">{issue.message}</p>
+        {/each}
+      </div>
+
+      <div class="space-y-2">
+        <Label for="preferredName">{$LL.user.preferredName()}</Label>
+        <p class="text-sm text-muted-foreground">{$LL.user.preferredNameDescription()}</p>
+        <Input
+          {...saveUserInfo.fields.preferredName.as("text")}
+          id="preferredName"
+          placeholder={data.user.firstNames?.split(" ")[0] ?? ""}
+          onblur={handleBlur}
+          oninput={handleInput}
+          data-testid="preferredName-input"
+        />
+        {#each saveUserInfo.fields.preferredName.issues() as issue, i (i)}
+          <p class="text-sm text-destructive" data-testid="preferredName-error">{issue.message}</p>
         {/each}
       </div>
 

@@ -17,7 +17,6 @@ import { getMembershipName } from "$lib/server/utils/membership";
 import { getUserLocale } from "$lib/server/utils/user";
 import { isValidTransition } from "$lib/server/utils/member";
 import { generateUserId } from "$lib/server/auth/utils";
-import { getDisplayFirstName } from "$lib/utils";
 import { hasAdminWriteAccess } from "$lib/server/auth/admin";
 
 export const approveMember = command(memberIdSchema, async ({ memberId }) => {
@@ -69,7 +68,7 @@ export const approveMember = command(memberIdSchema, async ({ memberId }) => {
         recipientEmail: memberWithDetails.user.email,
         emailType: "membership_approved",
         metadata: {
-          firstName: getDisplayFirstName(memberWithDetails.user),
+          firstName: memberWithDetails.user.preferredName ?? memberWithDetails.user.email,
           membershipName: getMembershipName(memberWithDetails.membership, userLocale),
           startDate: memberWithDetails.membership.startTime,
           endDate: memberWithDetails.membership.endTime,
@@ -382,7 +381,7 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
         recipientEmail: memberWithDetails.user.email,
         emailType: "membership_approved",
         metadata: {
-          firstName: getDisplayFirstName(memberWithDetails.user),
+          firstName: memberWithDetails.user.preferredName ?? memberWithDetails.user.email,
           membershipName: getMembershipName(memberWithDetails.membership, userLocale),
           startDate: memberWithDetails.membership.startTime,
           endDate: memberWithDetails.membership.endTime,
