@@ -4,6 +4,7 @@ import { PREFERRED_LANGUAGE_VALUES } from "$lib/shared/enums";
 export const userInfoSchema = v.object({
   firstNames: v.pipe(v.string(), v.minLength(1)),
   lastName: v.pipe(v.string(), v.minLength(1)),
+  preferredName: v.optional(v.string(), ""),
   homeMunicipality: v.pipe(v.string(), v.minLength(1)),
   preferredLanguage: v.picklist(PREFERRED_LANGUAGE_VALUES),
   // For checkbox inputs in remote forms, use optional boolean with default

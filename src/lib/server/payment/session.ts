@@ -11,7 +11,7 @@ import { encodeBase32LowerCase } from "@oslojs/encoding";
 import { sendMemberEmail } from "$lib/server/emails";
 import { getMembershipName } from "$lib/server/utils/membership";
 import { getUserLocale } from "$lib/server/utils/user";
-import { formatUserName, getDisplayFirstName } from "$lib/utils";
+import { formatUserName } from "$lib/utils";
 
 /**
  * Checks if a Stripe error is due to a non-existent customer.
@@ -334,7 +334,7 @@ export async function fulfillSession(sessionId: string) {
           recipientEmail: memberWithDetails.user.email,
           emailType: "membership_renewed",
           metadata: {
-            firstName: getDisplayFirstName(memberWithDetails.user),
+            firstName: memberWithDetails.user.preferredName ?? memberWithDetails.user.email,
             membershipName: getMembershipName(memberWithDetails.membership, userLocale),
             startDate: memberWithDetails.membership.startTime,
             endDate: memberWithDetails.membership.endTime,
