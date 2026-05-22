@@ -145,7 +145,7 @@ User accounts that have been inactive for more than 7 years are automatically de
 | ---------------- | ------------------------- | -------------------------- |
 | Microsoft Azure  | EU (Ireland)              | Database and application   |
 | Stripe           | EU                        | Payment processing         |
-| Mailgun          | EU                        | Email service              |
+| Mailgun / SMTP   | EU                        | Email service              |
 | Google Workspace | EU/Global\*               | Mailing lists              |
 | Hetzner          | EU (Germany, Falkenstein) | Encrypted database backups |
 

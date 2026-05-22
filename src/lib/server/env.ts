@@ -58,7 +58,10 @@ const privateEnvSchema = v.pipe(
       v.startsWith("whsec_", "STRIPE_WEBHOOK_SECRET must start with 'whsec_'"),
     ),
 
-    // Mailgun (optional in dev, required in production)
+    // Email configuration
+    EMAIL_PROVIDER: v.optional(v.union([v.literal("mailgun"), v.literal("smtp")]), "mailgun"),
+
+    // Mailgun (optional in dev, required in production if provider is mailgun)
     // Empty strings are treated as undefined for optional fields
     MAILGUN_API_KEY: v.optional(
       v.pipe(
@@ -87,6 +90,15 @@ const privateEnvSchema = v.pipe(
       ),
     ),
 
+    // SMTP configuration
+    SMTP_HOST: v.optional(v.string()),
+    SMTP_PORT: v.optional(
+      v.pipe(v.union([v.number(), v.pipe(v.string(), v.transform(Number))]), v.number(), v.integer(), v.minValue(1)),
+    ),
+    SMTP_USER: v.optional(v.string()),
+    SMTP_PASS: v.optional(v.string()),
+    SMTP_FROM: v.optional(v.string()),
+
     // Server configuration
     PORT: v.optional(
       v.pipe(v.union([v.number(), v.pipe(v.string(), v.transform(Number))]), v.number(), v.integer(), v.minValue(1)),
@@ -99,18 +111,28 @@ const privateEnvSchema = v.pipe(
     RP_ID: v.pipe(v.string(), v.minLength(1)),
     RP_ORIGIN: v.pipe(v.string(), v.url(), v.regex(/^https?:\/\/.+/, "RP_ORIGIN must use http or https protocol")),
   }),
-  // In production, Mailgun is required
+  // In production, validate email configuration based on the selected provider
   v.check((data) => {
     if (!dev && data.NODE_ENV === "production") {
-      return (
-        data.MAILGUN_API_KEY !== undefined &&
-        data.MAILGUN_DOMAIN !== undefined &&
-        data.MAILGUN_SENDER !== undefined &&
-        data.MAILGUN_URL !== undefined
-      );
+      if (data.EMAIL_PROVIDER === "mailgun") {
+        return (
+          data.MAILGUN_API_KEY !== undefined &&
+          data.MAILGUN_DOMAIN !== undefined &&
+          data.MAILGUN_SENDER !== undefined &&
+          data.MAILGUN_URL !== undefined
+        );
+      } else if (data.EMAIL_PROVIDER === "smtp") {
+        return (
+          data.SMTP_HOST !== undefined &&
+          data.SMTP_PORT !== undefined &&
+          data.SMTP_USER !== undefined &&
+          data.SMTP_PASS !== undefined &&
+          data.SMTP_FROM !== undefined
+        );
+      }
     }
     return true;
-  }, "Mailgun configuration (MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_SENDER, MAILGUN_URL) is required in production"),
+  }, "Email configuration (Mailgun or SMTP) is required in production based on EMAIL_PROVIDER"),
 );
 
 // Validate private environment variables at module load (fail fast)
@@ -122,10 +144,16 @@ const parsed = v.safeParse(privateEnvSchema, {
   DATABASE_URL: privateEnv.DATABASE_URL,
   STRIPE_API_KEY: privateEnv.STRIPE_API_KEY,
   STRIPE_WEBHOOK_SECRET: privateEnv.STRIPE_WEBHOOK_SECRET,
+  EMAIL_PROVIDER: privateEnv.EMAIL_PROVIDER,
   MAILGUN_API_KEY: privateEnv.MAILGUN_API_KEY,
   MAILGUN_DOMAIN: privateEnv.MAILGUN_DOMAIN,
   MAILGUN_SENDER: privateEnv.MAILGUN_SENDER,
   MAILGUN_URL: privateEnv.MAILGUN_URL,
+  SMTP_HOST: privateEnv.SMTP_HOST,
+  SMTP_PORT: privateEnv.SMTP_PORT,
+  SMTP_USER: privateEnv.SMTP_USER,
+  SMTP_PASS: privateEnv.SMTP_PASS,
+  SMTP_FROM: privateEnv.SMTP_FROM,
   PORT: privateEnv.PORT,
   ADDRESS_HEADER: privateEnv.ADDRESS_HEADER,
   RP_NAME: privateEnv.RP_NAME,
