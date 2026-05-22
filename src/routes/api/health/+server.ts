@@ -2,7 +2,7 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { json } from "@sveltejs/kit";
-import { checkMailgunHealth } from "$lib/server/mailgun";
+import { checkEmailHealth } from "$lib/server/mailer";
 import type { RequestHandler } from "./$types";
 
 /**
@@ -35,9 +35,9 @@ export const GET: RequestHandler = async () => {
     console.error("[Health] Database check failed:", error);
   }
 
-  // Check email service (Mailgun) connectivity (non-critical if not configured)
+  // Check email service connectivity (non-critical if not configured)
   try {
-    emailStatus = await checkMailgunHealth();
+    emailStatus = await checkEmailHealth();
   } catch (error) {
     console.error("[Health] Email check failed:", error);
     emailStatus = "error";

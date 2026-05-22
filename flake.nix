@@ -48,6 +48,11 @@
             MAILGUN_DOMAIN = "sandbox...";
             MAILGUN_SENDER = "Rekisteri <noreply@...>";
             MAILGUN_URL = "https://api.eu.mailgun.net/v3/sandbox...";
+            SMTP_HOST = "localhost";
+            SMTP_PORT = "1025";
+            SMTP_USER = "user";
+            SMTP_PASS = "pass";
+            SMTP_FROM = "noreply@...";
 
             pnpmDeps = pkgs.fetchPnpmDeps {
               inherit (finalAttrs) pname version src;
