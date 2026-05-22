@@ -1,4 +1,4 @@
-import { sendEmail } from "$lib/server/mailgun";
+import { sendEmail } from "$lib/server/mailer";
 import { loadLocale } from "$lib/i18n/i18n-util.sync";
 import { i18nObject } from "$lib/i18n/i18n-util";
 import type {

@@ -143,7 +143,7 @@ Käyttäjätilit, jotka ovat olleet passiivisia yli 7 vuotta, poistetaan automaa
 | ---------------- | ----------------------- | ------------------------------- |
 | Microsoft Azure  | EU (Irlanti)            | Tietokanta ja sovellus          |
 | Stripe           | EU                      | Maksujenkäsittely               |
-| Mailgun          | EU                      | Sähköpostipalvelu               |
+| Mailgun / SMTP   | EU                      | Sähköpostipalvelu               |
 | Google Workspace | EU/Globaali\*           | Postituslistat                  |
 | Hetzner          | EU (Saksa, Falkenstein) | Salatut tietokantavarmuuskopiot |
 
