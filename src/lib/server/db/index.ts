@@ -9,7 +9,7 @@ const client = postgres(env.DATABASE_URL, {
   ssl: dev ? undefined : "prefer", // Prefer SSL in production, optional in dev
 });
 
-export const dbSchema = { ...table, ...relations } as const;
+const dbSchema = { ...table, ...relations } as const;
 export type Schema = typeof dbSchema;
 
 export const db = drizzle({ client, schema: dbSchema, casing: "snake_case" });

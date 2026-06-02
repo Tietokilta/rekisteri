@@ -29,7 +29,7 @@ export function deleteEmailCookie(event: RequestEvent): void {
   });
 }
 
-export async function getEmailOTP(id: string): Promise<EmailOTP | null> {
+async function getEmailOTP(id: string): Promise<EmailOTP | null> {
   const [result] = await db.select().from(table.emailOTP).where(eq(table.emailOTP.id, id));
   return result ?? null;
 }

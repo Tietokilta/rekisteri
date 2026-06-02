@@ -35,8 +35,3 @@ if (!parsed.success) {
  * const redirectUrl = `${env.PUBLIC_URL}/callback`;
  */
 export const env = parsed.output;
-
-/**
- * Type definition for validated public environment variables
- */
-export type PublicEnv = v.InferOutput<typeof publicEnvSchema>;

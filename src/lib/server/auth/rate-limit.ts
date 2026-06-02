@@ -123,10 +123,6 @@ export class ExpiringTokenBucket<_Key> {
     this.storage.set(key, bucket);
     return true;
   }
-
-  public reset(key: _Key): void {
-    this.storage.delete(key);
-  }
 }
 
 interface RefillBucket {

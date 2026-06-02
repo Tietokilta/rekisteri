@@ -22,7 +22,7 @@ export const bulkMemberIdsWithReasonSchema = v.object({
 const adminCreateStatusSchema = v.picklist(["awaiting_approval", "active"]);
 
 // Discriminated union for creating a member — either a person or an association
-export const createPersonMemberSchema = v.object({
+const createPersonMemberSchema = v.object({
   type: v.literal("person"),
   email: v.pipe(v.string(), v.email()),
   firstNames: v.optional(v.string()),
@@ -33,7 +33,7 @@ export const createPersonMemberSchema = v.object({
   description: v.optional(v.string()),
 });
 
-export const createAssociationMemberSchema = v.object({
+const createAssociationMemberSchema = v.object({
   type: v.literal("association"),
   organizationName: v.pipe(v.string(), v.trim(), v.minLength(1)),
   membershipId: v.pipe(v.string(), v.minLength(1)),

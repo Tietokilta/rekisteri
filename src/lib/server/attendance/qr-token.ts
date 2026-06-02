@@ -8,7 +8,7 @@ import { and, eq, isNull } from "drizzle-orm";
  *
  * @returns Base64url-encoded 32-byte random token
  */
-export function generateQrToken(): string {
+function generateQrToken(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   return encodeBase64url(bytes);
 }
