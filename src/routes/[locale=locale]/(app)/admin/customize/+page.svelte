@@ -29,9 +29,16 @@
     faviconDark: false,
   });
 
+  const imageUrls = {
+    logo: "/api/image/logo.svg",
+    logoDark: "/api/image/logo-dark.svg",
+    favicon: "/api/image/favicon.png",
+    faviconDark: "/api/image/favicon-dark.png",
+  } satisfies Record<keyof typeof data.hasImages, string>;
+
   // Helper to get image URL with cache-buster if it exists and is not queued for removal
   const getImageUrl = (type: keyof typeof data.hasImages) =>
-    data.hasImages[type] && !removeImages[type] ? `/api/image/${type}?v=${Date.now()}` : null;
+    data.hasImages[type] && !removeImages[type] ? `${imageUrls[type]}?v=${data.imageVersion}` : null;
 
   function toggleRemove(type: keyof typeof removeImages) {
     removeImages[type] = !removeImages[type];

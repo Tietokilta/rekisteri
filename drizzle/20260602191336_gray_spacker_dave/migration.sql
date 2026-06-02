@@ -17,5 +17,9 @@ CREATE TABLE "app_customization" (
 	"member_resign_default_reason" jsonb DEFAULT '{"fi":"§67 nojalla. Liiallinen brainrot.","en":"By applying of §67. Too much brainrot."}',
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "app_customization_singleton" CHECK ("id" = 1)
+	CONSTRAINT "app_customization_singleton" CHECK ("id" = 1),
+	CONSTRAINT "app_customization_logo_size" CHECK (octet_length("logo") <= 65536),
+	CONSTRAINT "app_customization_logo_dark_size" CHECK (octet_length("logo_dark") <= 65536),
+	CONSTRAINT "app_customization_favicon_size" CHECK (octet_length("favicon") <= 32768),
+	CONSTRAINT "app_customization_favicon_dark_size" CHECK (octet_length("favicon_dark") <= 32768)
 );

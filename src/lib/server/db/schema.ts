@@ -202,7 +202,13 @@ export const appCustomization = pgTable(
       .default(DEFAULT_CUSTOMIZATION.memberResignDefaultReason),
     ...timestamps,
   },
-  (table) => [check("app_customization_singleton", sql`${table.id} = 1`)],
+  (table) => [
+    check("app_customization_singleton", sql`${table.id} = 1`),
+    check("app_customization_logo_size", sql`octet_length(${table.logo}) <= ${64 * 1024}`),
+    check("app_customization_logo_dark_size", sql`octet_length(${table.logoDark}) <= ${64 * 1024}`),
+    check("app_customization_favicon_size", sql`octet_length(${table.favicon}) <= ${32 * 1024}`),
+    check("app_customization_favicon_dark_size", sql`octet_length(${table.faviconDark}) <= ${32 * 1024}`),
+  ],
 );
 
 export type Member = typeof member.$inferSelect;

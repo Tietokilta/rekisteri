@@ -1,4 +1,15 @@
 import * as v from "valibot";
+import { CUSTOMIZATION_FAVICON_MAX_BYTES, CUSTOMIZATION_LOGO_MAX_BYTES } from "$lib/server/customization/utils";
+
+const isSvgUpload = (file: File) =>
+  file.size === 0 || file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg");
+
+const isPngUpload = (file: File) =>
+  file.size === 0 || file.type === "image/png" || file.name.toLowerCase().endsWith(".png");
+
+const isWithinLogoLimit = (file: File) => file.size <= CUSTOMIZATION_LOGO_MAX_BYTES;
+
+const isWithinFaviconLimit = (file: File) => file.size <= CUSTOMIZATION_FAVICON_MAX_BYTES;
 
 export const updateCustomizationSchema = v.object({
   accentColor: v.optional(v.string()),
@@ -23,7 +34,8 @@ export const updateCustomizationSchema = v.object({
       v.union([
         v.pipe(
           v.instance(File),
-          v.check((f) => f.size === 0 || f.type === "image/svg+xml", "Must be an SVG image"),
+          v.check(isSvgUpload, "Must be an SVG image"),
+          v.check(isWithinLogoLimit, "Must be 64 KB or smaller"),
         ),
         v.string(),
       ]),
@@ -34,7 +46,8 @@ export const updateCustomizationSchema = v.object({
       v.union([
         v.pipe(
           v.instance(File),
-          v.check((f) => f.size === 0 || f.type === "image/svg+xml", "Must be an SVG image"),
+          v.check(isSvgUpload, "Must be an SVG image"),
+          v.check(isWithinLogoLimit, "Must be 64 KB or smaller"),
         ),
         v.string(),
       ]),
@@ -45,7 +58,8 @@ export const updateCustomizationSchema = v.object({
       v.union([
         v.pipe(
           v.instance(File),
-          v.check((f) => f.size === 0 || f.type === "image/png", "Must be a PNG image"),
+          v.check(isPngUpload, "Must be a PNG image"),
+          v.check(isWithinFaviconLimit, "Must be 32 KB or smaller"),
         ),
         v.string(),
       ]),
@@ -56,7 +70,8 @@ export const updateCustomizationSchema = v.object({
       v.union([
         v.pipe(
           v.instance(File),
-          v.check((f) => f.size === 0 || f.type === "image/png", "Must be a PNG image"),
+          v.check(isPngUpload, "Must be a PNG image"),
+          v.check(isWithinFaviconLimit, "Must be 32 KB or smaller"),
         ),
         v.string(),
       ]),

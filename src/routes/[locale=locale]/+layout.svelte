@@ -15,10 +15,20 @@
     {data.customizations?.appName?.[$locale] ?? $LL.app.title()}
   </title>
   {#if data.customizations?.favicon}
-    <link rel="icon" href="/api/image/favicon" media="(prefers-color-scheme: light)" />
+    <link
+      rel="icon"
+      href={`/api/image/favicon.png?v=${data.customizations.imageVersion}`}
+      type="image/png"
+      media="(prefers-color-scheme: light)"
+    />
   {/if}
   {#if data.customizations?.faviconDark}
-    <link rel="icon" href="/api/image/faviconDark" media="(prefers-color-scheme: dark)" />
+    <link
+      rel="icon"
+      href={`/api/image/favicon-dark.png?v=${data.customizations.imageVersion}`}
+      type="image/png"
+      media="(prefers-color-scheme: dark)"
+    />
   {/if}
   {#if data.customizations?.accentColor}
     <!-- Inject Accent Color value as primary. Only admin can set and it's validated as an RGB hex -->

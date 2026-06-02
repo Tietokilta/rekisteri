@@ -12,6 +12,8 @@
     const canonicalPath = stripLocaleFromPathname(page.url.pathname);
     return `/${newLanguage}${canonicalPath}`;
   }
+
+  const customizationImageVersion = $derived(page.data.customizations?.imageVersion ?? "0");
 </script>
 
 <div class="relative flex min-h-svh flex-col bg-background">
@@ -23,12 +25,16 @@
         <a href={route("/[locale=locale]", { locale: $locale })} class="flex items-center gap-2">
           {#if page.data.customizations?.logo || page.data.customizations?.logoDark}
             <img
-              src={page.data.customizations?.logo ? "/api/image/logo" : "/api/image/logoDark"}
+              src={page.data.customizations?.logo
+                ? `/api/image/logo.svg?v=${customizationImageVersion}`
+                : `/api/image/logo-dark.svg?v=${customizationImageVersion}`}
               alt="App logo"
               class="h-12 w-12 dark:hidden"
             />
             <img
-              src={page.data.customizations?.logoDark ? "/api/image/logoDark" : "/api/image/logo"}
+              src={page.data.customizations?.logoDark
+                ? `/api/image/logo-dark.svg?v=${customizationImageVersion}`
+                : `/api/image/logo.svg?v=${customizationImageVersion}`}
               alt="App logo"
               class="hidden h-12 w-12 dark:block"
             />

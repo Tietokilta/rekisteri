@@ -4,7 +4,7 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { updateCustomizationSchema } from "./schema";
 import { updateCustomizationCache, getCustomizations } from "$lib/server/customization/cache";
-import { flattenCustomization, processUploadedFile } from "$lib/server/customization/utils";
+import { CustomizationUploadError, flattenCustomization, processUploadedFile } from "$lib/server/customization/utils";
 import { getLL } from "$lib/server/i18n";
 import * as v from "valibot";
 import { hasAdminAccess, hasAdminWriteAccess } from "$lib/shared/enums";
@@ -28,6 +28,7 @@ export const load: PageServerLoad = async (event) => {
   return {
     values,
     hasImages,
+    imageVersion: customizations?.updatedAt.getTime().toString(36) ?? "0",
   };
 };
 
@@ -72,10 +73,10 @@ export const actions: Actions = {
     }
 
     try {
-      const dbLogo = await processUploadedFile(logo);
-      const dbLogoDark = await processUploadedFile(logoDark);
-      const dbFavicon = await processUploadedFile(favicon);
-      const dbFaviconDark = await processUploadedFile(faviconDark);
+      const dbLogo = await processUploadedFile("logo", logo);
+      const dbLogoDark = await processUploadedFile("logoDark", logoDark);
+      const dbFavicon = await processUploadedFile("favicon", favicon);
+      const dbFaviconDark = await processUploadedFile("faviconDark", faviconDark);
 
       const existing = await getCustomizations();
 
@@ -124,6 +125,10 @@ export const actions: Actions = {
       const LL = getLL(event.locals.locale);
       return { success: true, message: LL.admin.customize.success() };
     } catch (e) {
+      if (e instanceof CustomizationUploadError) {
+        return fail(400, { values: data, errors: { [e.field]: e.message } });
+      }
+
       console.error("Failed to update customizations", e);
       const LL = getLL(event.locals.locale);
       return fail(500, { message: LL.admin.customize.error() });

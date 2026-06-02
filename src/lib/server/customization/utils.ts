@@ -1,6 +1,21 @@
 import type { AppCustomization } from "$lib/server/db/schema";
 import { DEFAULT_CUSTOMIZATION } from "./defaults";
 
+export const CUSTOMIZATION_LOGO_MAX_BYTES = 64 * 1024;
+export const CUSTOMIZATION_FAVICON_MAX_BYTES = 32 * 1024;
+
+export type CustomizationImageField = "logo" | "logoDark" | "favicon" | "faviconDark";
+
+export class CustomizationUploadError extends Error {
+  field: CustomizationImageField;
+
+  constructor(field: CustomizationImageField, message: string) {
+    super(message);
+    this.field = field;
+    this.name = "CustomizationUploadError";
+  }
+}
+
 /**
  * The flat version of customization used in the admin UI form.
  */
@@ -80,15 +95,69 @@ export function resizeSvgTo32(buffer: Buffer): Buffer {
   return Buffer.from(svg, "utf8");
 }
 
+function isLogoField(field: CustomizationImageField): field is "logo" | "logoDark" {
+  return field === "logo" || field === "logoDark";
+}
+
+function assertSize(field: CustomizationImageField, file: File) {
+  const maxBytes = isLogoField(field) ? CUSTOMIZATION_LOGO_MAX_BYTES : CUSTOMIZATION_FAVICON_MAX_BYTES;
+  if (file.size > maxBytes) {
+    throw new CustomizationUploadError(field, `Must be ${maxBytes / 1024} KB or smaller`);
+  }
+}
+
+function assertSvg(field: CustomizationImageField, buffer: Buffer) {
+  let svg: string;
+  try {
+    svg = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+  } catch {
+    throw new CustomizationUploadError(field, "Must be a valid UTF-8 SVG image");
+  }
+
+  let normalized = svg.replace(/^\uFEFF/, "").trimStart();
+  normalized = normalized.replace(/^<\?xml[^>]*\?>\s*/i, "");
+  while (normalized.startsWith("<!--")) {
+    const commentEnd = normalized.indexOf("-->");
+    if (commentEnd === -1) break;
+    normalized = normalized.slice(commentEnd + 3).trimStart();
+  }
+
+  if (!/^<svg(?:\s|>)/i.test(normalized)) {
+    throw new CustomizationUploadError(field, "Must be an SVG image");
+  }
+}
+
+function assertPng(field: CustomizationImageField, buffer: Buffer) {
+  const pngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  const hasSignature = pngSignature.every((byte, index) => buffer[index] === byte);
+  const hasIhdr = buffer.length >= 24 && buffer.toString("ascii", 12, 16) === "IHDR";
+
+  if (!hasSignature || !hasIhdr) {
+    throw new CustomizationUploadError(field, "Must be a PNG image");
+  }
+
+  const width = buffer.readUInt32BE(16);
+  const height = buffer.readUInt32BE(20);
+  if (width !== height) {
+    throw new CustomizationUploadError(field, "Must be a square PNG image");
+  }
+}
+
 /**
- * Processes an uploaded file (logo or favicon).
+ * Processes an uploaded customization asset.
  */
-export async function processUploadedFile(val: unknown): Promise<Buffer | undefined> {
+export async function processUploadedFile(field: CustomizationImageField, val: unknown): Promise<Buffer | undefined> {
   if (val instanceof File && val.size > 0) {
+    assertSize(field, val);
+
     let buffer = Buffer.from(await val.arrayBuffer()) as Buffer;
-    if (val.type === "image/svg+xml" || val.name.toLowerCase().endsWith(".svg")) {
+    if (isLogoField(field)) {
+      assertSvg(field, buffer);
       buffer = resizeSvgTo32(buffer);
+    } else {
+      assertPng(field, buffer);
     }
+
     return buffer;
   }
   return undefined;

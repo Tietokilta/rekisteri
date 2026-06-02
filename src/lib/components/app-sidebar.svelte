@@ -42,6 +42,8 @@
 
   // Get user display name
   const displayName = $derived(formatUserName(user, user.email));
+
+  const customizationImageVersion = $derived(page.data.customizations?.imageVersion ?? "0");
 </script>
 
 <Sidebar.Sidebar>
@@ -57,12 +59,16 @@
             <a href={route("/[locale=locale]", { locale: $locale })} {...props}>
               {#if page.data.customizations?.logo || page.data.customizations?.logoDark}
                 <img
-                  src={page.data.customizations?.logo ? "/api/image/logo" : "/api/image/logoDark"}
+                  src={page.data.customizations?.logo
+                    ? `/api/image/logo.svg?v=${customizationImageVersion}`
+                    : `/api/image/logo-dark.svg?v=${customizationImageVersion}`}
                   alt="App logo"
                   class="size-8 dark:hidden"
                 />
                 <img
-                  src={page.data.customizations?.logoDark ? "/api/image/logoDark" : "/api/image/logo"}
+                  src={page.data.customizations?.logoDark
+                    ? `/api/image/logo-dark.svg?v=${customizationImageVersion}`
+                    : `/api/image/logo.svg?v=${customizationImageVersion}`}
                   alt="App logo"
                   class="hidden size-8 dark:block"
                 />

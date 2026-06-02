@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "bed11025-1bdc-49d0-ae42-dd3e0d360a06",
+  "id": "c705d5e7-8519-466c-81c5-ff2094d79f28",
   "prevIds": [
     "7d2daae0-3e62-430d-81a2-ec47bae38b91"
   ],
@@ -1676,6 +1676,34 @@
     {
       "value": "\"id\" = 1",
       "name": "app_customization_singleton",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "app_customization"
+    },
+    {
+      "value": "octet_length(\"logo\") <= 65536",
+      "name": "app_customization_logo_size",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "app_customization"
+    },
+    {
+      "value": "octet_length(\"logo_dark\") <= 65536",
+      "name": "app_customization_logo_dark_size",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "app_customization"
+    },
+    {
+      "value": "octet_length(\"favicon\") <= 32768",
+      "name": "app_customization_favicon_size",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "app_customization"
+    },
+    {
+      "value": "octet_length(\"favicon_dark\") <= 32768",
+      "name": "app_customization_favicon_dark_size",
       "entityType": "checks",
       "schema": "public",
       "table": "app_customization"

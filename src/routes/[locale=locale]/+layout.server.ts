@@ -6,10 +6,12 @@ export const load: LayoutServerLoad = async ({ locals }) => {
   }
 
   const { logo, logoDark, favicon, faviconDark, ...safeCustomizations } = locals.customizations;
+  const imageVersion = locals.customizations.updatedAt.getTime().toString(36);
 
   return {
     customizations: {
       ...safeCustomizations,
+      imageVersion,
       logo: !!logo,
       logoDark: !!logoDark,
       favicon: !!favicon,
