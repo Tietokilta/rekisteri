@@ -22,7 +22,8 @@
     ]
   },
   "health": {
-    "maxCrap": 9999
+    "maxCrap": 9999,
+    "ignore": ["tests/**", "e2e/**"]
   },
   "overrides": [
     {
