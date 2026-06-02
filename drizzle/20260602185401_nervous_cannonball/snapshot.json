@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "28f7ee52-4aae-4bff-8f7c-22616922ba1c",
+  "id": "bed11025-1bdc-49d0-ae42-dd3e0d360a06",
   "prevIds": [
     "7d2daae0-3e62-430d-81a2-ec47bae38b91"
   ],
@@ -1672,6 +1672,13 @@
       "schema": "public",
       "table": "user",
       "entityType": "uniques"
+    },
+    {
+      "value": "\"id\" = 1",
+      "name": "app_customization_singleton",
+      "entityType": "checks",
+      "schema": "public",
+      "table": "app_customization"
     },
     {
       "value": "(\"user_id\" IS NOT NULL AND \"organization_name\" IS NULL) OR (\"user_id\" IS NULL AND \"organization_name\" IS NOT NULL)",

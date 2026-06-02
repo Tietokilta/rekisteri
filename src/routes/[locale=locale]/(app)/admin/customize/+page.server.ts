@@ -3,7 +3,6 @@ import type { PageServerLoad, Actions } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { updateCustomizationSchema } from "./schema";
-import { eq } from "drizzle-orm";
 import { updateCustomizationCache, getCustomizations } from "$lib/server/customization/cache";
 import { flattenCustomization, processUploadedFile } from "$lib/server/customization/utils";
 import { getLL } from "$lib/server/i18n";
@@ -108,15 +107,16 @@ export const actions: Actions = {
         updatedAt: new Date(),
       };
 
-      // Upsert logic: check if record with ID 1 exists
-      const [record] = await db.select().from(table.appCustomization).where(eq(table.appCustomization.id, 1)).limit(1);
-
-      await (record
-        ? db.update(table.appCustomization).set(updateData).where(eq(table.appCustomization.id, 1))
-        : db.insert(table.appCustomization).values({
-            id: 1,
-            ...updateData,
-          }));
+      await db
+        .insert(table.appCustomization)
+        .values({
+          id: 1,
+          ...updateData,
+        })
+        .onConflictDoUpdate({
+          target: table.appCustomization.id,
+          set: updateData,
+        });
 
       await updateCustomizationCache();
       event.locals.customizations = await getCustomizations();
