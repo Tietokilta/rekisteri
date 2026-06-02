@@ -1,6 +1,7 @@
 <script lang="ts">
   import { LL, locale } from "$lib/i18n/i18n-svelte";
   import { page } from "$app/state";
+  import { renderMarkdown } from "$lib/markdown";
 
   const appName = $derived(page.data.customizations.appName[$locale]);
 
@@ -15,6 +16,7 @@
   );
 
   const customContent = $derived($locale === "fi" ? fiCustom : enCustom);
+  const customHtml = $derived(renderMarkdown(customContent));
 </script>
 
 <svelte:head>
@@ -24,7 +26,8 @@
 <div class="mx-auto max-w-4xl px-4 py-8">
   <div class="mx-auto prose dark:prose-invert">
     {#if hasCustom}
-      <div class="whitespace-pre-wrap">{customContent}</div>
+      <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+      {@html customHtml}
     {/if}
   </div>
 </div>

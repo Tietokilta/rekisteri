@@ -3,7 +3,7 @@
   import { Button } from "$lib/components/ui/button";
   import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "$lib/components/ui/tooltip";
   import * as ToggleGroup from "$lib/components/ui/toggle-group";
-  import snarkdown from "snarkdown";
+  import { renderMarkdown } from "$lib/markdown";
 
   import Bold from "@lucide/svelte/icons/bold";
   import Italic from "@lucide/svelte/icons/italic";
@@ -96,7 +96,7 @@
     { icon: Link, label: "Link", action: () => insertText("[", "](url)") },
   ];
 
-  const html = $derived(snarkdown(value || ""));
+  const html = $derived(renderMarkdown(value));
 </script>
 
 <div class="markdown-editor-container flex flex-col rounded-md border border-input bg-background">
@@ -149,7 +149,6 @@
   {:else}
     <div class="max-h-[400px] min-h-[300px] overflow-y-auto p-4">
       <div class="prose prose-sm max-w-none dark:prose-invert">
-        <!-- Using {@html} to render markdown as HTML. -->
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html html}
       </div>
