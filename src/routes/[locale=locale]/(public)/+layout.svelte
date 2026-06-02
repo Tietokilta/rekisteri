@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
+  import { locale } from "$lib/i18n/i18n-svelte";
   import { stripLocaleFromPathname, type Locale } from "$lib/i18n/routing";
   import { page } from "$app/state";
   import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
@@ -13,7 +13,8 @@
     return `/${newLanguage}${canonicalPath}`;
   }
 
-  const customizationImageVersion = $derived(page.data.customizations?.imageVersion ?? "0");
+  const logoUrl = $derived(page.data.customizations.logoUrl ?? page.data.customizations.logoDarkUrl);
+  const logoDarkUrl = $derived(page.data.customizations.logoDarkUrl ?? page.data.customizations.logoUrl);
 </script>
 
 <div class="relative flex min-h-svh flex-col bg-background">
@@ -23,24 +24,12 @@
     <div class="mx-auto w-full max-w-[1400px]">
       <div class="container mx-auto flex h-14 items-center justify-between gap-2 px-4 md:gap-4">
         <a href={route("/[locale=locale]", { locale: $locale })} class="flex items-center gap-2">
-          {#if page.data.customizations?.logo || page.data.customizations?.logoDark}
-            <img
-              src={page.data.customizations?.logo
-                ? `/api/image/logo.svg?v=${customizationImageVersion}`
-                : `/api/image/logo-dark.svg?v=${customizationImageVersion}`}
-              alt="App logo"
-              class="h-12 w-12 dark:hidden"
-            />
-            <img
-              src={page.data.customizations?.logoDark
-                ? `/api/image/logo-dark.svg?v=${customizationImageVersion}`
-                : `/api/image/logo.svg?v=${customizationImageVersion}`}
-              alt="App logo"
-              class="hidden h-12 w-12 dark:block"
-            />
+          {#if logoUrl || logoDarkUrl}
+            <img src={logoUrl} alt="App logo" class="h-12 w-12 dark:hidden" />
+            <img src={logoDarkUrl} alt="App logo" class="hidden h-12 w-12 dark:block" />
           {/if}
           <span class="sr-only font-mono font-medium sm:not-sr-only sm:text-xl"
-            >{page.data.customizations?.appName?.[$locale] ?? $LL.app.title()}</span
+            >{page.data.customizations.appName[$locale]}</span
           >
         </a>
         <ToggleGroup.Root type="single" value={$locale} data-sveltekit-reload>

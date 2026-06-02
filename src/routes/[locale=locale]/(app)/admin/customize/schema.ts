@@ -12,7 +12,7 @@ const isWithinLogoLimit = (file: File) => file.size <= CUSTOMIZATION_LOGO_MAX_BY
 const isWithinFaviconLimit = (file: File) => file.size <= CUSTOMIZATION_FAVICON_MAX_BYTES;
 
 export const updateCustomizationSchema = v.object({
-  accentColor: v.optional(v.string()),
+  accentColor: v.pipe(v.string(), v.hexColor("Must be a valid hex color")),
   organizationNameFi: v.pipe(v.string(), v.minLength(1)),
   organizationNameEn: v.pipe(v.string(), v.minLength(1)),
   organizationNameShortFi: v.pipe(v.string(), v.minLength(1)),

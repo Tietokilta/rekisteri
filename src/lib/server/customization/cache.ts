@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 
 // In-memory cache singleton
 let customizationCache: table.AppCustomization | null = null;
+let customizationCachePromise: Promise<table.AppCustomization> | null = null;
 
 /**
  * Gets the current app customization settings.
@@ -16,8 +17,16 @@ export async function getCustomizations(): Promise<table.AppCustomization> {
     return customizationCache;
   }
 
-  customizationCache = await loadCustomizations();
-  return customizationCache;
+  customizationCachePromise ??= loadCustomizations()
+    .then((customizations) => {
+      customizationCache = customizations;
+      return customizations;
+    })
+    .finally(() => {
+      customizationCachePromise = null;
+    });
+
+  return customizationCachePromise;
 }
 
 /**
@@ -28,6 +37,16 @@ export async function updateCustomizationCache(): Promise<void> {
 }
 
 async function loadCustomizations(): Promise<table.AppCustomization> {
+  const [inserted] = await db
+    .insert(table.appCustomization)
+    .values({ id: 1, ...DEFAULT_CUSTOMIZATION })
+    .onConflictDoNothing({ target: table.appCustomization.id })
+    .returning();
+
+  if (inserted) {
+    return inserted;
+  }
+
   const [customizations] = await db
     .select()
     .from(table.appCustomization)
@@ -38,10 +57,5 @@ async function loadCustomizations(): Promise<table.AppCustomization> {
     return customizations;
   }
 
-  const [inserted] = await db
-    .insert(table.appCustomization)
-    .values({ id: 1, ...DEFAULT_CUSTOMIZATION })
-    .returning();
-
-  return (inserted ?? { id: 1, ...DEFAULT_CUSTOMIZATION }) as table.AppCustomization;
+  throw new Error("App customization singleton is missing");
 }

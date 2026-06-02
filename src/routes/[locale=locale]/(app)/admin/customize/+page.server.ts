@@ -18,17 +18,17 @@ export const load: PageServerLoad = async (event) => {
   const customizations = event.locals.customizations;
   const values = flattenCustomization(customizations);
 
-  const hasImages = {
-    logo: !!customizations?.logo,
-    logoDark: !!customizations?.logoDark,
-    favicon: !!customizations?.favicon,
-    faviconDark: !!customizations?.faviconDark,
+  const customImageExists = {
+    logo: !!customizations.logo,
+    logoDark: !!customizations.logoDark,
+    favicon: !!customizations.favicon,
+    faviconDark: !!customizations.faviconDark,
   };
 
   return {
     values,
-    hasImages,
-    imageVersion: customizations?.updatedAt.getTime().toString(36) ?? "0",
+    customImageExists,
+    imageVersion: customizations.updatedAt.getTime().toString(36),
   };
 };
 
@@ -81,7 +81,7 @@ export const actions: Actions = {
       const existing = await getCustomizations();
 
       const updateData = {
-        accentColor: validated.output.accentColor || existing.accentColor,
+        accentColor: validated.output.accentColor,
         organizationName: {
           fi: validated.output.organizationNameFi,
           en: validated.output.organizationNameEn,

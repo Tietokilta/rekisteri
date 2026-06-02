@@ -43,7 +43,8 @@
   // Get user display name
   const displayName = $derived(formatUserName(user, user.email));
 
-  const customizationImageVersion = $derived(page.data.customizations?.imageVersion ?? "0");
+  const logoUrl = $derived(page.data.customizations.logoUrl ?? page.data.customizations.logoDarkUrl);
+  const logoDarkUrl = $derived(page.data.customizations.logoDarkUrl ?? page.data.customizations.logoUrl);
 </script>
 
 <Sidebar.Sidebar>
@@ -51,32 +52,15 @@
   <Sidebar.SidebarHeader>
     <Sidebar.SidebarMenu>
       <Sidebar.SidebarMenuItem>
-        <Sidebar.SidebarMenuButton
-          size="lg"
-          tooltipContent={page.data.customizations?.appName?.[$locale] ?? $LL.app.title()}
-        >
+        <Sidebar.SidebarMenuButton size="lg" tooltipContent={page.data.customizations.appName[$locale]}>
           {#snippet child({ props })}
             <a href={route("/[locale=locale]", { locale: $locale })} {...props}>
-              {#if page.data.customizations?.logo || page.data.customizations?.logoDark}
-                <img
-                  src={page.data.customizations?.logo
-                    ? `/api/image/logo.svg?v=${customizationImageVersion}`
-                    : `/api/image/logo-dark.svg?v=${customizationImageVersion}`}
-                  alt="App logo"
-                  class="size-8 dark:hidden"
-                />
-                <img
-                  src={page.data.customizations?.logoDark
-                    ? `/api/image/logo-dark.svg?v=${customizationImageVersion}`
-                    : `/api/image/logo.svg?v=${customizationImageVersion}`}
-                  alt="App logo"
-                  class="hidden size-8 dark:block"
-                />
+              {#if logoUrl || logoDarkUrl}
+                <img src={logoUrl} alt="App logo" class="size-8 dark:hidden" />
+                <img src={logoDarkUrl} alt="App logo" class="hidden size-8 dark:block" />
               {/if}
               <div class="flex flex-col gap-0.5 leading-none">
-                <span class="font-mono font-semibold"
-                  >{page.data.customizations?.appName?.[$locale] ?? $LL.app.title()}</span
-                >
+                <span class="font-mono font-semibold">{page.data.customizations.appName[$locale]}</span>
               </div>
             </a>
           {/snippet}

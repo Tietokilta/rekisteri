@@ -778,13 +778,7 @@ Terveisin,
   // Documents & Legal
   documents: {
     footer: {
-      version: "Versio",
       privacyPolicy: "Rekisteri- ja tietosuojaseloste",
-      organization: "Tietokilta ry",
-      businessId: "Y-tunnus: 1790346-8",
-      contact: "Yhteystiedot",
-      email: "hallitus@tietokilta.fi",
-      address: "Konemiehentie 2, 02150 Espoo",
     },
   },
 } satisfies BaseTranslation;

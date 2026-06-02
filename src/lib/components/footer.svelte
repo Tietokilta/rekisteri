@@ -20,16 +20,12 @@
     <!-- Compact inline layout -->
     <div class="flex flex-wrap items-start justify-between gap-4 text-xs text-muted-foreground">
       <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <span class="font-medium text-foreground"
-          >{customizations?.organizationName?.[$locale] ?? $LL.documents.footer.organization()}</span
+        <span class="font-medium text-foreground">{customizations.organizationName[$locale]}</span>
+        <span>{customizations.businessId}</span>
+        <a href="mailto:{customizations.overseerContact}" class="underline underline-offset-2 hover:text-foreground"
+          >{customizations.overseerContact}</a
         >
-        <span>{customizations?.businessId ?? $LL.documents.footer.businessId()}</span>
-        <a
-          href="mailto:{customizations?.overseerContact ?? 'hallitus@tietokilta.fi'}"
-          class="underline underline-offset-2 hover:text-foreground"
-          >{customizations?.overseerContact ?? $LL.documents.footer.email()}</a
-        >
-        <span class="hidden sm:inline">{customizations?.overseerAddress ?? $LL.documents.footer.address()}</span>
+        <span class="hidden sm:inline">{customizations.overseerAddress}</span>
       </div>
       <div class="flex items-center gap-4">
         <a
@@ -40,7 +36,7 @@
         </a>
         <span>
           &copy; {new Date().getFullYear()}
-          {customizations?.organizationName?.[$locale] ?? "Tietokilta ry"}
+          {customizations.organizationName[$locale]}
           {#if showVersionSha}
             |
             <a

@@ -34,11 +34,11 @@
     logoDark: "/api/image/logo-dark.svg",
     favicon: "/api/image/favicon.png",
     faviconDark: "/api/image/favicon-dark.png",
-  } satisfies Record<keyof typeof data.hasImages, string>;
+  } satisfies Record<keyof typeof data.customImageExists, string>;
 
   // Helper to get image URL with cache-buster if it exists and is not queued for removal
-  const getImageUrl = (type: keyof typeof data.hasImages) =>
-    data.hasImages[type] && !removeImages[type] ? `${imageUrls[type]}?v=${data.imageVersion}` : null;
+  const getImageUrl = (type: keyof typeof data.customImageExists) =>
+    data.customImageExists[type] && !removeImages[type] ? `${imageUrls[type]}?v=${data.imageVersion}` : null;
 
   function toggleRemove(type: keyof typeof removeImages) {
     removeImages[type] = !removeImages[type];
@@ -374,7 +374,7 @@
               accept="image/svg+xml"
               class="block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-400 dark:file:bg-gray-700 dark:file:text-gray-300"
             />
-            {#if data.hasImages.logo}
+            {#if data.customImageExists.logo}
               {#if getImageUrl("logo")}
                 <div class="mt-2 text-xs text-gray-500">
                   {$LL.admin.customize.images.current()}
@@ -408,7 +408,7 @@
               accept="image/svg+xml"
               class="block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-400 dark:file:bg-gray-700 dark:file:text-gray-300"
             />
-            {#if data.hasImages.logoDark}
+            {#if data.customImageExists.logoDark}
               {#if getImageUrl("logoDark")}
                 <div class="mt-2 text-xs text-gray-500">
                   {$LL.admin.customize.images.current()}
@@ -442,7 +442,7 @@
               accept="image/png"
               class="block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-400 dark:file:bg-gray-700 dark:file:text-gray-300"
             />
-            {#if data.hasImages.favicon}
+            {#if data.customImageExists.favicon}
               {#if getImageUrl("favicon")}
                 <div class="mt-2 text-xs text-gray-500">
                   {$LL.admin.customize.images.current()}
@@ -476,7 +476,7 @@
               accept="image/png"
               class="block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-400 dark:file:bg-gray-700 dark:file:text-gray-300"
             />
-            {#if data.hasImages.faviconDark}
+            {#if data.customImageExists.faviconDark}
               {#if getImageUrl("faviconDark")}
                 <div class="mt-2 text-xs text-gray-500">
                   {$LL.admin.customize.images.current()}

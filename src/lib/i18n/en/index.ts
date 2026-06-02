@@ -774,13 +774,7 @@ Best regards,
   // Documents & Legal
   documents: {
     footer: {
-      version: "Version",
       privacyPolicy: "Privacy Statement",
-      organization: "Tietokilta ry",
-      businessId: "Business ID: 1790346-8",
-      contact: "Contact",
-      email: "hallitus@tietokilta.fi",
-      address: "Konemiehentie 2, 02150 Espoo, Finland",
     },
   },
 } satisfies Translation;

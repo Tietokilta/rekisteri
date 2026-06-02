@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
+  import { locale } from "$lib/i18n/i18n-svelte";
   import "../../app.css";
   import "@fontsource-variable/inter";
   import "@fontsource-variable/roboto-mono";
@@ -12,29 +12,13 @@
 
 <svelte:head>
   <title>
-    {data.customizations?.appName?.[$locale] ?? $LL.app.title()}
+    {data.customizations.appName[$locale]}
   </title>
-  {#if data.customizations?.favicon}
-    <link
-      rel="icon"
-      href={`/api/image/favicon.png?v=${data.customizations.imageVersion}`}
-      type="image/png"
-      media="(prefers-color-scheme: light)"
-    />
-  {/if}
-  {#if data.customizations?.faviconDark}
-    <link
-      rel="icon"
-      href={`/api/image/favicon-dark.png?v=${data.customizations.imageVersion}`}
-      type="image/png"
-      media="(prefers-color-scheme: dark)"
-    />
-  {/if}
-  {#if data.customizations?.accentColor}
-    <!-- Inject Accent Color value as primary. Only admin can set and it's validated as an RGB hex -->
-    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-    {@html `<style>:root { --primary: ${data.customizations.accentColor}; }</style>`}
-  {/if}
+  <link rel="icon" href={data.customizations.faviconUrl} type="image/png" media="(prefers-color-scheme: light)" />
+  <link rel="icon" href={data.customizations.faviconDarkUrl} type="image/png" media="(prefers-color-scheme: dark)" />
+  <!-- Inject Accent Color value as primary. Only admin can set and it's validated as an RGB hex -->
+  <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+  {@html `<style>:root { --primary: ${data.customizations.accentColor}; }</style>`}
 </svelte:head>
 
 <ModeWatcher disableHeadScriptInjection />
