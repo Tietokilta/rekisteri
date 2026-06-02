@@ -19,6 +19,147 @@ import { isValidTransition } from "$lib/server/utils/member";
 import { generateUserId } from "$lib/server/auth/utils";
 import { getDisplayFirstName } from "$lib/utils";
 import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
+import type { InferOutput } from "valibot";
+
+type CreateMemberData = InferOutput<typeof createMemberSchema>;
+type CreateAssociationMemberData = Extract<CreateMemberData, { type: "association" }>;
+type CreatePersonMemberData = Extract<CreateMemberData, { type: "person" }>;
+type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type UserProfileUpdates = Partial<{ firstNames: string; lastName: string; homeMunicipality: string }>;
+
+async function assertMembershipExists(membershipId: string, missingMembershipMessage: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const membership = await db._query.membership.findFirst({
+    where: eq(table.membership.id, membershipId),
+  });
+
+  if (!membership) {
+    error(400, missingMembershipMessage);
+  }
+}
+
+async function createAssociationMemberInTransaction(
+  tx: DbTransaction,
+  memberId: string,
+  data: CreateAssociationMemberData,
+  duplicateMembershipMessage: string,
+): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const existingMember = await tx._query.member.findFirst({
+    where: (member, { and }) =>
+      and(eq(member.organizationName, data.organizationName), eq(member.membershipId, data.membershipId)),
+  });
+
+  if (existingMember) {
+    error(400, duplicateMembershipMessage);
+  }
+
+  await tx.insert(table.member).values({
+    id: memberId,
+    userId: null,
+    organizationName: data.organizationName,
+    membershipId: data.membershipId,
+    status: data.status,
+    description: data.description || null,
+  });
+}
+
+function getMissingProfileUpdates(existingUser: typeof table.user.$inferSelect, data: CreatePersonMemberData) {
+  const updates: UserProfileUpdates = {};
+
+  if (!existingUser.firstNames && data.firstNames) updates.firstNames = data.firstNames;
+  if (!existingUser.lastName && data.lastName) updates.lastName = data.lastName;
+  if (!existingUser.homeMunicipality && data.homeMunicipality) updates.homeMunicipality = data.homeMunicipality;
+
+  return updates;
+}
+
+async function updateMissingUserProfile(
+  tx: DbTransaction,
+  existingUser: typeof table.user.$inferSelect,
+  data: CreatePersonMemberData,
+): Promise<void> {
+  const updates = getMissingProfileUpdates(existingUser, data);
+  if (Object.keys(updates).length > 0) {
+    await tx.update(table.user).set(updates).where(eq(table.user.id, existingUser.id));
+  }
+}
+
+async function assertNoDuplicatePersonMembership(
+  tx: DbTransaction,
+  userId: string,
+  membershipId: string,
+  duplicateMembershipMessage: string,
+): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const existingMember = await tx._query.member.findFirst({
+    where: (member, { and }) => and(eq(member.userId, userId), eq(member.membershipId, membershipId)),
+  });
+
+  if (existingMember) {
+    error(400, duplicateMembershipMessage);
+  }
+}
+
+async function findOrCreateUserForMember(
+  tx: DbTransaction,
+  data: CreatePersonMemberData,
+  duplicateMembershipMessage: string,
+): Promise<string> {
+  const normalizedEmail = data.email.toLowerCase().trim();
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const existingUser = await tx._query.user.findFirst({
+    where: eq(table.user.email, normalizedEmail),
+  });
+
+  if (!existingUser) {
+    const userId = generateUserId();
+    await tx.insert(table.user).values({
+      id: userId,
+      email: normalizedEmail,
+      firstNames: data.firstNames || null,
+      lastName: data.lastName || null,
+      homeMunicipality: data.homeMunicipality || null,
+    });
+    return userId;
+  }
+
+  await assertNoDuplicatePersonMembership(tx, existingUser.id, data.membershipId, duplicateMembershipMessage);
+  await updateMissingUserProfile(tx, existingUser, data);
+
+  return existingUser.id;
+}
+
+async function createPersonMemberInTransaction(
+  tx: DbTransaction,
+  memberId: string,
+  data: CreatePersonMemberData,
+  duplicateMembershipMessage: string,
+): Promise<void> {
+  const userId = await findOrCreateUserForMember(tx, data, duplicateMembershipMessage);
+
+  await tx.insert(table.member).values({
+    id: memberId,
+    userId,
+    membershipId: data.membershipId,
+    status: data.status,
+    description: data.description || null,
+  });
+}
+
+async function createMemberInTransaction(
+  tx: DbTransaction,
+  memberId: string,
+  data: CreateMemberData,
+  duplicateMembershipMessage: string,
+): Promise<void> {
+  if (data.type === "association") {
+    await createAssociationMemberInTransaction(tx, memberId, data, duplicateMembershipMessage);
+    return;
+  }
+
+  await createPersonMemberInTransaction(tx, memberId, data, duplicateMembershipMessage);
+}
 
 export const approveMember = command(memberIdSchema, async ({ memberId }) => {
   const event = getRequestEvent();
@@ -226,88 +367,13 @@ export const createMember = command(createMemberSchema, async (data) => {
     error(404, LL.error.resourceNotFound());
   }
 
-  // Validate that the membership exists
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const membership = await db._query.membership.findFirst({
-    where: eq(table.membership.id, data.membershipId),
-  });
-  if (!membership) {
-    error(400, LL.admin.members.membershipNotFound());
-  }
+  await assertMembershipExists(data.membershipId, LL.admin.members.membershipNotFound());
 
   const memberId = crypto.randomUUID();
 
   // NOTE: error() throws a SvelteKit HttpError which aborts the transaction (auto-rollback)
   await db.transaction(async (tx) => {
-    if (data.type === "association") {
-      // Check for duplicate — same org name on the same membership period
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
-      const existingMember = await tx._query.member.findFirst({
-        where: (m, { and }) =>
-          and(eq(m.organizationName, data.organizationName), eq(m.membershipId, data.membershipId)),
-      });
-      if (existingMember) {
-        error(400, LL.admin.members.duplicateMembership());
-      }
-
-      await tx.insert(table.member).values({
-        id: memberId,
-        userId: null,
-        organizationName: data.organizationName,
-        membershipId: data.membershipId,
-        status: data.status,
-        description: data.description || null,
-      });
-    } else {
-      // Person mode: look up or create user
-      let userId: string;
-      const normalizedEmail = data.email.toLowerCase().trim();
-
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
-      const existingUser = await tx._query.user.findFirst({
-        where: eq(table.user.email, normalizedEmail),
-      });
-
-      if (existingUser) {
-        userId = existingUser.id;
-
-        // Check for duplicate membership before any mutations
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
-        const existingMember = await tx._query.member.findFirst({
-          where: (m, { and }) => and(eq(m.userId, userId), eq(m.membershipId, data.membershipId)),
-        });
-        if (existingMember) {
-          error(400, LL.admin.members.duplicateMembership());
-        }
-
-        // Fill in empty profile fields from admin-provided data
-        const updates: Partial<{ firstNames: string; lastName: string; homeMunicipality: string }> = {};
-        if (!existingUser.firstNames && data.firstNames) updates.firstNames = data.firstNames;
-        if (!existingUser.lastName && data.lastName) updates.lastName = data.lastName;
-        if (!existingUser.homeMunicipality && data.homeMunicipality) updates.homeMunicipality = data.homeMunicipality;
-        if (Object.keys(updates).length > 0) {
-          await tx.update(table.user).set(updates).where(eq(table.user.id, userId));
-        }
-      } else {
-        // New user — no duplicate possible, create the user
-        userId = generateUserId();
-        await tx.insert(table.user).values({
-          id: userId,
-          email: normalizedEmail,
-          firstNames: data.firstNames || null,
-          lastName: data.lastName || null,
-          homeMunicipality: data.homeMunicipality || null,
-        });
-      }
-
-      await tx.insert(table.member).values({
-        id: memberId,
-        userId,
-        membershipId: data.membershipId,
-        status: data.status,
-        description: data.description || null,
-      });
-    }
+    await createMemberInTransaction(tx, memberId, data, LL.admin.members.duplicateMembership());
   });
 
   await auditFromEvent(event, "member.create", {

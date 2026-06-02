@@ -55,6 +55,8 @@
   import CircleDashed from "@lucide/svelte/icons/circle-dashed";
   import Plus from "@lucide/svelte/icons/plus";
 
+  type ValidationError = PersistedState["validationErrors"][number];
+
   let { data }: { data: PageData } = $props();
 
   let files = $state<FileList>();
@@ -192,6 +194,120 @@
     unmatchedMemberships = analysis.unmatchedMemberships;
   }
 
+  function resetImportState(): void {
+    validRows = [];
+    validationErrors = [];
+    matchedRows = [];
+    unmatchedRows = [];
+    unmatchedMemberships = [];
+  }
+
+  function getColumnValidationErrors(fields: string[]): ValidationError[] {
+    const missingRequired = requiredColumns.filter((column) => !fields.includes(column));
+    const unknownFields = fields.filter((field) => !allKnownColumns.has(field));
+    const errors: ValidationError[] = [];
+
+    if (missingRequired.length > 0) {
+      errors.push({
+        row: 0,
+        message: $LL.admin.import.csvMissingColumns({ columns: missingRequired.join(", ") }),
+        code: "csv_columns_mismatch",
+      });
+    }
+
+    if (unknownFields.length > 0) {
+      errors.push({
+        row: 0,
+        message: $LL.admin.import.csvUnknownColumns({ columns: unknownFields.join(", ") }),
+        code: "csv_columns_mismatch",
+      });
+    }
+
+    return errors;
+  }
+
+  function formatRowValidationIssues(issues: v.BaseIssue<unknown>[]): string {
+    return issues
+      .map((issue) => `${issue.path?.map((pathItem) => pathItem.key).join(".") || "field"}: ${issue.message}`)
+      .join(", ");
+  }
+
+  function validateCsvRows(csvRows: unknown[]): { rows: CsvRow[]; errors: ValidationError[] } {
+    const rows: CsvRow[] = [];
+    const errors: ValidationError[] = [];
+
+    for (let i = 0; i < csvRows.length; i++) {
+      const rowData = csvRows[i] as Record<string, unknown>;
+      if (typeof rowData?.email === "string") {
+        rowData.email = normalizeEmail(rowData.email);
+      }
+
+      const validation = v.safeParse(csvRowSchema, rowData);
+      if (validation.success) {
+        rows.push(validation.output);
+      } else {
+        errors.push({ row: i + 1, message: formatRowValidationIssues(validation.issues) });
+      }
+    }
+
+    return { rows, errors };
+  }
+
+  function getInvalidTypeIds(rows: CsvRow[], typeIds: string[]): string[] {
+    const invalidTypes: string[] = [];
+
+    for (const row of rows) {
+      if (!typeIds.includes(row.membershipTypeId) && !invalidTypes.includes(row.membershipTypeId)) {
+        invalidTypes.push(row.membershipTypeId);
+      }
+    }
+
+    return invalidTypes;
+  }
+
+  function getInvalidTypeValidationError(invalidTypes: string[], typeIds: string[]): ValidationError | null {
+    if (invalidTypes.length === 0) {
+      return null;
+    }
+
+    return {
+      row: 0,
+      message: $LL.admin.import.invalidTypeIdsError({
+        invalidTypes: invalidTypes.join(", "),
+        availableIds: typeIds.join(", "),
+      }),
+      code: "invalid_type_ids",
+    };
+  }
+
+  function applyRowAnalysis(rows: CsvRow[], memberships: typeof data.memberships): void {
+    const analysis = analyzeRows(rows, memberships);
+    matchedRows = analysis.matched;
+    unmatchedRows = analysis.unmatched;
+    unmatchedMemberships = analysis.unmatchedMemberships;
+  }
+
+  async function readFile(file: File, membershipsSnapshot: typeof data.memberships, typeIdsSnapshot: string[]) {
+    const csvString = (await file.text()).trim();
+    const csv = Papa.parse(csvString, { header: true });
+    const columnErrors = getColumnValidationErrors(csv.meta.fields ?? []);
+
+    if (columnErrors.length > 0) {
+      validationErrors = columnErrors;
+      return;
+    }
+
+    const rowValidation = validateCsvRows(csv.data);
+    const invalidTypeError = getInvalidTypeValidationError(
+      getInvalidTypeIds(rowValidation.rows, typeIdsSnapshot),
+      typeIdsSnapshot,
+    );
+
+    validRows = rowValidation.rows;
+    validationErrors = invalidTypeError ? [...rowValidation.errors, invalidTypeError] : rowValidation.errors;
+    applyRowAnalysis(rowValidation.rows, membershipsSnapshot);
+  }
+
   // Parse and analyze CSV when file changes.
   // When the component re-mounts with the same file (after command() invalidation),
   // restores persisted state instead of re-parsing to preserve user actions like
@@ -199,12 +315,7 @@
   $effect(() => {
     const file = csvFile;
 
-    // Reset instance state
-    validRows = [];
-    validationErrors = [];
-    matchedRows = [];
-    unmatchedRows = [];
-    unmatchedMemberships = [];
+    resetImportState();
 
     if (!file || file.type !== "text/csv") return;
 
@@ -223,90 +334,7 @@
     const membershipsSnapshot = untrack(() => data.memberships);
     const typeIdsSnapshot = untrack(() => data.typeIds);
 
-    const readFile = async () => {
-      const csvString = (await file.text()).trim();
-      const csv = Papa.parse(csvString, { header: true });
-
-      // Validate columns: all required columns must be present, no unknown columns allowed
-      const fields = csv.meta.fields ?? [];
-      const missingRequired = requiredColumns.filter((c) => !fields.includes(c));
-      const unknownFields = fields.filter((f) => !allKnownColumns.has(f));
-
-      if (missingRequired.length > 0 || unknownFields.length > 0) {
-        const errors: Array<{ row: number; message: string; code?: string }> = [];
-        if (missingRequired.length > 0) {
-          errors.push({
-            row: 0,
-            message: $LL.admin.import.csvMissingColumns({ columns: missingRequired.join(", ") }),
-            code: "csv_columns_mismatch",
-          });
-        }
-        if (unknownFields.length > 0) {
-          errors.push({
-            row: 0,
-            message: $LL.admin.import.csvUnknownColumns({ columns: unknownFields.join(", ") }),
-            code: "csv_columns_mismatch",
-          });
-        }
-        validationErrors = errors;
-        return;
-      }
-
-      // Validate each row
-      const validated: CsvRow[] = [];
-      const errors: Array<{ row: number; message: string; code?: string }> = [];
-
-      for (let i = 0; i < csv.data.length; i++) {
-        const rowData = csv.data[i] as Record<string, unknown>;
-        if (typeof rowData?.email === "string") {
-          rowData.email = normalizeEmail(rowData.email);
-        }
-        const validation = v.safeParse(csvRowSchema, rowData);
-
-        if (validation.success) {
-          validated.push(validation.output);
-        } else {
-          const errorMessages = validation.issues
-            .map((issue) => `${issue.path?.map((p) => p.key).join(".") || "field"}: ${issue.message}`)
-            .join(", ");
-          errors.push({ row: i + 1, message: errorMessages });
-        }
-      }
-
-      validRows = validated;
-      validationErrors = errors;
-
-      // Validate membership type IDs
-      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local variable in async callback, not state
-      const invalidTypes = new Set<string>();
-      for (const row of validated) {
-        if (!typeIdsSnapshot.includes(row.membershipTypeId)) {
-          invalidTypes.add(row.membershipTypeId);
-        }
-      }
-
-      if (invalidTypes.size > 0) {
-        validationErrors = [
-          ...validationErrors,
-          {
-            row: 0,
-            message: $LL.admin.import.invalidTypeIdsError({
-              invalidTypes: Array.from(invalidTypes).join(", "),
-              availableIds: typeIdsSnapshot.join(", "),
-            }),
-            code: "invalid_type_ids",
-          },
-        ];
-      }
-
-      // Analyze rows (even if there are type ID errors, to show helpful info)
-      const analysis = analyzeRows(validated, membershipsSnapshot);
-      matchedRows = analysis.matched;
-      unmatchedRows = analysis.unmatched;
-      unmatchedMemberships = analysis.unmatchedMemberships;
-    };
-
-    void readFile();
+    void readFile(file, membershipsSnapshot, typeIdsSnapshot);
   });
 
   // Check if all unmatched are resolved (either created or linked)

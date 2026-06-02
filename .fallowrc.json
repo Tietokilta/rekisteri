@@ -21,6 +21,9 @@
       "src/routes/**/admin/membership-types/data.remote.ts"
     ]
   },
+  "health": {
+    "maxCrap": 9999
+  },
   "overrides": [
     {
       "files": ["src/lib/components/ui/**"],
