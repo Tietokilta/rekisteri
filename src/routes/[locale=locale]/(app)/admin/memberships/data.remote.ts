@@ -4,13 +4,13 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, count } from "drizzle-orm";
 import { createMembershipSchema, deleteMembershipSchema, updateMembershipSchema } from "./schema";
-import { hasAdminWriteAccess } from "$lib/server/auth/admin";
+import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
 import { auditFromEvent } from "$lib/server/audit";
 
 export const createMembership = form(createMembershipSchema, async (data) => {
   const event = getRequestEvent();
 
-  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, "Not found");
   }
 
@@ -51,7 +51,7 @@ export const createMembership = form(createMembershipSchema, async (data) => {
 export const deleteMembership = form(deleteMembershipSchema, async ({ id }) => {
   const event = getRequestEvent();
 
-  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, "Not found");
   }
 
@@ -78,7 +78,7 @@ export const deleteMembership = form(deleteMembershipSchema, async ({ id }) => {
 export const updateMembership = form(updateMembershipSchema, async (data) => {
   const event = getRequestEvent();
 
-  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, "Not found");
   }
 

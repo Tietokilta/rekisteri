@@ -1,4 +1,4 @@
-import { env as publicEnv } from "$env/dynamic/public";
+import { env as dynamicPublicEnv } from "$env/dynamic/public";
 import { PUBLIC_GIT_COMMIT_SHA } from "$env/static/public";
 import * as v from "valibot";
 
@@ -15,7 +15,7 @@ const publicEnvSchema = v.object({
 
 // Validate public environment variables at module load (fail fast)
 const parsed = v.safeParse(publicEnvSchema, {
-  PUBLIC_URL: publicEnv.PUBLIC_URL,
+  PUBLIC_URL: dynamicPublicEnv.PUBLIC_URL,
   PUBLIC_GIT_COMMIT_SHA: PUBLIC_GIT_COMMIT_SHA || undefined,
 });
 
@@ -31,7 +31,7 @@ if (!parsed.success) {
  * Can be imported on both client and server.
  *
  * @example
- * import { env } from "$lib/env";
- * const redirectUrl = `${env.PUBLIC_URL}/callback`;
+ * import { publicEnv } from "$lib/env";
+ * const redirectUrl = `${publicEnv.PUBLIC_URL}/callback`;
  */
-export const env = parsed.output;
+export const publicEnv = parsed.output;

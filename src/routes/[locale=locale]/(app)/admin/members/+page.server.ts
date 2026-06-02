@@ -4,7 +4,7 @@ import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import type { NonEmptyArray } from "$lib/utils";
-import { hasAdminAccess } from "$lib/server/auth/admin";
+import { userHasAdminAccess } from "$lib/server/auth/admin";
 
 async function loadMembers() {
   const subQuery = db
@@ -91,7 +91,7 @@ async function loadMembers() {
 }
 
 export const load: PageServerLoad = async (event) => {
-  if (!event.locals.session || !hasAdminAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminAccess(event.locals.user)) {
     return error(404, "Not found");
   }
 

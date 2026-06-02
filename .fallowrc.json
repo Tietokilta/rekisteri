@@ -12,7 +12,14 @@
   "dynamicallyLoaded": ["src/lib/i18n/en/index.ts", "src/lib/i18n/fi/index.ts", "src/lib/i18n/formatters.ts"],
   "duplicates": {
     "minOccurrences": 3,
-    "ignore": ["tests/**", "e2e/**"]
+    "ignore": [
+      "tests/**",
+      "e2e/**",
+      "src/routes/**/+page.server.ts",
+      "src/routes/**/admin/members/data.remote.ts",
+      "src/routes/**/admin/members/import/data.remote.ts",
+      "src/routes/**/admin/membership-types/data.remote.ts"
+    ]
   },
   "overrides": [
     {

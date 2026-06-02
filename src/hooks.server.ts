@@ -2,7 +2,7 @@ import { sequence } from "@sveltejs/kit/hooks";
 import type { Handle, ServerInit } from "@sveltejs/kit";
 import { redirect } from "@sveltejs/kit";
 import * as auth from "$lib/server/auth/session.js";
-import { hasAdminAccess } from "$lib/server/auth/admin";
+import { userHasAdminAccess } from "$lib/server/auth/admin";
 import { baseLocale, locales, preferredLanguageToLocale, type Locale } from "$lib/i18n/routing";
 import { dev } from "$app/environment";
 import cron from "node-cron";
@@ -107,7 +107,7 @@ const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 const handleAdminAuthorization: Handle = async ({ event, resolve }) => {
   // Protect all admin routes - requires authenticated admin user (readonly or full admin)
   // Using route.id is more robust than pathname matching
-  if (event.route.id?.includes("/admin/") && (!event.locals.session || !hasAdminAccess(event.locals.user))) {
+  if (event.route.id?.includes("/admin/") && (!event.locals.session || !userHasAdminAccess(event.locals.user))) {
     return new Response("Not found", { status: 404 });
   }
 

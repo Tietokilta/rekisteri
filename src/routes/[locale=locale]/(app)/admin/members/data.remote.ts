@@ -18,13 +18,13 @@ import { getUserLocale } from "$lib/server/utils/user";
 import { isValidTransition } from "$lib/server/utils/member";
 import { generateUserId } from "$lib/server/auth/utils";
 import { getDisplayFirstName } from "$lib/utils";
-import { hasAdminWriteAccess } from "$lib/server/auth/admin";
+import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
 
 export const approveMember = command(memberIdSchema, async ({ memberId }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
@@ -89,7 +89,7 @@ export const rejectMember = command(memberIdWithReasonSchema, async ({ memberId,
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
@@ -125,7 +125,7 @@ export const markMemberResigned = command(memberIdWithReasonSchema, async ({ mem
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
@@ -160,7 +160,7 @@ export const resignMember = command(memberIdWithReasonSchema, async ({ memberId,
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
@@ -191,7 +191,7 @@ export const reactivateMember = command(memberIdWithReasonSchema, async ({ membe
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
@@ -222,7 +222,7 @@ export const createMember = command(createMemberSchema, async (data) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
@@ -328,7 +328,7 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
@@ -425,7 +425,7 @@ export const bulkMarkMembersResigned = command(bulkMemberIdsWithReasonSchema, as
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 

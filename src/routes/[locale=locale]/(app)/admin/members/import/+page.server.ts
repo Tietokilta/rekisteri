@@ -3,11 +3,11 @@ import type { PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, asc, sql } from "drizzle-orm";
-import { hasAdminWriteAccess } from "$lib/server/auth/admin";
+import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
 
 export const load: PageServerLoad = async (event) => {
   // Import is a write-only operation, so only full admins can access it
-  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     return error(404, "Not found");
   }
 

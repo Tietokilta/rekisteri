@@ -1,5 +1,5 @@
 import { env as privateEnv } from "$env/dynamic/private";
-import { env as publicEnv } from "$lib/env";
+import { publicEnv } from "$lib/env";
 import { dev } from "$app/environment";
 import * as v from "valibot";
 
