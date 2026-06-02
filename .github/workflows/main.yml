@@ -77,8 +77,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install browsers
-        run: pnpm exec playwright install
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install Chromium
+        timeout-minutes: 10
+        run: pnpm exec playwright install chromium
 
       - name: Copy .env example
         run: cp .env.example .env
