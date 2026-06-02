@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": ["src/index.{ts,tsx,js,jsx}", "src/main.{ts,tsx,js,jsx}", "src/start-with-migrations.ts"],
+  "ignorePatterns": ["src/lib/ROUTES.ts"],
+  "ignoreUnresolvedImports": ["./server/index.js"],
+  "ignoreExports": [
+    {
+      "file": "src/lib/components/ui/**/index.ts",
+      "exports": ["*"]
+    }
+  ],
+  "dynamicallyLoaded": ["src/lib/i18n/en/index.ts", "src/lib/i18n/fi/index.ts", "src/lib/i18n/formatters.ts"],
+  "duplicates": {
+    "minOccurrences": 3,
+    "ignore": ["tests/**", "e2e/**"]
+  },
+  "overrides": [
+    {
+      "files": ["src/lib/components/ui/**"],
+      "rules": {
+        "unused-files": "off",
+        "unused-exports": "off",
+        "unused-types": "off"
+      }
+    }
+  ],
+  "rules": {
+    "unused-dependencies": "warn"
+  }
+}

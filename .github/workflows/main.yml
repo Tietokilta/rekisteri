@@ -89,6 +89,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Fallow
+        run: pnpm fallow
+
       - name: Generate i18n files
         run: pnpm i18n:generate
 
