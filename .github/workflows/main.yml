@@ -77,16 +77,24 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Get installed playwright-core version
+        id: playwright-version
+        run: |
+          VERSION=$(pnpm list playwright-core --depth=Infinity --json | jq -r '.. | objects | select(.from? == "playwright-core") | .version' | head -n1)
+          echo "PLAYWRIGHT_VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Cache Playwright browsers
         uses: actions/cache@v4
+        id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
           restore-keys: |
             playwright-${{ runner.os }}-
 
       - name: Install Chromium
-        timeout-minutes: 10
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 5
         run: pnpm exec playwright install chromium
 
       - name: Copy .env example
