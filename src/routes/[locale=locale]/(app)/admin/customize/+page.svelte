@@ -10,6 +10,10 @@
 
   type CustomizationValueKey = keyof PageData["values"];
 
+  const DEFAULT_ACCENT_COLOR = "#171717";
+  const fileInputClass =
+    "block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary/20 dark:text-gray-400 dark:file:bg-gray-700 dark:file:text-gray-300";
+
   const CUSTOMIZATION_VALUE_FIELDS = [
     "accentColor",
     "organizationNameFi",
@@ -52,9 +56,14 @@
   // MarkdownEditor uses explicit bindings, so keep text values in local state while
   // the remote form owns submission and validation state.
   let values = $state(getCurrentValues());
+  let useCustomAccentColor = $state(Boolean(values.accentColor));
+  let accentColorInputValue = $state(values.accentColor || DEFAULT_ACCENT_COLOR);
 
   $effect(() => {
-    Object.assign(values, getCurrentValues());
+    const currentValues = getCurrentValues();
+    Object.assign(values, currentValues);
+    useCustomAccentColor = Boolean(currentValues.accentColor);
+    accentColorInputValue = currentValues.accentColor || DEFAULT_ACCENT_COLOR;
   });
 
   let errors = $derived({
@@ -132,6 +141,7 @@
         }
 
         clearImageRemovals();
+        values.accentColor = useCustomAccentColor ? accentColorInputValue : "";
         toast.success(updateCustomization.result?.message || $LL.admin.customize.success());
       })}
       enctype="multipart/form-data"
@@ -150,20 +160,39 @@
 
         <div class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
           <!-- Accent Color -->
-          <div class="sm:col-span-1">
+          <div class="sm:col-span-2">
             <label for="accentColor" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
               {$LL.admin.customize.brandingDefaults.accentColor()}
             </label>
-            <div class="mt-1 flex items-center gap-4">
+            <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+              {$LL.admin.customize.brandingDefaults.accentColorDescription()}
+            </p>
+
+            <label class="mt-3 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
               <input
-                type="color"
-                name="accentColor"
-                id="accentColor"
-                bind:value={values.accentColor}
-                class="h-10 w-20 cursor-pointer rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                type="checkbox"
+                bind:checked={useCustomAccentColor}
+                class="rounded border-gray-300 text-primary focus:ring-primary"
               />
-              <code class="rounded bg-gray-100 px-2 py-1 text-sm dark:bg-gray-900">{values.accentColor}</code>
-            </div>
+              {$LL.admin.customize.brandingDefaults.useAccentColor()}
+            </label>
+
+            {#if useCustomAccentColor}
+              <div class="mt-3 flex items-center gap-4">
+                <input
+                  type="color"
+                  name="accentColor"
+                  id="accentColor"
+                  bind:value={accentColorInputValue}
+                  class="h-10 w-20 cursor-pointer rounded border-gray-300 shadow-sm focus:border-ring focus:ring-ring sm:text-sm"
+                />
+                <code class="rounded bg-gray-100 px-2 py-1 text-sm dark:bg-gray-900">{accentColorInputValue}</code>
+              </div>
+            {:else}
+              <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                {$LL.admin.customize.brandingDefaults.defaultAccentColor()}
+              </p>
+            {/if}
             {#if errors.accentColor}
               <p class="mt-2 text-sm text-red-600">{errors.accentColor}</p>
             {/if}
@@ -439,13 +468,7 @@
             <label for="logo" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               {$LL.admin.customize.images.logoLight()}
             </label>
-            <input
-              type="file"
-              name="logo"
-              id="logo"
-              accept="image/svg+xml"
-              class="block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-400 dark:file:bg-gray-700 dark:file:text-gray-300"
-            />
+            <input type="file" name="logo" id="logo" accept="image/svg+xml" class={fileInputClass} />
             {#if data.customImageExists.logo}
               {#if getImageUrl("logo")}
                 <div class="mt-2 text-xs text-gray-500">
@@ -473,13 +496,7 @@
             <label for="logoDark" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               {$LL.admin.customize.images.logoDark()}
             </label>
-            <input
-              type="file"
-              name="logoDark"
-              id="logoDark"
-              accept="image/svg+xml"
-              class="block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-400 dark:file:bg-gray-700 dark:file:text-gray-300"
-            />
+            <input type="file" name="logoDark" id="logoDark" accept="image/svg+xml" class={fileInputClass} />
             {#if data.customImageExists.logoDark}
               {#if getImageUrl("logoDark")}
                 <div class="mt-2 text-xs text-gray-500">
@@ -507,13 +524,7 @@
             <label for="favicon" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               {$LL.admin.customize.images.faviconLight()}
             </label>
-            <input
-              type="file"
-              name="favicon"
-              id="favicon"
-              accept="image/png"
-              class="block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-400 dark:file:bg-gray-700 dark:file:text-gray-300"
-            />
+            <input type="file" name="favicon" id="favicon" accept="image/png" class={fileInputClass} />
             {#if data.customImageExists.favicon}
               {#if getImageUrl("favicon")}
                 <div class="mt-2 text-xs text-gray-500">
@@ -541,13 +552,7 @@
             <label for="faviconDark" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               {$LL.admin.customize.images.faviconDark()}
             </label>
-            <input
-              type="file"
-              name="faviconDark"
-              id="faviconDark"
-              accept="image/png"
-              class="block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-400 dark:file:bg-gray-700 dark:file:text-gray-300"
-            />
+            <input type="file" name="faviconDark" id="faviconDark" accept="image/png" class={fileInputClass} />
             {#if data.customImageExists.faviconDark}
               {#if getImageUrl("faviconDark")}
                 <div class="mt-2 text-xs text-gray-500">
@@ -580,7 +585,7 @@
         <div class="flex justify-end">
           <button
             type="submit"
-            class="ml-3 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
+            class="ml-3 inline-flex justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
             data-testid="save-customizations"
             disabled={!data.canWrite || !!updateCustomization.pending}
           >

@@ -85,7 +85,7 @@ function getCustomizationUpdateData(
   removals: ImageRemovals,
 ) {
   return {
-    accentColor: values.accentColor,
+    accentColor: values.accentColor || null,
     organizationName: {
       fi: values.organizationNameFi,
       en: values.organizationNameEn,

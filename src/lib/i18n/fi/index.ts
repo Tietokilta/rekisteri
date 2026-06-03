@@ -412,6 +412,10 @@ Terveisin,
       brandingDefaults: {
         title: "Yleisilme",
         accentColor: "Korostusväri",
+        accentColorDescription:
+          "Valinnainen. Jätä pois käytöstä, jos haluat käyttää teeman oletusvärejä. Jos väri otetaan käyttöön, samaa väriä käytetään vaaleassa ja tummassa tilassa, joten valitse väri joka toimii molemmissa.",
+        useAccentColor: "Käytä omaa korostusväriä",
+        defaultAccentColor: "Käytössä ovat vaalean ja tumman teeman oletusvärit.",
         appNameFi: "Sovelluksen nimi (FI)",
         appNameEn: "Sovelluksen nimi (EN)",
       },
