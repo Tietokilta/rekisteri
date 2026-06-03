@@ -1,0 +1,593 @@
+<script lang="ts">
+  import type { PageData } from "./$types";
+  import { LL } from "$lib/i18n/i18n-svelte";
+  import AdminPageHeader from "$lib/components/admin-page-header.svelte";
+  import { Input } from "$lib/components/ui/input";
+  import MarkdownEditor from "$lib/components/markdown-editor.svelte";
+  import { toast } from "svelte-sonner";
+  import { updateCustomization } from "./data.remote";
+  import { updateCustomizationSchema } from "./schema";
+
+  type CustomizationValueKey = keyof PageData["values"];
+
+  const CUSTOMIZATION_VALUE_FIELDS = [
+    "accentColor",
+    "organizationNameFi",
+    "organizationNameEn",
+    "organizationLegalNameFi",
+    "organizationLegalNameEn",
+    "appNameFi",
+    "appNameEn",
+    "businessId",
+    "overseerContact",
+    "overseerAddress",
+    "privacyPolicyFi",
+    "privacyPolicyEn",
+    "organizationRulesUrl",
+    "memberResignRule",
+    "memberResignDefaultReasonFi",
+    "memberResignDefaultReasonEn",
+  ] as const satisfies readonly CustomizationValueKey[];
+
+  let { data }: { data: PageData } = $props();
+
+  function firstIssue(issues: { message: string }[] | undefined) {
+    return issues?.[0]?.message;
+  }
+
+  function getCurrentValues() {
+    const submitted = updateCustomization.fields.value();
+    const currentValues = { ...data.values };
+
+    for (const field of CUSTOMIZATION_VALUE_FIELDS) {
+      const submittedValue = submitted[field];
+      if (typeof submittedValue === "string") {
+        currentValues[field] = submittedValue;
+      }
+    }
+
+    return currentValues;
+  }
+
+  // MarkdownEditor uses explicit bindings, so keep text values in local state while
+  // the remote form owns submission and validation state.
+  let values = $state(getCurrentValues());
+
+  $effect(() => {
+    Object.assign(values, getCurrentValues());
+  });
+
+  let errors = $derived({
+    accentColor: firstIssue(updateCustomization.fields.accentColor.issues()),
+    organizationNameFi: firstIssue(updateCustomization.fields.organizationNameFi.issues()),
+    organizationNameEn: firstIssue(updateCustomization.fields.organizationNameEn.issues()),
+    organizationLegalNameFi: firstIssue(updateCustomization.fields.organizationLegalNameFi.issues()),
+    organizationLegalNameEn: firstIssue(updateCustomization.fields.organizationLegalNameEn.issues()),
+    appNameFi: firstIssue(updateCustomization.fields.appNameFi.issues()),
+    appNameEn: firstIssue(updateCustomization.fields.appNameEn.issues()),
+    businessId: firstIssue(updateCustomization.fields.businessId.issues()),
+    overseerContact: firstIssue(updateCustomization.fields.overseerContact.issues()),
+    overseerAddress: firstIssue(updateCustomization.fields.overseerAddress.issues()),
+    privacyPolicyFi: firstIssue(updateCustomization.fields.privacyPolicyFi.issues()),
+    privacyPolicyEn: firstIssue(updateCustomization.fields.privacyPolicyEn.issues()),
+    organizationRulesUrl: firstIssue(updateCustomization.fields.organizationRulesUrl.issues()),
+    memberResignRule: firstIssue(updateCustomization.fields.memberResignRule.issues()),
+    memberResignDefaultReasonFi: firstIssue(updateCustomization.fields.memberResignDefaultReasonFi.issues()),
+    memberResignDefaultReasonEn: firstIssue(updateCustomization.fields.memberResignDefaultReasonEn.issues()),
+    logo: firstIssue(updateCustomization.fields.logo.issues()),
+    logoDark: firstIssue(updateCustomization.fields.logoDark.issues()),
+    favicon: firstIssue(updateCustomization.fields.favicon.issues()),
+    faviconDark: firstIssue(updateCustomization.fields.faviconDark.issues()),
+  });
+
+  let rootErrors = $derived(updateCustomization.fields.allIssues()?.filter((issue) => issue.path.length === 0) ?? []);
+
+  // Pending removals are only persisted when the form is saved.
+  let removeImages = $state({
+    logo: false,
+    logoDark: false,
+    favicon: false,
+    faviconDark: false,
+  });
+
+  const imageUrls = {
+    logo: "/api/image/logo.svg",
+    logoDark: "/api/image/logo-dark.svg",
+    favicon: "/api/image/favicon.png",
+    faviconDark: "/api/image/favicon-dark.png",
+  } satisfies Record<keyof typeof data.customImageExists, string>;
+
+  // Helper to get image URL with cache-buster if it exists and is not queued for removal
+  const getImageUrl = (type: keyof typeof data.customImageExists) =>
+    data.customImageExists[type] && !removeImages[type] ? `${imageUrls[type]}?v=${data.imageVersion}` : null;
+
+  function toggleRemove(type: keyof typeof removeImages) {
+    removeImages[type] = !removeImages[type];
+  }
+
+  function clearImageRemovals() {
+    removeImages.logo = false;
+    removeImages.logoDark = false;
+    removeImages.favicon = false;
+    removeImages.faviconDark = false;
+  }
+</script>
+
+<main class="container mx-auto max-w-[1400px] px-4 py-6">
+  <AdminPageHeader title={$LL.admin.customize.title()} description={$LL.admin.customize.description()} />
+
+  <div class="space-y-6">
+    <form
+      {...updateCustomization.preflight(updateCustomizationSchema).enhance(async ({ submit }) => {
+        try {
+          await submit();
+        } catch {
+          toast.error($LL.admin.customize.error());
+          return;
+        }
+
+        if (updateCustomization.fields.allIssues()?.length) {
+          toast.error($LL.admin.customize.error());
+          return;
+        }
+
+        clearImageRemovals();
+        toast.success(updateCustomization.result?.message || $LL.admin.customize.success());
+      })}
+      enctype="multipart/form-data"
+      class="space-y-8"
+    >
+      {#if removeImages.logo}<input type="hidden" name="removeLogo" value="true" />{/if}
+      {#if removeImages.logoDark}<input type="hidden" name="removeLogoDark" value="true" />{/if}
+      {#if removeImages.favicon}<input type="hidden" name="removeFavicon" value="true" />{/if}
+      {#if removeImages.faviconDark}<input type="hidden" name="removeFaviconDark" value="true" />{/if}
+
+      <!-- Branding Section -->
+      <div class="border-b border-gray-200 pb-6 dark:border-gray-700">
+        <h4 class="mb-4 text-base font-medium text-gray-900 dark:text-gray-100">
+          {$LL.admin.customize.brandingDefaults.title()}
+        </h4>
+
+        <div class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+          <!-- Accent Color -->
+          <div class="sm:col-span-1">
+            <label for="accentColor" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.brandingDefaults.accentColor()}
+            </label>
+            <div class="mt-1 flex items-center gap-4">
+              <input
+                type="color"
+                name="accentColor"
+                id="accentColor"
+                bind:value={values.accentColor}
+                class="h-10 w-20 cursor-pointer rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
+              <code class="rounded bg-gray-100 px-2 py-1 text-sm dark:bg-gray-900">{values.accentColor}</code>
+            </div>
+            {#if errors.accentColor}
+              <p class="mt-2 text-sm text-red-600">{errors.accentColor}</p>
+            {/if}
+          </div>
+        </div>
+
+        <!-- App Name (Localized) -->
+        <div class="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+          <div class="sm:col-span-1">
+            <label for="appNameFI" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.brandingDefaults.appNameFi()}
+            </label>
+            <div class="mt-1">
+              <Input type="text" name="appNameFi" id="appNameFI" bind:value={values.appNameFi} class="max-w-md" />
+            </div>
+            {#if errors.appNameFi}<p class="mt-2 text-sm text-red-600">{errors.appNameFi}</p>{/if}
+          </div>
+
+          <div class="sm:col-span-1">
+            <label for="appNameEN" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.brandingDefaults.appNameEn()}
+            </label>
+            <div class="mt-1">
+              <Input type="text" name="appNameEn" id="appNameEN" bind:value={values.appNameEn} class="max-w-md" />
+            </div>
+            {#if errors.appNameEn}<p class="mt-2 text-sm text-red-600">{errors.appNameEn}</p>{/if}
+          </div>
+        </div>
+      </div>
+
+      <!-- Organization Details Section -->
+      <div class="border-b border-gray-200 pb-6 dark:border-gray-700">
+        <h4 class="mb-4 text-base font-medium text-gray-900 dark:text-gray-100">
+          {$LL.admin.customize.organizationDetails.title()}
+        </h4>
+
+        <div class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+          <div class="sm:col-span-1">
+            <label for="orgNameFI" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.organizationDetails.nameFi()}
+            </label>
+            <div class="mt-1">
+              <Input
+                type="text"
+                name="organizationNameFi"
+                id="orgNameFI"
+                bind:value={values.organizationNameFi}
+                class="max-w-md"
+              />
+            </div>
+            {#if errors.organizationNameFi}<p class="mt-2 text-sm text-red-600">{errors.organizationNameFi}</p>{/if}
+          </div>
+
+          <div class="sm:col-span-1">
+            <label for="orgNameEN" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.organizationDetails.nameEn()}
+            </label>
+            <div class="mt-1">
+              <Input
+                type="text"
+                name="organizationNameEn"
+                id="orgNameEN"
+                bind:value={values.organizationNameEn}
+                class="max-w-md"
+              />
+            </div>
+            {#if errors.organizationNameEn}<p class="mt-2 text-sm text-red-600">{errors.organizationNameEn}</p>{/if}
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+          <div class="sm:col-span-1">
+            <label for="orgLegalNameFI" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.organizationDetails.legalNameFi()}
+            </label>
+            <div class="mt-1">
+              <Input
+                type="text"
+                name="organizationLegalNameFi"
+                id="orgLegalNameFI"
+                bind:value={values.organizationLegalNameFi}
+                class="max-w-md"
+              />
+            </div>
+            {#if errors.organizationLegalNameFi}<p class="mt-2 text-sm text-red-600">
+                {errors.organizationLegalNameFi}
+              </p>{/if}
+          </div>
+
+          <div class="sm:col-span-1">
+            <label for="orgLegalNameEN" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.organizationDetails.legalNameEn()}
+            </label>
+            <div class="mt-1">
+              <Input
+                type="text"
+                name="organizationLegalNameEn"
+                id="orgLegalNameEN"
+                bind:value={values.organizationLegalNameEn}
+                class="max-w-md"
+              />
+            </div>
+            {#if errors.organizationLegalNameEn}<p class="mt-2 text-sm text-red-600">
+                {errors.organizationLegalNameEn}
+              </p>{/if}
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+          <div class="sm:col-span-1">
+            <label for="businessId" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.organizationDetails.businessId()}
+            </label>
+            <div class="mt-1">
+              <Input type="text" name="businessId" id="businessId" bind:value={values.businessId} class="max-w-md" />
+            </div>
+            {#if errors.businessId}<p class="mt-2 text-sm text-red-600">{errors.businessId}</p>{/if}
+          </div>
+
+          <div class="sm:col-span-1">
+            <label for="overseerContact" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.organizationDetails.overseerContact()}
+            </label>
+            <div class="mt-1">
+              <Input
+                type="email"
+                name="overseerContact"
+                id="overseerContact"
+                bind:value={values.overseerContact}
+                class="max-w-md"
+              />
+            </div>
+            {#if errors.overseerContact}<p class="mt-2 text-sm text-red-600">{errors.overseerContact}</p>{/if}
+          </div>
+        </div>
+
+        <div class="mt-6 sm:col-span-2">
+          <label for="overseerAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            {$LL.admin.customize.organizationDetails.overseerAddress()}
+          </label>
+          <div class="mt-1">
+            <Input
+              type="text"
+              name="overseerAddress"
+              id="overseerAddress"
+              bind:value={values.overseerAddress}
+              class="max-w-xl"
+            />
+          </div>
+          {#if errors.overseerAddress}<p class="mt-2 text-sm text-red-600">{errors.overseerAddress}</p>{/if}
+        </div>
+
+        <div class="mt-6 sm:col-span-2">
+          <label for="rulesUrl" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            {$LL.admin.customize.organizationDetails.organizationRulesUrl()}
+          </label>
+          <div class="mt-1">
+            <Input
+              type="url"
+              name="organizationRulesUrl"
+              id="rulesUrl"
+              bind:value={values.organizationRulesUrl}
+              class="max-w-xl"
+            />
+          </div>
+          {#if errors.organizationRulesUrl}<p class="mt-2 text-sm text-red-600">{errors.organizationRulesUrl}</p>{/if}
+        </div>
+      </div>
+
+      <!-- Resignation Rules Section -->
+      <div class="border-b border-gray-200 pb-6 dark:border-gray-700">
+        <h4 class="mb-4 text-base font-medium text-gray-900 dark:text-gray-100">
+          {$LL.admin.customize.resignation.title()}
+        </h4>
+
+        <div class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+          <div class="sm:col-span-1">
+            <label for="memberResignRule" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.resignation.rule()}
+            </label>
+            <div class="mt-1">
+              <Input
+                type="text"
+                name="memberResignRule"
+                id="memberResignRule"
+                bind:value={values.memberResignRule}
+                class="max-w-md"
+              />
+            </div>
+            {#if errors.memberResignRule}<p class="mt-2 text-sm text-red-600">{errors.memberResignRule}</p>{/if}
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+          <div class="sm:col-span-1">
+            <label for="memberResignDefaultReasonFi" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.resignation.defaultReasonFi()}
+            </label>
+            <div class="mt-1">
+              <Input
+                type="text"
+                name="memberResignDefaultReasonFi"
+                id="memberResignDefaultReasonFi"
+                bind:value={values.memberResignDefaultReasonFi}
+                class="max-w-md"
+              />
+            </div>
+            {#if errors.memberResignDefaultReasonFi}<p class="mt-2 text-sm text-red-600">
+                {errors.memberResignDefaultReasonFi}
+              </p>{/if}
+          </div>
+
+          <div class="sm:col-span-1">
+            <label for="memberResignDefaultReasonEn" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.resignation.defaultReasonEn()}
+            </label>
+            <div class="mt-1">
+              <Input
+                type="text"
+                name="memberResignDefaultReasonEn"
+                id="memberResignDefaultReasonEn"
+                bind:value={values.memberResignDefaultReasonEn}
+                class="max-w-md"
+              />
+            </div>
+            {#if errors.memberResignDefaultReasonEn}<p class="mt-2 text-sm text-red-600">
+                {errors.memberResignDefaultReasonEn}
+              </p>{/if}
+          </div>
+        </div>
+      </div>
+
+      <!-- Privacy Policy Section (Markdown) -->
+      <div class="border-b border-gray-200 pb-6 dark:border-gray-700">
+        <h4 class="mb-4 text-base font-medium text-gray-900 dark:text-gray-100">
+          {$LL.admin.customize.privacyPolicy.title()}
+        </h4>
+
+        <div class="space-y-6">
+          <div>
+            <label for="privacyPolicyFI" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.privacyPolicy.fi()}
+            </label>
+            <MarkdownEditor id="privacyPolicyFI" bind:value={values.privacyPolicyFi} />
+            <input type="hidden" name="privacyPolicyFi" bind:value={values.privacyPolicyFi} />
+            {#if errors.privacyPolicyFi}
+              <p class="mt-2 text-sm text-red-600">{errors.privacyPolicyFi}</p>
+            {/if}
+          </div>
+
+          <div>
+            <label for="privacyPolicyEN" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.privacyPolicy.en()}
+            </label>
+            <MarkdownEditor id="privacyPolicyEN" bind:value={values.privacyPolicyEn} />
+            <input type="hidden" name="privacyPolicyEn" bind:value={values.privacyPolicyEn} />
+            {#if errors.privacyPolicyEn}
+              <p class="mt-2 text-sm text-red-600">{errors.privacyPolicyEn}</p>
+            {/if}
+          </div>
+        </div>
+      </div>
+
+      <!-- Images Section -->
+      <div class="border-b border-gray-200 pb-6 dark:border-gray-700">
+        <h4 class="mb-4 text-base font-medium text-gray-900 dark:text-gray-100">
+          {$LL.admin.customize.images.title()}
+        </h4>
+
+        <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2">
+          <!-- Logo -->
+          <div>
+            <label for="logo" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.images.logoLight()}
+            </label>
+            <input
+              type="file"
+              name="logo"
+              id="logo"
+              accept="image/svg+xml"
+              class="block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-400 dark:file:bg-gray-700 dark:file:text-gray-300"
+            />
+            {#if data.customImageExists.logo}
+              {#if getImageUrl("logo")}
+                <div class="mt-2 text-xs text-gray-500">
+                  {$LL.admin.customize.images.current()}
+                  <img
+                    src={getImageUrl("logo")}
+                    alt="Current Logo"
+                    class="ml-2 inline-block h-8 rounded bg-gray-100 object-contain p-1"
+                  />
+                </div>
+              {/if}
+              <button
+                type="button"
+                onclick={() => toggleRemove("logo")}
+                class="mt-2 rounded border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+              >
+                {removeImages.logo ? $LL.common.cancel() : $LL.common.delete()}
+              </button>
+            {/if}
+            {#if errors.logo}<p class="mt-2 text-xs text-red-600">{errors.logo}</p>{/if}
+          </div>
+
+          <!-- Logo Dark -->
+          <div>
+            <label for="logoDark" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.images.logoDark()}
+            </label>
+            <input
+              type="file"
+              name="logoDark"
+              id="logoDark"
+              accept="image/svg+xml"
+              class="block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-400 dark:file:bg-gray-700 dark:file:text-gray-300"
+            />
+            {#if data.customImageExists.logoDark}
+              {#if getImageUrl("logoDark")}
+                <div class="mt-2 text-xs text-gray-500">
+                  {$LL.admin.customize.images.current()}
+                  <img
+                    src={getImageUrl("logoDark")}
+                    alt="Current Logo Dark"
+                    class="ml-2 inline-block h-8 rounded bg-gray-900 object-contain p-1"
+                  />
+                </div>
+              {/if}
+              <button
+                type="button"
+                onclick={() => toggleRemove("logoDark")}
+                class="mt-2 rounded border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+              >
+                {removeImages.logoDark ? $LL.common.cancel() : $LL.common.delete()}
+              </button>
+            {/if}
+            {#if errors.logoDark}<p class="mt-2 text-xs text-red-600">{errors.logoDark}</p>{/if}
+          </div>
+
+          <!-- Favicon -->
+          <div>
+            <label for="favicon" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.images.faviconLight()}
+            </label>
+            <input
+              type="file"
+              name="favicon"
+              id="favicon"
+              accept="image/png"
+              class="block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-400 dark:file:bg-gray-700 dark:file:text-gray-300"
+            />
+            {#if data.customImageExists.favicon}
+              {#if getImageUrl("favicon")}
+                <div class="mt-2 text-xs text-gray-500">
+                  {$LL.admin.customize.images.current()}
+                  <img
+                    src={getImageUrl("favicon")}
+                    alt="Current Favicon"
+                    class="ml-2 inline-block h-8 w-8 rounded bg-gray-100 object-contain p-1"
+                  />
+                </div>
+              {/if}
+              <button
+                type="button"
+                onclick={() => toggleRemove("favicon")}
+                class="mt-2 rounded border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+              >
+                {removeImages.favicon ? $LL.common.cancel() : $LL.common.delete()}
+              </button>
+            {/if}
+            {#if errors.favicon}<p class="mt-2 text-xs text-red-600">{errors.favicon}</p>{/if}
+          </div>
+
+          <!-- Favicon Dark -->
+          <div>
+            <label for="faviconDark" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.images.faviconDark()}
+            </label>
+            <input
+              type="file"
+              name="faviconDark"
+              id="faviconDark"
+              accept="image/png"
+              class="block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-400 dark:file:bg-gray-700 dark:file:text-gray-300"
+            />
+            {#if data.customImageExists.faviconDark}
+              {#if getImageUrl("faviconDark")}
+                <div class="mt-2 text-xs text-gray-500">
+                  {$LL.admin.customize.images.current()}
+                  <img
+                    src={getImageUrl("faviconDark")}
+                    alt="Current Favicon Dark"
+                    class="ml-2 inline-block h-8 w-8 rounded bg-gray-900 object-contain p-1"
+                  />
+                </div>
+              {/if}
+              <button
+                type="button"
+                onclick={() => toggleRemove("faviconDark")}
+                class="mt-2 rounded border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+              >
+                {removeImages.faviconDark ? $LL.common.cancel() : $LL.common.delete()}
+              </button>
+            {/if}
+            {#if errors.faviconDark}<p class="mt-2 text-xs text-red-600">{errors.faviconDark}</p>{/if}
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="pt-5">
+        {#each rootErrors as issue, i (i)}
+          <p class="mb-3 text-sm text-red-600">{issue.message}</p>
+        {/each}
+        <div class="flex justify-end">
+          <button
+            type="submit"
+            class="ml-3 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
+            data-testid="save-customizations"
+            disabled={!data.canWrite || !!updateCustomization.pending}
+          >
+            {$LL.admin.customize.save()}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</main>

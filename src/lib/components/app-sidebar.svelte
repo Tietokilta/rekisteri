@@ -7,7 +7,6 @@
   import { signOut } from "$lib/api/auth.remote";
   import { stripLocaleFromPathname, type Locale } from "$lib/i18n/routing";
   import { getMainNavItems, getSettingsNavItems, getAdminNavItems } from "$lib/navigation";
-  import RatasLogo from "$lib/icons/ratas-logo.svelte";
   import { formatUserName } from "$lib/utils";
   import { hasAdminAccess, type AdminRole } from "$lib/shared/enums";
 
@@ -43,6 +42,9 @@
 
   // Get user display name
   const displayName = $derived(formatUserName(user, user.email));
+
+  const logoUrl = $derived(page.data.customizations.logoUrl ?? page.data.customizations.logoDarkUrl);
+  const logoDarkUrl = $derived(page.data.customizations.logoDarkUrl ?? page.data.customizations.logoUrl);
 </script>
 
 <Sidebar.Sidebar>
@@ -50,12 +52,15 @@
   <Sidebar.SidebarHeader>
     <Sidebar.SidebarMenu>
       <Sidebar.SidebarMenuItem>
-        <Sidebar.SidebarMenuButton size="lg" tooltipContent={$LL.app.title()}>
+        <Sidebar.SidebarMenuButton size="lg" tooltipContent={page.data.customizations.appName[$locale]}>
           {#snippet child({ props })}
             <a href={route("/[locale=locale]", { locale: $locale })} {...props}>
-              <RatasLogo class="size-8" />
+              {#if logoUrl || logoDarkUrl}
+                <img src={logoUrl} alt="App logo" class="size-8 dark:hidden" />
+                <img src={logoDarkUrl} alt="App logo" class="hidden size-8 dark:block" />
+              {/if}
               <div class="flex flex-col gap-0.5 leading-none">
-                <span class="font-mono font-semibold">{$LL.app.title()}</span>
+                <span class="font-mono font-semibold">{page.data.customizations.appName[$locale]}</span>
               </div>
             </a>
           {/snippet}

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeBase64url, encodeHexLowerCase } from "@oslojs/encoding";
 import { dev } from "$app/environment";
+import { env } from "$lib/server/env";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
@@ -78,7 +79,7 @@ export function setSessionTokenCookie(event: RequestEvent, token: string, expire
     expires: expiresAt,
     path: "/",
     httpOnly: true,
-    secure: !dev,
+    secure: !dev && !env.TEST,
     sameSite: "lax",
   });
 }

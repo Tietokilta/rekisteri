@@ -1,0 +1,108 @@
+import { desc, eq } from "drizzle-orm";
+import * as table from "../src/lib/server/db/schema";
+import { test, expect } from "./fixtures/db";
+
+test.describe("App Customization", () => {
+  test("admin can update general branding", async ({ adminPage, adminUser, db }) => {
+    await adminPage.goto("/en/admin/customize");
+
+    // Update app name and accent color
+    const newAppName = "Test Registry " + Math.random().toString(36).slice(7);
+    const currentAccentColor = await adminPage.inputValue('input[name="accentColor"]');
+    const newAccentColor = currentAccentColor.toLowerCase() === "#ff0000" ? "#00ff00" : "#ff0000";
+
+    await adminPage.fill('input[name="appNameEn"]', newAppName);
+    await adminPage.fill('input[name="accentColor"]', newAccentColor);
+
+    await adminPage.getByTestId("save-customizations").click();
+
+    // Check for success toast - try both languages just in case, or use a more robust locator
+    // We expect "Settings updated successfully" (EN) or "Asetukset tallennettu onnistuneesti" (FI)
+    await expect(
+      adminPage.locator("text=/Settings updated successfully|Asetukset tallennettu onnistuneesti/"),
+    ).toBeVisible();
+
+    // Verify changes are reflected on the page (synced via $effect)
+    await expect(adminPage.locator('input[name="appNameEn"]')).toHaveValue(newAppName);
+
+    // Verify changes on a public page
+    await adminPage.goto("/en");
+    await expect(adminPage).toHaveTitle(new RegExp(newAppName));
+
+    // Verify accent color in head
+    // The style tag is injected via {@html} in +layout.svelte
+    await expect(async () => {
+      const styles = await adminPage.evaluate(() => {
+        const styleTags = Array.from(document.querySelectorAll("style"));
+        return styleTags.map((s) => s.textContent).join("\n");
+      });
+      expect(styles).toContain(`--primary: ${newAccentColor}`);
+    }).toPass();
+
+    const [auditLog] = await db
+      .select()
+      .from(table.auditLog)
+      .where(eq(table.auditLog.action, "app_customization.update"))
+      .orderBy(desc(table.auditLog.createdAt))
+      .limit(1);
+    const metadata = auditLog?.metadata as
+      | { changedFields?: string[]; uploadedImages?: string[]; removedImages?: string[] }
+      | null
+      | undefined;
+
+    expect(auditLog?.userId).toBe(adminUser.id);
+    expect(auditLog?.targetType).toBe("app_customization");
+    expect(auditLog?.targetId).toBe("1");
+    expect(metadata?.changedFields).toEqual(expect.arrayContaining(["accentColor", "appName"]));
+    expect(metadata?.uploadedImages).toEqual([]);
+    expect(metadata?.removedImages).toEqual([]);
+  });
+
+  test("admin can update organization details", async ({ adminPage }) => {
+    await adminPage.goto("/en/admin/customize");
+
+    const newOrgName = "Test Organization " + Math.random().toString(36).slice(7);
+    const newOrgLegalName = "Test Organization ry " + Math.random().toString(36).slice(7);
+    const newBusinessId = "1234567-8";
+    const newContact = "test@example.com";
+
+    await adminPage.fill('input[name="organizationNameEn"]', newOrgName);
+    await adminPage.fill('input[name="organizationLegalNameEn"]', newOrgLegalName);
+    await adminPage.fill('input[name="businessId"]', newBusinessId);
+    await adminPage.fill('input[name="overseerContact"]', newContact);
+
+    await adminPage.getByTestId("save-customizations").click();
+    await expect(
+      adminPage.locator("text=/Settings updated successfully|Asetukset tallennettu onnistuneesti/"),
+    ).toBeVisible();
+
+    // Verify on privacy policy page (which uses these details in footer or content)
+    await adminPage.goto("/en/privacy-policy");
+    // The footer contains the legal name and registry details
+    await expect(adminPage.locator("footer")).toContainText(newOrgLegalName);
+    await expect(adminPage.locator("footer")).toContainText(newBusinessId);
+    await expect(adminPage.locator("footer")).toContainText(newContact);
+  });
+
+  test("readonly admin cannot update customizations", async ({ readonlyAdminPage }) => {
+    await readonlyAdminPage.goto("/en/admin/customize");
+
+    // Check if a warning banner is present
+    await expect(
+      readonlyAdminPage.locator("text=/You have read-only access|Sinulla on vain lukuoikeus/"),
+    ).toBeVisible();
+
+    // Try to submit anyway (if button is not disabled)
+    const saveButton = readonlyAdminPage.getByTestId("save-customizations");
+
+    const isDisabled = await saveButton.isDisabled();
+
+    if (!isDisabled) {
+      const [response] = await Promise.all([
+        readonlyAdminPage.waitForResponse((res) => res.status() === 404),
+        saveButton.click(),
+      ]);
+      expect(response.status()).toBe(404);
+    }
+  });
+});

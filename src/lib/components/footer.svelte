@@ -3,6 +3,7 @@
   import { publicEnv } from "$lib/env";
   import { dev } from "$app/environment";
   import { route } from "$lib/ROUTES";
+  import { page } from "$app/state";
 
   const versionSha = publicEnv.PUBLIC_GIT_COMMIT_SHA ?? "development";
   const showVersionSha = versionSha !== "development" || dev;
@@ -10,6 +11,8 @@
     versionSha === "development"
       ? "https://youtu.be/dQw4w9WgXcQ"
       : `https://github.com/Tietokilta/rekisteri/tree/${versionSha}`;
+
+  const customizations = $derived(page.data.customizations);
 </script>
 
 <footer class="mt-auto border-t border-border/40 bg-muted/50">
@@ -17,12 +20,12 @@
     <!-- Compact inline layout -->
     <div class="flex flex-wrap items-start justify-between gap-4 text-xs text-muted-foreground">
       <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <span class="font-medium text-foreground">{$LL.documents.footer.organization()}</span>
-        <span>{$LL.documents.footer.businessId()}</span>
-        <a href="mailto:hallitus@tietokilta.fi" class="underline underline-offset-2 hover:text-foreground"
-          >{$LL.documents.footer.email()}</a
+        <span class="font-medium text-foreground">{customizations.organizationLegalName[$locale]}</span>
+        <span>{customizations.businessId}</span>
+        <a href="mailto:{customizations.overseerContact}" class="underline underline-offset-2 hover:text-foreground"
+          >{customizations.overseerContact}</a
         >
-        <span class="hidden sm:inline">{$LL.documents.footer.address()}</span>
+        <span class="hidden sm:inline">{customizations.overseerAddress}</span>
       </div>
       <div class="flex items-center gap-4">
         <a
@@ -32,7 +35,8 @@
           {$LL.documents.footer.privacyPolicy()}
         </a>
         <span>
-          &copy; {new Date().getFullYear()} Tietokilta ry
+          &copy; {new Date().getFullYear()}
+          {customizations.organizationLegalName[$locale]}
           {#if showVersionSha}
             |
             <a

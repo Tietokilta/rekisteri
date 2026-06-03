@@ -8,6 +8,10 @@ import { eq } from "drizzle-orm";
 import { execSync } from "node:child_process";
 import { loadEnvFile } from "./utils";
 
+function quoteIdentifier(identifier: string) {
+  return `"${identifier.replaceAll('"', '""')}"`;
+}
+
 async function globalSetup(_config: FullConfig) {
   loadEnvFile();
 
@@ -25,31 +29,46 @@ async function globalSetup(_config: FullConfig) {
 
   try {
     const result = await adminClient`SELECT 1 FROM pg_database WHERE datname = ${testDbName}`;
-    if (result.length === 0) {
-      await adminClient.unsafe(`CREATE DATABASE ${testDbName}`);
-      console.log(`✓ Created test database: ${testDbName}`);
+    if (result.length > 0) {
+      await adminClient`
+        SELECT pg_terminate_backend(pid)
+        FROM pg_stat_activity
+        WHERE datname = ${testDbName}
+          AND pid <> pg_backend_pid()
+      `;
+      await adminClient.unsafe(`DROP DATABASE ${quoteIdentifier(testDbName)}`);
+      console.log(`✓ Dropped test database: ${testDbName}`);
     }
+
+    await adminClient.unsafe(`CREATE DATABASE ${quoteIdentifier(testDbName)}`);
+    console.log(`✓ Created test database: ${testDbName}`);
   } finally {
     await adminClient.end();
   }
 
+  console.log("✓ Running migrations on test database...");
+  execSync(`DATABASE_URL="${dbUrl}" pnpm db:migrate`, { stdio: "inherit" });
+
+  console.log("✓ Seeding test database...");
+  execSync(`DATABASE_URL="${dbUrl}" pnpm tsx --env-file=.env src/lib/server/db/seed.ts`, {
+    stdio: "inherit",
+  });
+
   const client = postgres(dbUrl);
   const db = drizzle({ client, schema: table, casing: "snake_case" });
 
-  console.log("✓ Pushing schema to test database...");
-  execSync(`DATABASE_URL="${dbUrl}" pnpm drizzle-kit push --force`, { stdio: "inherit" });
-
-  let [adminUser] = await db.select().from(table.user).where(eq(table.user.email, "root@tietokilta.fi")).limit(1);
+  const [adminUser] = await db.select().from(table.user).where(eq(table.user.email, "root@tietokilta.fi")).limit(1);
+  const [appCustomization] = await db
+    .select({ id: table.appCustomization.id })
+    .from(table.appCustomization)
+    .where(eq(table.appCustomization.id, 1))
+    .limit(1);
 
   if (!adminUser) {
-    console.log("✓ Seeding test database...");
-    execSync(`DATABASE_URL="${dbUrl}" pnpm tsx --env-file=.env src/lib/server/db/seed.ts`, {
-      stdio: "inherit",
-    });
-    [adminUser] = await db.select().from(table.user).where(eq(table.user.email, "root@tietokilta.fi")).limit(1);
-    if (!adminUser) {
-      throw new Error("Failed to seed admin user");
-    }
+    throw new Error("Failed to seed admin user");
+  }
+  if (!appCustomization) {
+    throw new Error("Failed to migrate app customization singleton");
   }
 
   const sessionToken = generateSessionToken();

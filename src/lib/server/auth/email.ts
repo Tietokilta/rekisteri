@@ -5,6 +5,7 @@ import { encodeBase32LowerCaseNoPadding } from "@oslojs/encoding";
 import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { dev } from "$app/environment";
+import { env } from "$lib/server/env";
 import { sendMemberEmail } from "$lib/server/emails";
 
 import type { EmailOTP } from "$lib/server/db/schema";
@@ -18,7 +19,7 @@ export function setEmailCookie(event: RequestEvent, email: string, expiresAt: Da
     expires: expiresAt,
     path: "/",
     httpOnly: true,
-    secure: !dev,
+    secure: !dev && !env.TEST,
     sameSite: "lax",
   });
 }
@@ -87,7 +88,7 @@ export function setEmailOTPCookie(event: RequestEvent, otp: EmailOTP): void {
   event.cookies.set(emailOTPCookieName, otp.id, {
     httpOnly: true,
     path: "/",
-    secure: !dev,
+    secure: !dev && !env.TEST,
     sameSite: "lax",
     expires: otp.expiresAt,
   });
@@ -97,7 +98,7 @@ export function deleteEmailOTPCookie(event: RequestEvent): void {
   event.cookies.delete(emailOTPCookieName, {
     httpOnly: true,
     path: "/",
-    secure: !dev,
+    secure: !dev && !env.TEST,
     sameSite: "lax",
     maxAge: 0,
   });

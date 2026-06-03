@@ -14,7 +14,8 @@ try {
   const db = drizzle({ client, schema: table, casing: "snake_case" });
 
   console.log("Resetting database...");
-  await reset(db, table);
+  const { appCustomization: _appCustomization, ...resetSchema } = table;
+  await reset(db, resetSchema);
   console.log("Database reset!");
 
   console.log("Seeding database...");

@@ -1,0 +1,53 @@
+CREATE TABLE "app_customization" (
+	"id" integer PRIMARY KEY,
+	"accent_color" text NOT NULL,
+	"organization_name" jsonb NOT NULL,
+	"organization_legal_name" jsonb NOT NULL,
+	"app_name" jsonb NOT NULL,
+	"logo" bytea,
+	"logo_dark" bytea,
+	"favicon" bytea,
+	"favicon_dark" bytea,
+	"business_id" text NOT NULL,
+	"overseer_contact" text NOT NULL,
+	"overseer_address" text NOT NULL,
+	"privacy_policy" jsonb NOT NULL,
+	"organization_rules_url" text NOT NULL,
+	"member_resign_rule" text NOT NULL,
+	"member_resign_default_reason" jsonb NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "app_customization_singleton" CHECK ("id" = 1),
+	CONSTRAINT "app_customization_logo_size" CHECK (octet_length("logo") <= 65536),
+	CONSTRAINT "app_customization_logo_dark_size" CHECK (octet_length("logo_dark") <= 65536),
+	CONSTRAINT "app_customization_favicon_size" CHECK (octet_length("favicon") <= 32768),
+	CONSTRAINT "app_customization_favicon_dark_size" CHECK (octet_length("favicon_dark") <= 32768)
+);
+--> statement-breakpoint
+INSERT INTO "app_customization" (
+	"id",
+	"accent_color",
+	"organization_name",
+	"organization_legal_name",
+	"app_name",
+	"business_id",
+	"overseer_contact",
+	"overseer_address",
+	"privacy_policy",
+	"organization_rules_url",
+	"member_resign_rule",
+	"member_resign_default_reason"
+) VALUES (
+	1,
+	'#4f46e5',
+	'{"fi":"Kilta","en":"Guild"}'::jsonb,
+	'{"fi":"Kilta ry","en":"Guild Registered Association"}'::jsonb,
+	'{"fi":"Jäsenrekisteri","en":"Member Registry"}'::jsonb,
+	'0123456-7',
+	'hallitus@kilta.fi',
+	'Kiltatalo, Otakaari 1, 02150 Espoo',
+	'{"fi":"Tämä on jäsenrekisterin tietosuojaseloste.","en":"This is the privacy policy for the membership registry."}'::jsonb,
+	'https://kilta.fi/saannot',
+	'§67',
+	'{"fi":"§67 nojalla. Liiallinen brainrot.","en":"By applying of §67. Too much brainrot."}'::jsonb
+);
