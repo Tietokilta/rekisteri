@@ -1,8 +1,6 @@
 import type { AppCustomization, LocalizedString } from "$lib/server/db/schema";
+import { CUSTOMIZATION_FAVICON_MAX_BYTES, CUSTOMIZATION_LOGO_MAX_BYTES } from "$lib/shared/customization";
 import { DEFAULT_CUSTOMIZATION } from "./defaults";
-
-export const CUSTOMIZATION_LOGO_MAX_BYTES = 64 * 1024;
-export const CUSTOMIZATION_FAVICON_MAX_BYTES = 32 * 1024;
 
 export type CustomizationImageField = "logo" | "logoDark" | "favicon" | "faviconDark";
 

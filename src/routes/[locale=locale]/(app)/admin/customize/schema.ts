@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { CUSTOMIZATION_FAVICON_MAX_BYTES, CUSTOMIZATION_LOGO_MAX_BYTES } from "$lib/server/customization/utils";
+import { CUSTOMIZATION_FAVICON_MAX_BYTES, CUSTOMIZATION_LOGO_MAX_BYTES } from "$lib/shared/customization";
 
 const isSvgUpload = (file: File) =>
   file.size === 0 || file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg");

@@ -1,7 +1,7 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { flattenCustomization } from "$lib/server/customization/utils";
-import { hasAdminAccess } from "$lib/shared/enums";
+import { hasAdminAccess, hasAdminWriteAccess } from "$lib/shared/enums";
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.session || !hasAdminAccess(event.locals.user?.adminRole ?? "none")) {
@@ -23,5 +23,6 @@ export const load: PageServerLoad = async (event) => {
     values,
     customImageExists,
     imageVersion: customizations.updatedAt.getTime().toString(36),
+    canWrite: hasAdminWriteAccess(event.locals.user?.adminRole ?? "none"),
   };
 };

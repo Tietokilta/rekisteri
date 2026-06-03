@@ -118,7 +118,7 @@
 
   <div class="space-y-6">
     <form
-      {...updateCustomization.preflight(updateCustomizationSchema).enhance(async ({ submit, form }) => {
+      {...updateCustomization.preflight(updateCustomizationSchema).enhance(async ({ submit }) => {
         try {
           await submit();
         } catch {
@@ -131,7 +131,6 @@
           return;
         }
 
-        form.reset();
         clearImageRemovals();
         toast.success(updateCustomization.result?.message || $LL.admin.customize.success());
       })}
@@ -583,7 +582,7 @@
             type="submit"
             class="ml-3 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
             data-testid="save-customizations"
-            disabled={!!updateCustomization.pending}
+            disabled={!data.canWrite || !!updateCustomization.pending}
           >
             {$LL.admin.customize.save()}
           </button>
