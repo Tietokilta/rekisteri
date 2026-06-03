@@ -1,4 +1,4 @@
-import type { AppCustomization } from "$lib/server/db/schema";
+import type { AppCustomization, LocalizedString } from "$lib/server/db/schema";
 import { DEFAULT_CUSTOMIZATION } from "./defaults";
 
 export const CUSTOMIZATION_LOGO_MAX_BYTES = 64 * 1024;
@@ -38,36 +38,64 @@ export type CustomizationFormValues = {
   memberResignDefaultReasonEn: string;
 };
 
+function textOrDefault(value: string | null | undefined, fallback: string) {
+  return value || fallback;
+}
+
+function localizedTextOrDefault(
+  value: LocalizedString | null | undefined,
+  locale: keyof LocalizedString,
+  fallback: string,
+) {
+  return textOrDefault(value?.[locale], fallback);
+}
+
 /**
  * Maps a database customization record (nested JSON) to flat form values.
  */
 export function flattenCustomization(custom: AppCustomization | null): CustomizationFormValues {
-  const c = custom || (DEFAULT_CUSTOMIZATION as AppCustomization);
+  const c = custom ?? DEFAULT_CUSTOMIZATION;
 
   return {
-    accentColor: c.accentColor || DEFAULT_CUSTOMIZATION.accentColor,
-    organizationNameFi: c.organizationName?.fi || DEFAULT_CUSTOMIZATION.organizationName.fi,
-    organizationNameEn: c.organizationName?.en || DEFAULT_CUSTOMIZATION.organizationName.en,
-    organizationNameShortFi: c.organizationNameShort?.fi || DEFAULT_CUSTOMIZATION.organizationNameShort.fi,
-    organizationNameShortEn: c.organizationNameShort?.en || DEFAULT_CUSTOMIZATION.organizationNameShort.en,
-    appNameFi: c.appName?.fi || DEFAULT_CUSTOMIZATION.appName.fi,
-    appNameEn: c.appName?.en || DEFAULT_CUSTOMIZATION.appName.en,
-    businessId: c.businessId || DEFAULT_CUSTOMIZATION.businessId,
-    overseerContact: c.overseerContact || DEFAULT_CUSTOMIZATION.overseerContact,
-    overseerAddress: c.overseerAddress || DEFAULT_CUSTOMIZATION.overseerAddress,
-    privacyPolicyFi: c.privacyPolicy?.fi || DEFAULT_CUSTOMIZATION.privacyPolicy.fi,
-    privacyPolicyEn: c.privacyPolicy?.en || DEFAULT_CUSTOMIZATION.privacyPolicy.en,
-    organizationRulesUrl: c.organizationRulesUrl || DEFAULT_CUSTOMIZATION.organizationRulesUrl,
-    memberResignRule: c.memberResignRule || DEFAULT_CUSTOMIZATION.memberResignRule,
-    memberResignDefaultReasonFi: c.memberResignDefaultReason?.fi || DEFAULT_CUSTOMIZATION.memberResignDefaultReason.fi,
-    memberResignDefaultReasonEn: c.memberResignDefaultReason?.en || DEFAULT_CUSTOMIZATION.memberResignDefaultReason.en,
+    accentColor: textOrDefault(c.accentColor, DEFAULT_CUSTOMIZATION.accentColor),
+    organizationNameFi: localizedTextOrDefault(c.organizationName, "fi", DEFAULT_CUSTOMIZATION.organizationName.fi),
+    organizationNameEn: localizedTextOrDefault(c.organizationName, "en", DEFAULT_CUSTOMIZATION.organizationName.en),
+    organizationNameShortFi: localizedTextOrDefault(
+      c.organizationNameShort,
+      "fi",
+      DEFAULT_CUSTOMIZATION.organizationNameShort.fi,
+    ),
+    organizationNameShortEn: localizedTextOrDefault(
+      c.organizationNameShort,
+      "en",
+      DEFAULT_CUSTOMIZATION.organizationNameShort.en,
+    ),
+    appNameFi: localizedTextOrDefault(c.appName, "fi", DEFAULT_CUSTOMIZATION.appName.fi),
+    appNameEn: localizedTextOrDefault(c.appName, "en", DEFAULT_CUSTOMIZATION.appName.en),
+    businessId: textOrDefault(c.businessId, DEFAULT_CUSTOMIZATION.businessId),
+    overseerContact: textOrDefault(c.overseerContact, DEFAULT_CUSTOMIZATION.overseerContact),
+    overseerAddress: textOrDefault(c.overseerAddress, DEFAULT_CUSTOMIZATION.overseerAddress),
+    privacyPolicyFi: localizedTextOrDefault(c.privacyPolicy, "fi", DEFAULT_CUSTOMIZATION.privacyPolicy.fi),
+    privacyPolicyEn: localizedTextOrDefault(c.privacyPolicy, "en", DEFAULT_CUSTOMIZATION.privacyPolicy.en),
+    organizationRulesUrl: textOrDefault(c.organizationRulesUrl, DEFAULT_CUSTOMIZATION.organizationRulesUrl),
+    memberResignRule: textOrDefault(c.memberResignRule, DEFAULT_CUSTOMIZATION.memberResignRule),
+    memberResignDefaultReasonFi: localizedTextOrDefault(
+      c.memberResignDefaultReason,
+      "fi",
+      DEFAULT_CUSTOMIZATION.memberResignDefaultReason.fi,
+    ),
+    memberResignDefaultReasonEn: localizedTextOrDefault(
+      c.memberResignDefaultReason,
+      "en",
+      DEFAULT_CUSTOMIZATION.memberResignDefaultReason.en,
+    ),
   };
 }
 
 /**
  * Resizes an SVG to 32x32 by updating its viewBox and width/height attributes.
  */
-export function resizeSvgTo32(buffer: Buffer): Buffer {
+function resizeSvgTo32(buffer: Buffer): Buffer {
   let svg = buffer.toString("utf8");
 
   const svgMatch = svg.match(/<svg([^>]*)>/i);

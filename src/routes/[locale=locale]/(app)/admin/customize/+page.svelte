@@ -1,25 +1,86 @@
 <script lang="ts">
-  import { enhance } from "$app/forms";
-  import type { PageData, ActionData } from "./$types";
+  import type { PageData } from "./$types";
   import { LL } from "$lib/i18n/i18n-svelte";
   import AdminPageHeader from "$lib/components/admin-page-header.svelte";
   import { Input } from "$lib/components/ui/input";
   import MarkdownEditor from "$lib/components/markdown-editor.svelte";
   import { toast } from "svelte-sonner";
+  import { updateCustomization } from "./data.remote";
+  import { updateCustomizationSchema } from "./schema";
 
-  let { data, form }: { data: PageData; form: ActionData } = $props();
+  type CustomizationValueKey = keyof PageData["values"];
 
-  // Use $state for form values, initialized to empty then synced via effect
-  let values = $state({} as typeof data.values);
+  const CUSTOMIZATION_VALUE_FIELDS = [
+    "accentColor",
+    "organizationNameFi",
+    "organizationNameEn",
+    "organizationNameShortFi",
+    "organizationNameShortEn",
+    "appNameFi",
+    "appNameEn",
+    "businessId",
+    "overseerContact",
+    "overseerAddress",
+    "privacyPolicyFi",
+    "privacyPolicyEn",
+    "organizationRulesUrl",
+    "memberResignRule",
+    "memberResignDefaultReasonFi",
+    "memberResignDefaultReasonEn",
+  ] as const satisfies readonly CustomizationValueKey[];
 
-  // Svelte 5: Sync state when data or form changes (e.g. after successful save or locale change)
-  // This avoids the "state_referenced_locally" warning and ensures UI reflects server updates.
+  let { data }: { data: PageData } = $props();
+
+  function firstIssue(issues: { message: string }[] | undefined) {
+    return issues?.[0]?.message;
+  }
+
+  function getCurrentValues() {
+    const submitted = updateCustomization.fields.value();
+    const currentValues = { ...data.values };
+
+    for (const field of CUSTOMIZATION_VALUE_FIELDS) {
+      const submittedValue = submitted[field];
+      if (typeof submittedValue === "string") {
+        currentValues[field] = submittedValue;
+      }
+    }
+
+    return currentValues;
+  }
+
+  // MarkdownEditor uses explicit bindings, so keep text values in local state while
+  // the remote form owns submission and validation state.
+  let values = $state(getCurrentValues());
+
   $effect(() => {
-    const newValues = { ...data.values, ...form?.values };
-    Object.assign(values, newValues);
+    Object.assign(values, getCurrentValues());
   });
 
-  let errors = $derived(form?.errors ?? {});
+  let errors = $derived({
+    accentColor: firstIssue(updateCustomization.fields.accentColor.issues()),
+    organizationNameFi: firstIssue(updateCustomization.fields.organizationNameFi.issues()),
+    organizationNameEn: firstIssue(updateCustomization.fields.organizationNameEn.issues()),
+    organizationNameShortFi: firstIssue(updateCustomization.fields.organizationNameShortFi.issues()),
+    organizationNameShortEn: firstIssue(updateCustomization.fields.organizationNameShortEn.issues()),
+    appNameFi: firstIssue(updateCustomization.fields.appNameFi.issues()),
+    appNameEn: firstIssue(updateCustomization.fields.appNameEn.issues()),
+    businessId: firstIssue(updateCustomization.fields.businessId.issues()),
+    overseerContact: firstIssue(updateCustomization.fields.overseerContact.issues()),
+    overseerAddress: firstIssue(updateCustomization.fields.overseerAddress.issues()),
+    privacyPolicyFi: firstIssue(updateCustomization.fields.privacyPolicyFi.issues()),
+    privacyPolicyEn: firstIssue(updateCustomization.fields.privacyPolicyEn.issues()),
+    organizationRulesUrl: firstIssue(updateCustomization.fields.organizationRulesUrl.issues()),
+    memberResignRule: firstIssue(updateCustomization.fields.memberResignRule.issues()),
+    memberResignDefaultReasonFi: firstIssue(updateCustomization.fields.memberResignDefaultReasonFi.issues()),
+    memberResignDefaultReasonEn: firstIssue(updateCustomization.fields.memberResignDefaultReasonEn.issues()),
+    logo: firstIssue(updateCustomization.fields.logo.issues()),
+    logoDark: firstIssue(updateCustomization.fields.logoDark.issues()),
+    favicon: firstIssue(updateCustomization.fields.favicon.issues()),
+    faviconDark: firstIssue(updateCustomization.fields.faviconDark.issues()),
+  });
+
+  let rootErrors = $derived(updateCustomization.fields.allIssues()?.filter((issue) => issue.path.length === 0) ?? []);
 
   // Pending removals are only persisted when the form is saved.
   let removeImages = $state({
@@ -43,6 +104,13 @@
   function toggleRemove(type: keyof typeof removeImages) {
     removeImages[type] = !removeImages[type];
   }
+
+  function clearImageRemovals() {
+    removeImages.logo = false;
+    removeImages.logoDark = false;
+    removeImages.favicon = false;
+    removeImages.faviconDark = false;
+  }
 </script>
 
 <main class="container mx-auto max-w-[1400px] px-4 py-6">
@@ -50,19 +118,24 @@
 
   <div class="space-y-6">
     <form
-      method="POST"
+      {...updateCustomization.preflight(updateCustomizationSchema).enhance(async ({ submit, form }) => {
+        try {
+          await submit();
+        } catch {
+          toast.error($LL.admin.customize.error());
+          return;
+        }
+
+        if (updateCustomization.fields.allIssues()?.length) {
+          toast.error($LL.admin.customize.error());
+          return;
+        }
+
+        form.reset();
+        clearImageRemovals();
+        toast.success(updateCustomization.result?.message || $LL.admin.customize.success());
+      })}
       enctype="multipart/form-data"
-      use:enhance={() => {
-        return async ({ result }) => {
-          if (result.type === "success") {
-            const data = result.data as { message?: string };
-            toast.success(data?.message || $LL.admin.customize.success());
-          } else if (result.type === "failure") {
-            const data = result.data as { message?: string };
-            toast.error(data?.message || $LL.admin.customize.error());
-          }
-        };
-      }}
       class="space-y-8"
     >
       {#if removeImages.logo}<input type="hidden" name="removeLogo" value="true" />{/if}
@@ -502,11 +575,15 @@
 
       <!-- Actions -->
       <div class="pt-5">
+        {#each rootErrors as issue, i (i)}
+          <p class="mb-3 text-sm text-red-600">{issue.message}</p>
+        {/each}
         <div class="flex justify-end">
           <button
             type="submit"
             class="ml-3 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
             data-testid="save-customizations"
+            disabled={!!updateCustomization.pending}
           >
             {$LL.admin.customize.save()}
           </button>

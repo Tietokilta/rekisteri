@@ -28,54 +28,47 @@ export const updateCustomizationSchema = v.object({
   memberResignRule: v.optional(v.string()),
   memberResignDefaultReasonFi: v.optional(v.string()),
   memberResignDefaultReasonEn: v.optional(v.string()),
-  // Support both File objects (newly uploaded) and strings (existing values)
+  // Support both File objects (newly uploaded) and strings (existing values).
+  // Empty remote form file inputs are omitted, so these are optional instead of nullable.
   logo: v.optional(
-    v.nullable(
-      v.union([
-        v.pipe(
-          v.instance(File),
-          v.check(isSvgUpload, "Must be an SVG image"),
-          v.check(isWithinLogoLimit, "Must be 64 KB or smaller"),
-        ),
-        v.string(),
-      ]),
-    ),
+    v.union([
+      v.pipe(
+        v.instance(File),
+        v.check(isSvgUpload, "Must be an SVG image"),
+        v.check(isWithinLogoLimit, "Must be 64 KB or smaller"),
+      ),
+      v.string(),
+    ]),
   ),
   logoDark: v.optional(
-    v.nullable(
-      v.union([
-        v.pipe(
-          v.instance(File),
-          v.check(isSvgUpload, "Must be an SVG image"),
-          v.check(isWithinLogoLimit, "Must be 64 KB or smaller"),
-        ),
-        v.string(),
-      ]),
-    ),
+    v.union([
+      v.pipe(
+        v.instance(File),
+        v.check(isSvgUpload, "Must be an SVG image"),
+        v.check(isWithinLogoLimit, "Must be 64 KB or smaller"),
+      ),
+      v.string(),
+    ]),
   ),
   favicon: v.optional(
-    v.nullable(
-      v.union([
-        v.pipe(
-          v.instance(File),
-          v.check(isPngUpload, "Must be a PNG image"),
-          v.check(isWithinFaviconLimit, "Must be 32 KB or smaller"),
-        ),
-        v.string(),
-      ]),
-    ),
+    v.union([
+      v.pipe(
+        v.instance(File),
+        v.check(isPngUpload, "Must be a PNG image"),
+        v.check(isWithinFaviconLimit, "Must be 32 KB or smaller"),
+      ),
+      v.string(),
+    ]),
   ),
   faviconDark: v.optional(
-    v.nullable(
-      v.union([
-        v.pipe(
-          v.instance(File),
-          v.check(isPngUpload, "Must be a PNG image"),
-          v.check(isWithinFaviconLimit, "Must be 32 KB or smaller"),
-        ),
-        v.string(),
-      ]),
-    ),
+    v.union([
+      v.pipe(
+        v.instance(File),
+        v.check(isPngUpload, "Must be a PNG image"),
+        v.check(isWithinFaviconLimit, "Must be 32 KB or smaller"),
+      ),
+      v.string(),
+    ]),
   ),
   removeLogo: v.optional(v.literal("true")),
   removeLogoDark: v.optional(v.literal("true")),
