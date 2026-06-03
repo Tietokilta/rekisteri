@@ -14,8 +14,8 @@
     "accentColor",
     "organizationNameFi",
     "organizationNameEn",
-    "organizationNameShortFi",
-    "organizationNameShortEn",
+    "organizationLegalNameFi",
+    "organizationLegalNameEn",
     "appNameFi",
     "appNameEn",
     "businessId",
@@ -61,8 +61,8 @@
     accentColor: firstIssue(updateCustomization.fields.accentColor.issues()),
     organizationNameFi: firstIssue(updateCustomization.fields.organizationNameFi.issues()),
     organizationNameEn: firstIssue(updateCustomization.fields.organizationNameEn.issues()),
-    organizationNameShortFi: firstIssue(updateCustomization.fields.organizationNameShortFi.issues()),
-    organizationNameShortEn: firstIssue(updateCustomization.fields.organizationNameShortEn.issues()),
+    organizationLegalNameFi: firstIssue(updateCustomization.fields.organizationLegalNameFi.issues()),
+    organizationLegalNameEn: firstIssue(updateCustomization.fields.organizationLegalNameEn.issues()),
     appNameFi: firstIssue(updateCustomization.fields.appNameFi.issues()),
     appNameEn: firstIssue(updateCustomization.fields.appNameEn.issues()),
     businessId: firstIssue(updateCustomization.fields.businessId.issues()),
@@ -236,38 +236,38 @@
 
         <div class="mt-6 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
           <div class="sm:col-span-1">
-            <label for="orgNameShortFI" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customize.organizationDetails.nameShortFi()}
+            <label for="orgLegalNameFI" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.organizationDetails.legalNameFi()}
             </label>
             <div class="mt-1">
               <Input
                 type="text"
-                name="organizationNameShortFi"
-                id="orgNameShortFI"
-                bind:value={values.organizationNameShortFi}
+                name="organizationLegalNameFi"
+                id="orgLegalNameFI"
+                bind:value={values.organizationLegalNameFi}
                 class="max-w-md"
               />
             </div>
-            {#if errors.organizationNameShortFi}<p class="mt-2 text-sm text-red-600">
-                {errors.organizationNameShortFi}
+            {#if errors.organizationLegalNameFi}<p class="mt-2 text-sm text-red-600">
+                {errors.organizationLegalNameFi}
               </p>{/if}
           </div>
 
           <div class="sm:col-span-1">
-            <label for="orgNameShortEN" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {$LL.admin.customize.organizationDetails.nameShortEn()}
+            <label for="orgLegalNameEN" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {$LL.admin.customize.organizationDetails.legalNameEn()}
             </label>
             <div class="mt-1">
               <Input
                 type="text"
-                name="organizationNameShortEn"
-                id="orgNameShortEN"
-                bind:value={values.organizationNameShortEn}
+                name="organizationLegalNameEn"
+                id="orgLegalNameEN"
+                bind:value={values.organizationLegalNameEn}
                 class="max-w-md"
               />
             </div>
-            {#if errors.organizationNameShortEn}<p class="mt-2 text-sm text-red-600">
-                {errors.organizationNameShortEn}
+            {#if errors.organizationLegalNameEn}<p class="mt-2 text-sm text-red-600">
+                {errors.organizationLegalNameEn}
               </p>{/if}
           </div>
         </div>

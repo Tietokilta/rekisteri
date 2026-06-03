@@ -15,7 +15,6 @@ import {
 } from "drizzle-orm/pg-core";
 import * as v from "valibot";
 
-import { DEFAULT_CUSTOMIZATION } from "../customization/defaults";
 import { ADMIN_ROLE_VALUES, MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 
@@ -179,27 +178,22 @@ export const auditLog = pgTable("audit_log", {
 export const appCustomization = pgTable(
   "app_customization",
   {
-    id: integer().primaryKey().default(1),
-    accentColor: text().notNull().default(DEFAULT_CUSTOMIZATION.accentColor),
-    organizationName: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMIZATION.organizationName),
-    organizationNameShort: jsonb()
-      .$type<LocalizedString>()
-      .notNull()
-      .default(DEFAULT_CUSTOMIZATION.organizationNameShort),
-    appName: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMIZATION.appName),
+    id: integer().primaryKey(),
+    accentColor: text().notNull(),
+    organizationName: jsonb().$type<LocalizedString>().notNull(),
+    organizationLegalName: jsonb().$type<LocalizedString>().notNull(),
+    appName: jsonb().$type<LocalizedString>().notNull(),
     logo: bytea(),
     logoDark: bytea(),
     favicon: bytea(),
     faviconDark: bytea(),
-    businessId: text().notNull().default(DEFAULT_CUSTOMIZATION.businessId),
-    overseerContact: text().notNull().default(DEFAULT_CUSTOMIZATION.overseerContact),
-    overseerAddress: text().notNull().default(DEFAULT_CUSTOMIZATION.overseerAddress),
-    privacyPolicy: jsonb().$type<LocalizedString>().notNull().default(DEFAULT_CUSTOMIZATION.privacyPolicy),
-    organizationRulesUrl: text().notNull().default(DEFAULT_CUSTOMIZATION.organizationRulesUrl),
-    memberResignRule: text().default(DEFAULT_CUSTOMIZATION.memberResignRule),
-    memberResignDefaultReason: jsonb()
-      .$type<LocalizedString>()
-      .default(DEFAULT_CUSTOMIZATION.memberResignDefaultReason),
+    businessId: text().notNull(),
+    overseerContact: text().notNull(),
+    overseerAddress: text().notNull(),
+    privacyPolicy: jsonb().$type<LocalizedString>().notNull(),
+    organizationRulesUrl: text().notNull(),
+    memberResignRule: text().notNull(),
+    memberResignDefaultReason: jsonb().$type<LocalizedString>().notNull(),
     ...timestamps,
   },
   (table) => [

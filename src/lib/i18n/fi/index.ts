@@ -102,10 +102,10 @@ const fi = {
       or: "tai",
       authenticating: "Tunnistaudutaan...",
       authFailed: "Tunnistautuminen epäonnistui. Yritä uudelleen tai käytä sähköpostikoodia.",
-      authCanceled: "Tunnistautuminen peruttiin",
+      authCancelled: "Tunnistautuminen peruttiin",
       rateLimited: "Liian monta yritystä. Yritä myöhemmin uudelleen tai käytä sähköpostikoodia.",
       regFailed: "Avainkoodin rekisteröinti epäonnistui. Yritä myöhemmin uudelleen.",
-      regCanceled: "Rekisteröinti peruttiin",
+      regCancelled: "Rekisteröinti peruttiin",
       regAlreadyRegistered:
         "Tämä laite on jo rekisteröity. Jos haluat rekisteröidä uudelleen, poista vanha avainkoodi ensin.",
       lastUsed: "viimeksi käytetty",
@@ -160,7 +160,7 @@ const fi = {
 
 Koodi vanhenee 10 minuutin kuluttua.
 
-@{domain:string} #{code:string} {organizationNameShort:string}`,
+@{domain:string} #{code:string} {organizationName:string}`,
     },
     paymentSuccess: {
       subject: "Maksu vastaanotettu - Odottaa hallituksen hyväksyntää",
@@ -171,7 +171,7 @@ Maksusi on vastaanotettu ja jäsenhakemuksesi odottaa hallituksen hyväksyntää
 Saat sähköpostiviestin, kun jäsenyytesi on hyväksytty.
 
 Terveisin,
-{organizationNameShort:string}`,
+{organizationName:string}`,
     },
     membershipApproved: {
       subject: "Tervetuloa {organizationName:string} jäseneksi!",
@@ -188,7 +188,7 @@ Voit nyt osallistua organisaation toimintaan ja hyödyntää jäsenetuja.
 Nähdään tapahtumissa!
 
 Terveisin,
-{organizationNameShort:string}`,
+{organizationName:string}`,
     },
     membershipRenewed: {
       subject: "Jäsenyytesi on uusittu!",
@@ -203,7 +203,7 @@ Jäsenyystiedot:
 Kiitos, että jatkat jäsenenämme!
 
 Terveisin,
-{organizationNameShort:string}`,
+{organizationName:string}`,
     },
   },
 
@@ -419,8 +419,8 @@ Terveisin,
         title: "Organisaation tiedot",
         nameFi: "Organisaation nimi (FI)",
         nameEn: "Organisaation nimi (EN)",
-        nameShortFi: "Organisaation lyhyt nimi (FI)",
-        nameShortEn: "Organisaation lyhyt nimi (EN)",
+        legalNameFi: "Organisaation virallinen nimi (FI)",
+        legalNameEn: "Organisaation virallinen nimi (EN)",
         businessId: "Y-tunnus",
         overseerContact: "Rekisterin ylläpitäjän sähköpostiosoite",
         overseerAddress: "Rekisterin ylläpitäjän postiosoite",

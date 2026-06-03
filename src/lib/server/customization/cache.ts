@@ -1,6 +1,5 @@
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { DEFAULT_CUSTOMIZATION } from "./defaults";
 import { eq } from "drizzle-orm";
 
 // In-memory cache singleton
@@ -10,7 +9,7 @@ let customizationCachePromise: Promise<table.AppCustomization> | null = null;
 /**
  * Gets the current app customization settings.
  * Fetches from the database on first load and caches the result.
- * If no settings exist in the DB, inserts and returns text/json defaults.
+ * The singleton row is inserted by the migration and must exist at runtime.
  */
 export async function getCustomizations(): Promise<table.AppCustomization> {
   if (customizationCache) {
@@ -37,16 +36,6 @@ export async function updateCustomizationCache(): Promise<void> {
 }
 
 async function loadCustomizations(): Promise<table.AppCustomization> {
-  const [inserted] = await db
-    .insert(table.appCustomization)
-    .values({ id: 1, ...DEFAULT_CUSTOMIZATION })
-    .onConflictDoNothing({ target: table.appCustomization.id })
-    .returning();
-
-  if (inserted) {
-    return inserted;
-  }
-
   const [customizations] = await db
     .select()
     .from(table.appCustomization)

@@ -41,12 +41,12 @@ test.describe("App Customization", () => {
     await adminPage.goto("/en/admin/customize");
 
     const newOrgName = "Test Organization " + Math.random().toString(36).slice(7);
-    const newOrgShortName = "Test Short " + Math.random().toString(36).slice(7);
+    const newOrgLegalName = "Test Organization ry " + Math.random().toString(36).slice(7);
     const newBusinessId = "1234567-8";
     const newContact = "test@example.com";
 
     await adminPage.fill('input[name="organizationNameEn"]', newOrgName);
-    await adminPage.fill('input[name="organizationNameShortEn"]', newOrgShortName);
+    await adminPage.fill('input[name="organizationLegalNameEn"]', newOrgLegalName);
     await adminPage.fill('input[name="businessId"]', newBusinessId);
     await adminPage.fill('input[name="overseerContact"]', newContact);
 
@@ -57,8 +57,8 @@ test.describe("App Customization", () => {
 
     // Verify on privacy policy page (which uses these details in footer or content)
     await adminPage.goto("/en/privacy-policy");
-    // The footer usually contains org name and business ID
-    await expect(adminPage.locator("footer")).toContainText(newOrgName);
+    // The footer contains the legal name and registry details
+    await expect(adminPage.locator("footer")).toContainText(newOrgLegalName);
     await expect(adminPage.locator("footer")).toContainText(newBusinessId);
     await expect(adminPage.locator("footer")).toContainText(newContact);
   });

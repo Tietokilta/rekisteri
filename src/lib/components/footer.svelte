@@ -20,7 +20,7 @@
     <!-- Compact inline layout -->
     <div class="flex flex-wrap items-start justify-between gap-4 text-xs text-muted-foreground">
       <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <span class="font-medium text-foreground">{customizations.organizationName[$locale]}</span>
+        <span class="font-medium text-foreground">{customizations.organizationLegalName[$locale]}</span>
         <span>{customizations.businessId}</span>
         <a href="mailto:{customizations.overseerContact}" class="underline underline-offset-2 hover:text-foreground"
           >{customizations.overseerContact}</a
@@ -36,7 +36,7 @@
         </a>
         <span>
           &copy; {new Date().getFullYear()}
-          {customizations.organizationName[$locale]}
+          {customizations.organizationLegalName[$locale]}
           {#if showVersionSha}
             |
             <a

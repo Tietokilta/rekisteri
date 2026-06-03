@@ -1,6 +1,7 @@
 import { form, getRequestEvent } from "$app/server";
 import { error, invalid } from "@sveltejs/kit";
 import type { InvalidField } from "@sveltejs/kit";
+import { eq } from "drizzle-orm";
 import type * as v from "valibot";
 
 import { db } from "$lib/server/db";
@@ -66,9 +67,9 @@ function getCustomizationUpdateData(
       fi: values.organizationNameFi,
       en: values.organizationNameEn,
     },
-    organizationNameShort: {
-      fi: values.organizationNameShortFi,
-      en: values.organizationNameShortEn,
+    organizationLegalName: {
+      fi: values.organizationLegalNameFi,
+      en: values.organizationLegalNameEn,
     },
     appName: { fi: values.appNameFi, en: values.appNameEn },
     businessId: keepExistingText(values.businessId, existing.businessId),
@@ -90,16 +91,15 @@ function getCustomizationUpdateData(
 }
 
 async function saveCustomization(updateData: ReturnType<typeof getCustomizationUpdateData>) {
-  await db
-    .insert(table.appCustomization)
-    .values({
-      id: 1,
-      ...updateData,
-    })
-    .onConflictDoUpdate({
-      target: table.appCustomization.id,
-      set: updateData,
-    });
+  const [updated] = await db
+    .update(table.appCustomization)
+    .set(updateData)
+    .where(eq(table.appCustomization.id, 1))
+    .returning({ id: table.appCustomization.id });
+
+  if (!updated) {
+    throw new Error("App customization singleton is missing");
+  }
 }
 
 function invalidUpload(issue: InvalidField<CustomizationInput>, e: CustomizationUploadError) {

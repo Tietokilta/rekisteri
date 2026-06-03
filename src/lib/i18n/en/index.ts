@@ -102,10 +102,10 @@ const en = {
       or: "or",
       authenticating: "Authenticating...",
       authFailed: "Authentication failed. Please try again or use email code.",
-      authCanceled: "Authentication was canceled",
+      authCancelled: "Authentication was cancelled",
       rateLimited: "Too many attempts. Please try again later or use email code.",
       regFailed: "Failed to register passkey. Please try again later.",
-      regCanceled: "Registration was canceled",
+      regCancelled: "Registration was cancelled",
       regAlreadyRegistered:
         "This device is already registered. If you want to re-register, please delete the old passkey first.",
       lastUsed: "last used",
@@ -160,7 +160,7 @@ const en = {
 
 This code will expire in 10 minutes.
 
-@{domain} #{code} {organizationNameShort}`,
+@{domain} #{code} {organizationName}`,
     },
     paymentSuccess: {
       subject: "Payment received - Awaiting board approval",
@@ -171,7 +171,7 @@ Your payment has been received and your membership application is awaiting appro
 You will receive an email once your membership is approved.
 
 Best regards,
-{organizationNameShort}`,
+{organizationName}`,
     },
     membershipApproved: {
       subject: "Welcome to {organizationName}!",
@@ -188,7 +188,7 @@ You can now participate in guild activities and enjoy member benefits.
 See you at events!
 
 Best regards,
-{organizationNameShort}`,
+{organizationName}`,
     },
     membershipRenewed: {
       subject: "Your membership has been renewed!",
@@ -203,7 +203,7 @@ Membership details:
 Thank you for continuing as a member!
 
 Best regards,
-{organizationNameShort}`,
+{organizationName}`,
     },
   },
 
@@ -417,8 +417,8 @@ Best regards,
         title: "Organization Details",
         nameFi: "Organization Name (FI)",
         nameEn: "Organization Name (EN)",
-        nameShortFi: "Organization Short Name (FI)",
-        nameShortEn: "Organization Short Name (EN)",
+        legalNameFi: "Legal Organization Name (FI)",
+        legalNameEn: "Legal Organization Name (EN)",
         businessId: "Business ID (Y-tunnus)",
         overseerContact: "Registry Overseer Contact Email",
         overseerAddress: "Registry Overseer Address",

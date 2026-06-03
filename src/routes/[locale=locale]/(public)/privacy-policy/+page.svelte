@@ -4,19 +4,8 @@
   import { renderMarkdown } from "$lib/markdown";
 
   const appName = $derived(page.data.customizations.appName[$locale]);
-
-  // Custom content from DB (if any)
-  const fiCustom = $derived(page.data.customizations.privacyPolicy.fi);
-  const enCustom = $derived(page.data.customizations.privacyPolicy.en);
-
-  // Only use custom if it's not the default placeholder
-  const hasCustom = $derived(
-    ($locale === "fi" && fiCustom && fiCustom !== "Rekisteri- ja tietosuojaseloste") ||
-      ($locale === "en" && enCustom && enCustom !== "Privacy Policy"),
-  );
-
-  const customContent = $derived($locale === "fi" ? fiCustom : enCustom);
-  const customHtml = $derived(renderMarkdown(customContent));
+  const privacyPolicy = $derived(page.data.customizations.privacyPolicy[$locale]);
+  const privacyPolicyHtml = $derived(renderMarkdown(privacyPolicy));
 </script>
 
 <svelte:head>
@@ -25,9 +14,7 @@
 
 <div class="mx-auto max-w-4xl px-4 py-8">
   <div class="mx-auto prose dark:prose-invert">
-    {#if hasCustom}
-      <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-      {@html customHtml}
-    {/if}
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+    {@html privacyPolicyHtml}
   </div>
 </div>
