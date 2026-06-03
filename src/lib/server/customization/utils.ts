@@ -44,7 +44,7 @@ function localizedText(value: LocalizedString, locale: keyof LocalizedString) {
  */
 export function flattenCustomization(custom: AppCustomization): CustomizationFormValues {
   return {
-    accentColor: custom.accentColor,
+    accentColor: custom.accentColor ?? "",
     organizationNameFi: localizedText(custom.organizationName, "fi"),
     organizationNameEn: localizedText(custom.organizationName, "en"),
     organizationLegalNameFi: localizedText(custom.organizationLegalName, "fi"),

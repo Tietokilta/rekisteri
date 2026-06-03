@@ -1,0 +1,1 @@
+ALTER TABLE "app_customization" ALTER COLUMN "accent_color" DROP NOT NULL;

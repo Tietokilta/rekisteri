@@ -16,9 +16,11 @@
   </title>
   <link rel="icon" href={data.customizations.faviconUrl} type="image/png" media="(prefers-color-scheme: light)" />
   <link rel="icon" href={data.customizations.faviconDarkUrl} type="image/png" media="(prefers-color-scheme: dark)" />
-  <!-- Inject Accent Color value as primary. Only admin can set and it's validated as an RGB hex -->
-  <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-  {@html `<style>:root { --primary: ${data.customizations.accentColor}; }</style>`}
+  {#if data.customizations.accentColor}
+    <!-- Inject Accent Color value as primary. Only admin can set and it's validated as an RGB hex -->
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+    {@html `<style>:root { --primary: ${data.customizations.accentColor}; }</style>`}
+  {/if}
 </svelte:head>
 
 <ModeWatcher disableHeadScriptInjection />

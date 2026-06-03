@@ -410,6 +410,10 @@ Best regards,
       brandingDefaults: {
         title: "General Branding",
         accentColor: "Accent Color",
+        accentColorDescription:
+          "Optional. Leave disabled to use the default theme colors. If enabled, the same color is used in light and dark mode, so choose a color that works in both.",
+        useAccentColor: "Use custom accent color",
+        defaultAccentColor: "Using default light and dark theme colors.",
         appNameFi: "App Name (FI)",
         appNameEn: "App Name (EN)",
       },

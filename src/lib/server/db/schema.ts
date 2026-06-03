@@ -179,7 +179,7 @@ export const appCustomization = pgTable(
   "app_customization",
   {
     id: integer().primaryKey(),
-    accentColor: text().notNull(),
+    accentColor: text(),
     organizationName: jsonb().$type<LocalizedString>().notNull(),
     organizationLegalName: jsonb().$type<LocalizedString>().notNull(),
     appName: jsonb().$type<LocalizedString>().notNull(),
