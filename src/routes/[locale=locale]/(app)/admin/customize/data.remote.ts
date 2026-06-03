@@ -14,12 +14,35 @@ import {
 } from "$lib/server/customization/utils";
 import { getLL } from "$lib/server/i18n";
 import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
+import { auditFromEvent } from "$lib/server/audit";
 import { updateCustomizationSchema } from "./schema";
 
 type CustomizationInput = v.InferInput<typeof updateCustomizationSchema>;
 type ValidCustomization = v.InferOutput<typeof updateCustomizationSchema>;
 type ImageRemovals = Record<CustomizationImageField, boolean>;
 type UploadedImages = Record<CustomizationImageField, Buffer | undefined>;
+
+const textAuditFields = [
+  "accentColor",
+  "businessId",
+  "overseerContact",
+  "overseerAddress",
+  "organizationRulesUrl",
+  "memberResignRule",
+] as const;
+const localizedAuditFields = [
+  "organizationName",
+  "organizationLegalName",
+  "appName",
+  "privacyPolicy",
+  "memberResignDefaultReason",
+] as const;
+const imageAuditFields = [
+  "logo",
+  "logoDark",
+  "favicon",
+  "faviconDark",
+] as const satisfies readonly CustomizationImageField[];
 
 function getImageRemovals(values: ValidCustomization): ImageRemovals {
   return {
@@ -90,6 +113,49 @@ function getCustomizationUpdateData(
   };
 }
 
+type CustomizationUpdateData = ReturnType<typeof getCustomizationUpdateData>;
+
+function localizedTextEquals(a: table.LocalizedString, b: table.LocalizedString) {
+  return a.fi === b.fi && a.en === b.en;
+}
+
+function imageEquals(a: Buffer | null, b: Buffer | null) {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.equals(b);
+}
+
+function getChangedCustomizationFields(existing: table.AppCustomization, updateData: CustomizationUpdateData) {
+  const changedFields: string[] = [];
+
+  for (const field of textAuditFields) {
+    if (existing[field] !== updateData[field]) changedFields.push(field);
+  }
+
+  for (const field of localizedAuditFields) {
+    if (!localizedTextEquals(existing[field], updateData[field])) changedFields.push(field);
+  }
+
+  for (const field of imageAuditFields) {
+    if (!imageEquals(existing[field], updateData[field])) changedFields.push(field);
+  }
+
+  return changedFields;
+}
+
+function getCustomizationAuditMetadata(
+  existing: table.AppCustomization,
+  updateData: CustomizationUpdateData,
+  uploaded: UploadedImages,
+  removals: ImageRemovals,
+) {
+  return {
+    changedFields: getChangedCustomizationFields(existing, updateData),
+    uploadedImages: imageAuditFields.filter((field) => uploaded[field] !== undefined),
+    removedImages: imageAuditFields.filter((field) => removals[field]),
+  };
+}
+
 async function saveCustomization(updateData: ReturnType<typeof getCustomizationUpdateData>) {
   const [updated] = await db
     .update(table.appCustomization)
@@ -120,9 +186,18 @@ export const updateCustomization = form(updateCustomizationSchema, async (values
   try {
     const uploaded = await processUploadedImages(values);
     const existing = await getCustomizations();
-    const updateData = getCustomizationUpdateData(values, existing, uploaded, getImageRemovals(values));
+    const removals = getImageRemovals(values);
+    const updateData = getCustomizationUpdateData(values, existing, uploaded, removals);
+    const auditMetadata = getCustomizationAuditMetadata(existing, updateData, uploaded, removals);
 
     await saveCustomization(updateData);
+    if (auditMetadata.changedFields.length > 0) {
+      await auditFromEvent(event, "app_customization.update", {
+        targetType: "app_customization",
+        targetId: "1",
+        metadata: auditMetadata,
+      });
+    }
 
     await updateCustomizationCache();
     event.locals.customizations = await getCustomizations();

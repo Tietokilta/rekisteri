@@ -28,6 +28,7 @@ export type AuditAction =
   | "membership_type.create"
   | "membership_type.update"
   | "membership_type.delete"
+  | "app_customization.update"
   | "admin.verify_qr"
   | "user.role_change"
   | "user.merge"

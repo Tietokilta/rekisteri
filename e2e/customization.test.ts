@@ -1,12 +1,15 @@
-import { test, expect } from "./fixtures/auth";
+import { desc, eq } from "drizzle-orm";
+import * as table from "../src/lib/server/db/schema";
+import { test, expect } from "./fixtures/db";
 
 test.describe("App Customization", () => {
-  test("admin can update general branding", async ({ adminPage }) => {
+  test("admin can update general branding", async ({ adminPage, adminUser, db }) => {
     await adminPage.goto("/en/admin/customize");
 
     // Update app name and accent color
     const newAppName = "Test Registry " + Math.random().toString(36).slice(7);
-    const newAccentColor = "#ff0000";
+    const currentAccentColor = await adminPage.inputValue('input[name="accentColor"]');
+    const newAccentColor = currentAccentColor.toLowerCase() === "#ff0000" ? "#00ff00" : "#ff0000";
 
     await adminPage.fill('input[name="appNameEn"]', newAppName);
     await adminPage.fill('input[name="accentColor"]', newAccentColor);
@@ -35,6 +38,24 @@ test.describe("App Customization", () => {
       });
       expect(styles).toContain(`--primary: ${newAccentColor}`);
     }).toPass();
+
+    const [auditLog] = await db
+      .select()
+      .from(table.auditLog)
+      .where(eq(table.auditLog.action, "app_customization.update"))
+      .orderBy(desc(table.auditLog.createdAt))
+      .limit(1);
+    const metadata = auditLog?.metadata as
+      | { changedFields?: string[]; uploadedImages?: string[]; removedImages?: string[] }
+      | null
+      | undefined;
+
+    expect(auditLog?.userId).toBe(adminUser.id);
+    expect(auditLog?.targetType).toBe("app_customization");
+    expect(auditLog?.targetId).toBe("1");
+    expect(metadata?.changedFields).toEqual(expect.arrayContaining(["accentColor", "appName"]));
+    expect(metadata?.uploadedImages).toEqual([]);
+    expect(metadata?.removedImages).toEqual([]);
   });
 
   test("admin can update organization details", async ({ adminPage }) => {
