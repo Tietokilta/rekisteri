@@ -8,14 +8,14 @@ import { updateUserRoleSchema, mergeUsersSchema } from "./schema";
 import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
 import { auditUserAdminAction } from "$lib/server/audit";
 import { getLL } from "$lib/server/i18n";
-import { hasAdminWriteAccess } from "$lib/server/auth/admin";
+import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
 
 export const updateUserRole = command(updateUserRoleSchema, async ({ userId, role }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
   const currentUser = event.locals.user;
 
-  if (!event.locals.session || !currentUser || !hasAdminWriteAccess(currentUser)) {
+  if (!event.locals.session || !currentUser || !userHasAdminWriteAccess(currentUser)) {
     error(404, LL.error.resourceNotFound());
   }
 
@@ -73,7 +73,7 @@ export const mergeUsers = command(
     const LL = getLL(event.locals.locale);
     const adminUser = event.locals.user;
 
-    if (!event.locals.session || !adminUser || !hasAdminWriteAccess(adminUser)) {
+    if (!event.locals.session || !adminUser || !userHasAdminWriteAccess(adminUser)) {
       error(404, LL.error.resourceNotFound());
     }
 

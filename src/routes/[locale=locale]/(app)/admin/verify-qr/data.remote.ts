@@ -6,14 +6,14 @@ import { eq, desc, and, or } from "drizzle-orm";
 import { verifyQrToken } from "$lib/server/attendance/qr-token";
 import { verifyQrSchema } from "./schema";
 import { getLL } from "$lib/server/i18n";
-import { hasAdminAccess } from "$lib/server/auth/admin";
+import { userHasAdminAccess } from "$lib/server/auth/admin";
 import { auditFromEvent } from "$lib/server/audit";
 
 export const verifyQr = command(verifyQrSchema, async ({ token }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !hasAdminAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 

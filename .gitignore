@@ -40,3 +40,4 @@ src/lib/i18n/i18n-svelte.ts
 project.inlang
 src/lib/paraglide
 result
+.fallow/

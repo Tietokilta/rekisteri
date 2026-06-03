@@ -202,21 +202,6 @@ export async function getUserPasskeys(userId: string): Promise<table.Passkey[]> 
 }
 
 /**
- * Check if a user has any passkeys registered
- */
-export async function userHasPasskeys(userEmail: string): Promise<boolean> {
-  const [user] = await db.select().from(table.user).where(eq(table.user.email, userEmail)).limit(1);
-
-  if (!user) {
-    return false;
-  }
-
-  const passkeys = await db.select().from(table.passkey).where(eq(table.passkey.userId, user.id)).limit(1);
-
-  return passkeys.length > 0;
-}
-
-/**
  * Delete a passkey
  * Only deletes if the passkey belongs to the specified user
  */

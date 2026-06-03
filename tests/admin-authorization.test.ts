@@ -9,11 +9,7 @@ import {
   isReadOnlyAdmin,
   type AdminRole,
 } from "../src/lib/shared/enums";
-import {
-  hasAdminAccess as userHasAdminAccess,
-  hasAdminWriteAccess as userHasAdminWriteAccess,
-  isReadOnlyAdmin as userIsReadOnlyAdmin,
-} from "../src/lib/server/auth/admin";
+import { userHasAdminAccess, userHasAdminWriteAccess, userIsReadOnlyAdmin } from "../src/lib/server/auth/admin";
 
 /**
  * Admin authorization tests.

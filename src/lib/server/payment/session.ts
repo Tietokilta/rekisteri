@@ -160,11 +160,7 @@ export async function createSession(userId: string, membershipId: string, locale
   return session;
 }
 
-/**
- * Resume an existing payment session or create a new one if the old session has expired.
- * This is used when a user with "awaiting_payment" status wants to complete their payment.
- */
-export async function resumeOrCreateSession(memberId: string, locale: Locale) {
+async function loadAwaitingPaymentMember(memberId: string) {
   // eslint-disable-next-line @typescript-eslint/no-deprecated
   const member = await db._query.member.findFirst({
     where: eq(table.member.id, memberId),
@@ -180,54 +176,63 @@ export async function resumeOrCreateSession(memberId: string, locale: Locale) {
     throw new Error("Member not found or not in awaiting_payment status");
   }
 
+  return member;
+}
+
+type AwaitingPaymentMember = Awaited<ReturnType<typeof loadAwaitingPaymentMember>>;
+
+function assertMembershipCanResumePayment(member: AwaitingPaymentMember): void {
   if (!member.membership.membershipType.purchasable) {
     throw new Error("This membership type is not available for purchase");
   }
 
-  // Check if membership period is still valid (not expired)
   if (member.membership.endTime < new Date()) {
     throw new Error("Cannot resume payment for an expired membership period");
   }
+}
 
-  // Try to retrieve existing Stripe session
-  if (member.stripeSessionId) {
-    try {
-      const existingSession = await stripe.checkout.sessions.retrieve(member.stripeSessionId);
+async function getReusableCheckoutUrl(stripeSessionId: string): Promise<string | null> {
+  try {
+    const existingSession = await stripe.checkout.sessions.retrieve(stripeSessionId);
 
-      // If session is still open, return its URL
-      if (existingSession.status === "open" && existingSession.url) {
-        return { url: existingSession.url, isNew: false };
-      }
-
-      // If payment was already completed, don't create a new session.
-      // The webhook will process the payment shortly.
-      if (existingSession.payment_status === "paid") {
-        throw new Error("Your payment is being processed. Your membership will be activated shortly.");
-      }
-    } catch (error) {
-      // Re-throw our custom error about payment being processed
-      if (error instanceof Error && error.message.includes("Your payment is being processed")) {
-        throw error;
-      }
-      // Session doesn't exist or is expired, will create a new one
-      console.warn("Failed to retrieve existing Stripe session, creating new:", error);
+    if (existingSession.status === "open" && existingSession.url) {
+      return existingSession.url;
     }
+
+    if (existingSession.payment_status === "paid") {
+      throw new Error("Your payment is being processed. Your membership will be activated shortly.");
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Your payment is being processed")) {
+      throw error;
+    }
+
+    console.warn("Failed to retrieve existing Stripe session, creating new:", error);
   }
 
-  // Create a new Stripe session
+  return null;
+}
+
+async function getExistingCheckoutUrl(member: AwaitingPaymentMember): Promise<string | null> {
+  return member.stripeSessionId ? await getReusableCheckoutUrl(member.stripeSessionId) : null;
+}
+
+async function ensureStripeCustomerForUser(user: NonNullable<AwaitingPaymentMember["user"]>): Promise<string> {
+  return user.stripeCustomerId ?? (await createStripeCustomer(user.id, user.email, formatUserName(user)));
+}
+
+async function createReplacementCheckoutSession(member: AwaitingPaymentMember, locale: Locale, memberId: string) {
   const { membership, user } = member;
+
   if (!membership.stripePriceId) {
     throw new Error("Membership has no Stripe price ID");
   }
+
   if (!user) {
     throw new Error("Member has no associated user account");
   }
 
-  let stripeCustomerId = user.stripeCustomerId;
-  if (!stripeCustomerId) {
-    stripeCustomerId = await createStripeCustomer(user.id, user.email, formatUserName(user));
-  }
-
+  const stripeCustomerId = await ensureStripeCustomerForUser(user);
   const session = await createCheckoutSessionWithRetry(
     user.id,
     user.email,
@@ -242,10 +247,26 @@ export async function resumeOrCreateSession(memberId: string, locale: Locale) {
     throw new Error("Stripe checkout session was created without a URL");
   }
 
-  // Update member record with new session ID
   await db.update(table.member).set({ stripeSessionId: session.id }).where(eq(table.member.id, memberId));
 
-  return { url: session.url, isNew: true };
+  return session.url;
+}
+
+/**
+ * Resume an existing payment session or create a new one if the old session has expired.
+ * This is used when a user with "awaiting_payment" status wants to complete their payment.
+ */
+export async function resumeOrCreateSession(memberId: string, locale: Locale) {
+  const member = await loadAwaitingPaymentMember(memberId);
+  assertMembershipCanResumePayment(member);
+
+  const existingCheckoutUrl = await getExistingCheckoutUrl(member);
+  if (existingCheckoutUrl) {
+    return { url: existingCheckoutUrl, isNew: false };
+  }
+
+  const newCheckoutUrl = await createReplacementCheckoutSession(member, locale, memberId);
+  return { url: newCheckoutUrl, isNew: true };
 }
 
 /**

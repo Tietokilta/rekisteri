@@ -48,7 +48,7 @@ export async function cleanupExpiredTokens(): Promise<void> {
  * - GDPR: Data minimization for security logs
  * - Best practices: Accountability for administrative actions
  */
-export interface RetentionPolicy {
+interface RetentionPolicy {
   pattern: string;
   days: number;
   description: string;

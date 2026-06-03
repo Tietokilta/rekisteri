@@ -1,5 +1,5 @@
 import { env as privateEnv } from "$env/dynamic/private";
-import { env as publicEnv } from "$lib/env";
+import { publicEnv } from "$lib/env";
 import { dev } from "$app/environment";
 import * as v from "valibot";
 
@@ -150,8 +150,3 @@ if (!parsed.success) {
  * const url = env.PUBLIC_URL; // Also includes public env vars
  */
 export const env = { ...publicEnv, ...parsed.output };
-
-/**
- * Type definition for validated environment variables (public + private)
- */
-export type Env = typeof publicEnv & v.InferOutput<typeof privateEnvSchema>;

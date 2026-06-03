@@ -10,5 +10,3 @@ export const userInfoSchema = v.object({
   // since unchecked checkboxes don't submit values
   isAllowedEmails: v.optional(v.boolean(), false),
 });
-
-export type UserInfo = v.InferOutput<typeof userInfoSchema>;

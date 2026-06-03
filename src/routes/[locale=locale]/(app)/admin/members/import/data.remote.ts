@@ -14,29 +14,52 @@ import {
   type CsvRow,
 } from "./schema";
 import { getLL } from "$lib/server/i18n";
-import { hasAdminWriteAccess } from "$lib/server/auth/admin";
+import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
 import { normalizeEmail } from "$lib/utils";
 import { auditFromEvent } from "$lib/server/audit";
 
-export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }) => {
-  const event = getRequestEvent();
-  const LL = getLL(event.locals.locale);
+const IMPORT_BATCH_SIZE = 500;
 
-  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
-    error(404, LL.error.resourceNotFound());
-  }
+type ImportError = { row: number; email: string; error: string };
 
-  let rows: CsvRow[];
+type ImportMembership = {
+  id: string;
+  membershipTypeId: string;
+  startTime: Date;
+  endTime: Date;
+};
+
+type ProcessedImportRow = {
+  index: number;
+  row: CsvRow;
+  userId: string;
+  membershipId: string;
+  status: "active" | "resigned";
+  isNewUser: boolean;
+};
+
+type RowReference = {
+  row: CsvRow;
+  originalIndex: number;
+};
+
+type MembershipLookup = {
+  validTypeIds: Set<string>;
+  membershipsByTypeId: Map<string, ImportMembership[]>;
+};
+
+function parseImportRows(rowsJson: string, invalidDataFormatMessage: string): CsvRow[] {
+  let rows: unknown;
   try {
     rows = JSON.parse(rowsJson);
   } catch {
-    error(400, LL.admin.import.invalidDataFormat());
+    error(400, invalidDataFormatMessage);
   }
 
-  const rowsValidation = v.safeParse(v.array(csvRowSchema), rows);
-  if (!rowsValidation.success) {
-    const issues = rowsValidation.issues
-      .slice(0, 5) // Limit to first 5 issues
+  const validation = v.safeParse(v.array(csvRowSchema), rows);
+  if (!validation.success) {
+    const issues = validation.issues
+      .slice(0, 5)
       .map((issue) => {
         const path = issue.path?.map((p) => p.key).join(".") || "unknown";
         return `Row ${path}: ${issue.message}`;
@@ -45,11 +68,23 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
     error(400, `Validation failed: ${issues}`);
   }
 
-  // Fetch all membership types to validate IDs
-  const membershipTypes = await db.select().from(table.membershipType);
-  const validTypeIds = new Set(membershipTypes.map((mt) => mt.id));
+  return validation.output;
+}
 
-  // Fetch all memberships with their type info
+function groupMembershipsByTypeId(memberships: ImportMembership[]): Map<string, ImportMembership[]> {
+  const membershipsByTypeId = new Map<string, ImportMembership[]>();
+
+  for (const membership of memberships) {
+    const membershipsForType = membershipsByTypeId.get(membership.membershipTypeId) ?? [];
+    membershipsForType.push(membership);
+    membershipsByTypeId.set(membership.membershipTypeId, membershipsForType);
+  }
+
+  return membershipsByTypeId;
+}
+
+async function loadMembershipLookup(): Promise<MembershipLookup> {
+  const membershipTypes = await db.select().from(table.membershipType);
   const memberships = await db
     .select({
       id: table.membership.id,
@@ -59,156 +94,149 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
     })
     .from(table.membership);
 
-  // Group memberships by membershipTypeId
-  const membershipsByTypeId = new Map<string, typeof memberships>();
-  for (const membership of memberships) {
-    const existing = membershipsByTypeId.get(membership.membershipTypeId);
-    if (existing) {
-      existing.push(membership);
-    } else {
-      membershipsByTypeId.set(membership.membershipTypeId, [membership]);
-    }
-  }
-
-  const errors: Array<{ row: number; email: string; error: string }> = [];
-  let successCount = 0;
-
-  // Step 1: Validate all rows and prepare data structures
-  type ProcessedRow = {
-    index: number;
-    row: CsvRow;
-    userId: string;
-    membershipId: string;
-    status: "active" | "resigned";
-    isNewUser: boolean;
+  return {
+    validTypeIds: new Set(membershipTypes.map((membershipType) => membershipType.id)),
+    membershipsByTypeId: groupMembershipsByTypeId(memberships),
   };
+}
 
-  const processedRows: ProcessedRow[] = [];
+async function loadUserIdsByEmail(rows: CsvRow[]): Promise<Map<string, string>> {
+  const uniqueEmails = [...new Set(rows.map((row) => row.email))];
+  const existingUsersByEmail = await getUsersByEmails(uniqueEmails);
 
-  // Fetch all emails at once to check which users already exist
-  const allEmails = rows.map((r) => r.email);
-  const uniqueEmails = [...new Set(allEmails)];
+  return new Map(Array.from(existingUsersByEmail, ([email, user]) => [email, user.id]));
+}
 
-  // Batch lookup all users by email (including verified secondary emails)
-  const emailToUserMap = await getUsersByEmails(uniqueEmails);
-  const emailToUserId = new Map<string, string>();
+function normalizeImportEmails(rows: CsvRow[]): CsvRow[] {
+  return rows.map((row) => ({ ...row, email: normalizeEmail(row.email) }));
+}
 
-  for (const [email, user] of emailToUserMap) {
-    emailToUserId.set(email, user.id);
-  }
-
-  // Normalize emails: trim whitespace (including internal spaces) and lowercase
-  for (const row of rows) {
-    row.email = normalizeEmail(row.email);
-  }
-
-  // Sort rows by start date descending so the latest user info wins during dedup
-  const sortedRows = rows
-    .map((row, i) => ({ row, originalIndex: i }))
+function sortRowsByLatestMembershipStart(rows: CsvRow[]): RowReference[] {
+  return rows
+    .map((row, originalIndex) => ({ row, originalIndex }))
     .toSorted((a, b) => new Date(b.row.membershipStartDate).getTime() - new Date(a.row.membershipStartDate).getTime());
+}
 
-  // Validate and prepare all rows
-  for (const { row, originalIndex: i } of sortedRows) {
-    try {
-      // Parse the membership start date
-      const membershipStartDate = new Date(row.membershipStartDate);
-      if (Number.isNaN(membershipStartDate.getTime())) {
-        errors.push({
-          row: i + 1,
-          email: row.email,
-          error: `Invalid membership start date "${row.membershipStartDate}"`,
-        });
-        continue;
-      }
+function buildImportError(row: CsvRow, originalIndex: number, message: string): ImportError {
+  return {
+    row: originalIndex + 1,
+    email: row.email,
+    error: message,
+  };
+}
 
-      // Check if membership type ID is valid
-      if (!validTypeIds.has(row.membershipTypeId)) {
-        errors.push({
-          row: i + 1,
-          email: row.email,
-          error: `Membership type ID "${row.membershipTypeId}" not found`,
-        });
-        continue;
-      }
+function findImportMembership(
+  { row, originalIndex }: RowReference,
+  { validTypeIds, membershipsByTypeId }: MembershipLookup,
+): ImportMembership | ImportError {
+  const membershipStartDate = new Date(row.membershipStartDate);
 
-      // Get memberships for this type
-      const membershipOptions = membershipsByTypeId.get(row.membershipTypeId);
-      if (!membershipOptions || membershipOptions.length === 0) {
-        errors.push({
-          row: i + 1,
-          email: row.email,
-          error: `No memberships found for type "${row.membershipTypeId}"`,
-        });
-        continue;
-      }
+  if (Number.isNaN(membershipStartDate.getTime())) {
+    return buildImportError(row, originalIndex, `Invalid membership start date "${row.membershipStartDate}"`);
+  }
 
-      // Find membership matching both type and start date
-      const targetMembership = membershipOptions.find((m) => m.startTime.getTime() === membershipStartDate.getTime());
+  if (!validTypeIds.has(row.membershipTypeId)) {
+    return buildImportError(row, originalIndex, `Membership type ID "${row.membershipTypeId}" not found`);
+  }
 
-      if (!targetMembership) {
-        errors.push({
-          row: i + 1,
-          email: row.email,
-          error: `No membership found for type "${row.membershipTypeId}" starting on ${row.membershipStartDate}`,
-        });
-        continue;
-      }
+  const membershipOptions = membershipsByTypeId.get(row.membershipTypeId);
+  if (!membershipOptions?.length) {
+    return buildImportError(row, originalIndex, `No memberships found for type "${row.membershipTypeId}"`);
+  }
 
-      // Determine if user exists or needs to be created
-      const existingUserId = emailToUserId.get(row.email);
-      const userId = existingUserId || generateUserId();
-      const isNewUser = !existingUserId;
+  const matchingMembership = membershipOptions.find(
+    (membership) => membership.startTime.getTime() === membershipStartDate.getTime(),
+  );
 
-      // Store for later
-      if (isNewUser) {
-        emailToUserId.set(row.email, userId);
-      }
+  return (
+    matchingMembership ??
+    buildImportError(
+      row,
+      originalIndex,
+      `No membership found for type "${row.membershipTypeId}" starting on ${row.membershipStartDate}`,
+    )
+  );
+}
 
-      // Determine member status based on membership end date
-      const now = new Date();
-      const status = targetMembership.endTime < now ? "resigned" : "active";
+function prepareImportRow(
+  rowReference: RowReference,
+  membershipLookup: MembershipLookup,
+  userIdsByEmail: Map<string, string>,
+  now: Date,
+): ProcessedImportRow | ImportError {
+  const membership = findImportMembership(rowReference, membershipLookup);
+  if ("error" in membership) {
+    return membership;
+  }
 
-      processedRows.push({
-        index: i,
-        row,
-        userId,
-        membershipId: targetMembership.id,
-        status,
-        isNewUser,
-      });
-    } catch (err) {
-      errors.push({
-        row: i + 1,
-        email: row.email,
-        error: err instanceof Error ? err.message : "Unknown error",
-      });
+  const existingUserId = userIdsByEmail.get(rowReference.row.email);
+  const userId = existingUserId ?? generateUserId();
+  const isNewUser = !existingUserId;
+
+  if (isNewUser) {
+    userIdsByEmail.set(rowReference.row.email, userId);
+  }
+
+  return {
+    index: rowReference.originalIndex,
+    row: rowReference.row,
+    userId,
+    membershipId: membership.id,
+    status: membership.endTime < now ? "resigned" : "active",
+    isNewUser,
+  };
+}
+
+function prepareImportRows(
+  rows: CsvRow[],
+  membershipLookup: MembershipLookup,
+  userIdsByEmail: Map<string, string>,
+): { processedRows: ProcessedImportRow[]; errors: ImportError[] } {
+  const processedRows: ProcessedImportRow[] = [];
+  const errors: ImportError[] = [];
+  const now = new Date();
+
+  for (const rowReference of sortRowsByLatestMembershipStart(rows)) {
+    const result = prepareImportRow(rowReference, membershipLookup, userIdsByEmail, now);
+    if ("error" in result) {
+      errors.push(result);
+    } else {
+      processedRows.push(result);
     }
   }
 
-  // Step 2: Batch insert new users (in chunks of 500)
-  const BATCH_SIZE = 500;
-  const newUsers = processedRows.filter((p) => p.isNewUser);
-  const newUsersByEmail = new Map<string, ProcessedRow>();
+  return { processedRows, errors };
+}
 
-  // Deduplicate by email (in case CSV has duplicate emails)
-  for (const processed of newUsers) {
-    if (!newUsersByEmail.has(processed.row.email)) {
-      newUsersByEmail.set(processed.row.email, processed);
+function uniqueProcessedRowsByEmail(rows: ProcessedImportRow[]): ProcessedImportRow[] {
+  const rowsByEmail = new Map<string, ProcessedImportRow>();
+
+  for (const row of rows) {
+    if (!rowsByEmail.has(row.row.email)) {
+      rowsByEmail.set(row.row.email, row);
     }
   }
 
-  const uniqueNewUsers = Array.from(newUsersByEmail.values());
+  return Array.from(rowsByEmail.values());
+}
 
-  for (let i = 0; i < uniqueNewUsers.length; i += BATCH_SIZE) {
-    const batch = uniqueNewUsers.slice(i, i + BATCH_SIZE);
-    const userValues = batch.map((p) => ({
-      id: p.userId,
-      email: p.row.email,
-      firstNames: p.row.firstNames,
-      lastName: p.row.lastName,
-      homeMunicipality: p.row.homeMunicipality,
+function isAllowedEmailValue(value: string | undefined): boolean {
+  return ["true", "yes"].includes(value?.toLowerCase().trim() ?? "");
+}
+
+async function insertNewUsers(processedRows: ProcessedImportRow[]): Promise<ProcessedImportRow[]> {
+  const uniqueNewUsers = uniqueProcessedRowsByEmail(processedRows.filter((row) => row.isNewUser));
+
+  for (let i = 0; i < uniqueNewUsers.length; i += IMPORT_BATCH_SIZE) {
+    const batch = uniqueNewUsers.slice(i, i + IMPORT_BATCH_SIZE);
+    const userValues = batch.map((processedRow) => ({
+      id: processedRow.userId,
+      email: processedRow.row.email,
+      firstNames: processedRow.row.firstNames,
+      lastName: processedRow.row.lastName,
+      homeMunicipality: processedRow.row.homeMunicipality,
       adminRole: "none" as const,
-      isAllowedEmails: ["true", "yes"].includes(p.row.isAllowedEmails?.toLowerCase().trim() ?? ""),
+      isAllowedEmails: isAllowedEmailValue(processedRow.row.isAllowedEmails),
     }));
 
     if (userValues.length > 0) {
@@ -216,47 +244,40 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
     }
   }
 
-  // Step 3: Batch update existing users (in chunks of 500)
-  const existingUsers = processedRows.filter((p) => !p.isNewUser);
-  const existingUsersByEmail = new Map<string, ProcessedRow>();
+  return uniqueNewUsers;
+}
 
-  // Deduplicate by email
-  for (const processed of existingUsers) {
-    if (!existingUsersByEmail.has(processed.row.email)) {
-      existingUsersByEmail.set(processed.row.email, processed);
-    }
-  }
+async function updateExistingUsers(processedRows: ProcessedImportRow[], errors: ImportError[]): Promise<void> {
+  const uniqueExistingUsers = uniqueProcessedRowsByEmail(processedRows.filter((row) => !row.isNewUser));
 
-  const uniqueExistingUsers = Array.from(existingUsersByEmail.values());
-
-  // Update existing users one by one (Drizzle doesn't support batch updates well)
-  for (const processed of uniqueExistingUsers) {
+  for (const processedRow of uniqueExistingUsers) {
     try {
       await db
         .update(table.user)
         .set({
-          firstNames: processed.row.firstNames,
-          lastName: processed.row.lastName,
-          homeMunicipality: processed.row.homeMunicipality,
+          firstNames: processedRow.row.firstNames,
+          lastName: processedRow.row.lastName,
+          homeMunicipality: processedRow.row.homeMunicipality,
         })
-        .where(eq(table.user.id, processed.userId));
+        .where(eq(table.user.id, processedRow.userId));
     } catch (err) {
-      errors.push({
-        row: processed.index + 1,
-        email: processed.row.email,
-        error: err instanceof Error ? err.message : "Failed to update user",
-      });
+      errors.push(
+        buildImportError(
+          processedRow.row,
+          processedRow.index,
+          err instanceof Error ? err.message : "Failed to update user",
+        ),
+      );
     }
   }
+}
 
-  // Step 4: Check which member records already exist
-  const allUserIds = [...new Set(processedRows.map((p) => p.userId))];
-  const existingMemberSet = new Set<string>();
+async function loadExistingMemberKeys(processedRows: ProcessedImportRow[]): Promise<Set<string>> {
+  const userIds = [...new Set(processedRows.map((processedRow) => processedRow.userId))];
+  const existingMemberKeys = new Set<string>();
 
-  // Query existing members in batches to avoid hitting query size limits
-  for (let i = 0; i < allUserIds.length; i += BATCH_SIZE) {
-    const userIdBatch = allUserIds.slice(i, i + BATCH_SIZE);
-
+  for (let i = 0; i < userIds.length; i += IMPORT_BATCH_SIZE) {
+    const userIdBatch = userIds.slice(i, i + IMPORT_BATCH_SIZE);
     if (userIdBatch.length === 0) continue;
 
     const existingMembers = await db
@@ -268,71 +289,104 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
       .where(inArray(table.member.userId, userIdBatch));
 
     for (const member of existingMembers) {
-      existingMemberSet.add(`${member.userId}:${member.membershipId}`);
+      existingMemberKeys.add(`${member.userId}:${member.membershipId}`);
     }
   }
 
-  // Step 5: Batch insert new member records (in chunks of 500)
-  const newMembers = processedRows.filter((p) => {
-    const key = `${p.userId}:${p.membershipId}`;
-    return !existingMemberSet.has(key);
+  return existingMemberKeys;
+}
+
+function getNewMemberRows(processedRows: ProcessedImportRow[], existingMemberKeys: Set<string>): ProcessedImportRow[] {
+  const rowsByMemberKey = new Map<string, ProcessedImportRow>();
+
+  for (const processedRow of processedRows) {
+    const memberKey = `${processedRow.userId}:${processedRow.membershipId}`;
+    if (!existingMemberKeys.has(memberKey) && !rowsByMemberKey.has(memberKey)) {
+      rowsByMemberKey.set(memberKey, processedRow);
+    }
+  }
+
+  return Array.from(rowsByMemberKey.values());
+}
+
+async function insertMemberBatch(memberRows: ProcessedImportRow[], errors: ImportError[]): Promise<void> {
+  const rowByMemberKey = new Map<string, ProcessedImportRow>();
+  const memberValues = memberRows.map((processedRow) => {
+    const memberKey = `${processedRow.userId}:${processedRow.membershipId}`;
+    rowByMemberKey.set(memberKey, processedRow);
+
+    return {
+      id: crypto.randomUUID(),
+      userId: processedRow.userId,
+      membershipId: processedRow.membershipId,
+      status: processedRow.status,
+    };
   });
 
-  // Deduplicate member records (in case CSV has duplicates)
-  const uniqueMembers = new Map<string, ProcessedRow>();
-  for (const processed of newMembers) {
-    const key = `${processed.userId}:${processed.membershipId}`;
-    if (!uniqueMembers.has(key)) {
-      uniqueMembers.set(key, processed);
+  try {
+    await db.insert(table.member).values(memberValues);
+  } catch {
+    await insertMemberBatchIndividually(memberValues, rowByMemberKey, errors);
+  }
+}
+
+async function insertMemberBatchIndividually(
+  memberValues: Array<{ id: string; userId: string; membershipId: string; status: "active" | "resigned" }>,
+  rowByMemberKey: Map<string, ProcessedImportRow>,
+  errors: ImportError[],
+): Promise<void> {
+  for (const memberValue of memberValues) {
+    const memberKey = `${memberValue.userId}:${memberValue.membershipId}`;
+    const processedRow = rowByMemberKey.get(memberKey);
+
+    try {
+      await db.insert(table.member).values(memberValue);
+    } catch (innerErr) {
+      if (!processedRow) continue;
+
+      errors.push(
+        buildImportError(
+          processedRow.row,
+          processedRow.index,
+          innerErr instanceof Error ? innerErr.message : "Failed to create member record",
+        ),
+      );
     }
   }
+}
 
-  const membersToInsert = Array.from(uniqueMembers.values());
-
-  for (let i = 0; i < membersToInsert.length; i += BATCH_SIZE) {
-    const batch = membersToInsert.slice(i, i + BATCH_SIZE);
-
-    // Create lookup map to avoid O(n²) complexity during error handling
-    const valueToProcessed = new Map<string, ProcessedRow>();
-    const memberValues = batch.map((p) => {
-      const id = crypto.randomUUID();
-      const key = `${p.userId}:${p.membershipId}`;
-      valueToProcessed.set(key, p);
-      return {
-        id,
-        userId: p.userId,
-        membershipId: p.membershipId,
-        status: p.status,
-      };
-    });
-
-    if (memberValues.length > 0) {
-      try {
-        await db.insert(table.member).values(memberValues);
-      } catch {
-        // If batch insert fails, try individually to identify the problematic rows
-        for (const value of memberValues) {
-          const key = `${value.userId}:${value.membershipId}`;
-          const processed = valueToProcessed.get(key);
-          try {
-            await db.insert(table.member).values(value);
-          } catch (innerErr) {
-            if (processed) {
-              errors.push({
-                row: processed.index + 1,
-                email: processed.row.email,
-                error: innerErr instanceof Error ? innerErr.message : "Failed to create member record",
-              });
-            }
-          }
-        }
-      }
+async function insertNewMembers(memberRows: ProcessedImportRow[], errors: ImportError[]): Promise<void> {
+  for (let i = 0; i < memberRows.length; i += IMPORT_BATCH_SIZE) {
+    const batch = memberRows.slice(i, i + IMPORT_BATCH_SIZE);
+    if (batch.length > 0) {
+      await insertMemberBatch(batch, errors);
     }
   }
+}
 
-  // Count successful imports (rows that didn't generate errors)
+export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }) => {
+  const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
+
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
+    error(404, LL.error.resourceNotFound());
+  }
+
+  const parsedRows = parseImportRows(rowsJson, LL.admin.import.invalidDataFormat());
+  const membershipLookup = await loadMembershipLookup();
+  const userIdsByEmail = await loadUserIdsByEmail(parsedRows);
+  const rows = normalizeImportEmails(parsedRows);
+  const { processedRows, errors } = prepareImportRows(rows, membershipLookup, userIdsByEmail);
+
+  const uniqueNewUsers = await insertNewUsers(processedRows);
+  await updateExistingUsers(processedRows, errors);
+
+  const existingMemberKeys = await loadExistingMemberKeys(processedRows);
+  const membersToInsert = getNewMemberRows(processedRows, existingMemberKeys);
+  await insertNewMembers(membersToInsert, errors);
+
   const errorRowIndices = new Set(errors.map((e) => e.row - 1));
-  successCount = rows.length - errorRowIndices.size;
+  const successCount = rows.length - errorRowIndices.size;
 
   await auditFromEvent(event, "member.bulk_import", {
     targetType: "member",
@@ -358,7 +412,7 @@ export const createLegacyMembership = command(createLegacyMembershipSchema, asyn
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
@@ -396,7 +450,7 @@ export const createLegacyMemberships = command(createLegacyMembershipsBatchSchem
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !hasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 

@@ -116,13 +116,6 @@ export async function auditLoginFailed(event: RequestEvent, email: string): Prom
 }
 
 /**
- * Audit a logout
- */
-export async function auditLogout(event: RequestEvent): Promise<void> {
-  await auditFromEvent(event, "auth.logout");
-}
-
-/**
  * Audit a member status change
  */
 export async function auditMemberAction(
@@ -240,20 +233,5 @@ export async function auditEmailChange(
       oldEmail,
       newEmail,
     },
-  });
-}
-
-/**
- * Audit user profile changes (name, municipality, etc.)
- */
-export async function auditProfileChange(
-  event: RequestEvent,
-  userId: string,
-  changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>,
-): Promise<void> {
-  await auditFromEvent(event, "user.update_profile", {
-    targetType: "user",
-    targetId: userId,
-    metadata: { changes },
   });
 }

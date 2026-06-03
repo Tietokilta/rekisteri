@@ -18,7 +18,7 @@ const EXPIRING_DOMAINS: Record<string, { months: number }> = {
  * Calculate expiration date for a domain based on verification time
  * Returns null for domains that never expire
  */
-export function calculateExpiry(domain: string, verifiedAt: Date): Date | null {
+function calculateExpiry(domain: string, verifiedAt: Date): Date | null {
   const policy = EXPIRING_DOMAINS[domain.toLowerCase()];
   if (!policy) return null;
 
@@ -46,7 +46,7 @@ export function isSecondaryEmailValid(secondaryEmail: SecondaryEmail): boolean {
  * Extract domain from email address
  * Validates email format using Valibot before extracting domain
  */
-export function extractDomain(email: string): string {
+function extractDomain(email: string): string {
   // Validate email format
   const validationResult = v.safeParse(v.pipe(v.string(), v.email()), email);
   if (!validationResult.success) {
@@ -60,15 +60,6 @@ export function extractDomain(email: string): string {
   }
 
   return domain;
-}
-
-/**
- * Check if a user has a valid secondary email for a specific domain
- */
-export function hasValidDomainEmail(secondaryEmails: SecondaryEmail[], domain: string): boolean {
-  return secondaryEmails.some(
-    (email) => email.domain.toLowerCase() === domain.toLowerCase() && isSecondaryEmailValid(email),
-  );
 }
 
 /**
