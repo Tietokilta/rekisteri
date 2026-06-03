@@ -12,8 +12,11 @@ describe("renderMarkdown", () => {
     ).toContain("<table>");
   });
 
-  it("renders line breaks", () => {
-    expect(renderMarkdown("First line\nSecond line")).toContain("First line<br>Second line");
-    expect(renderMarkdown("First line<br />Second line")).toContain("First line<br />Second line");
+  it("preserves explicit line breaks without doubling them", () => {
+    const html = renderMarkdown("First line<br />\nSecond line");
+
+    expect(html).toContain("First line<br />\nSecond line");
+    expect(html).not.toContain("<br /><br>");
+    expect(html).not.toContain("<br />\n<br>");
   });
 });
