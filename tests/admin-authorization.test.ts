@@ -52,7 +52,6 @@ describe("server-side hasAdminAccess (user object)", () => {
   it("returns false for null user", () => expect(userHasAdminAccess(null)).toBe(false));
 
   it("returns false for undefined user", () => {
-    // eslint-disable-next-line unicorn/no-useless-undefined
     expect(userHasAdminAccess(undefined)).toBe(false);
   });
 });
@@ -67,7 +66,6 @@ describe("server-side hasAdminWriteAccess (user object)", () => {
   it("returns false for null user", () => expect(userHasAdminWriteAccess(null)).toBe(false));
 
   it("returns false for undefined user", () => {
-    // eslint-disable-next-line unicorn/no-useless-undefined
     expect(userHasAdminWriteAccess(undefined)).toBe(false);
   });
 });
@@ -82,7 +80,6 @@ describe("server-side isReadOnlyAdmin (user object)", () => {
   it("returns false for null user", () => expect(userIsReadOnlyAdmin(null)).toBe(false));
 
   it("returns false for undefined user", () => {
-    // eslint-disable-next-line unicorn/no-useless-undefined
     expect(userIsReadOnlyAdmin(undefined)).toBe(false);
   });
 });
@@ -257,7 +254,7 @@ describe("Last admin protection", () => {
           sql`, `,
         )}) AND ${table.user.adminRole} = 'admin'`,
       );
-    return Number.parseInt(result[0]?.count ?? "0", 10);
+    return Number(result[0]?.count ?? "0");
   }
 
   async function createUserWithRole(db: TestDatabase["db"], role: AdminRole): Promise<string> {

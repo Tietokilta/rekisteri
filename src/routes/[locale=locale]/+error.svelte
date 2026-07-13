@@ -40,7 +40,7 @@
           {$LL.error.backToHome()}
         </Button>
         {#if !is404}
-          <Button onclick={() => globalThis.location.reload()} variant="outline">
+          <Button onclick={() => location.reload()} variant="outline">
             {$LL.error.tryAgain()}
           </Button>
         {/if}

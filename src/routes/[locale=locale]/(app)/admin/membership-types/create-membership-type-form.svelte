@@ -43,11 +43,13 @@
   let autoGenerateId = $state(true);
 
   $effect(() => {
-    if (autoGenerateId) {
-      const nameFi = createMembershipType.fields.nameFi.value();
-      if (nameFi) {
-        createMembershipType.fields.id.set(generateId(nameFi));
-      }
+    if (!autoGenerateId) {
+      return;
+    }
+
+    const nameFi = createMembershipType.fields.nameFi.value();
+    if (nameFi) {
+      createMembershipType.fields.id.set(generateId(nameFi));
     }
   });
 </script>

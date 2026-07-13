@@ -308,8 +308,8 @@
     const url = URL.createObjectURL(blob);
 
     // Generate filename with timestamp and group name
-    const timestamp = new Date().toISOString().split("T")[0];
-    const groupName = groupEmail.split("@")[0]; // Extract 'jasenet' or 'aktiivit'
+    const timestamp = new Date().toISOString().split("T", 1)[0];
+    const groupName = groupEmail.split("@", 1)[0]; // Extract 'jasenet' or 'aktiivit'
     link.setAttribute("href", url);
     link.setAttribute("download", `${groupName}-export-${timestamp}.csv`);
     link.style.visibility = "hidden";

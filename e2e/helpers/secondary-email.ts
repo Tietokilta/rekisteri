@@ -18,7 +18,7 @@ export async function createSecondaryEmail(
   } = {},
 ): Promise<table.SecondaryEmail> {
   const normalizedEmail = email.toLowerCase();
-  const domain = normalizedEmail.split("@")[1];
+  const domain = normalizedEmail.split("@", 2)[1];
   if (!domain) throw new Error("Invalid email format");
 
   const secondaryEmail: table.SecondaryEmail = {

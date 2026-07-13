@@ -66,7 +66,7 @@ export async function deleteEmailOTP(id: string): Promise<void> {
 }
 
 export function sendOTPEmail(email: string, code: string, locale: "fi" | "en" = "fi"): void {
-  sendMemberEmail({
+  void sendMemberEmail({
     recipientEmail: email,
     emailType: "otp",
     metadata: { code },

@@ -17,11 +17,10 @@ export const createMembershipType = form(createMembershipTypeSchema, async (data
   }
 
   // Check if ID already exists
-  const existing = await db
+  const [existing] = await db
     .select({ id: table.membershipType.id })
     .from(table.membershipType)
-    .where(eq(table.membershipType.id, data.id))
-    .then((result) => result[0]);
+    .where(eq(table.membershipType.id, data.id));
 
   if (existing) {
     error(400, LL.admin.membershipTypes.idAlreadyExists());
@@ -58,11 +57,10 @@ export const updateMembershipType = form(updateMembershipTypeSchema, async (data
   }
 
   // Verify membership type exists before updating
-  const existing = await db
+  const [existing] = await db
     .select({ id: table.membershipType.id })
     .from(table.membershipType)
-    .where(eq(table.membershipType.id, data.id))
-    .then((result) => result[0]);
+    .where(eq(table.membershipType.id, data.id));
 
   if (!existing) {
     error(404, LL.admin.membershipTypes.membershipTypeNotFound());
@@ -99,11 +97,11 @@ export const deleteMembershipType = form(deleteMembershipTypeSchema, async ({ id
   }
 
   // Check if any memberships use this type
-  const membershipCount = await db
+  const [membershipCountResult] = await db
     .select({ count: count() })
     .from(table.membership)
-    .where(eq(table.membership.membershipTypeId, id))
-    .then((result) => result[0]?.count ?? 0);
+    .where(eq(table.membership.membershipTypeId, id));
+  const membershipCount = membershipCountResult?.count ?? 0;
 
   if (membershipCount > 0) {
     error(400, LL.admin.membershipTypes.cannotDeleteInUse());

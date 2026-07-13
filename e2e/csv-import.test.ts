@@ -65,13 +65,13 @@ test.describe("CSV Import", () => {
 
     // Upload CSV file using setInputFiles (simpler approach)
     const csvPath = path.join(process.cwd(), "e2e/fixtures/sample-import.csv");
-    const fileInput = adminPage.locator('input[type="file"]');
 
     // Check if file exists before uploading
     if (!fs.existsSync(csvPath)) {
       throw new Error(`Sample CSV not found at ${csvPath}`);
     }
 
+    const fileInput = adminPage.locator('input[type="file"]');
     await fileInput.setInputFiles(csvPath);
 
     // Verify preview shows
@@ -743,7 +743,7 @@ Test,User,Helsinki,${email},varsinainen-jasen,2015-08-01`;
         .where(eq(table.membership.startTime, new Date("2015-08-01")));
 
       expect(createdMembership).toBeDefined();
-      expect(createdMembership?.endTime.toISOString().split("T")[0]).toBe("2016-07-31");
+      expect(createdMembership?.endTime.toISOString().split("T", 1)[0]).toBe("2016-07-31");
 
       // Track for cleanup
       if (createdMembership) {

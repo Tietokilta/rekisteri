@@ -1,13 +1,12 @@
 <script lang="ts">
   import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-  import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
   import { page } from "$app/state";
+  import LanguageToggle from "$lib/components/language-toggle.svelte";
   import { LL, locale } from "$lib/i18n/i18n-svelte";
   import { route } from "$lib/ROUTES";
   import { signOut } from "$lib/api/auth.remote";
-  import { stripLocaleFromPathname, type Locale } from "$lib/i18n/routing";
-  import { getMainNavItems, getSettingsNavItems, getAdminNavItems } from "$lib/navigation";
-  import { formatUserName } from "$lib/utils";
+  import { getMainNavItems, getSettingsNavItems, getAdminNavItems, type NavItem } from "$lib/navigation";
+  import { formatFullName } from "$lib/utils";
   import { hasAdminAccess, type AdminRole } from "$lib/shared/enums";
 
   // Icons from @lucide/svelte
@@ -35,17 +34,29 @@
     return page.url.pathname === href;
   }
 
-  function languageHref(newLanguage: Locale) {
-    const canonicalPath = stripLocaleFromPathname(page.url.pathname);
-    return `/${newLanguage}${canonicalPath}`;
-  }
-
   // Get user display name
-  const displayName = $derived(formatUserName(user, user.email));
+  const displayName = $derived(formatFullName(user, user.email));
 
   const logoUrl = $derived(page.data.customizations.logoUrl ?? page.data.customizations.logoDarkUrl);
   const logoDarkUrl = $derived(page.data.customizations.logoDarkUrl ?? page.data.customizations.logoUrl);
 </script>
+
+{#snippet navigationMenu(items: NavItem[])}
+  <Sidebar.SidebarMenu>
+    {#each items as item (item.href)}
+      <Sidebar.SidebarMenuItem>
+        <Sidebar.SidebarMenuButton isActive={isActive(item.href)} tooltipContent={item.title}>
+          {#snippet child({ props })}
+            <a href={item.href} {...props}>
+              <item.icon />
+              <span>{item.title}</span>
+            </a>
+          {/snippet}
+        </Sidebar.SidebarMenuButton>
+      </Sidebar.SidebarMenuItem>
+    {/each}
+  </Sidebar.SidebarMenu>
+{/snippet}
 
 <Sidebar.Sidebar>
   <!-- Header with logo -->
@@ -73,20 +84,7 @@
     <!-- Main navigation -->
     <Sidebar.SidebarGroup>
       <Sidebar.SidebarGroupContent>
-        <Sidebar.SidebarMenu>
-          {#each mainNavItems as item (item.href)}
-            <Sidebar.SidebarMenuItem>
-              <Sidebar.SidebarMenuButton isActive={isActive(item.href)} tooltipContent={item.title}>
-                {#snippet child({ props })}
-                  <a href={item.href} {...props}>
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </a>
-                {/snippet}
-              </Sidebar.SidebarMenuButton>
-            </Sidebar.SidebarMenuItem>
-          {/each}
-        </Sidebar.SidebarMenu>
+        {@render navigationMenu(mainNavItems)}
       </Sidebar.SidebarGroupContent>
     </Sidebar.SidebarGroup>
 
@@ -94,20 +92,7 @@
     <Sidebar.SidebarGroup>
       <Sidebar.SidebarGroupLabel>{$LL.nav.settings()}</Sidebar.SidebarGroupLabel>
       <Sidebar.SidebarGroupContent>
-        <Sidebar.SidebarMenu>
-          {#each settingsNavItems as item (item.href)}
-            <Sidebar.SidebarMenuItem>
-              <Sidebar.SidebarMenuButton isActive={isActive(item.href)} tooltipContent={item.title}>
-                {#snippet child({ props })}
-                  <a href={item.href} {...props}>
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </a>
-                {/snippet}
-              </Sidebar.SidebarMenuButton>
-            </Sidebar.SidebarMenuItem>
-          {/each}
-        </Sidebar.SidebarMenu>
+        {@render navigationMenu(settingsNavItems)}
       </Sidebar.SidebarGroupContent>
     </Sidebar.SidebarGroup>
 
@@ -116,20 +101,7 @@
       <Sidebar.SidebarGroup>
         <Sidebar.SidebarGroupLabel>{$LL.nav.admin.title()}</Sidebar.SidebarGroupLabel>
         <Sidebar.SidebarGroupContent>
-          <Sidebar.SidebarMenu>
-            {#each adminNavItems as item (item.href)}
-              <Sidebar.SidebarMenuItem>
-                <Sidebar.SidebarMenuButton isActive={isActive(item.href)} tooltipContent={item.title}>
-                  {#snippet child({ props })}
-                    <a href={item.href} {...props}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
-                  {/snippet}
-                </Sidebar.SidebarMenuButton>
-              </Sidebar.SidebarMenuItem>
-            {/each}
-          </Sidebar.SidebarMenu>
+          {@render navigationMenu(adminNavItems)}
         </Sidebar.SidebarGroupContent>
       </Sidebar.SidebarGroup>
     {/if}
@@ -141,18 +113,7 @@
       <Sidebar.SidebarMenuItem>
         <div class="flex items-center gap-2 px-2 py-1.5">
           <Languages class="size-4 text-muted-foreground" />
-          <ToggleGroup.Root type="single" value={$locale} class="justify-start" data-sveltekit-reload>
-            <ToggleGroup.Item value="fi" class="h-7 px-2 text-xs">
-              {#snippet child({ props })}
-                <a {...props} href={languageHref("fi")}>FI</a>
-              {/snippet}
-            </ToggleGroup.Item>
-            <ToggleGroup.Item value="en" class="h-7 px-2 text-xs">
-              {#snippet child({ props })}
-                <a {...props} href={languageHref("en")}>EN</a>
-              {/snippet}
-            </ToggleGroup.Item>
-          </ToggleGroup.Root>
+          <LanguageToggle class="justify-start" itemClass="h-7 px-2 text-xs" />
         </div>
       </Sidebar.SidebarMenuItem>
 

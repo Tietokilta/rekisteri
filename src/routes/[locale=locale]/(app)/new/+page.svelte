@@ -37,7 +37,7 @@
   const filteredMemberships = $derived(
     availableMemberships.filter(
       (a): a is typeof a & { stripePriceId: string } =>
-        !!a.stripePriceId && !memberships.some((b) => a.id === b.id && BLOCKING_MEMBER_STATUSES.has(b.status)),
+        !!a.stripePriceId && memberships.every((b) => !(a.id === b.id && BLOCKING_MEMBER_STATUSES.has(b.status))),
     ),
   );
 

@@ -23,7 +23,7 @@ export const isNonEmpty = <T>(arr: T[] | undefined | null): arr is NonEmptyArray
  * Format a user's full name from first names and last name.
  * Returns the email as fallback if no name parts are available.
  */
-export function formatUserName(
+export function formatFullName(
   user: { firstNames?: string | null; lastName?: string | null; email?: string | null },
   fallback?: string,
 ): string {
@@ -36,8 +36,8 @@ export function formatUserName(
  * Falls back to the email prefix (part before @) if no first name is set.
  */
 export function getDisplayFirstName(user: { firstNames?: string | null; email: string }): string {
-  const firstName = user.firstNames?.split(" ")[0];
-  return firstName || user.email.split("@")[0] || user.email;
+  const firstName = user.firstNames?.split(" ", 1)[0];
+  return firstName || user.email.split("@", 1)[0] || user.email;
 }
 
 /**

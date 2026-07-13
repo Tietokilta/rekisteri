@@ -18,13 +18,13 @@
   function handleBlur() {
     hasValidated = true;
     // validate() may reject if the form unmounts during navigation (e.g. after submit redirect)
-    addSecondaryEmailForm.validate().catch(() => {});
+    void addSecondaryEmailForm.validate().catch(() => {});
   }
 
   function handleInput() {
     // Only validate on input after initial validation (reward early, validate late)
     if (hasValidated) {
-      addSecondaryEmailForm.validate().catch(() => {});
+      void addSecondaryEmailForm.validate().catch(() => {});
     }
   }
 </script>

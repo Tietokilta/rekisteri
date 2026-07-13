@@ -78,7 +78,9 @@ function resizeSvgTo32(buffer: Buffer): Buffer {
     const wMatch = attrs.match(/width\s*=\s*['"]([^'"]+)['"]/i);
     const hMatch = attrs.match(/height\s*=\s*['"]([^'"]+)['"]/i);
     if (wMatch && hMatch) {
+      // eslint-disable-next-line unicorn/prefer-number-coercion -- SVG dimensions may include units such as px.
       const w = Number.parseFloat(wMatch[1] as string);
+      // eslint-disable-next-line unicorn/prefer-number-coercion -- SVG dimensions may include units such as px.
       const h = Number.parseFloat(hMatch[1] as string);
       if (!Number.isNaN(w) && !Number.isNaN(h)) {
         attrs += ` viewBox="0 0 ${w} ${h}"`;
@@ -113,7 +115,7 @@ function assertSvg(field: CustomizationImageField, buffer: Buffer) {
     throw new CustomizationUploadError(field, "Must be a valid UTF-8 SVG image");
   }
 
-  let normalized = svg.replace(/^\uFEFF/, "").trimStart();
+  let normalized = svg.replace(/^\u{FEFF}/u, "").trimStart();
   normalized = normalized.replace(/^<\?xml[^>]*\?>\s*/i, "");
   while (normalized.startsWith("<!--")) {
     const commentEnd = normalized.indexOf("-->");

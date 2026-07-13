@@ -67,7 +67,7 @@ export const load: PageServerLoad = async (event) => {
   );
 
   // Check for valid aalto.fi email (primary or secondary)
-  const primaryEmailDomain = user.email.split("@")[1]?.toLowerCase();
+  const primaryEmailDomain = user.email.split("@", 2)[1]?.toLowerCase();
   const isPrimaryAalto = primaryEmailDomain === "aalto.fi";
 
   const secondaryEmails = await getUserSecondaryEmails(user.id);

@@ -1,17 +1,11 @@
 <script lang="ts">
   import { locale } from "$lib/i18n/i18n-svelte";
-  import { stripLocaleFromPathname, type Locale } from "$lib/i18n/routing";
   import { page } from "$app/state";
-  import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
+  import LanguageToggle from "$lib/components/language-toggle.svelte";
   import { route } from "$lib/ROUTES";
   import Footer from "$lib/components/footer.svelte";
 
   let { children }: { children: import("svelte").Snippet } = $props();
-
-  function languageHref(newLanguage: Locale) {
-    const canonicalPath = stripLocaleFromPathname(page.url.pathname);
-    return `/${newLanguage}${canonicalPath}`;
-  }
 
   const logoUrl = $derived(page.data.customizations.logoUrl ?? page.data.customizations.logoDarkUrl);
   const logoDarkUrl = $derived(page.data.customizations.logoDarkUrl ?? page.data.customizations.logoUrl);
@@ -32,18 +26,7 @@
             >{page.data.customizations.appName[$locale]}</span
           >
         </a>
-        <ToggleGroup.Root type="single" value={$locale} data-sveltekit-reload>
-          <ToggleGroup.Item value="fi">
-            {#snippet child({ props })}
-              <a {...props} href={languageHref("fi")}>fi</a>
-            {/snippet}
-          </ToggleGroup.Item>
-          <ToggleGroup.Item value="en">
-            {#snippet child({ props })}
-              <a {...props} href={languageHref("en")}>en</a>
-            {/snippet}
-          </ToggleGroup.Item>
-        </ToggleGroup.Root>
+        <LanguageToggle lowercase />
       </div>
     </div>
   </header>

@@ -54,7 +54,7 @@ function extractDomain(email: string): string {
   }
 
   // Extract domain (guaranteed to exist after validation)
-  const domain = validationResult.output.toLowerCase().split("@")[1];
+  const domain = validationResult.output.toLowerCase().split("@", 2)[1];
   if (!domain) {
     throw new Error("Invalid email format: missing domain");
   }

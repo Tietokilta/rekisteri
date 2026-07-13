@@ -17,7 +17,7 @@
   import { updateUserRole, mergeUsers } from "./data.remote";
   import { toast } from "svelte-sonner";
   import { invalidateAll } from "$app/navigation";
-  import { formatUserName } from "$lib/utils";
+  import { formatFullName } from "$lib/utils";
   import { ADMIN_ROLE_VALUES, type AdminRole } from "$lib/shared/enums";
 
   const { data }: PageProps = $props();
@@ -228,9 +228,9 @@
               <p class="mb-2 text-sm font-medium">{$LL.admin.users.merge.primaryUser()}</p>
               <div class="rounded-md border bg-muted p-3">
                 <p class="font-mono text-sm">{primaryUser.email}</p>
-                {#if formatUserName(primaryUser)}
+                {#if formatFullName(primaryUser)}
                   <p class="text-sm text-muted-foreground">
-                    {formatUserName(primaryUser)}
+                    {formatFullName(primaryUser)}
                   </p>
                 {/if}
               </div>
@@ -257,9 +257,9 @@
                   >
                     <div>
                       <p class="font-mono text-sm">{user.email}</p>
-                      {#if formatUserName(user)}
+                      {#if formatFullName(user)}
                         <p class="text-sm text-muted-foreground">
-                          {formatUserName(user)}
+                          {formatFullName(user)}
                         </p>
                       {/if}
                     </div>
@@ -290,9 +290,9 @@
                 </p>
                 <div class="rounded-md border border-primary/20 bg-primary/5 p-3">
                   <p class="font-mono text-sm">{primaryUser.email}</p>
-                  {#if formatUserName(primaryUser)}
+                  {#if formatFullName(primaryUser)}
                     <p class="text-sm text-muted-foreground">
-                      {formatUserName(primaryUser)}
+                      {formatFullName(primaryUser)}
                     </p>
                   {/if}
                   <Badge variant={getRoleBadgeVariant(primaryUser.adminRole)} class="mt-2">
@@ -307,9 +307,9 @@
                 </p>
                 <div class="rounded-md border border-destructive/20 bg-destructive/5 p-3">
                   <p class="font-mono text-sm">{secondaryUser.email}</p>
-                  {#if formatUserName(secondaryUser)}
+                  {#if formatFullName(secondaryUser)}
                     <p class="text-sm text-muted-foreground">
-                      {formatUserName(secondaryUser)}
+                      {formatFullName(secondaryUser)}
                     </p>
                   {/if}
                   <Badge variant={getRoleBadgeVariant(secondaryUser.adminRole)} class="mt-2">
@@ -422,7 +422,7 @@
                 <Table.Cell class="w-[200px] font-mono text-xs">{user.id}</Table.Cell>
                 <Table.Cell class="w-[250px]">{user.email}</Table.Cell>
                 <Table.Cell class="w-[200px]">
-                  {formatUserName(user) || "-"}
+                  {formatFullName(user) || "-"}
                 </Table.Cell>
                 <Table.Cell class="w-[120px]">
                   <Badge variant={getRoleBadgeVariant(user.adminRole)}>
@@ -527,7 +527,7 @@
                 <Table.Cell class="w-[200px] font-mono text-xs">{user.id}</Table.Cell>
                 <Table.Cell class="w-[250px]">{user.email}</Table.Cell>
                 <Table.Cell class="w-[200px]">
-                  {formatUserName(user) || "-"}
+                  {formatFullName(user) || "-"}
                 </Table.Cell>
                 <Table.Cell class="w-[120px]">-</Table.Cell>
                 <Table.Cell class="w-[250px]">

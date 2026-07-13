@@ -17,7 +17,7 @@ import type { RequestHandler } from "./$types";
 export const GET: RequestHandler = async () => {
   let databaseConnected = false;
   let customizationConfigured = false;
-  let emailStatus: "ok" | "not_configured" | "error" = "not_configured";
+  let emailStatus: "ok" | "not_configured" | "error";
 
   // Check database connectivity and required singleton setup (critical)
   try {

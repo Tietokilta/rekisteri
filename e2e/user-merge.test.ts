@@ -452,7 +452,7 @@ test.describe("User Merge Feature", () => {
       const members = await db.select().from(table.member).where(eq(table.member.userId, primaryUser.id));
       expect(members.length).toBe(2); // Should have both memberships now
 
-      const membershipIds = members.map((m) => m.membershipId).toSorted();
+      const membershipIds = members.map((m) => m.membershipId);
       expect(membershipIds).toContain(membership2024);
       expect(membershipIds).toContain(membership2023);
 

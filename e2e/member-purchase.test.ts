@@ -59,7 +59,7 @@ test.describe("Member Purchase Flow", () => {
 
     // Check if ProfileIncompleteCard is visible (indicates profile is incomplete)
     const profileIncomplete = page.getByText("Täydennä profiilisi");
-    const isProfileIncomplete = await profileIncomplete.isVisible().catch(() => false);
+    const isProfileIncomplete = await profileIncomplete.isVisible();
 
     if (isProfileIncomplete) {
       throw new Error(

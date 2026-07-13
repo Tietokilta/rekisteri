@@ -110,7 +110,7 @@
     // When startDay is 1, endDay becomes 0. Date constructor normalizes this
     // to the last day of the previous month (e.g., March 0 -> Feb 28/29).
     const endDate = new Date(endYear, endMonth, endDay);
-    return endDate.toISOString().split("T")[0] ?? "";
+    return endDate.toISOString().split("T", 1)[0] ?? "";
   }
 
   // Helper to find membership by typeId and start date
@@ -488,7 +488,7 @@
           return {
             ...row,
             membershipTypeId: linked.membershipTypeId,
-            membershipStartDate: linked.startTime.toISOString().split("T")[0] ?? "",
+            membershipStartDate: linked.startTime.toISOString().split("T", 1)[0] ?? "",
           };
         }
       }
