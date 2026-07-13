@@ -101,20 +101,8 @@
     "typesafe-i18n": "^5.27.1",
     "valibot": "^1.2.0"
   },
-  "packageManager": "pnpm@10.28.0",
+  "packageManager": "pnpm@11.10.0",
   "engines": {
     "node": ">=22.0.0 <25.0.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ],
-    "overrides": {
-      "axios": "^1.13.0",
-      "esbuild@<=0.24.2": ">=0.25.0",
-      "cookie@<0.7.0": ">=0.7.0",
-      "js-yaml@>=4.0.0 <4.1.1": ">=4.1.1",
-      "valibot@>=0.31.0 <1.2.0": ">=1.2.0"
-    }
   }
 }
