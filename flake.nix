@@ -12,7 +12,8 @@
       ...
     }@inputs:
     let
-      forEachSystem = nixpkgs.lib.genAttrs (import systems);
+      supportedSystems = builtins.filter (system: system != "x86_64-darwin") (import systems);
+      forEachSystem = nixpkgs.lib.genAttrs supportedSystems;
     in
     {
       packages = forEachSystem (
@@ -20,7 +21,7 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
           nodejs = pkgs.nodejs_24;
-          pnpm = pkgs.pnpm.override { inherit nodejs; };
+          pnpm = pkgs.pnpm_11;
 
           default = pkgs.stdenv.mkDerivation (finalAttrs: {
             pname = "rekisteri";
@@ -31,7 +32,7 @@
             nativeBuildInputs = [
               nodejs
               pnpm
-              pnpm.configHook
+              pkgs.pnpmConfigHook
               pkgs.makeWrapper
             ];
 
@@ -48,21 +49,12 @@
             MAILGUN_SENDER = "Rekisteri <noreply@...>";
             MAILGUN_URL = "https://api.eu.mailgun.net/v3/sandbox...";
 
-            pnpmDeps =
-              (pnpm.fetchDeps {
-                name = "${finalAttrs.pname}-${finalAttrs.version}-pnpm-deps";
-                inherit (finalAttrs) pname version src;
-                inherit nodejs;
-                fetcherVersion = 2;
-                hash = "sha256-QdZzBfmaGy5WKEd8Eg6aGy8DmA2wAna9EWIIk97Petg=";
-              }).overrideAttrs
-                (old: {
-                  nativeBuildInputs = [
-                    nodejs
-                    pnpm
-                  ]
-                  ++ old.nativeBuildInputs;
-                });
+            pnpmDeps = pkgs.fetchPnpmDeps {
+              inherit (finalAttrs) pname version src;
+              inherit pnpm;
+              fetcherVersion = 4;
+              hash = "sha256-iMWRd0GOKRgh7Rf22TxOXX2HOOmv+M1kOt7rjfeCz1E=";
+            };
 
             installPhase = ''
               runHook preInstall
@@ -114,7 +106,7 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
           nodejs = pkgs.nodejs_24;
-          pnpm = pkgs.pnpm.override { inherit nodejs; };
+          pnpm = pkgs.pnpm_11;
         in
         {
           default = pkgs.mkShell {

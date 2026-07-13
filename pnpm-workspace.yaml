@@ -1,3 +1,13 @@
+engineStrict: true
 minimumReleaseAge: 1440
-onlyBuiltDependencies:
-  - esbuild
+allowBuilds:
+  cpu-features: false
+  esbuild: true
+  protobufjs: false
+  ssh2: false
+overrides:
+  axios: ^1.13.0
+  esbuild@<=0.24.2: ">=0.25.0"
+  cookie@<0.7.0: ">=0.7.0"
+  js-yaml@>=4.0.0 <4.1.1: ">=4.1.1"
+  valibot@>=0.31.0 <1.2.0: ">=1.2.0"
