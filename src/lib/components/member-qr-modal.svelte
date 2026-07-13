@@ -32,12 +32,14 @@
   }
 
   function releaseWakeLock() {
-    if (wakeLock) {
-      wakeLock.release().catch((err) => {
-        console.error("Wake Lock release error:", err);
-      });
-      wakeLock = null;
+    if (!wakeLock) {
+      return;
     }
+
+    void wakeLock.release().catch((err) => {
+      console.error("Wake Lock release error:", err);
+    });
+    wakeLock = null;
   }
 
   function closeModal() {

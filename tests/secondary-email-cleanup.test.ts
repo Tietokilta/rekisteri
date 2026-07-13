@@ -30,7 +30,7 @@ describe("Secondary email cleanup and uniqueness", () => {
     options: { verifiedAt?: Date | null; createdAt?: Date } = {},
   ) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- test helper, email format guaranteed
-    const domain = email.split("@")[1]!;
+    const domain = email.split("@", 2)[1]!;
     const now = new Date();
     const record: table.SecondaryEmail = {
       id: crypto.randomUUID(),

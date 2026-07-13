@@ -1,8 +1,8 @@
 <script lang="ts">
   import { locale } from "$lib/i18n/i18n-svelte";
   import "../../app.css";
-  import "@fontsource-variable/inter";
-  import "@fontsource-variable/roboto-mono";
+  import "@fontsource-variable/inter/index.css";
+  import "@fontsource-variable/roboto-mono/index.css";
   import { ModeWatcher } from "mode-watcher";
   import { Toaster } from "$lib/components/ui/sonner";
   import type { LayoutData } from "./$types";

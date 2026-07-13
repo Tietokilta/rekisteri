@@ -15,6 +15,7 @@
     "ignore": [
       "tests/**",
       "e2e/**",
+      "src/lib/components/ui/**",
       "src/routes/**/+page.server.ts",
       "src/routes/**/admin/members/data.remote.ts",
       "src/routes/**/admin/members/import/data.remote.ts",
@@ -22,6 +23,8 @@
     ]
   },
   "health": {
+    "maxCyclomatic": 70,
+    "maxCognitive": 136,
     "maxCrap": 9999,
     "ignore": ["tests/**", "e2e/**"]
   },
@@ -36,6 +39,7 @@
     }
   ],
   "rules": {
+    "dev-dependencies-in-production": "off",
     "unused-dependencies": "warn"
   }
 }

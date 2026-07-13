@@ -47,7 +47,7 @@ export const payMembership = form(payMembershipSchema, async ({ membershipId, de
 
   if (membership?.requiresStudentVerification) {
     // Check primary email domain
-    const primaryEmailDomain = event.locals.user.email.split("@")[1]?.toLowerCase();
+    const primaryEmailDomain = event.locals.user.email.split("@", 2)[1]?.toLowerCase();
     const isPrimaryAalto = primaryEmailDomain === "aalto.fi";
 
     // Check secondary emails

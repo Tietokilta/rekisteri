@@ -53,7 +53,7 @@
               inherit (finalAttrs) pname version src;
               inherit pnpm;
               fetcherVersion = 4;
-              hash = "sha256-iMWRd0GOKRgh7Rf22TxOXX2HOOmv+M1kOt7rjfeCz1E=";
+              hash = "sha256-YmBd4Sw/T5WMFpK3d7drT1nKHygO5SgXktRJMumxJfI=";
             };
 
             installPhase = ''

@@ -89,7 +89,7 @@ async function checkStudentEmail(db: DbHandle, userId: string): Promise<boolean>
     return false;
   }
 
-  const primaryDomain = u.email.split("@")[1]?.toLowerCase();
+  const primaryDomain = u.email.split("@", 2)[1]?.toLowerCase();
   if (primaryDomain === "aalto.fi") {
     return true;
   }

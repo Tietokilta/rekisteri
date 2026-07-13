@@ -53,39 +53,37 @@ async function loadMembers() {
   }
 
   // Convert to array with primary membership (most recent active/pending, then by date)
-  const members = Array.from(userMembershipsMap.values())
-    .map((userMembers) => {
-      // Sort by: active/awaiting first, then by start date desc
-      const sorted = userMembers.toSorted((a, b) => {
-        const aIsActive = a.status === "active" || a.status === "awaiting_approval" || a.status === "awaiting_payment";
-        const bIsActive = b.status === "active" || b.status === "awaiting_approval" || b.status === "awaiting_payment";
+  const members = Array.from(userMembershipsMap.values(), (userMembers) => {
+    // Sort by: active/awaiting first, then by start date desc
+    const sorted = userMembers.toSorted((a, b) => {
+      const aIsActive = a.status === "active" || a.status === "awaiting_approval" || a.status === "awaiting_payment";
+      const bIsActive = b.status === "active" || b.status === "awaiting_approval" || b.status === "awaiting_payment";
 
-        if (aIsActive && !bIsActive) return -1;
-        if (!aIsActive && bIsActive) return 1;
+      if (aIsActive && !bIsActive) return -1;
+      if (!aIsActive && bIsActive) return 1;
 
-        // Sort by start date descending (most recent first)
-        return (b.membershipStartTime?.getTime() ?? 0) - (a.membershipStartTime?.getTime() ?? 0);
-      }) as NonEmptyArray<(typeof userMembers)[number]>;
+      // Sort by start date descending (most recent first)
+      return (b.membershipStartTime?.getTime() ?? 0) - (a.membershipStartTime?.getTime() ?? 0);
+    }) as NonEmptyArray<(typeof userMembers)[number]>;
 
-      // Return primary membership with all memberships attached
-      const primary = sorted[0];
-      return {
-        ...primary,
-        allMemberships: sorted,
-        membershipCount: sorted.length,
-      };
-    })
-    .toSorted((a, b) => {
-      // Sort by display name: firstNames+lastName for persons, organizationName for associations
-      const aName = a.firstNames ?? a.organizationName ?? "";
-      const bName = b.firstNames ?? b.organizationName ?? "";
-      const nameCompare = aName.toLowerCase().localeCompare(bName.toLowerCase());
-      if (nameCompare !== 0) return nameCompare;
+    // Return primary membership with all memberships attached
+    const primary = sorted[0];
+    return {
+      ...primary,
+      allMemberships: sorted,
+      membershipCount: sorted.length,
+    };
+  }).toSorted((a, b) => {
+    // Sort by display name: firstNames+lastName for persons, organizationName for associations
+    const aName = a.firstNames ?? a.organizationName ?? "";
+    const bName = b.firstNames ?? b.organizationName ?? "";
+    const nameCompare = aName.toLowerCase().localeCompare(bName.toLowerCase());
+    if (nameCompare !== 0) return nameCompare;
 
-      const aLast = (a.lastName ?? "").toLowerCase();
-      const bLast = (b.lastName ?? "").toLowerCase();
-      return aLast.localeCompare(bLast);
-    });
+    const aLast = (a.lastName ?? "").toLowerCase();
+    const bLast = (b.lastName ?? "").toLowerCase();
+    return aLast.localeCompare(bLast);
+  });
 
   return members;
 }

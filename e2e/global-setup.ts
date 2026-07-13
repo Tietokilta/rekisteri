@@ -25,7 +25,7 @@ async function globalSetup(_config: FullConfig) {
 
   const baseDbUrl = new URL(dbUrl);
   baseDbUrl.pathname = "/postgres";
-  const adminClient = postgres(baseDbUrl.toString());
+  const adminClient = postgres(baseDbUrl.href);
 
   try {
     const result = await adminClient`SELECT 1 FROM pg_database WHERE datname = ${testDbName}`;

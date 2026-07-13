@@ -42,12 +42,12 @@ const handleAuth: Handle = async ({ event, resolve }) => {
  * Respects explicit locale in URL - only redirects when NO locale is present.
  */
 const handleLocaleRedirect: Handle = ({ event, resolve }) => {
-  const pathname = event.url.pathname;
-
   // Only redirect GET requests - other methods (POST, PUT, DELETE, etc.) should handle their own responses
   if (event.request.method !== "GET") {
     return resolve(event);
   }
+
+  const pathname = event.url.pathname;
 
   // Skip redirect for API routes, static assets, and SvelteKit internals
   if (
@@ -131,7 +131,7 @@ export const handle: Handle = sequence(
 
 export const init: ServerInit = () => {
   // Warm up customization cache
-  getCustomizations().catch((err) => console.error("[Init] Failed to warm Customization cache:", err));
+  void getCustomizations().catch((err) => console.error("[Init] Failed to warm Customization cache:", err));
 
   // Schedule cleanup tasks
   // Run database cleanup daily at 3 AM (when traffic is typically lowest)

@@ -54,6 +54,7 @@ try {
   // Import and start the server
   // The server build is in the 'server' subdirectory
   // @ts-expect-error - server/index.js is generated at build time by SvelteKit and doesn't exist during type checking
+  // fallow-ignore-next-line unresolved-import
   await import("./server/index.js");
 } catch (error) {
   console.error("Failed to start application:", error);

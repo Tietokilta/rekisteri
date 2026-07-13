@@ -17,7 +17,7 @@ export class RefillingTokenBucket<_Key> {
     const now = Date.now();
     const TEN_MINUTES = 600 * 1000;
 
-    for (const [key, bucket] of this.storage.entries()) {
+    for (const [key, bucket] of this.storage) {
       const refill = Math.floor((now - bucket.refilledAt) / (this.refillIntervalSeconds * 1000));
       const currentCount = Math.min(bucket.count + refill, this.max);
       // Remove buckets that are fully refilled AND haven't been used in 10+ minutes
@@ -80,7 +80,7 @@ export class ExpiringTokenBucket<_Key> {
    */
   public cleanup(): void {
     const now = Date.now();
-    for (const [key, bucket] of this.storage.entries()) {
+    for (const [key, bucket] of this.storage) {
       // Remove buckets that have expired
       if (now - bucket.createdAt >= this.expiresInSeconds * 1000) {
         this.storage.delete(key);
@@ -90,10 +90,10 @@ export class ExpiringTokenBucket<_Key> {
 
   public check(key: _Key, cost: number): boolean {
     const bucket = this.storage.get(key) ?? null;
-    const now = Date.now();
     if (bucket === null) {
       return true;
     }
+    const now = Date.now();
     if (now - bucket.createdAt >= this.expiresInSeconds * 1000) {
       return true;
     }

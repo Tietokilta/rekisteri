@@ -16,14 +16,7 @@ export async function getCustomizations(): Promise<table.AppCustomization> {
     return customizationCache;
   }
 
-  customizationCachePromise ??= loadCustomizations()
-    .then((customizations) => {
-      customizationCache = customizations;
-      return customizations;
-    })
-    .finally(() => {
-      customizationCachePromise = null;
-    });
+  customizationCachePromise ??= loadAndCacheCustomizations();
 
   return customizationCachePromise;
 }
@@ -33,6 +26,16 @@ export async function getCustomizations(): Promise<table.AppCustomization> {
  */
 export async function updateCustomizationCache(): Promise<void> {
   customizationCache = await loadCustomizations();
+}
+
+async function loadAndCacheCustomizations(): Promise<table.AppCustomization> {
+  try {
+    const customizations = await loadCustomizations();
+    customizationCache = customizations;
+    return customizations;
+  } finally {
+    customizationCachePromise = null;
+  }
 }
 
 async function loadCustomizations(): Promise<table.AppCustomization> {

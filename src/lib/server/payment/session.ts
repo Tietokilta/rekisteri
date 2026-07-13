@@ -11,7 +11,7 @@ import { encodeBase32LowerCase } from "@oslojs/encoding";
 import { sendMemberEmail } from "$lib/server/emails";
 import { getMembershipName } from "$lib/server/utils/membership";
 import { getUserLocale } from "$lib/server/utils/user";
-import { formatUserName, getDisplayFirstName } from "$lib/utils";
+import { formatFullName, getDisplayFirstName } from "$lib/utils";
 
 /**
  * Checks if a Stripe error is due to a non-existent customer.
@@ -133,7 +133,7 @@ export async function createSession(userId: string, membershipId: string, locale
   let stripeCustomerId = user.stripeCustomerId;
   if (!stripeCustomerId) {
     // https://docs.stripe.com/api/customers/create
-    stripeCustomerId = await createStripeCustomer(userId, user.email, formatUserName(user));
+    stripeCustomerId = await createStripeCustomer(userId, user.email, formatFullName(user));
   }
 
   const memberId = crypto.randomUUID();
@@ -142,7 +142,7 @@ export async function createSession(userId: string, membershipId: string, locale
   const session = await createCheckoutSessionWithRetry(
     userId,
     user.email,
-    formatUserName(user),
+    formatFullName(user),
     stripeCustomerId,
     membership.stripePriceId,
     locale,
@@ -218,7 +218,7 @@ async function getExistingCheckoutUrl(member: AwaitingPaymentMember): Promise<st
 }
 
 async function ensureStripeCustomerForUser(user: NonNullable<AwaitingPaymentMember["user"]>): Promise<string> {
-  return user.stripeCustomerId ?? (await createStripeCustomer(user.id, user.email, formatUserName(user)));
+  return user.stripeCustomerId ?? (await createStripeCustomer(user.id, user.email, formatFullName(user)));
 }
 
 async function createReplacementCheckoutSession(member: AwaitingPaymentMember, locale: Locale, memberId: string) {
@@ -236,7 +236,7 @@ async function createReplacementCheckoutSession(member: AwaitingPaymentMember, l
   const session = await createCheckoutSessionWithRetry(
     user.id,
     user.email,
-    formatUserName(user),
+    formatFullName(user),
     stripeCustomerId,
     membership.stripePriceId,
     locale,

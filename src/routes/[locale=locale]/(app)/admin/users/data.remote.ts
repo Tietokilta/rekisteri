@@ -149,7 +149,7 @@ export const mergeUsers = command(
         id: crypto.randomUUID(),
         userId: primaryUserId,
         email: secondaryUser.email,
-        domain: secondaryUser.email.split("@")[1] ?? "",
+        domain: secondaryUser.email.split("@", 2)[1] ?? "",
         verifiedAt: new Date(),
         expiresAt: null, // Was the secondary user's primary email, so it doesn't expire
       });

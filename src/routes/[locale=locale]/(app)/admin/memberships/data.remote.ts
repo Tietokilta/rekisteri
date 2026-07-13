@@ -55,11 +55,11 @@ export const deleteMembership = form(deleteMembershipSchema, async ({ id }) => {
     error(404, "Not found");
   }
 
-  const memberCount = await db
+  const [memberCountResult] = await db
     .select({ count: count() })
     .from(table.member)
-    .where(eq(table.member.membershipId, id))
-    .then((result) => result[0]?.count ?? 0);
+    .where(eq(table.member.membershipId, id));
+  const memberCount = memberCountResult?.count ?? 0;
 
   if (memberCount > 0) {
     error(400, "Cannot delete membership with active members");
@@ -83,11 +83,10 @@ export const updateMembership = form(updateMembershipSchema, async (data) => {
   }
 
   // Verify membership exists before updating
-  const existing = await db
+  const [existing] = await db
     .select({ id: table.membership.id })
     .from(table.membership)
-    .where(eq(table.membership.id, data.id))
-    .then((result) => result[0]);
+    .where(eq(table.membership.id, data.id));
 
   if (!existing) {
     error(404, "Membership not found");

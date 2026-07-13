@@ -145,4 +145,11 @@ export default ts.config(
       "unicorn/no-abusive-eslint-disable": "off",
     },
   },
+  // These modules intentionally perform one-time initialization when imported.
+  {
+    files: ["playwright.config.ts", "src/lib/server/i18n.ts"],
+    rules: {
+      "unicorn/no-top-level-side-effects": "off",
+    },
+  },
 );

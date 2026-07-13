@@ -46,9 +46,7 @@ test.describe("App Customization", () => {
       .orderBy(desc(table.auditLog.createdAt))
       .limit(1);
     const metadata = auditLog?.metadata as
-      | { changedFields?: string[]; uploadedImages?: string[]; removedImages?: string[] }
-      | null
-      | undefined;
+      { changedFields?: string[]; uploadedImages?: string[]; removedImages?: string[] } | null | undefined;
 
     expect(auditLog?.userId).toBe(adminUser.id);
     expect(auditLog?.targetType).toBe("app_customization");
