@@ -1,13 +1,25 @@
 import nodemailer from "nodemailer";
+import type { Transporter } from "nodemailer";
+import type SMTPPool from "nodemailer/lib/smtp-pool";
 import { env } from "$lib/server/env";
 import type { SendEmailOptions, SendEmailResult } from "./types";
 
-const getTransporter = () => {
+type SmtpTransporter = Transporter<SMTPPool.SentMessageInfo, SMTPPool.Options>;
+
+let transporter: SmtpTransporter | undefined;
+
+const getTransporter = (): SmtpTransporter => {
+  if (transporter) {
+    return transporter;
+  }
+
   if (!env.SMTP_HOST || !env.SMTP_PORT || !env.SMTP_USER || !env.SMTP_PASS) {
     throw new Error("SMTP is not properly configured.");
   }
 
-  return nodemailer.createTransport({
+  const createdTransporter = nodemailer.createTransport({
+    pool: true,
+    maxConnections: 1,
     host: env.SMTP_HOST,
     port: env.SMTP_PORT,
     secure: env.SMTP_PORT === 465, // true for port 465, false for other ports
@@ -17,6 +29,9 @@ const getTransporter = () => {
       pass: env.SMTP_PASS,
     },
   });
+
+  transporter = createdTransporter;
+  return createdTransporter;
 };
 
 export const sendSmtpEmail = async (options: SendEmailOptions): Promise<SendEmailResult> => {
