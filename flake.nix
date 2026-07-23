@@ -44,10 +44,6 @@
             RP_NAME = "Tietokilta Rekisteri";
             RP_ID = "localhost";
             RP_ORIGIN = "http://localhost:3000";
-            MAILGUN_API_KEY = "key-...";
-            MAILGUN_DOMAIN = "sandbox...";
-            MAILGUN_SENDER = "Rekisteri <noreply@...>";
-            MAILGUN_URL = "https://api.eu.mailgun.net/v3/sandbox...";
             SMTP_HOST = "localhost";
             SMTP_PORT = "1025";
             SMTP_USER = "user";

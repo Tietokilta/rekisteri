@@ -183,10 +183,11 @@ jobs:
             -e PUBLIC_URL=http://localhost:5173 \
             -e STRIPE_API_KEY=sk_test_... \
             -e STRIPE_WEBHOOK_SECRET=whsec_... \
-            -e MAILGUN_API_KEY=... \
-            -e MAILGUN_DOMAIN=rekisteri.tietokilta.fi \
-            -e MAILGUN_SENDER="TiK-Rekisteri <noreply@rekisteri.tietokilta.fi>" \
-            -e MAILGUN_URL="https://api.eu.mailgun.net" \
+            -e SMTP_HOST=localhost \
+            -e SMTP_PORT=1025 \
+            -e SMTP_USER=user \
+            -e SMTP_PASS=pass \
+            -e SMTP_FROM="TiK-Rekisteri <noreply@rekisteri.tietokilta.fi>" \
             -e RP_NAME="Tietokilta Rekisteri" \
             -e RP_ID="localhost" \
             -e RP_ORIGIN="http://localhost:5173" \

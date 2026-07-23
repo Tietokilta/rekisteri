@@ -41,12 +41,7 @@ export async function createEmailOTP(email: string): Promise<EmailOTP> {
 
   // Delete any existing OTPs for this email to prevent accumulation
   // This ensures only one valid OTP exists at a time
-  try {
-    await db.delete(table.emailOTP).where(eq(table.emailOTP.email, normalizedEmail));
-  } catch (err) {
-    console.error("[OTP] Failed to delete existing OTPs:", err);
-    throw err;
-  }
+  await db.delete(table.emailOTP).where(eq(table.emailOTP.email, normalizedEmail));
 
   const idBytes = new Uint8Array(20);
   crypto.getRandomValues(idBytes);
