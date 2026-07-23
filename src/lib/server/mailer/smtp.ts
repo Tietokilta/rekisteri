@@ -42,7 +42,7 @@ export const sendSmtpEmail = async (options: SendEmailOptions): Promise<SendEmai
 };
 
 export const checkSmtpHealth = async (): Promise<"ok" | "not_configured" | "error"> => {
-  if (env.CI || !env.SMTP_HOST || !env.SMTP_USER || !env.SMTP_PASS) {
+  if (env.CI || !env.SMTP_HOST || !env.SMTP_PORT || !env.SMTP_USER || !env.SMTP_PASS || !env.SMTP_FROM) {
     return "not_configured";
   }
 

@@ -91,13 +91,42 @@ const privateEnvSchema = v.pipe(
     ),
 
     // SMTP configuration
-    SMTP_HOST: v.optional(v.string()),
-    SMTP_PORT: v.optional(
-      v.pipe(v.union([v.number(), v.pipe(v.string(), v.transform(Number))]), v.number(), v.integer(), v.minValue(1)),
+    SMTP_HOST: v.optional(
+      v.pipe(
+        v.string(),
+        v.transform((val) => (val === "" ? undefined : val)),
+      ),
     ),
-    SMTP_USER: v.optional(v.string()),
-    SMTP_PASS: v.optional(v.string()),
-    SMTP_FROM: v.optional(v.string()),
+    SMTP_PORT: v.optional(
+      v.pipe(
+        v.union([
+          v.number(),
+          v.pipe(
+            v.string(),
+            v.transform((val) => (val === "" ? undefined : Number(val))),
+          ),
+        ]),
+        v.optional(v.pipe(v.number(), v.integer(), v.minValue(1))),
+      ),
+    ),
+    SMTP_USER: v.optional(
+      v.pipe(
+        v.string(),
+        v.transform((val) => (val === "" ? undefined : val)),
+      ),
+    ),
+    SMTP_PASS: v.optional(
+      v.pipe(
+        v.string(),
+        v.transform((val) => (val === "" ? undefined : val)),
+      ),
+    ),
+    SMTP_FROM: v.optional(
+      v.pipe(
+        v.string(),
+        v.transform((val) => (val === "" ? undefined : val)),
+      ),
+    ),
 
     // Server configuration
     PORT: v.optional(
