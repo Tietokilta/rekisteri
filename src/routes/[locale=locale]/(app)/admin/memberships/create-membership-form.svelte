@@ -5,6 +5,7 @@
   import { createMembership } from "./data.remote";
   import { createMembershipSchema } from "./schema";
   import { Input } from "$lib/components/ui/input";
+  import { Checkbox } from "$lib/components/ui/checkbox";
   import { Button } from "$lib/components/ui/button";
   import { Label } from "$lib/components/ui/label";
   import { Badge } from "$lib/components/ui/badge";
@@ -207,10 +208,9 @@
     <label
       class="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted/50"
     >
-      <Input
+      <Checkbox
         {...createMembership.fields.requiresStudentVerification.as("checkbox")}
         id="requiresStudentVerification"
-        class="size-5"
       />
       <div class="flex-1">
         <p class="font-medium">{$LL.membership.requiresStudentVerification()}</p>

@@ -19,7 +19,7 @@
         autocomplete="email"
         autocapitalize="none"
         autocorrect="off"
-        placeholder="example@tietokilta.fi"
+        placeholder="member@kilta.fi"
         required
       />
     </p>
