@@ -44,16 +44,17 @@
             RP_NAME = "Tietokilta Rekisteri";
             RP_ID = "localhost";
             RP_ORIGIN = "http://localhost:3000";
-            MAILGUN_API_KEY = "key-...";
-            MAILGUN_DOMAIN = "sandbox...";
-            MAILGUN_SENDER = "Rekisteri <noreply@...>";
-            MAILGUN_URL = "https://api.eu.mailgun.net/v3/sandbox...";
+            SMTP_HOST = "localhost";
+            SMTP_PORT = "1025";
+            SMTP_USER = "user";
+            SMTP_PASS = "pass";
+            SMTP_FROM = "noreply@...";
 
             pnpmDeps = pkgs.fetchPnpmDeps {
               inherit (finalAttrs) pname version src;
               inherit pnpm;
               fetcherVersion = 4;
-              hash = "sha256-YmBd4Sw/T5WMFpK3d7drT1nKHygO5SgXktRJMumxJfI=";
+              hash = "sha256-vfjf0LsfkwKasWnY9PyGZPA5Vo1RCo7RtV3BZtvD48o=";
             };
 
             installPhase = ''
