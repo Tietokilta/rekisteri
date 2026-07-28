@@ -84,6 +84,15 @@ These rules are the correctness boundary for the implementation:
    non-invalidated payment for that obligation.
 10. Live Stripe/manual activity and confirmed membership events always take
     precedence over imported inference.
+11. A paid application or type change cannot be approved until its target
+    obligation is settled. A direct admin activation is the separate,
+    explicitly waived exception.
+
+Membership decisions lock the stable member row and append the event plus
+snapshot update in one transaction. Payment state changes and non-payment
+actions lock the relevant obligation before deciding whether it is settled.
+Using the same member-then-obligation lock order prevents a payment/bulk-action
+race from ending a member who just paid.
 
 ## Data model
 
@@ -233,7 +242,8 @@ The three useful views are therefore:
 Publishing a non-zero fee period for a payable type creates one `renewal`
 obligation for every currently active member of that approved type. The unique
 constraint makes publication idempotent. Free types and zero-fee periods create
-no obligations.
+no obligations. A non-zero period cannot be published for a type whose
+`requiresPayment` is false.
 
 An admin who directly activates a member of a paid type either records a full
 manual payment or explicitly waives the applicable obligation with a reason.
@@ -244,26 +254,27 @@ The system never fabricates a payment to explain the exception.
 Each row is one real or inferred payment attempt. Retaining attempts is
 necessary for Stripe webhook idempotency and delayed payment outcomes.
 
-| Column                | Type                            | Notes                                                         |
-| --------------------- | ------------------------------- | ------------------------------------------------------------- |
-| id                    | TEXT PK                         |                                                               |
-| memberId              | TEXT FK -> member               |                                                               |
-| membershipFeePeriodId | TEXT FK -> membershipFeePeriod  | Always present                                                |
-| obligationId          | TEXT FK -> membershipObligation | Nullable only for historical imported/migrated evidence       |
-| source                | ENUM                            | `stripe`, `manual`, `imported`                                |
-| status                | ENUM                            | `pending`, `succeeded`, `failed`, `expired`                   |
-| amount                | INTEGER                         | Minor units; nullable when historical evidence lacks it       |
-| currency              | TEXT                            | Nullable when historical evidence lacks it                    |
-| paidAt                | TIMESTAMPTZ                     | Nullable when the exact historical completion time is unknown |
-| stripeSessionId       | TEXT UNIQUE                     | Nullable outside Stripe                                       |
-| stripePaymentIntentId | TEXT UNIQUE                     | Nullable outside Stripe                                       |
-| refundRequiredAt      | TIMESTAMPTZ                     | Admin must process a refund manually                          |
-| refundConfirmedAt     | TIMESTAMPTZ                     | Refund verified from Stripe or manually confirmed             |
-| stripeRefundId        | TEXT UNIQUE                     | Nullable for a non-Stripe refund                              |
-| manualRefundReference | TEXT                            | Required when a non-Stripe refund is confirmed                |
-| invalidatedAt         | TIMESTAMPTZ                     | Explicit correction of bad imported evidence                  |
-| invalidationReason    | TEXT                            | Required when invalidated                                     |
-| createdAt, updatedAt  | TIMESTAMPTZ                     | Standard timestamps                                           |
+| Column                | Type                            | Notes                                                                                               |
+| --------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------- |
+| id                    | TEXT PK                         |                                                                                                     |
+| memberId              | TEXT FK -> member               |                                                                                                     |
+| membershipFeePeriodId | TEXT FK -> membershipFeePeriod  | Always present                                                                                      |
+| obligationId          | TEXT FK -> membershipObligation | Nullable only for historical imported/migrated evidence                                             |
+| source                | ENUM                            | `stripe`, `manual`, `imported`                                                                      |
+| status                | ENUM                            | `pending`, `succeeded`, `failed`, `expired`                                                         |
+| amount                | INTEGER                         | Minor units; nullable when historical evidence lacks it                                             |
+| currency              | TEXT                            | Nullable when historical evidence lacks it                                                          |
+| paidAt                | TIMESTAMPTZ                     | Nullable when the exact historical completion time is unknown                                       |
+| stripeSessionId       | TEXT UNIQUE                     | Nullable outside Stripe                                                                             |
+| stripePaymentIntentId | TEXT UNIQUE                     | Nullable outside Stripe                                                                             |
+| refundRequiredAt      | TIMESTAMPTZ                     | Admin must process a refund manually                                                                |
+| refundReason          | ENUM                            | `application_rejected`, `type_change_rejected`, `duplicate_payment`, `obsolete_obligation`, `other` |
+| refundConfirmedAt     | TIMESTAMPTZ                     | Refund verified from Stripe or manually confirmed                                                   |
+| stripeRefundId        | TEXT UNIQUE                     | Nullable for a non-Stripe refund                                                                    |
+| manualRefundReference | TEXT                            | Required when a non-Stripe refund is confirmed                                                      |
+| invalidatedAt         | TIMESTAMPTZ                     | Explicit correction of bad imported evidence                                                        |
+| invalidationReason    | TEXT                            | Required when invalidated                                                                           |
+| createdAt, updatedAt  | TIMESTAMPTZ                     | Standard timestamps                                                                                 |
 
 A composite foreign key from
 `payment(obligationId, memberId, membershipFeePeriodId)` to the same obligation
@@ -271,8 +282,18 @@ columns prevents payments from being attached across members or types.
 
 Each retry creates a new payment row. Failed and expired attempts are retained,
 not deleted. Unique Stripe identifiers make webhook replay idempotent. A partial
-unique index permits at most one successful, non-refunded, non-invalidated
-payment per obligation.
+unique index permits at most one `pending` Stripe attempt per obligation; a new
+attempt requires the previous session to be confirmed unusable and marked
+failed or expired.
+
+The ledger must allow more than one successful payment because two real charges
+can occur despite checkout safeguards. The obligation is settled when at least
+one successful, non-refunded, non-invalidated payment exists. Any additional
+success is recorded, flagged with `refundReason = duplicate_payment`, and shown
+to admins for manual refund.
+
+A success arriving for an already cancelled or waived obligation is likewise
+recorded and queued with `refundReason = obsolete_obligation`.
 
 The first release accepts only full settlement. Stripe checkout uses the fee
 period amount and currency, and manual payments must match them.
@@ -299,10 +320,18 @@ Failed or abandoned checkout leaves the applicant in `awaiting_payment`.
 Returning creates a new attempt when the old Stripe session is no longer
 usable. It does not create a rejection or a membership event.
 
+Before payment succeeds, retry re-evaluates the type's current application
+period. If the admin moved applications to an upcoming period, the old
+obligation and checkout are cancelled/expired and the user sees the new dates
+and price before starting another attempt. A successful payment is never
+silently moved between periods.
+
 Board rejection appends `application_rejected`. A paid application is marked
-`refundRequiredAt`; an unpaid application obligation is cancelled. A
-never-approved applicant becomes `rejected`. A previously ended member returns
-to `ended`, preserving their old approved type and history.
+`refundRequiredAt`, and its application obligation is cancelled whether paid or
+unpaid. A never-approved applicant becomes `rejected`. A previously ended
+member returns to `ended`, preserving their old approved type and history. A
+later reapplication to the same period reopens the existing obligation instead
+of inserting a duplicate.
 
 ### Renewal
 
@@ -340,7 +369,8 @@ period. They are not a general mid-period operation.
    restart `currentMembershipStartedAt`.
 6. Rejection retains the old type, clears the pending type, appends
    `type_change_rejected`, restores the old obligation to reminder views, and
-   flags the target payment for manual refund.
+   cancels the target obligation. A successful target payment is flagged for
+   manual refund.
 
 Once the member has already settled the new period under their old type,
 self-service type change is no longer offered. Exceptional mid-period changes
@@ -393,7 +423,12 @@ When a paid application or type change is rejected, it sets
 `refundRequiredAt`. An admin refunds it in the Stripe Dashboard and then uses
 “Verify refund”; the server fetches Stripe's state and stores
 `refundConfirmedAt` and `stripeRefundId`. A non-Stripe refund may be confirmed
-manually with a required reference.
+manually with a required reference. Only a full refund clears the requirement;
+partial refunds are outside this release.
+
+A duplicate successful payment enters the same queue with
+`refundReason = duplicate_payment`. Recording the extra charge never displaces
+the earlier payment that already settled the obligation.
 
 A confirmed refund stops the payment from settling its obligation. It never
 automatically changes legal membership.
@@ -678,51 +713,251 @@ warnings may be added to the pull request. We do not have the original kide.app
 CSV exports, so importer coverage uses synthetic fixtures; the production
 snapshot validates the migration path.
 
-## Test Plan
+## Decision rationale
 
-### Import order independence
+| Decision                                | Rationale                                                                | Alternative not chosen                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| One stable member plus domain events    | Keeps identity stable through type changes, endings, and rejoins         | Multiple “membership chapter” rows recreate the current model's problem  |
+| Explicit issued obligations             | Represents who actually owes a fee, including waivers and late additions | Inferring debt from missing payments misclassifies free and new members  |
+| No overdue membership status            | Non-payment does not alter legal membership before a board action        | Automatic status changes violate the legal and product invariant         |
+| Replaceable inferred legacy events      | Reviewing about 3,000 imported members individually is not feasible      | Treating guesses as confirmed decisions creates false legal history      |
+| Additive imports                        | Missing rows and file order cannot erase known evidence                  | Snapshot-style import makes later partial files destructive              |
+| Exact dates plus an explicit calendar   | Preserves source precision and makes legacy assumptions visible          | Reducing dates to years loses information and hides the inference policy |
+| One rehearsed production migration      | The cutover is small enough to make dual writes unnecessary              | A long compatibility phase adds code and another source of inconsistency |
+| Manual Stripe refunds with verification | Refunds are very rare, while their accounting state still matters        | Automatic refund execution adds risk without helping the renewal launch  |
+| One explicit application target         | Handles early upcoming-period sales without calendar-specific branching  | Automatically choosing by month recreates the July/August ambiguity      |
 
-All permutations of these imports must converge to the same final state:
+## Required scenario matrix
 
-- 3 consecutive years (e.g., 2023, 2024, 2025) in every possible order (6 permutations)
-- Years with gaps (e.g., 2020, 2021, 2024, 2025) in every possible order
-- Gap-filling: import with gap first, then fill the gap in a second import
-- All permutations should produce identical member rows and payment records
+The test suite should express these as data-driven domain tests where possible.
+End-to-end tests are reserved for the user, admin, Stripe webhook, and migration
+boundaries. Dates must use a fixed clock and the Europe/Helsinki timezone.
 
-### Import edge cases
+### Member identity and history
 
-- Same CSV imported twice -> no duplicates (idempotency)
-- Type transition: varsinainen 2020-2022, alumni 2023-2025 -> two member rows
-- Multi-email: same person with different emails -> separate users (admin merges later)
-- Organization members: import without userId
-- Backward compatible: CSV with full dates instead of year -> year extracted
-- Dry run returns accurate preview without modifying data
+| Scenario                                      | Expected result                                                               |
+| --------------------------------------------- | ----------------------------------------------------------------------------- |
+| First application is approved                 | One stable member becomes active; approved type and start time are set        |
+| Active member changes type                    | Same member ID; continuous start remains; a confirmed type event is appended  |
+| Ended member rejoins                          | Same member ID; a new continuous start is set; old interval remains in events |
+| Reapplication by an ended member is rejected  | Snapshot returns to ended; rejection remains in events                        |
+| Never-approved application is rejected        | Status becomes rejected; approved type remains null                           |
+| Voluntary resignation                         | Status becomes ended with a confirmed voluntary event                         |
+| Expulsion                                     | Status becomes ended with a confirmed expulsion event                         |
+| Admin corrects a wrong ending action          | Correction event references the old event; snapshot is restored               |
+| Member has imported and confirmed history     | Confirmed state wins; inferred events stay visibly labelled                   |
+| Same user is inserted twice concurrently      | The stable-member uniqueness constraint prevents a duplicate                  |
+| Two approved types are attempted concurrently | The transaction/constraint permits only one approved current type             |
 
-### Mixed source scenarios
+### Applications and payment attempts
 
-- User paid 2025 via Stripe, then import adds 2020-2024 -> system member row untouched, historical imported member row created separately
-- User was imported, then pays next period via Stripe -> payment added to existing member row with source: stripe
-- Import after system usage: imported data never modifies system-created member rows
+| Scenario                                           | Expected result                                                                |
+| -------------------------------------------------- | ------------------------------------------------------------------------------ |
+| New paid application starts checkout               | Applicant awaits payment; obligation and pending attempt exist                 |
+| Stripe checkout succeeds                           | Payment succeeds; applicant awaits approval; submission event is appended      |
+| The success webhook is replayed                    | No duplicate payment, obligation, event, or status transition                  |
+| Checkout fails or expires                          | Attempt is retained as failed/expired; applicant still awaits payment          |
+| User retries after an expired attempt              | A new attempt is created; the old attempt remains                              |
+| Application target changes before retry            | Old obligation/session closes; new dates and price require confirmation        |
+| A delayed valid webhook arrives for an old attempt | The attempt succeeds idempotently; no missing-row failure                      |
+| Delayed attempt succeeds after another payment     | Both charges are recorded; the duplicate is flagged for manual refund          |
+| Delayed payment succeeds for cancelled obligation  | Charge is recorded and flagged as obsolete for manual refund                   |
+| A second checkout starts while one is pending      | Existing usable session is resumed, or the new attempt is rejected             |
+| User returns while a session is still reusable     | Existing pending session may be resumed                                        |
+| Free purchasable type is submitted                 | No payment or obligation; applicant proceeds to board approval                 |
+| Board approves a paid application                  | Member becomes active; payment is unchanged                                    |
+| Board tries to approve before required payment     | Approval is rejected                                                           |
+| Board rejects a paid application                   | Member is rejected/returned to ended; obligation is cancelled; refund required |
+| Admin verifies the Stripe refund                   | Refund identifiers are stored and payment no longer settles the obligation     |
+| Admin confirms a non-Stripe refund                 | A manual reference is required                                                 |
+| Applicant pays after the general due date          | Approval may proceed; they never appear as an existing overdue member          |
+| Payment member/period mismatches its obligation    | Composite foreign key rejects the write                                        |
 
-### Purchase flows
+### Fee periods and obligations
 
-- New member: full flow from application to approval
-- Active member paying dues: payment only, no status change
-- Resume checkout: navigate away, return, resume same Stripe session
-- Failed checkout: stale payment cleanup
-- Re-joining after resignation: new member row created, old history preserved
+| Scenario                                               | Expected result                                                    |
+| ------------------------------------------------------ | ------------------------------------------------------------------ |
+| Draft period is saved                                  | No obligation is created                                           |
+| Non-zero payable period is published                   | One renewal obligation per applicable active member                |
+| Publication is retried                                 | No duplicate obligations                                           |
+| Free membership type period is published               | No obligations                                                     |
+| Free type has a non-zero draft amount                  | Publication is rejected                                            |
+| Payable type has a zero-fee period                     | No obligations                                                     |
+| New active member is added after publication           | Admin records a full manual payment or a reasoned waiver           |
+| Admin directly activates a paid member without payment | Waived obligation is required; no fake payment                     |
+| Active member pays the renewal                         | Obligation settles; membership status and start time do not change |
+| Payment from the previous period exists                | New period's obligation remains unsettled                          |
+| Member has no issued obligation                        | They do not appear in due/overdue views                            |
+| Required obligation is refunded                        | It becomes unsettled; legal membership remains unchanged           |
+| Admin extends a deadline                               | Later date is saved and audited; all affected obligations use it   |
+| Admin tries to shorten a published deadline            | Operation is rejected                                              |
+| Admin edits published type, dates, amount, or currency | Operation is rejected                                              |
+| Partial or incorrectly sized manual payment is entered | Operation is rejected                                              |
 
-### Status transitions
+### Overdue, reminders, and ending membership
 
-- All valid transitions work correctly
-- Invalid transitions are rejected
-- Bulk resign sets resignedAt and records reason
-- No automatic status changes occur anywhere
+| Scenario                                             | Expected result                                                               |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Required obligation is unpaid before due date        | Fee state is not due; member is active                                        |
+| Required obligation is unpaid after due date         | Fee state is overdue; member is still active                                  |
+| Honorary/free member                                 | Does not appear in the overdue preset                                         |
+| Obligation is waived or cancelled                    | Does not appear in the overdue preset                                         |
+| Successful payment exists                            | Does not appear in the overdue preset                                         |
+| Admin sends a reminder                               | Only reviewed eligible members are contacted; result is recorded              |
+| Scheduler time passes                                | No automatic reminder or status change occurs                                 |
+| Bulk ending is attempted before `nonPaymentActionAt` | Action is blocked                                                             |
+| Member pays between bulk preview and commit          | Member is not ended; admin sees that the row changed                          |
+| Eligible bulk action is committed                    | Member becomes ended and gets a confirmed non-payment event                   |
+| Notice delivery fails after the decision             | Ending remains committed; failed notice is visible and retryable              |
+| Ended member's old unpaid obligation is viewed       | It remains as historical unpaid evidence but not a current reminder recipient |
+| Overdue active member presents QR                    | Access remains valid; admin scan may also display “Overdue”                   |
 
-### Migration
+### Type changes during a new period
 
-- Existing production data migrates correctly
-- Payment count matches old member row count
-- Active members correctly identified
-- Stripe-paid members have source: stripe on payments
-- Member history timeline is accurate for known test users
+| Scenario                                          | Expected result                                                               |
+| ------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Member selects their existing type                | Normal renewal; no board approval                                             |
+| Member selects a different eligible type          | Target obligation/payment starts; old type remains approved and active        |
+| Type-change checkout is abandoned                 | Old type and obligation remain unchanged; no pending board request            |
+| Paid type change awaits approval                  | Old obligation is suppressed from reminders; old legal type remains active    |
+| Board approves type change                        | Target type becomes approved; old obligation is cancelled; start is unchanged |
+| Board tries to approve unpaid type change         | Approval is rejected                                                          |
+| Board rejects paid type change                    | Old type/obligation remain; target obligation is cancelled; refund required   |
+| Member already paid the new period under old type | Self-service type change is unavailable; admin handles the exception          |
+| Member tries a mid-period self-service change     | Operation is unavailable                                                      |
+| Target type is free and purchasable               | Request skips checkout but still requires board approval                      |
+
+### Import identity and idempotency
+
+| Scenario                                           | Expected result                                               |
+| -------------------------------------------------- | ------------------------------------------------------------- |
+| Same CSV is imported twice                         | Second import is a no-op                                      |
+| Same rows appear in every file order               | Identical users, periods, payments, events, and snapshots     |
+| Consecutive years arrive in every import order     | One continuous inferred membership                            |
+| Later CSV omits an earlier row                     | Earlier payment evidence remains                              |
+| Duplicate row appears in one or several files      | One imported payment; duplicate warning                       |
+| Existing successful Stripe/manual payment overlaps | Imported duplicate is skipped; live payment remains           |
+| Invalidated imported row is imported again         | It stays invalidated until explicitly restored                |
+| Exact start dates are present                      | Exact dates match periods without year truncation             |
+| Year-only legacy row has a supplied calendar       | Date is expanded deterministically and assumption is audited  |
+| Year-only row has no calendar                      | Validation fails                                              |
+| Older profile row arrives last                     | It does not replace profile fields from a newer imported date |
+| Activated or user-edited account is imported       | Profile fields remain untouched                               |
+| Same email/date has conflicting profile values     | Import fails with a precise conflict                          |
+| Same person appears under different emails         | Separate users; suspected duplicate is reported               |
+| Organization row appears in CSV                    | Row is rejected as unsupported                                |
+| Dry run is requested                               | Preview equals commit result, but all writes are rolled back  |
+
+### Import inference and mixed sources
+
+| Scenario                                                  | Expected result                                                               |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Gap action date is still in the future                    | Member remains inferred active                                                |
+| Missing period's December 1 action date has passed        | Inferred end is created with imported/migration provenance                    |
+| A later paid period follows the gap                       | Inferred rejoin is created on the later period start                          |
+| Gap is filled in a later import                           | Inferred end/rejoin disappear; payments and stable member remain              |
+| Sequential periods change membership type                 | Inferred type change; continuous start remains                                |
+| Mutually exclusive types overlap                          | Payments remain; no transition inferred; review warning                       |
+| Confirmed admin resignation differs from inferred history | Import adds payment history but confirmed current state wins                  |
+| Confirmed correction exists                               | Rebuild does not restore the corrected inference                              |
+| Import mode receives another historical file              | All affected pre-live inference is rebuilt                                    |
+| Go-live is finalized                                      | Boundary is stored; Stripe/live workflows become available                    |
+| Post-live import adds a pre-boundary period               | Historical evidence/inference may be added; confirmed state remains protected |
+| Post-live import contains a post-boundary period          | Row is rejected                                                               |
+| Fresh installation runs all Drizzle migrations            | It remains in import mode because no legacy members exist                     |
+
+### Production migration
+
+| Legacy evidence                                  | Expected migrated result                                                   |
+| ------------------------------------------------ | -------------------------------------------------------------------------- |
+| `awaiting_payment` with a Stripe session         | Non-successful retained attempt; no fabricated payment                     |
+| `awaiting_approval`                              | Successful payment evidence; paid time remains unknown when absent         |
+| Payable `active` row with a Stripe session       | Successful Stripe payment evidence                                         |
+| Payable imported active/previously-active row    | Successful imported payment evidence; lifecycle certainty remains inferred |
+| Free active member                               | Membership preserved without a fake payment                                |
+| `rejected` with no proof of completed payment    | Rejected state preserved; no success invented; rehearsal warning           |
+| Audited board decision                           | Confirmed event with separate effective and recorded timestamps            |
+| Old local-midnight period timestamp              | Correct Helsinki calendar date, without UTC off-by-one                     |
+| Several period rows for one user                 | One stable member; dependencies are rewired                                |
+| Existing organization member                     | Preserved for manual management                                            |
+| Historical rows                                  | No historical obligations are created                                      |
+| Unknown payment time/amount/currency             | Nulls remain null; `createdAt` is not substituted                          |
+| Delayed Stripe webhook after migration           | Retained session ID resolves to one attempt and updates idempotently       |
+| Migration invariant fails                        | Transaction rolls back completely                                          |
+| Two rehearsals use identical snapshot and inputs | Reports and migrated domain state are identical                            |
+| Production database contains legacy members      | `membershipDataLiveAt` is set during cutover                               |
+
+## Implementation and rollout
+
+### Known blast radius
+
+Implementation must update all consumers of the old period-shaped
+`membershipId`, including schema and fixtures, application/session creation,
+Stripe webhooks, member and admin queries, import, email/reminders, QR
+verification, history UI, end-to-end tests, and developer documentation of
+member statuses.
+
+### Reviewable implementation slices
+
+Keep code review small even though production has one cutover:
+
+1. Add schema definitions, constraints, event replay, and pure domain tests.
+2. Add the production migration, local rehearsal helper, and migration fixtures.
+3. Replace legacy CSV import with preview, additive evidence, and inference.
+4. Implement fee-period publication, obligations, renewal checkout, and Stripe
+   webhook idempotency.
+5. Migrate application, reapplication, paid type-change, and manual refund
+   workflows.
+6. Add overdue/reminder views, history/provenance UI, QR fee display, and the
+   bulk non-payment action.
+
+The Drizzle migration is merged with the code that understands the new schema;
+the smaller slices are commits and review units, not independently deployed
+database states.
+
+### August-critical path
+
+Before renewals open:
+
+1. Finish schema/domain tests and the importer/migration rehearsal.
+2. Run the exact migration against a recent production snapshot early enough to
+   fix classifications, not only immediately before deployment.
+3. Reconcile rehearsal counts and explicitly classify every warning category.
+4. Complete period publication, obligation creation, renewals, new
+   applications, and new-period type changes.
+5. Verify that the overdue preset excludes free, waived, newly joined, and paid
+   members.
+6. Complete the member-facing imported-data warning and preserve legally active
+   QR behavior.
+
+The admin-triggered reminders should be ready for the first renewal cycle. The
+bulk board action and notice-retry workflow must be ready before the
+November/December non-payment decisions, but they do not need to block opening
+August payments if their data invariants and tests already exist.
+
+### Cutover runbook
+
+1. Announce a short write pause and disable application/payment/admin writes.
+2. Take and verify a restorable production snapshot.
+3. Run the already-rehearsed transactional Drizzle migration.
+4. Run invariant queries and compare counts with the rehearsal report.
+5. Smoke-test admin lists, one member history, application targeting, Stripe
+   checkout in test mode, renewal eligibility, and QR verification.
+6. Re-enable writes and monitor Stripe webhooks, payment attempts, and errors.
+
+If migration or validation fails, the transaction rolls back and the old
+application remains in place. If a post-commit smoke test finds a blocking
+problem, stop writes, restore the snapshot, and redeploy the old application.
+
+### Production readiness gate
+
+Do not open renewals until:
+
+- the exact migration succeeds on a recent snapshot;
+- all invariant checks pass with zero orphans and zero illegal type overlaps;
+- every ambiguous classification is either accepted and documented or fixed;
+- two independent rehearsal runs converge;
+- Stripe webhook replay and delayed-webhook tests pass;
+- publication retry creates no duplicate obligations;
+- the board can obtain the exact active-and-unpaid list; and
+- backup restoration has been exercised or otherwise verified.
