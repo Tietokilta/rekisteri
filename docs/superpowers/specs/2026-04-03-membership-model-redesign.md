@@ -1,197 +1,424 @@
 # Membership Model Redesign
 
-## Problem
+## Decision summary
 
-The current membership data model is based on kide.app's periodic structure: each membership is a time-bounded period that users "buy into" each year. This does not reflect Finnish association law, where membership is indefinite ("toistaiseksi") with periodic payment obligations. The mismatch causes:
+Legal membership is indefinite. A yearly fee is an obligation attached to an
+already-existing membership, not a new membership chapter.
 
-- Old membership periods display "Eronnut" (resigned) when the member simply renewed
-- The system treats renewals as new applications, requiring unnecessary approval flows
-- The data model cannot distinguish "didn't pay this year" from "formally resigned"
-- Auto-approval logic adds complexity to work around the periodic model's limitations
+The redesigned model therefore separates five facts:
+
+1. `member` is the current legal snapshot for one person or organization.
+2. `membershipEvent` is the durable history of legal membership decisions.
+3. `membershipFeePeriod` defines one type's fee and deadlines for a period.
+4. `membershipObligation` records that a particular member was issued that fee.
+5. `payment` records money and payment attempts.
+
+This is deliberately not full event sourcing. Current lists read the `member`
+snapshot; history reads immutable domain events. Payments remain their own
+financial records.
 
 ## Context
 
-### Legal basis
+### Problem
 
-Per Finnish association law and Tietokilta's bylaws (saannot):
+The current model copies kide.app: a membership is a product with start and end
+times that a user buys each year. This creates false membership chapters,
+displays old periods as resignations, and sends renewals through an application
+approval flow.
 
-- **Membership is indefinite** until explicitly resigned or terminated (SS8-9)
-- **Payment is an annual obligation** — the annual meeting (vuosikokous) sets fees per member category (SS7)
-- **Non-payment resignation** — the board may deem a member resigned if payment is overdue by 2 months (SS8 p2)
-- **Voluntary resignation** — written notice to the board (SS8 p1)
-- **Board approval** — required for new memberships (SS26)
+That model does not match Tietokilta's rules:
 
-Other guilds (Fyysikkokilta, AS) follow the same pattern with minor differences (grace periods, which types pay).
+- Membership continues until it is ended under sections 8 or 9.
+- The annual meeting sets fees by membership category under section 7.
+- The board may deem a member resigned after the fee has been overdue for two
+  months, but non-payment does not itself end membership.
+- A new member requires the board decision described in section 25(4).
+
+Other associations have different fee categories and deadlines, but the same
+separation between legal membership and fees is broadly useful.
 
 ### Current state
 
-The system is in production with imported data from kide.app. Approximately 3000 member records exist. The `claude/email-system-phase-2-QKOem` branch (not yet merged) adds payment reminders — it will be reimplemented on top of the new model.
+The production database contains roughly 3,000 old period-shaped member rows,
+including data imported from kide.app and rows created by the live Stripe flow.
+Their history cannot be reconstructed perfectly. Migration must preserve the
+available evidence, identify inference as inference, and establish a correct
+model going forward.
 
 ### Goals
 
-1. Align the data model with legal reality (indefinite membership + periodic payments)
-2. Preserve import compatibility with kide.app CSV data
-3. Simplify the renewal flow for active members (just a payment, no approval)
-4. Support order-independent, idempotent imports
+1. Represent indefinite membership and mutually exclusive membership types.
+2. Keep renewals as payments without a new board approval.
+3. Give the board an explicit, safe non-payment workflow.
+4. Preserve legal history without treating an audit log as domain data.
+5. Support deterministic, additive, order-independent legacy imports.
+6. Migrate the current production database in one rehearsed transaction.
 
 ### Non-goals
 
-- Multi-tenancy (shared database for multiple guilds) — each deployment is single-tenant
-- Organization settings UI (hardcoded defaults for now, configurable settings planned separately)
-- Automatic status changes (all status transitions remain manual admin actions)
-- Auto-approval logic (removed entirely, can be revisited later)
-- Honorary member management UI (can be managed manually via admin for now)
+- Automatic reminders or automatic membership status changes
+- Stripe Invoicing or automatic Stripe refunds
+- Partial payments, installments, discounts, or moving credit between periods
+- Individual deadline extensions in the first release
+- Importing organization members from CSV
+- Custom member fields
+- Bulk correction tooling for confirmed board decisions
+- Multi-tenancy
 
-## Schema Design
+## Invariants
 
-### `membershipType` (modified)
+These rules are the correctness boundary for the implementation:
 
-| Column                      | Type                    | Notes                                                                   |
-| --------------------------- | ----------------------- | ----------------------------------------------------------------------- |
-| id                          | TEXT PK                 | e.g., "varsinainen-jasen"                                               |
-| name                        | JSONB (LocalizedString) | Display name (fi/en)                                                    |
-| description                 | JSONB (LocalizedString) | Optional description                                                    |
-| purchasable                 | BOOLEAN                 | Controls if users can buy via Stripe                                    |
-| requiresStudentVerification | BOOLEAN                 | **Moved from membershipPeriod.** If true, requires valid aalto.fi email |
-| createdAt, updatedAt        | TIMESTAMP               | Standard timestamps                                                     |
+1. One person or organization has one stable `member` aggregate.
+2. A member has at most one approved membership type at a time.
+3. Paying a renewal never approves, renews, or ends legal membership.
+4. No failed, expired, or abandoned checkout rejects an application.
+5. Only a confirmed board/admin action changes an active membership to `ended`.
+6. Overdue members retain all membership rights until that action, including QR
+   verification and member-only access.
+7. Imported inference may be rebuilt. Confirmed events are immutable and may
+   only be corrected by a new event.
+8. A fee is due only when a `required` obligation exists. Lack of a payment row
+   alone does not create a debt.
+9. A required obligation is settled only by a successful, non-refunded,
+   non-invalidated payment for that obligation.
+10. Live Stripe/manual activity and confirmed membership events always take
+    precedence over imported inference.
 
-Changes: `requiresStudentVerification` moved here from the period table, since it is a property of the membership type, not a yearly configuration.
+## Data model
 
-### `membershipPeriod` (renamed from `membership`)
+Names below use application-level camel case. Database migrations continue to
+use the project's snake-case convention.
 
-| Column           | Type                          | Notes                                                             |
-| ---------------- | ----------------------------- | ----------------------------------------------------------------- |
-| id               | TEXT PK                       |                                                                   |
-| membershipTypeId | TEXT FK -> membershipType     |                                                                   |
-| startDate        | DATE                          | Precise start (e.g., 2024-08-01)                                  |
-| endDate          | DATE                          | Precise end (e.g., 2025-07-31)                                    |
-| dueDate          | DATE                          | Payment due date (e.g., 2024-09-30). Nullable for legacy periods. |
-| stripePriceId    | TEXT                          | Nullable for legacy/free periods                                  |
-| UNIQUE           | (membershipTypeId, startDate) | One period per type per start date                                |
+### `membershipType`
 
-The year is derived from `startDate` when needed for display or import matching — no separate column. Precise dates are set by the admin when creating periods (pre-filled from hardcoded defaults), and derived automatically during import.
+| Column                      | Type                    | Notes                                                 |
+| --------------------------- | ----------------------- | ----------------------------------------------------- |
+| id                          | TEXT PK                 | Stable identifier, for example `varsinainen-jasen`    |
+| name                        | JSONB (LocalizedString) | Display name                                          |
+| description                 | JSONB (LocalizedString) | Optional description                                  |
+| purchasable                 | BOOLEAN                 | Users may select this type themselves                 |
+| requiresPayment             | BOOLEAN                 | Members of this type normally receive annual fee dues |
+| requiresStudentVerification | BOOLEAN                 | Requires the configured student identity verification |
+| createdAt, updatedAt        | TIMESTAMPTZ             | Standard timestamps                                   |
 
-Hardcoded defaults (Tietokilta): period start August 1, period end July 31, due date September 30. These will be made configurable via an organization settings page in a future issue.
+`purchasable` and `requiresPayment` are independent. For example, an honorary
+type may be neither purchasable nor payable. A type may also be free for a
+particular period by publishing a zero-fee period.
 
-### `member` (restructured)
+### `membershipFeePeriod`
 
-| Column               | Type                        | Notes                                                           |
-| -------------------- | --------------------------- | --------------------------------------------------------------- |
-| id                   | TEXT PK                     |                                                                 |
-| userId               | TEXT FK -> user             | Null for organization members                                   |
-| organizationName     | TEXT                        | Null for individual members                                     |
-| membershipTypeId     | TEXT FK -> membershipType   | The type of membership                                          |
-| status               | ENUM                        | awaiting_payment, awaiting_approval, active, resigned, rejected |
-| joinedAt             | TIMESTAMP                   | When the membership relationship started                        |
-| resignedAt           | TIMESTAMP                   | When resigned. Null if not resigned.                            |
-| description          | TEXT                        | Resignation reason, application motive, etc.                    |
-| createdAt, updatedAt | TIMESTAMP                   | Standard timestamps                                             |
-| CHECK                | userId XOR organizationName | Must have one or the other                                      |
+This replaces the misleading `membershipPeriod` name. It describes a fee and
+application target, not the duration of legal membership.
 
-Key changes from current model:
+| Column               | Type                         | Notes                                                 |
+| -------------------- | ---------------------------- | ----------------------------------------------------- |
+| id                   | TEXT PK                      |                                                       |
+| membershipTypeId     | TEXT FK -> membershipType    |                                                       |
+| startDate            | DATE                         | Coverage/display start                                |
+| endDate              | DATE                         | Coverage/display end                                  |
+| dueDate              | DATE                         | Payment deadline                                      |
+| nonPaymentActionAt   | DATE                         | Earliest allowed bulk non-payment action              |
+| amount               | INTEGER                      | Minor currency units; zero means free for this period |
+| currency             | TEXT                         | ISO currency code                                     |
+| stripePriceId        | TEXT                         | Required before Stripe checkout, otherwise nullable   |
+| publishedAt          | TIMESTAMPTZ                  | Null while draft                                      |
+| acceptsApplications  | BOOLEAN                      | This is the user-facing target for new applications   |
+| createdAt, updatedAt | TIMESTAMPTZ                  | Standard timestamps                                   |
+| UNIQUE               | (membershipTypeId,startDate) | One period per type and start date                    |
+| PARTIAL UNIQUE       | membershipTypeId             | At most one application target per type               |
 
-- `membershipId` FK removed — member is no longer tied to a specific period
-- `membershipTypeId` FK added — member is tied to a type directly
-- `joinedAt` and `resignedAt` added for history tracking
-- `stripeSessionId` removed (moved to `payment`)
+A period starts as a draft. Publishing it atomically creates obligations for
+applicable active members. Publishing never creates Stripe sessions or sends
+messages.
 
-Multiple rows per user are allowed:
+After publication, membership type, coverage dates, amount, and currency are
+locked. Admins may extend `dueDate` or `nonPaymentActionAt`, never move them
+earlier, and each change is audited. `acceptsApplications` may be moved between
+published periods with explicit confirmation. This supports opening an upcoming
+period early without deriving behavior from the calendar.
 
-- Different types concurrently (though only one can be `active` at a time)
-- Same type if resigned and re-joined (each "chapter" is a separate row)
+New periods are pre-filled by shifting the previous period's dates. There is no
+global calendar-settings feature in this scope.
 
-**Database constraint:** A partial unique index enforces at most one active membership per user (regardless of type):
+### `member`
 
-```sql
-CREATE UNIQUE INDEX one_active_per_user
-  ON member (userId)
-  WHERE status = 'active';
-```
+| Column                     | Type                        | Notes                                                                  |
+| -------------------------- | --------------------------- | ---------------------------------------------------------------------- |
+| id                         | TEXT PK                     | Stable across resignation, rejoining, and type changes                 |
+| userId                     | TEXT FK -> user             | Null for an organization member                                        |
+| organizationName           | TEXT                        | Null for an individual member                                          |
+| status                     | ENUM                        | `awaiting_payment`, `awaiting_approval`, `active`, `ended`, `rejected` |
+| membershipTypeId           | TEXT FK -> membershipType   | Most recently board-approved type; null if never approved              |
+| pendingMembershipTypeId    | TEXT FK -> membershipType   | Type currently requested; otherwise null                               |
+| currentMembershipStartedAt | TIMESTAMPTZ                 | Start of the current or most recently ended continuous membership      |
+| applicationMotive          | TEXT                        | Latest application motive; never reused as an end reason               |
+| createdAt, updatedAt       | TIMESTAMPTZ                 | Standard timestamps                                                    |
+| CHECK                      | userId XOR organizationName | Exactly one identity form                                              |
+| PARTIAL UNIQUE             | userId                      | One stable member per individual user                                  |
 
-### `payment` (new)
+The approved type remains on an ended member for display. A paid applicant is
+not assigned the requested type before approval. During an active member's type
+change, `membershipTypeId` remains the old type and
+`pendingMembershipTypeId` contains the requested type.
 
-| Column               | Type                           | Notes                                                        |
-| -------------------- | ------------------------------ | ------------------------------------------------------------ |
-| id                   | TEXT PK                        |                                                              |
-| memberId             | TEXT FK -> member              | Which membership relationship                                |
-| membershipPeriodId   | TEXT FK -> membershipPeriod    | Which period this payment covers                             |
-| source               | ENUM                           | `imported`, `stripe`, `manual`                               |
-| paidAt               | TIMESTAMP                      | When payment was completed. **Null = checkout in progress.** |
-| stripeSessionId      | TEXT                           | Stripe checkout session ID. Null for non-Stripe.             |
-| createdAt, updatedAt | TIMESTAMP                      | Standard timestamps                                          |
-| UNIQUE               | (memberId, membershipPeriodId) | One payment per member per period                            |
+`currentMembershipStartedAt` means the latest continuous membership, not the
+first membership ever. Rejoining updates it on approval. The first join and all
+earlier intervals are retained in `membershipEvent`.
 
-The `paidAt = null` state is used during active Stripe checkout sessions. This enables the resume flow: if a user navigates away and returns, the existing Stripe session can be resumed. Stale incomplete payments (e.g., older than 24h) are cleaned up periodically.
+### `membershipEvent`
 
-## Status Transitions
+This is durable domain history. It is separate from the generic audit log,
+whose purpose is security and operational traceability and whose write failure
+must not invalidate a domain operation.
 
-### Member statuses
+| Column                | Type                           | Notes                                                    |
+| --------------------- | ------------------------------ | -------------------------------------------------------- |
+| id                    | TEXT PK                        |                                                          |
+| memberId              | TEXT FK -> member              |                                                          |
+| eventType             | ENUM                           | Typed membership transition                              |
+| effectiveAt           | TIMESTAMPTZ                    | When the change legally or inferentially took effect     |
+| recordedAt            | TIMESTAMPTZ                    | When the system recorded it                              |
+| source                | ENUM                           | `admin`, `system`, `imported`, `migration`               |
+| certainty             | ENUM                           | `confirmed` or `inferred`                                |
+| actorUserId           | TEXT FK -> user                | Nullable for migration/import                            |
+| relatedEventId        | TEXT FK -> membershipEvent     | Corrected/superseded event, when applicable              |
+| membershipFeePeriodId | TEXT FK -> membershipFeePeriod | Optional relevant period                                 |
+| data                  | JSONB                          | Event-specific, schema-validated reason and type details |
 
-| Status            | Meaning                                                                          |
-| ----------------- | -------------------------------------------------------------------------------- |
-| awaiting_payment  | New member applied, hasn't paid yet                                              |
-| awaiting_approval | New member paid, waiting for board decision (SS26)                               |
-| active            | Board-approved, ongoing membership                                               |
-| resigned          | No longer a member — voluntary (SS8 p1), non-payment (SS8 p2), or expelled (SS9) |
-| rejected          | Board rejected application, or payment failed/expired                            |
+Initial event types are:
 
-### Valid transitions
+- `application_submitted`, `application_approved`, `application_rejected`
+- `type_change_requested`, `type_changed`, `type_change_rejected`
+- `resigned_voluntarily`, `deemed_resigned_nonpayment`, `expelled`
+- `legacy_membership_started_inferred`, `legacy_resignation_inferred`,
+  `legacy_rejoin_inferred`
+- `membership_decision_corrected`
 
-```
-awaiting_payment  -> awaiting_approval  (Stripe payment succeeded)
-awaiting_payment  -> rejected           (Stripe payment failed/expired)
-awaiting_approval -> active             (board approves)
-awaiting_approval -> rejected           (board rejects)
-active            -> resigned           (admin action: voluntary, non-payment, or expulsion)
-```
+Confirmed events are append-only. Correcting a mistake appends
+`membership_decision_corrected`, references the wrong event, and updates the
+current snapshot in the same transaction. Reapplying or paying is not required
+to undo an admin entry mistake.
 
-Re-joining after resignation or rejection always creates a **new member row** with the full application flow (`awaiting_payment -> awaiting_approval -> active`). There is no transition from resigned/rejected back to active on the same row.
+Imported inferred events are replaceable derived data. An import may delete and
+rebuild those events from the complete set of imported payment evidence, but it
+must never rewrite a confirmed event.
 
-### What triggers resignation
+The member activity view combines membership events and payments. Corrected
+events may be collapsed for members and remain expandable for admins.
 
-All resignations are manual admin actions, never automatic:
+### `membershipObligation`
 
-- **Voluntary resignation (SS8 p1)** — member requests it, admin marks resigned
-- **Non-payment (SS8 p2)** — bulk admin action after board meeting, typically ~2 months after due date
-- **Expulsion (SS9)** — board decision for misconduct
+An obligation exists only when a fee has actually been issued to a member. It
+is not backfilled for historical imports.
 
-## Purchase Flows
+| Column                | Type                             | Notes                                             |
+| --------------------- | -------------------------------- | ------------------------------------------------- |
+| id                    | TEXT PK                          |                                                   |
+| memberId              | TEXT FK -> member                |                                                   |
+| membershipFeePeriodId | TEXT FK -> membershipFeePeriod   |                                                   |
+| kind                  | ENUM                             | `renewal`, `application`, or `type_change`        |
+| disposition           | ENUM                             | `required`, `waived`, or `cancelled`              |
+| dispositionReason     | TEXT                             | Required for waiver; optional for cancellation    |
+| createdAt, updatedAt  | TIMESTAMPTZ                      | Standard timestamps                               |
+| UNIQUE                | (memberId,membershipFeePeriodId) | At most one issued fee for this member and period |
 
-### Path A: New member applying (or re-joining after resignation)
+Paid/unpaid is derived from payments and is not duplicated on the obligation.
+The three useful views are therefore:
 
-1. User picks membership type on `/new` page
-2. Fills in required info (description/motive, student verification if needed)
-3. `member` row created with status `awaiting_payment`
-4. `payment` row created with `paidAt = null`, `stripeSessionId` set
-5. User redirected to Stripe checkout
-6. Stripe succeeds -> `payment.paidAt` set, member status -> `awaiting_approval`
-7. Board approves -> member status -> `active`
+- required and settled;
+- required and unsettled;
+- waived or cancelled.
 
-If Stripe fails/expires: member -> `rejected`, stale payment row cleaned up.
+Publishing a non-zero fee period for a payable type creates one `renewal`
+obligation for every currently active member of that approved type. The unique
+constraint makes publication idempotent. Free types and zero-fee periods create
+no obligations.
 
-If the user tries to apply again later: reuse an existing `awaiting_payment` member row for the same user+type rather than creating a new one. `rejected` rows are kept as historical records (rare — represents an actual board decision).
+An admin who directly activates a member of a paid type either records a full
+manual payment or explicitly waives the applicable obligation with a reason.
+The system never fabricates a payment to explain the exception.
 
-### Path B: Active member paying dues
+### `payment`
 
-1. Admin creates `membershipPeriod` for upcoming year (with Stripe price)
-2. Active members see "Payment due for [year]" in UI
-3. Member clicks pay -> `payment` row created (`paidAt = null`, `stripeSessionId` set)
-4. Stripe succeeds -> `payment.paidAt` set. **Member status unchanged, stays `active`.**
-5. If Stripe fails/expires -> stale payment row cleaned up. Member can retry.
+Each row is one real or inferred payment attempt. Retaining attempts is
+necessary for Stripe webhook idempotency and delayed payment outcomes.
 
-No member status changes. No approval needed. Just a payment.
+| Column                | Type                            | Notes                                                         |
+| --------------------- | ------------------------------- | ------------------------------------------------------------- |
+| id                    | TEXT PK                         |                                                               |
+| memberId              | TEXT FK -> member               |                                                               |
+| membershipFeePeriodId | TEXT FK -> membershipFeePeriod  | Always present                                                |
+| obligationId          | TEXT FK -> membershipObligation | Nullable only for historical imported/migrated evidence       |
+| source                | ENUM                            | `stripe`, `manual`, `imported`                                |
+| status                | ENUM                            | `pending`, `succeeded`, `failed`, `expired`                   |
+| amount                | INTEGER                         | Minor units; nullable when historical evidence lacks it       |
+| currency              | TEXT                            | Nullable when historical evidence lacks it                    |
+| paidAt                | TIMESTAMPTZ                     | Nullable when the exact historical completion time is unknown |
+| stripeSessionId       | TEXT UNIQUE                     | Nullable outside Stripe                                       |
+| stripePaymentIntentId | TEXT UNIQUE                     | Nullable outside Stripe                                       |
+| refundRequiredAt      | TIMESTAMPTZ                     | Admin must process a refund manually                          |
+| refundConfirmedAt     | TIMESTAMPTZ                     | Refund verified from Stripe or manually confirmed             |
+| stripeRefundId        | TEXT UNIQUE                     | Nullable for a non-Stripe refund                              |
+| manualRefundReference | TEXT                            | Required when a non-Stripe refund is confirmed                |
+| invalidatedAt         | TIMESTAMPTZ                     | Explicit correction of bad imported evidence                  |
+| invalidationReason    | TEXT                            | Required when invalidated                                     |
+| createdAt, updatedAt  | TIMESTAMPTZ                     | Standard timestamps                                           |
 
-### Path C: Admin manually adding a member
+A composite foreign key from
+`payment(obligationId, memberId, membershipFeePeriodId)` to the same obligation
+columns prevents payments from being attached across members or types.
 
-1. Admin creates `member` row directly with `active` or `awaiting_approval` status
-2. Optionally creates a `payment` row with `source: manual`
-3. Used for honorary members (no payment needed), cash payments, or edge cases
+Each retry creates a new payment row. Failed and expired attempts are retained,
+not deleted. Unique Stripe identifiers make webhook replay idempotent. A partial
+unique index permits at most one successful, non-refunded, non-invalidated
+payment per obligation.
 
-### Path D: Honorary / free members
+The first release accepts only full settlement. Stripe checkout uses the fee
+period amount and currency, and manual payments must match them.
 
-1. Admin creates `member` row with status `active`
-2. Membership type has `purchasable = false`, no periods with Stripe prices
-3. Never appears in "payment due" lists. No payments needed. Indefinite.
+## Lifecycle and workflows
+
+### New application
+
+1. The user selects a purchasable type, not a year.
+2. The system targets that type's single published
+   `acceptsApplications` fee period. Without one, applications are unavailable.
+3. The stable member is created or reused with the target in
+   `pendingMembershipTypeId`.
+4. For a paid period, the system creates an `application` obligation and a
+   Stripe payment attempt. A free application skips checkout.
+5. Successful payment, or submission of a free application, moves a
+   never-approved applicant to `awaiting_approval` and appends
+   `application_submitted`.
+6. Board approval moves the pending type to `membershipTypeId`, sets
+   `currentMembershipStartedAt`, changes status to `active`, and appends
+   `application_approved`.
+
+Failed or abandoned checkout leaves the applicant in `awaiting_payment`.
+Returning creates a new attempt when the old Stripe session is no longer
+usable. It does not create a rejection or a membership event.
+
+Board rejection appends `application_rejected`. A paid application is marked
+`refundRequiredAt`; an unpaid application obligation is cancelled. A
+never-approved applicant becomes `rejected`. A previously ended member returns
+to `ended`, preserving their old approved type and history.
+
+### Renewal
+
+Publishing a fee period issues obligations to the active members of its type.
+Paying one changes only the obligation's derived settlement state. The member
+remains active before, during, and after payment and requires no approval.
+
+The admin overdue preset is based on:
+
+- member status is `active`;
+- obligation disposition is `required`;
+- no successful, non-refunded, non-invalidated payment settles it;
+- the obligation belongs to the relevant published fee period; and
+- the fee period's due date has passed.
+
+It does not compare `paidAt` to `dueDate`, so an applicant who joins and pays
+after the general deadline is not mistaken for an existing non-payer.
+
+### Type change during renewal
+
+Self-service type changes are available only instead of paying for a new fee
+period. They are not a general mid-period operation.
+
+1. An active member selects another eligible, purchasable type and confirms
+   that the change requires board approval.
+2. The target type's application period gets a `type_change` obligation and is
+   paid like a new membership. A free target skips payment.
+3. After payment, `pendingMembershipTypeId` is set and
+   `type_change_requested` is appended. The old approved type and active status
+   remain unchanged.
+4. While the request is pending, the old type's obligation for the same new
+   period is excluded from reminders.
+5. Approval changes the approved type, clears the pending type, appends
+   `type_changed`, and cancels the replaced old-type obligation. It does not
+   restart `currentMembershipStartedAt`.
+6. Rejection retains the old type, clears the pending type, appends
+   `type_change_rejected`, restores the old obligation to reminder views, and
+   flags the target payment for manual refund.
+
+Once the member has already settled the new period under their old type,
+self-service type change is no longer offered. Exceptional mid-period changes
+are handled manually by an admin.
+
+### Ending and rejoining
+
+`ended` is deliberately neutral. The event records whether membership ended by
+voluntary resignation, a board decision on non-payment, or expulsion.
+
+Voluntary resignation and expulsion are individual confirmed actions. The
+non-payment action is a board-triggered bulk operation and is disabled before
+`nonPaymentActionAt`; it cannot be bypassed with a warning.
+
+The bulk transaction:
+
+1. validates that every selected member is still active and still unpaid;
+2. updates each snapshot to `ended`;
+3. appends one confirmed `deemed_resigned_nonpayment` event per member; and
+4. retains the unpaid obligation as historical evidence.
+
+Notices are sent after the transaction. Delivery success or failure is recorded
+against the action, failed notices can be retried, and delivery failure never
+undoes the board decision.
+
+Rejoining uses the same stable member and the full application flow. Approval
+sets a new `currentMembershipStartedAt`; older intervals remain in events.
+
+### Overdue rights and QR verification
+
+There is no `payment_overdue` membership status. Before a confirmed ending
+action, an overdue member is legally active and remains valid in membership and
+QR checks.
+
+Admin views and QR scans may show a separate fee state:
+
+- Paid
+- Overdue
+- Not due
+- No fee
+- No obligation
+
+That information does not change access authorization.
+
+### Manual refunds
+
+The application never initiates a Stripe refund in this scope.
+
+When a paid application or type change is rejected, it sets
+`refundRequiredAt`. An admin refunds it in the Stripe Dashboard and then uses
+“Verify refund”; the server fetches Stripe's state and stores
+`refundConfirmedAt` and `stripeRefundId`. A non-Stripe refund may be confirmed
+manually with a required reference.
+
+A confirmed refund stops the payment from settling its obligation. It never
+automatically changes legal membership.
+
+### Reminders
+
+The first renewal cycle uses an admin-triggered workflow:
+
+1. Open the preset due/overdue list.
+2. Review recipients.
+3. Send a bulk reminder.
+4. Record the delivery result and last message.
+
+Schedulers, recurring reminders, and Stripe-generated invoices remain out of
+scope.
+
+### Imported uncertainty and corrections
+
+Member-facing UI shows an “imported information may be inaccurate” notice,
+including the association's contact details, only while the current snapshot
+depends on inferred legacy events. Inferred history retains a visible marker.
+
+A later confirmed event establishes authoritative current state and removes the
+current warning. Historical inferred events remain labelled. Member UI may
+collapse corrected events; admin history can expand them.
 
 ## Import Logic
 
@@ -307,29 +534,6 @@ In a single migration:
 - Spot-check specific known users
 
 This is a one-shot migration with no intermediate state. Old columns are dropped in the same migration after data is moved.
-
-## Admin Actions
-
-### Individual actions
-
-| Action         | Status change                                  | Notes                                          |
-| -------------- | ---------------------------------------------- | ---------------------------------------------- |
-| Approve member | awaiting_approval -> active                    | Board decision                                 |
-| Reject member  | awaiting_payment/awaiting_approval -> rejected | Board decision                                 |
-| Mark resigned  | active -> resigned                             | Sets resignedAt, records reason in description |
-| Create member  | -> active or awaiting_approval                 | Manual add (honorary, cash payment, etc.)      |
-
-### Bulk actions
-
-| Action                      | Notes                                                                                       |
-| --------------------------- | ------------------------------------------------------------------------------------------- |
-| Bulk approve                | Approve multiple awaiting_approval members at once                                          |
-| Bulk resign for non-payment | Mark multiple active members as resigned. Used after board meeting ~2 months past due date. |
-
-### Removed
-
-- **Auto-approval** — removed entirely. Active members don't need approval to pay dues. New/re-joining members always go through board approval.
-- **Reactivate** — removed. Re-joining creates a new member row instead.
 
 ## Test Plan
 
