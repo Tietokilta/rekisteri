@@ -155,7 +155,7 @@ const fi = {
   // Emails
   emails: {
     otp: {
-      subject: "{organizationName:string} jäsen_rekisterin sisään_kirjautumiskoodi",
+      subject: "{organizationName:string}: jäsenrekisterin sisäänkirjautumiskoodi",
       body: `Kirjautumiskoodisi on: {code:string}
 
 Koodi vanhenee 10 minuutin kuluttua.
@@ -174,10 +174,10 @@ Terveisin,
 {organizationName:string}`,
     },
     membershipApproved: {
-      subject: "Tervetuloa {organizationName:string} jäseneksi!",
+      subject: "{organizationName:string}: jäsenhakemuksesi on hyväksytty",
       body: `Hei {firstName:string}!
 
-Jäsenhakemuksesi on hyväksytty. Tervetuloa {organizationName:string} jäseneksi!
+{organizationName:string} on hyväksynyt jäsenhakemuksesi. Tervetuloa jäseneksi!
 
 Jäsenyystiedot:
 - Jäsenyystyyppi: {membershipName:string}
@@ -433,8 +433,8 @@ Terveisin,
       resignation: {
         title: "Jäsenen erottaminen",
         rule: "Organisaation sääntö jäsenen erottamisesta (esim. §67)",
-        defaultReasonFi: "Oletus syy erottamiselle (FI)",
-        defaultReasonEn: "Oletus syy erottamiselle (EN)",
+        defaultReasonFi: "Oletussyy erottamiselle (FI)",
+        defaultReasonEn: "Oletussyy erottamiselle (EN)",
       },
       privacyPolicy: {
         title: "Rekisteri- ja tietosuojaseloste",
