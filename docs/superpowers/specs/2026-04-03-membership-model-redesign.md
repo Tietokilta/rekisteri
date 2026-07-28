@@ -111,22 +111,22 @@ particular period by publishing a zero-fee period.
 This replaces the misleading `membershipPeriod` name. It describes a fee and
 application target, not the duration of legal membership.
 
-| Column               | Type                         | Notes                                                 |
-| -------------------- | ---------------------------- | ----------------------------------------------------- |
-| id                   | TEXT PK                      |                                                       |
-| membershipTypeId     | TEXT FK -> membershipType    |                                                       |
-| startDate            | DATE                         | Coverage/display start                                |
-| endDate              | DATE                         | Coverage/display end                                  |
-| dueDate              | DATE                         | Payment deadline                                      |
-| nonPaymentActionAt   | DATE                         | Earliest allowed bulk non-payment action              |
-| amount               | INTEGER                      | Minor currency units; zero means free for this period |
-| currency             | TEXT                         | ISO currency code                                     |
-| stripePriceId        | TEXT                         | Required before Stripe checkout, otherwise nullable   |
-| publishedAt          | TIMESTAMPTZ                  | Null while draft                                      |
-| acceptsApplications  | BOOLEAN                      | This is the user-facing target for new applications   |
-| createdAt, updatedAt | TIMESTAMPTZ                  | Standard timestamps                                   |
-| UNIQUE               | (membershipTypeId,startDate) | One period per type and start date                    |
-| PARTIAL UNIQUE       | membershipTypeId             | At most one application target per type               |
+| Column               | Type                         | Notes                                               |
+| -------------------- | ---------------------------- | --------------------------------------------------- |
+| id                   | TEXT PK                      |                                                     |
+| membershipTypeId     | TEXT FK -> membershipType    |                                                     |
+| startDate            | DATE                         | Coverage/display start                              |
+| endDate              | DATE                         | Coverage/display end                                |
+| dueDate              | DATE                         | Payment deadline                                    |
+| nonPaymentActionAt   | DATE                         | Earliest allowed bulk non-payment action            |
+| amount               | INTEGER                      | Minor units; nullable for draft/unknown legacy data |
+| currency             | TEXT                         | ISO code; nullable for draft/unknown legacy data    |
+| stripePriceId        | TEXT                         | Required before Stripe checkout, otherwise nullable |
+| publishedAt          | TIMESTAMPTZ                  | Null while draft                                    |
+| acceptsApplications  | BOOLEAN                      | This is the user-facing target for new applications |
+| createdAt, updatedAt | TIMESTAMPTZ                  | Standard timestamps                                 |
+| UNIQUE               | (membershipTypeId,startDate) | One period per type and start date                  |
+| PARTIAL UNIQUE       | membershipTypeId             | At most one application target per type             |
 
 A period starts as a draft. Publishing it atomically creates obligations for
 applicable active members. Publishing never creates Stripe sessions or sends
@@ -192,7 +192,7 @@ Initial event types are:
 - `type_change_requested`, `type_changed`, `type_change_rejected`
 - `resigned_voluntarily`, `deemed_resigned_nonpayment`, `expelled`
 - `legacy_membership_started_inferred`, `legacy_resignation_inferred`,
-  `legacy_rejoin_inferred`
+  `legacy_rejoin_inferred`, `legacy_type_changed_inferred`
 - `membership_decision_corrected`
 
 Confirmed events are append-only. Correcting a mistake appends
@@ -420,120 +420,263 @@ A later confirmed event establishes authoritative current state and removes the
 current warning. Historical inferred events remain labelled. Member UI may
 collapse corrected events; admin history can expand them.
 
-## Import Logic
+## Legacy CSV import
 
-### CSV format
+### Import lifecycle
+
+Each installation has a nullable `membershipDataLiveAt` timestamp.
+
+- **Import mode:** while it is null, admins may repeatedly import historical
+  data and rebuild inferred history.
+- **Finalize and go live:** the admin reviews a final preview and explicitly
+  establishes the live boundary.
+- **Live mode:** later imports may add history only for fee periods beginning
+  before the boundary. Rows for periods beginning on or after it are rejected.
+
+Stripe checkout is unavailable in import mode. Publishing or opening the first
+live fee period prompts the admin to finalize imports and sets
+`membershipDataLiveAt` in the same transaction. The first Stripe action never
+silently changes the mode.
+
+Historical rows imported after go-live cannot create inference at or after the
+boundary and cannot override confirmed events. This makes finalization a real
+transfer from a legacy system to this system without banning legitimate late
+historical cleanup.
+
+### Input and period calendar
+
+The canonical CSV keeps the existing exact date field:
 
 ```csv
-firstNames,lastName,homeMunicipality,email,membershipTypeId,year
-Testi,Henkilö,Helsinki,testi@aalto.fi,varsinainen-jasen,2020
-Testi,Henkilö,Helsinki,testi@aalto.fi,varsinainen-jasen,2021
-Testi,Henkilö,Helsinki,testi@aalto.fi,varsinainen-jasen,2022
-Testi,Henkilö,Helsinki,testi@aalto.fi,alumnijasen,2023
+firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
+Testi,Henkilö,Helsinki,testi@aalto.fi,varsinainen-jasen,2023-08-01
+Testi,Henkilö,Helsinki,testi@aalto.fi,varsinainen-jasen,2024-08-01
+Testi,Henkilö,Helsinki,testi@aalto.fi,ulkojasen,2025-08-01
 ```
 
-The `year` column replaces the previous `membershipStartDate`. If a full date is provided, the year is extracted (backward compatible with existing kide.app exports).
+`membershipStartDate` identifies the fee period. It is not treated as a payment
+timestamp or a board approval date. A legacy year-only variant may be accepted
+only when the import supplies the month/day calendar used to expand it; exact
+dates are never reduced to years.
 
-### Algorithm
+An onboarding import supplies fallback period rules for dates missing from the
+database. The preview shows them, and the import audit entry stores them with
+the inference `asOf` date. Tietokilta's production fallback is:
 
-The entire import runs within a **database transaction**. The same logic supports two modes:
+- start: August 1;
+- end: July 31 of the following year;
+- due: September 30; and
+- earliest non-payment action: December 1.
 
-- **Dry run (preview)**: executes within a transaction, computes the diff, then rolls back. Returns the preview of changes to the admin for review.
-- **Commit**: executes within a transaction and commits on success.
+The importer creates missing historical `membershipFeePeriod` rows for the
+expected sequence between the earliest imported period and `asOf`, including
+empty periods needed to recognize a gap. These historical periods remain
+unpublished and never create obligations. If the import cannot establish an
+expected period sequence, it preserves payments but reports that lifecycle
+inference is unavailable.
 
-Steps:
+Historical fee amount and currency may be null when the source data does not
+contain them. Current drafts must have amount and currency before publication.
 
-1. **Parse and validate** all CSV rows
-2. **Find or create users** by email (latest row wins for profile fields, same as current)
-3. **Find or create `membershipPeriod` rows** by (membershipTypeId, year) — dates derived from hardcoded organization defaults (period start: Aug 1, period end: Jul 31, due date: Sept 30)
-4. **Find or create `payment` rows** with `source: imported` for each (user, period) pair
-5. **Re-derive member rows** for each affected (user, membershipType) pair:
+### Parse and identity rules
 
-#### Member row re-derivation (step 5)
+The import first parses and validates the complete file. Any row-level error
+prevents commit.
 
-For each affected (user, membershipType):
+1. Normalize and match individual users by email.
+2. Reject organization-member CSV rows; existing organization members are
+   preserved by production migration and managed manually.
+3. Create or reuse one stable `member` per user.
+4. For an untouched imported placeholder account, profile fields come from the
+   row with the greatest `membershipStartDate`.
+5. An older import never overwrites a newer imported profile.
+6. A verified, activated, or user-edited profile is never overwritten.
+7. Conflicting profile rows for the same email and exact date are an error.
+8. Different emails remain different users. Suspected duplicates are reported;
+   user merging is outside this RFC.
 
-1. **Collect** all imported payments (where `source = imported`), sorted by period start year
-2. **Delete** all existing member rows that have **only** `source: imported` payments (protect system-created rows)
-3. **Detect continuous chains**: consecutive years with no gap form one chain
-   - Example: 2020, 2021, 2022 = one chain
-   - Example: 2020, 2021, [gap], 2024, 2025 = two chains
-4. **Create** a new `member` row for each chain:
-   - `joinedAt` = startDate of the first year's period
-   - If the chain covers the current period (i.e., today falls within the last year's period endDate or later — the member has not had a gap): `status = active`, `resignedAt = null`
-   - If the chain does not cover the current period: `status = resigned`, `resignedAt` = endDate of the last year's period
-5. **Link payments** to their respective member rows
+### Additive payment evidence
 
-This re-derivation approach is simpler than incremental merging: delete imported member rows, re-create from scratch based on all known imported payments. Since it runs in a transaction, no data is lost on failure.
+Each unique `(member, membership type, fee period)` row adds one successful
+`source = imported` payment without an obligation. `paidAt`, amount, and
+currency remain null unless the source actually supplies them.
 
-#### Conflict detection
+The importer is additive:
 
-Before deleting an imported-only member row, compare its current status with what the payment chain would derive. If they differ (e.g., an admin manually resigned an imported member, but payments say they should be active), the import **blocks with an error** listing the conflicting users. The admin or IT resolves the conflict manually before re-importing. This prevents the import from silently overwriting manual admin actions.
+- importing the same row again is a no-op;
+- file order and import order do not affect the final result;
+- absence from a later CSV never removes earlier evidence;
+- a valid existing Stripe or manual payment for the same member and period
+  means the imported row is skipped and reported as already covered; and
+- invalid imported evidence is retained with `invalidatedAt` and a reason.
+  Re-importing it remains a no-op until an admin explicitly restores it.
 
-#### Mixed source protection
+Duplicate legacy rows for the same person, type, and period are collapsed into
+one imported payment and listed in the preview. Without a source transaction
+identifier they do not prove that two payments occurred.
 
-Member rows that have **any** `source: stripe` or `source: manual` payment are never deleted or modified by import. Import creates separate member rows for imported data. This ensures production data created through the live system is never altered by imports.
+No historical obligations are fabricated. Fee periods, imported payment
+evidence, and inferred membership events are sufficient to represent the
+available history.
 
-#### Type transitions
+### Inference algorithm
 
-If the same user has varsinainen-jasen for 2020-2022 and alumnijasen for 2023-2025, these are two separate member rows (different types). The varsinainen row gets `status: resigned` with `resignedAt` at the end of the 2022 period.
+After adding evidence, the importer recomputes only replaceable inferred events
+for affected members. It never deletes a member, confirmed event, payment,
+obligation, or live field in order to rebuild history.
 
-### Order independence
+For each affected member:
 
-The re-derivation step rebuilds the complete picture on every import run. This guarantees convergence regardless of import order:
+1. Load all non-invalidated imported payments, relevant successful live
+   payments, historical fee periods, and confirmed membership events.
+2. Remove the member's previous imported/migration events with
+   `certainty = inferred` before the live boundary, or all such events while
+   still in import mode.
+3. Sort evidence by exact period dates, independent of CSV and import order.
+4. The first legacy payment infers a membership start at the period start unless
+   a confirmed event already establishes a different state.
+5. Consecutive paid periods add payments only. They are not membership renewal
+   events.
+6. For a missing expected period, infer `legacy_resignation_inferred` at that
+   period's `nonPaymentActionAt` only when `asOf` has reached the date.
+7. A later payment after an inferred end adds `legacy_rejoin_inferred` at the
+   later period's start.
+8. A sequential change to a different type adds an inferred type-change event
+   while keeping the continuous membership. Payment evidence for mutually
+   exclusive types in the same or overlapping period is ambiguous: preserve
+   both payments, report the conflict, and infer no transition from them.
+9. Replay the combined chronological timeline into the current snapshot,
+   ignoring inferred transitions wherever they conflict with confirmed state.
 
-| Import order     | Final state                                |
-| ---------------- | ------------------------------------------ |
-| 2023, 2024, 2025 | 1 member (joined 2023, active), 3 payments |
-| 2025, 2023, 2024 | same                                       |
-| 2024, 2025, 2023 | same                                       |
+The December 1 Tietokilta fallback is explicitly an inference based on recent
+bulk-resignation practice. It does not claim that the board made a recorded
+decision on that date. A member whose latest missing period has a future action
+date remains inferred active. Once the live boundary is established, merely
+passing a deadline never creates a new event; only a real board action can end
+membership for a live obligation.
 
-Gap-filling across separate imports:
+If a later additive import fills a historical gap, the inferred end and rejoin
+events disappear on rebuild. Member UI may collapse the correction, while admin
+history and the import audit retain what happened.
 
-| Import sequence               | Final state                                            |
-| ----------------------------- | ------------------------------------------------------ |
-| First: 2020, 2021, 2024, 2025 | 2 members: (2020-2021, resigned) + (2024-2025, active) |
-| Then: 2022, 2023              | 1 member: (2020-2025, active), 6 payments              |
+### Conflicts and preview
 
-### Source derivation for existing production data
+Normal admin activity never blocks an import. A confirmed voluntary
+resignation, expulsion, correction, or type change simply takes precedence;
+conflicting imported inference is skipped and shown in the preview.
 
-Existing data can be classified retroactively during migration:
+Manual review is required only when the data cannot satisfy a core invariant,
+including:
 
-- **Payments**: no `stripeSessionId` -> `source: imported`; has `stripeSessionId` -> `source: stripe`
-- **Users**: no verified email + no `lastActiveAt` -> imported placeholder user
+- overlapping mutually exclusive types with no authoritative current type;
+- two conflicting profile values for the same identity and exact date; or
+- a row whose type or period cannot be mapped.
 
-For future imports (including by other guilds), the import flow explicitly sets `source: imported` on all created records.
+The preview reports created users, periods, payments, and inferred events;
+collapsed duplicates; protected live data; ambiguities; and the resulting
+current-state counts. Dry run executes the same code in a transaction and rolls
+it back.
 
-## Production Data Migration
+### Convergence examples
 
-### Step 1: Schema changes
+All import sequences below converge after the inferred events are rebuilt:
 
-In a single migration:
+| Import sequence                            | Final evidence and inferred history                                       |
+| ------------------------------------------ | ------------------------------------------------------------------------- |
+| 2023, 2024, 2025 in any order              | One stable member, three payments, one continuous membership              |
+| 2020, 2021, 2024, 2025                     | Four payments, inferred end at the 2022 action date, rejoin in 2024       |
+| Previous row set, then 2022 and 2023       | Six payments; the inferred end and rejoin disappear                       |
+| 2025 Stripe payment, then 2020–2025 import | One stable member; Stripe evidence is retained and duplicate 2025 skipped |
+| Confirmed resignation, then older import   | Payment history is added; confirmed current state remains unchanged       |
 
-1. Rename `membership` table to `membershipPeriod`
-2. Add `dueDate` column to `membershipPeriod` (set to September 30 of start year for Tietokilta)
-3. Move `requiresStudentVerification` from `membershipPeriod` to `membershipType`
-4. Restructure `member` table: add `membershipTypeId`, `joinedAt`, `resignedAt`; drop `membershipId` after data migration
-5. Create `payment` table
+## Production migration
 
-### Step 2: Data migration
+### Deployment shape
 
-1. For each existing `member` row, create a `payment` row:
-   - `membershipPeriodId` = existing `membershipId`
-   - `source` = `imported` if no `stripeSessionId`, `stripe` otherwise
-   - `paidAt` = existing `createdAt` (best available approximation)
-   - `stripeSessionId` = copied from existing member row
+Review is split into small schema, migration, workflow, and test commits. The
+production cutover itself is one transactional Drizzle schema-and-data
+migration, run with writes briefly stopped. There is no dual-write period and
+no retained compatibility tables. A database snapshot is the rollback source.
 
-2. Run the same re-derivation algorithm as import (step 5 above) to derive the new member rows from the complete set of payments per (user, membershipType).
+The same migration also runs on fresh installations. It sets
+`membershipDataLiveAt` only when legacy member rows actually exist. An empty new
+installation remains in import mode until its admin finalizes onboarding.
 
-### Step 3: Validate
+### Evidence classification
 
-- Verify total payment count matches old member row count
-- Verify every user's membership history is preserved
-- Verify active members are correctly identified
-- Spot-check specific known users
+Migration must not turn every old row into a paid payment. In particular,
+`stripeSessionId` proves that checkout was created, not that it succeeded.
 
-This is a one-shot migration with no intermediate state. Old columns are dropped in the same migration after data is moved.
+The migration uses this evidence in descending authority:
+
+1. Existing audit actions create confirmed board/admin events.
+2. `awaiting_approval` proves that the application payment completed.
+3. For a payable type, `active` or an old status representing previously active
+   membership is evidence of a completed purchase. A Stripe session makes its
+   payment source `stripe`; otherwise legacy period-shaped data becomes
+   `imported`. Free types establish membership evidence without a payment.
+4. An old imported active/ended period row may create a successful imported
+   payment with unknown `paidAt`, amount, and currency. Its lifecycle events
+   remain inferred unless an audit action confirms them.
+5. `awaiting_payment` proves only an attempted checkout. It becomes a pending or
+   expired payment attempt and never a successful payment.
+6. `rejected` is ambiguous. Audit history may prove a paid board rejection; if
+   it does not, preserve the rejection without inventing a successful payment
+   and list it in the rehearsal warnings.
+
+The migration never copies `member.createdAt` into `payment.paidAt`. Unknown is
+represented as null.
+
+### Transaction steps
+
+Within one migration transaction:
+
+1. Create the event, obligation, and payment structures and add the new member,
+   type, fee-period, and onboarding fields.
+2. Convert old period timestamps to `DATE` in the association timezone. For
+   Tietokilta this is `AT TIME ZONE 'Europe/Helsinki'` before the date cast, so
+   local midnight does not become the previous UTC date.
+3. Backfill Tietokilta historical due and inference dates using September 30 and
+   December 1. Mark them as migration assumptions.
+4. Collapse old per-period rows into one stable member per user or organization.
+   Preserve a deterministic existing identifier and rewire every referencing
+   row before removing duplicates.
+5. Create payments and confirmed/inferred membership events according to the
+   evidence rules above. Do not create historical obligations.
+6. Replay events to materialize `status`, approved/pending type, and
+   `currentMembershipStartedAt`.
+7. Preserve all existing organization members without attempting CSV-style
+   inference.
+8. Validate database invariants and expected classifications.
+9. Set `membershipDataLiveAt` because this installation contained live legacy
+   data, then remove obsolete period-shaped columns and rows.
+
+Any invariant failure aborts the whole transaction. Delayed Stripe webhooks
+remain safe because old session identifiers are retained on payment attempts
+rather than deleted.
+
+### Local rehearsal against production
+
+Before deployment, export a production snapshot and run the exact Drizzle
+migration against local copies. The rehearsal helper is development-only; it is
+not a deployed table or application feature.
+
+Its report includes:
+
+- before/after counts by old and new status;
+- classification counts for Stripe, imported, pending, and ambiguous payments;
+- stable-member collapses and reference rewrites;
+- inferred starts, ends, rejoins, and type changes;
+- ambiguous rejected rows and overlapping types;
+- timezone/date conversions;
+- current snapshots that still depend on inference;
+- orphan, uniqueness, and cross-type invariant checks; and
+- a comparison of two fresh-snapshot rehearsal runs to prove determinism.
+
+Detailed rows and personal data stay local. Sanitized totals and explained
+warnings may be added to the pull request. We do not have the original kide.app
+CSV exports, so importer coverage uses synthetic fixtures; the production
+snapshot validates the migration path.
 
 ## Test Plan
 
