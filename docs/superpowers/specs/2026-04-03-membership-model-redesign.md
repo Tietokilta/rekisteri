@@ -44,7 +44,9 @@ resigned. QR verification and other membership rights remain valid until that
 decision.
 
 The final membership status is neutral (`ended`). The event records whether the
-reason was voluntary resignation, non-payment, or expulsion.
+reason was voluntary resignation, non-payment, or expulsion. Ending membership
+also cancels its unsettled fees; rejoining creates or reopens the applicable
+application fee instead of carrying old debt forward.
 
 ### One stable member record, with durable history
 
@@ -62,7 +64,7 @@ authoritative membership history.
 
 Publishing a fee period creates one obligation for each applicable active
 member. Publishing is idempotent and does not create Stripe checkouts or send
-messages.
+messages. Published fee dates and deadlines are immutable.
 
 Free membership types and zero-fee periods create no obligations. An admin may
 activate a paid member without inventing a payment by explicitly waiving the
@@ -71,18 +73,32 @@ obligation with a reason.
 Payment state is not duplicated on the obligation: it is paid when at least one
 successful, non-refunded payment exists.
 
-### Applications and renewals are different
+### Applications stay available and remain separate from renewals
 
 A new or returning applicant selects a membership type. The admin chooses which
 published fee period currently accepts applications, so an upcoming period can
-be opened early without calendar-specific rules.
+be opened early without calendar-specific rules. The selected fee is the
+applicant's first obligation; no earlier-period fee is created.
 
 Paid applicants go through Stripe and then wait for board approval. Free
 applicants skip payment but still wait for approval. Failed or abandoned
-checkouts stay retryable and never become board rejections.
+checkouts stay retryable and never become board rejections. Approval activates
+membership immediately even when the paid fee period starts later: fee-period
+dates never gate legal membership.
 
 An active member only pays their new obligation. Renewal does not change
-membership status or require approval.
+membership status or require approval. A type requiring student verification
+requires valid verification before renewal payment; otherwise the member must
+re-verify or request a paid, board-approved type change. Expired verification
+alone never changes membership status.
+
+A member joining late in one fee period still receives the next period's normal
+renewal obligation, even if that later period was published before approval.
+
+Every purchasable type must always have exactly one valid application target.
+Applications cannot be intentionally paused. Admins see a persistent warning
+and receive deduplicated email alerts before a target expires and if availability
+is lost.
 
 ### Type changes happen during renewal
 
@@ -119,16 +135,17 @@ Imports are additive and order-independent:
 For Tietokilta, a missing historical fee is assumed to have ended membership on
 December 1 of that fee period's starting year. This reflects the recent
 November/December bulk-resignation practice, but it is explicitly labelled as
-inferred—not as a recorded board decision.
+inferred, not as a recorded board decision.
 
 Members whose current state depends on inference see a short warning and contact
 information. A later confirmed action establishes authoritative current state;
 historical inference remains visibly labelled.
 
 Other associations choose their own historical calendar during onboarding.
-Imports may be repeated until the admin explicitly finalizes import mode.
-Afterward, CSV imports may only add history from fee periods that began before
-the go-live boundary.
+Imports may be repeated until the admin explicitly finalizes import mode. At
+finalization, the admin selects the last fully billed period for each type;
+missing-fee inference never extends beyond those cutoffs. Afterward, CSV imports
+may only add history from fee periods that began before the go-live boundary.
 
 ## Production migration
 
@@ -153,15 +170,16 @@ The migration must not manufacture evidence:
 
 The August-critical work is the migration rehearsal, fee-period publication,
 obligations, renewal checkout, applications, new-period type changes, overdue
-filter, manual reminders, and imported-data warning.
+filter, student re-verification, application-availability alerts, manual
+reminders, and imported-data warning.
 
 The bulk non-payment decision and notice retry workflow must be ready before the
 November/December board actions, but do not need to block opening August
 payments.
 
 Custom member fields, organization CSV import, automatic reminders, automatic
-refunds, individual deadline extensions, partial payments, and installments are
-outside this RFC.
+refunds, post-publication deadline changes, partial payments, and installments
+are outside this RFC.
 
 Detailed schema fields, algorithms, scenario-based tests, and the cutover
 checklist are in the
