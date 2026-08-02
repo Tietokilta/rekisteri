@@ -6,6 +6,7 @@
   import { updateMembershipType, deleteMembershipType } from "./data.remote";
   import { updateMembershipTypeSchema, deleteMembershipTypeSchema } from "./schema";
   import { Input } from "$lib/components/ui/input";
+  import { Checkbox } from "$lib/components/ui/checkbox";
   import { Button } from "$lib/components/ui/button";
   import { Label } from "$lib/components/ui/label";
   import * as Sheet from "$lib/components/ui/sheet";
@@ -118,11 +119,7 @@
 
   <!-- Purchasable -->
   <div class="flex items-center gap-3">
-    <input
-      {...editForm.fields.purchasable.as("checkbox")}
-      id={`edit-purchasable-${membershipType.id}`}
-      class="size-4 rounded border-input"
-    />
+    <Checkbox {...editForm.fields.purchasable.as("checkbox")} id={`edit-purchasable-${membershipType.id}`} />
     <div>
       <Label for={`edit-purchasable-${membershipType.id}`}>{$LL.admin.membershipTypes.purchasable()}</Label>
       <p class="text-sm text-muted-foreground">{$LL.admin.membershipTypes.purchasableDescription()}</p>

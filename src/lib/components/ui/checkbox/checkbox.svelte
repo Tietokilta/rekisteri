@@ -9,8 +9,9 @@
     checked = $bindable(false),
     indeterminate = $bindable(false),
     class: className,
+    type: _type,
     ...restProps
-  }: WithoutChildrenOrChild<CheckboxPrimitive.RootProps> = $props();
+  }: Omit<WithoutChildrenOrChild<CheckboxPrimitive.RootProps>, "type"> & { type?: string } = $props();
 </script>
 
 <CheckboxPrimitive.Root
