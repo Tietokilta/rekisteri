@@ -120,7 +120,7 @@ jobs:
         run: pnpm test:integration
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
@@ -168,7 +168,7 @@ jobs:
       - name: Save Docker image as artifact
         run: docker save rekisteri:latest | gzip > rekisteri-docker-image.tar.gz
       - name: Upload Docker image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: docker-image
           path: rekisteri-docker-image.tar.gz
