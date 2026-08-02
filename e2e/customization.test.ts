@@ -4,7 +4,7 @@ import { test, expect } from "./fixtures/db";
 
 test.describe("App Customization", () => {
   test("admin can update general branding", async ({ adminPage, adminUser, db }) => {
-    await adminPage.goto("/en/admin/customize");
+    await adminPage.goto("/en/admin/settings");
 
     // Update app name and accent color
     const newAppName = "Test Registry " + Math.random().toString(36).slice(7);
@@ -57,7 +57,10 @@ test.describe("App Customization", () => {
   });
 
   test("admin can update organization details", async ({ adminPage }) => {
-    await adminPage.goto("/en/admin/customize");
+    await adminPage.goto("/en/admin/settings");
+
+    // Switch to Organization tab
+    await adminPage.getByTestId("tab-organization").click();
 
     const newOrgName = "Test Organization " + Math.random().toString(36).slice(7);
     const newOrgLegalName = "Test Organization ry " + Math.random().toString(36).slice(7);
@@ -83,7 +86,7 @@ test.describe("App Customization", () => {
   });
 
   test("readonly admin cannot update customizations", async ({ readonlyAdminPage }) => {
-    await readonlyAdminPage.goto("/en/admin/customize");
+    await readonlyAdminPage.goto("/en/admin/settings");
 
     // Check if a warning banner is present
     await expect(

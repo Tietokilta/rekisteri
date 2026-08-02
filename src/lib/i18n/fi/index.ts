@@ -22,7 +22,7 @@ const fi = {
       membershipTypes: "Jäsenyystyypit",
       users: "Käyttäjät",
       verifyQr: "Tarkista QR",
-      customize: "Muokkaa ulkoasua",
+      settings: "Asetukset",
     },
     signOut: "Kirjaudu ulos",
   },
@@ -404,11 +404,17 @@ Terveisin,
       membershipTypeNotFound: "Jäsenyystyyppiä ei löytynyt",
     },
 
-    customize: {
-      title: "Sovelluksen mukautus",
-      description: "Hallitse sovelluksen yleisiä asetuksia ja ulkonäköä.",
+    settings: {
+      title: "Asetukset",
+      description: "Hallitse sovelluksen yleisiä asetuksia, teemoja, organisaation tietoja ja selosteita.",
       success: "Asetukset tallennettu onnistuneesti",
       error: "Asetusten tallentaminen epäonnistui",
+      tabs: {
+        branding: "Ulkoasu & teema",
+        organization: "Organisaatio",
+        resignation: "Erottaminen & säännöt",
+        privacyPolicy: "Tietosuojaseloste",
+      },
       brandingDefaults: {
         title: "Yleisilme",
         accentColor: "Korostusväri",

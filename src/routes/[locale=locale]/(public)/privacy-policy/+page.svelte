@@ -9,7 +9,7 @@
 </script>
 
 <svelte:head>
-  <title>{$LL.admin.customize.privacyPolicy.title()} - {appName}</title>
+  <title>{$LL.admin.settings.privacyPolicy.title()} - {appName}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-4xl px-4 py-8">
