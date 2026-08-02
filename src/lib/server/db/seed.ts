@@ -80,115 +80,118 @@ try {
     adminRole: "admin",
   });
 
+  // Calculate current "membership year" (must have stripe products available)
+  const currentYear = new Date().getMonth() >= 7 ? new Date().getFullYear() : new Date().getFullYear() - 1;
+
   const membershipsToSeed = [
-    // 2022-2023 period (expired, legacy - no Stripe price)
+    // 3rd previous period (expired, legacy - no Stripe price)
     {
       id: crypto.randomUUID(),
       membershipTypeId: "varsinainen-jasen",
       stripePriceId: null,
-      startTime: new Date("2022-08-01"),
-      endTime: new Date("2023-07-31"),
+      startTime: new Date(`${currentYear - 3}-08-01`),
+      endTime: new Date(`${currentYear - 2}-07-31`),
       requiresStudentVerification: true,
     },
     {
       id: crypto.randomUUID(),
       membershipTypeId: "ulkojasen",
       stripePriceId: null,
-      startTime: new Date("2022-08-01"),
-      endTime: new Date("2023-07-31"),
+      startTime: new Date(`${currentYear - 3}-08-01`),
+      endTime: new Date(`${currentYear - 2}-07-31`),
       requiresStudentVerification: false,
     },
-    // 2023-2024 period (expired, legacy - no Stripe price)
+    // 2nd previous period (expired, legacy - no Stripe price)
     {
       id: crypto.randomUUID(),
       membershipTypeId: "varsinainen-jasen",
       stripePriceId: null,
-      startTime: new Date("2023-08-01"),
-      endTime: new Date("2024-07-31"),
+      startTime: new Date(`${currentYear - 2}-08-01`),
+      endTime: new Date(`${currentYear - 1}-07-31`),
       requiresStudentVerification: true,
     },
     {
       id: crypto.randomUUID(),
       membershipTypeId: "ulkojasen",
       stripePriceId: null,
-      startTime: new Date("2023-08-01"),
-      endTime: new Date("2024-07-31"),
+      startTime: new Date(`${currentYear - 2}-08-01`),
+      endTime: new Date(`${currentYear - 1}-07-31`),
       requiresStudentVerification: false,
     },
-    // 2024-2025 period (with Stripe prices)
+    // Previous period (with Stripe prices)
     {
       id: crypto.randomUUID(),
       membershipTypeId: "varsinainen-jasen",
       stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
-      startTime: new Date("2024-08-01"),
-      endTime: new Date("2025-07-31"),
+      startTime: new Date(`${currentYear - 1}-08-01`),
+      endTime: new Date(`${currentYear}-07-31`),
       requiresStudentVerification: true,
     },
     {
       id: crypto.randomUUID(),
       membershipTypeId: "ulkojasen",
       stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
-      startTime: new Date("2024-08-01"),
-      endTime: new Date("2025-07-31"),
+      startTime: new Date(`${currentYear - 1}-08-01`),
+      endTime: new Date(`${currentYear}-07-31`),
       requiresStudentVerification: false,
     },
     {
       id: crypto.randomUUID(),
       membershipTypeId: "kannatusjasen",
       stripePriceId: "price_1R8ORc2a3B4f6jfh4mtYKiXl",
-      startTime: new Date("2024-08-01"),
-      endTime: new Date("2025-07-31"),
+      startTime: new Date(`${currentYear - 1}-08-01`),
+      endTime: new Date(`${currentYear}-07-31`),
       requiresStudentVerification: false,
     },
-    // 2025-2026 period (current, with Stripe prices)
+    // Current period (with Stripe prices)
     {
       id: crypto.randomUUID(),
       membershipTypeId: "varsinainen-jasen",
       stripePriceId: "price_1Sqs7c2a3B4f6jfhBiyJfAno",
-      startTime: new Date("2025-08-01"),
-      endTime: new Date("2026-07-31"),
+      startTime: new Date(`${currentYear}-08-01`),
+      endTime: new Date(`${currentYear + 1}-07-31`),
       requiresStudentVerification: true,
     },
     {
       id: crypto.randomUUID(),
       membershipTypeId: "ulkojasen",
       stripePriceId: "price_1Sqs7y2a3B4f6jfhHjnWzk9n",
-      startTime: new Date("2025-08-01"),
-      endTime: new Date("2026-07-31"),
+      startTime: new Date(`${currentYear}-08-01`),
+      endTime: new Date(`${currentYear + 1}-07-31`),
       requiresStudentVerification: false,
     },
     {
       id: crypto.randomUUID(),
       membershipTypeId: "kannatusjasen",
       stripePriceId: "price_1Sqs8B2a3B4f6jfhB5Ga6AJC",
-      startTime: new Date("2025-08-01"),
-      endTime: new Date("2026-07-31"),
+      startTime: new Date(`${currentYear}-08-01`),
+      endTime: new Date(`${currentYear + 1}-07-31`),
       requiresStudentVerification: false,
     },
-    // 2026-2027 period (upcoming, no Stripe prices yet, no members seeded)
+    // Upcoming period (no Stripe prices yet, no members seeded)
     // Note: Kannatusjäsen replaced by Alumnijäsen starting this period
     {
       id: crypto.randomUUID(),
       membershipTypeId: "varsinainen-jasen",
       stripePriceId: null,
-      startTime: new Date("2026-08-01"),
-      endTime: new Date("2027-07-31"),
+      startTime: new Date(`${currentYear + 1}-08-01`),
+      endTime: new Date(`${currentYear + 2}-07-31`),
       requiresStudentVerification: true,
     },
     {
       id: crypto.randomUUID(),
       membershipTypeId: "ulkojasen",
       stripePriceId: null,
-      startTime: new Date("2026-08-01"),
-      endTime: new Date("2027-07-31"),
+      startTime: new Date(`${currentYear + 1}-08-01`),
+      endTime: new Date(`${currentYear + 2}-07-31`),
       requiresStudentVerification: false,
     },
     {
       id: crypto.randomUUID(),
       membershipTypeId: "alumnijasen",
       stripePriceId: null,
-      startTime: new Date("2026-08-01"),
-      endTime: new Date("2027-07-31"),
+      startTime: new Date(`${currentYear + 1}-08-01`),
+      endTime: new Date(`${currentYear + 2}-07-31`),
       requiresStudentVerification: false,
     },
   ];
@@ -200,20 +203,20 @@ try {
 
   // Direct weights for each membership (must sum to 1.0 for memberships that should have members)
   const weights = [
-    0.045, // 2022 varsinainen (5% of users * 90% varsinainen)
-    0.005, // 2022 ulkojäsen (5% of users * 10% ulkojäsen)
-    0.135, // 2023 varsinainen (15% of users * 90% varsinainen)
-    0.015, // 2023 ulkojäsen (15% of users * 10% ulkojäsen)
-    0.27, // 2024 varsinainen (30% of users * 90% varsinainen)
-    0.027, // 2024 ulkojäsen (30% of users * 9% ulkojäsen)
-    0.003, // 2024 kannatusjäsen (30% of users * 1% kannatusjäsen)
-    0.45, // 2025 varsinainen (50% of users * 90% varsinainen)
-    0.045, // 2025 ulkojäsen (50% of users * 9% ulkojäsen)
-    0.005, // 2025 kannatusjäsen (50% of users * 1% kannatusjäsen)
-    // 2026-2027 memberships - no members seeded (upcoming period)
-    0, // 2026 varsinainen
-    0, // 2026 ulkojäsen
-    0, // 2026 alumnijäsen
+    0.045, // 3rd prev varsinainen (5% of users * 90% varsinainen)
+    0.005, // 3rd prev ulkojäsen (5% of users * 10% ulkojäsen)
+    0.135, // 2nd prev varsinainen (15% of users * 90% varsinainen)
+    0.015, // 2nd prev ulkojäsen (15% of users * 10% ulkojäsen)
+    0.27, // Previous varsinainen (30% of users * 90% varsinainen)
+    0.027, // Previous ulkojäsen (30% of users * 9% ulkojäsen)
+    0.003, // Previous kannatusjäsen (30% of users * 1% kannatusjäsen)
+    0.45, // Current varsinainen (50% of users * 90% varsinainen)
+    0.045, // Current ulkojäsen (50% of users * 9% ulkojäsen)
+    0.005, // Current kannatusjäsen (50% of users * 1% kannatusjäsen)
+    // Upcoming memberships - no members seeded (upcoming period)
+    0, // Next varsinainen
+    0, // Next ulkojäsen
+    0, // Next alumnijäsen
   ];
 
   // Seed users only first
