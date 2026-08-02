@@ -41,3 +41,6 @@ project.inlang
 src/lib/paraglide
 result
 .fallow/
+
+# Test-generated files
+temp-*.csv
