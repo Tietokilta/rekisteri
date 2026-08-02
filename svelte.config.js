@@ -34,7 +34,7 @@ const config = {
         "worker-src": ["self", "blob:"],
         "object-src": ["none"],
         "base-uri": ["self"],
-        "form-action": ["self"],
+        "form-action": ["self", "https:", "http:"],
         "frame-ancestors": ["none"],
       },
     },

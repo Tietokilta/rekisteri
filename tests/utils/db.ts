@@ -39,7 +39,8 @@ export async function createTestDatabase(): Promise<TestDatabase> {
 /**
  * Stops the test database container and closes connections.
  */
-export async function stopTestDatabase(testDb: TestDatabase): Promise<void> {
-  await testDb.client.end();
-  await testDb.container.stop();
+export async function stopTestDatabase(testDb?: TestDatabase): Promise<void> {
+  if (!testDb) return;
+  await testDb.client?.end();
+  await testDb.container?.stop();
 }

@@ -15,7 +15,12 @@ import {
 } from "drizzle-orm/pg-core";
 import * as v from "valibot";
 
-import { ADMIN_ROLE_VALUES, MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
+import {
+  ADMIN_ROLE_VALUES,
+  MEMBER_STATUS_VALUES,
+  OIDC_GRANT_TYPE_VALUES,
+  PREFERRED_LANGUAGE_VALUES,
+} from "../../shared/enums";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 
 export type LocalizedString = { fi: string; en: string };
@@ -39,6 +44,10 @@ export const preferredLanguageEnumSchema = v.picklist(PREFERRED_LANGUAGE_VALUES)
 export const memberStatusEnum = pgEnum("member_status", MEMBER_STATUS_VALUES);
 
 export const memberStatusEnumSchema = v.picklist(MEMBER_STATUS_VALUES);
+
+export const oidcGrantTypeEnum = pgEnum("oidc_grant_type", OIDC_GRANT_TYPE_VALUES);
+
+export const oidcGrantTypeEnumSchema = v.picklist(OIDC_GRANT_TYPE_VALUES);
 
 export const user = snakeCase.table("user", {
   id: text().primaryKey(),
@@ -205,6 +214,53 @@ export const appCustomization = snakeCase.table(
   ],
 );
 
+export const oidcClient = snakeCase.table("oidc_client", {
+  clientId: text().primaryKey(),
+  clientSecret: text().notNull(),
+  type: oidcGrantTypeEnum().notNull().default("authorization_code"),
+  name: text().notNull(),
+  allowedOrigins: jsonb().$type<string[]>().notNull().default([]),
+  redirectUris: jsonb().$type<string[]>().notNull().default([]),
+  scopes: jsonb().$type<string[]>().notNull().default([]),
+  ...timestamps,
+});
+
+export const oidcConsent = snakeCase.table(
+  "oidc_consent",
+  {
+    id: text().primaryKey(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    clientId: text()
+      .notNull()
+      .references(() => oidcClient.clientId, { onDelete: "cascade" }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("unique_user_client_consent").on(table.userId, table.clientId),
+    index("idx_oidc_consent_user_id").on(table.userId),
+    index("idx_oidc_consent_client_id").on(table.clientId),
+  ],
+);
+
+export const oidcEntity = snakeCase.table(
+  "oidc_entity",
+  {
+    jti: text().primaryKey(), // Interaction, refresh_token, authorization_code, Session, or Grant JTI
+    payload: jsonb().$type<Record<string, unknown>>().notNull(),
+    consentId: text().references(() => oidcConsent.id, { onDelete: "cascade" }),
+    clientId: text().references(() => oidcClient.clientId, { onDelete: "cascade" }),
+    expiresAt: timestamp({ withTimezone: true, mode: "date" }),
+    ...timestamps,
+  },
+  (table) => [
+    index("idx_oidc_entity_consent_id").on(table.consentId),
+    index("idx_oidc_entity_client_id").on(table.clientId),
+    index("idx_oidc_entity_expires_at").on(table.expiresAt),
+  ],
+);
+
 export type Member = typeof member.$inferSelect;
 
 export type MemberStatus = v.InferOutput<typeof memberStatusEnumSchema>;
@@ -230,3 +286,11 @@ export type Passkey = typeof passkey.$inferSelect;
 export type SecondaryEmail = typeof secondaryEmail.$inferSelect;
 
 export type AppCustomization = typeof appCustomization.$inferSelect;
+
+export type OidcClient = typeof oidcClient.$inferSelect;
+
+export type OidcConsent = typeof oidcConsent.$inferSelect;
+
+export type OidcEntity = typeof oidcEntity.$inferSelect;
+
+export type OidcGrantType = v.InferOutput<typeof oidcGrantTypeEnumSchema>;

@@ -4,14 +4,26 @@
   import MinusIcon from "@lucide/svelte/icons/minus";
   import { cn, type WithoutChildrenOrChild } from "$lib/utils.js";
 
+  type Props = Omit<WithoutChildrenOrChild<CheckboxPrimitive.RootProps>, "type" | "value"> & {
+    type?: unknown;
+    value?: unknown;
+    set?: unknown;
+    issues?: unknown;
+    as?: unknown;
+  };
+
   let {
     ref = $bindable(null),
     checked = $bindable(false),
     indeterminate = $bindable(false),
     class: className,
     type: _type,
+    value: _value,
+    set: _set,
+    issues: _issues,
+    as: _as,
     ...restProps
-  }: Omit<WithoutChildrenOrChild<CheckboxPrimitive.RootProps>, "type"> & { type?: string } = $props();
+  }: Props = $props();
 </script>
 
 <CheckboxPrimitive.Root

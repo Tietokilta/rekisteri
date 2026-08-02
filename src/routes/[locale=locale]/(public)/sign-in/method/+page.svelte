@@ -34,12 +34,15 @@
       const credential = await startAuthentication({ optionsJSON: options });
 
       // Step 3: Verify authentication with server
-      await verifyAuthentication(credential);
+      const authResult = await verifyAuthentication(credential);
 
       // Save this method as last used
       lastUsedMethod.current = "passkey";
 
-      // Success! Redirect to home page
+      if (authResult.returnTo) {
+        goto(authResult.returnTo);
+        return;
+      }
       goto(route("/[locale=locale]", { locale: data.email.includes("tietokilta") ? "fi" : "en" }));
     } catch (error) {
       console.error("Passkey authentication error:", error);

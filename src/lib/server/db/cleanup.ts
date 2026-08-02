@@ -3,7 +3,7 @@ import * as table from "$lib/server/db/schema";
 import { and, inArray, isNull, like, lt, or } from "drizzle-orm";
 
 /**
- * Clean up expired sessions and OTP codes from the database.
+ * Clean up expired sessions, OTP codes, and OIDC tokens from the database.
  * This prevents database bloat and ensures GDPR compliance by not
  * retaining unnecessary authentication data.
  */
@@ -32,8 +32,14 @@ export async function cleanupExpiredTokens(): Promise<void> {
       .where(and(isNull(table.secondaryEmail.verifiedAt), lt(table.secondaryEmail.updatedAt, oneDayAgo)))
       .returning({ id: table.secondaryEmail.id });
 
+    // Delete expired OIDC entities (tokens, interactions, sessions, codes)
+    const deletedEntities = await db
+      .delete(table.oidcEntity)
+      .where(lt(table.oidcEntity.expiresAt, now))
+      .returning({ jti: table.oidcEntity.jti });
+
     console.log(
-      `[DB Cleanup] Removed ${deletedOTPs.length} expired OTP codes, ${deletedSessions.length} expired sessions, and ${deletedUnverifiedEmails.length} unverified secondary emails`,
+      `[DB Cleanup] Removed ${deletedOTPs.length} expired OTP codes, ${deletedSessions.length} expired sessions, ${deletedUnverifiedEmails.length} unverified secondary emails and ${deletedEntities.length} expired OIDC entities.`,
     );
   } catch (error) {
     console.error("[DB Cleanup] Error during cleanup:", error);
@@ -59,6 +65,11 @@ const RETENTION_POLICIES: RetentionPolicy[] = [
     pattern: "auth.",
     days: 180, // 6 months
     description: "Security and authentication events",
+  },
+  {
+    pattern: "oidc_",
+    days: 180, // 6 months
+    description: "OIDC security and authorization events",
   },
   {
     pattern: "member.",

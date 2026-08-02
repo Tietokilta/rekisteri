@@ -72,3 +72,8 @@ export const BLOCKING_MEMBER_STATUSES: ReadonlySet<MemberStatus> = new Set([
   "awaiting_approval",
   "awaiting_payment",
 ]);
+
+/**
+ * Available OIDC client grant types.
+ */
+export const OIDC_GRANT_TYPE_VALUES = ["authorization_code"] as const;

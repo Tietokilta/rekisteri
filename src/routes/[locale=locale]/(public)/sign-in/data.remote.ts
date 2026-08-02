@@ -44,6 +44,23 @@ export const signIn = form(signInSchema, async ({ email: rawEmail }) => {
 
   setEmailCookie(event, email, new Date(Date.now() + 1000 * 60 * 10));
 
+  const referer = event.request.headers.get("referer");
+  if (referer) {
+    try {
+      const refererUrl = new URL(referer);
+      if (refererUrl.pathname.includes("/oidc/login/")) {
+        event.cookies.set("returnTo", refererUrl.pathname + refererUrl.search, {
+          path: "/",
+          httpOnly: true,
+          sameSite: "lax",
+          maxAge: 60 * 10,
+        });
+      }
+    } catch {
+      // ignore invalid referer
+    }
+  }
+
   // Always redirect to method selection page (prevents user enumeration)
   redirect(303, route("/[locale=locale]/sign-in/method", { locale: event.locals.locale }));
 });

@@ -12,12 +12,14 @@
   import Palette from "@lucide/svelte/icons/palette";
   import Building2 from "@lucide/svelte/icons/building-2";
   import UserX from "@lucide/svelte/icons/user-x";
-  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Shield from "@lucide/svelte/icons/shield";
+  import AppWindow from "@lucide/svelte/icons/app-window";
 
   import BrandingTab from "./tabs/branding-tab.svelte";
   import OrganizationTab from "./tabs/organization-tab.svelte";
   import ResignationTab from "./tabs/resignation-tab.svelte";
   import PrivacyTab from "./tabs/privacy-tab.svelte";
+  import OidcClientsTab from "./tabs/oidc-tab.svelte";
 
   type CustomizationValueKey = keyof PageData["values"];
 
@@ -47,6 +49,21 @@
   let { data }: { data: PageData } = $props();
 
   let activeTab = $state("branding");
+  const oidcAdmin = $derived($LL.admin.settings.oidc);
+
+  // OIDC modal / form state
+  let showCreateOidcModal = $state(false);
+  let editingOidcClient = $state<{
+    id: string;
+    name: string;
+    allowedOrigins?: string;
+    redirectUris: string;
+    scopes: string[];
+    grantTypes: string[];
+    clientSecret?: string | null;
+  } | null>(null);
+
+  let newCreatedSecret = $state<string | null>(null);
 
   function firstIssue(issues: { message: string }[] | undefined) {
     return issues?.[0]?.message;
@@ -68,8 +85,8 @@
 
   // Local values bound to controls
   let values = $state(getCurrentValues());
-  let useCustomAccentColor = $state(Boolean(values.accentColor));
-  let accentColorInputValue = $state(values.accentColor || DEFAULT_ACCENT_COLOR);
+  let useCustomAccentColor = $derived(Boolean(values.accentColor));
+  let accentColorInputValue = $derived(values.accentColor || DEFAULT_ACCENT_COLOR);
 
   $effect(() => {
     const currentValues = { ...data.values };
@@ -163,24 +180,41 @@
     removeImages.favicon = false;
     removeImages.faviconDark = false;
   }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text);
+    toast.success(oidcAdmin.toast.copiedToClipboard());
+  }
+
+  function getGrantTypeBadgeClass(id: string) {
+    if (id === "authorization_code") {
+      return "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300 dark:border-blue-500/40";
+    }
+    if (id === "id_token") {
+      return "gap-1 border-emerald-500/30 bg-emerald-500/10 font-mono text-[10px] text-emerald-600 dark:text-emerald-400";
+    }
+    return "border-border bg-muted/40 text-muted-foreground";
+  }
 </script>
 
 <main class="container mx-auto max-w-[1400px] px-4 py-6">
   <AdminPageHeader title={$LL.admin.settings.title()} description={$LL.admin.settings.description()}>
     {#snippet actions()}
-      <div class="flex items-center gap-3">
-        {#each rootErrors as issue, i (i)}
-          <p class="text-sm text-red-600">{issue.message}</p>
-        {/each}
-        <Button
-          type="submit"
-          form="customization-form"
-          data-testid="save-customizations"
-          disabled={!data.canWrite || !!updateCustomization.pending}
-        >
-          {$LL.admin.settings.save()}
-        </Button>
-      </div>
+      {#if activeTab !== "oidcClients"}
+        <div class="flex items-center gap-3">
+          {#each rootErrors as issue, i (i)}
+            <p class="text-sm text-red-600">{issue.message}</p>
+          {/each}
+          <Button
+            type="submit"
+            form="customization-form"
+            data-testid="save-customizations"
+            disabled={!data.canWrite || !!updateCustomization.pending}
+          >
+            {$LL.common.save()}
+          </Button>
+        </div>
+      {/if}
     {/snippet}
   </AdminPageHeader>
 
@@ -211,11 +245,16 @@
       </Tabs.Trigger>
 
       <Tabs.Trigger value="privacyPolicy" data-testid="tab-privacy-policy" class="relative">
-        <ShieldCheck class="size-4" />
+        <Shield class="size-4" />
         <span>{$LL.admin.settings.tabs.privacyPolicy()}</span>
         {#if hasPrivacyErrors}
           <span class="absolute top-1.5 right-1.5 size-2 rounded-full bg-red-500"></span>
         {/if}
+      </Tabs.Trigger>
+
+      <Tabs.Trigger value="oidcClients" data-testid="tab-oidc-clients" class="relative">
+        <AppWindow class="size-4" />
+        <span>{$LL.admin.settings.tabs.oidcClients()}</span>
       </Tabs.Trigger>
     </Tabs.List>
 
@@ -274,5 +313,15 @@
       <!-- TAB 4: Privacy Policy -->
       <PrivacyTab bind:values {errors} />
     </form>
+
+    <!-- TAB 5: OIDC Applications -->
+    <OidcClientsTab
+      {data}
+      bind:newCreatedSecret
+      bind:showCreateOidcModal
+      bind:editingOidcClient
+      {copyToClipboard}
+      {getGrantTypeBadgeClass}
+    />
   </Tabs.Root>
 </main>

@@ -75,3 +75,58 @@ export const updateCustomizationSchema = v.object({
   removeFavicon: v.optional(v.literal("true")),
   removeFaviconDark: v.optional(v.literal("true")),
 });
+
+const idTokenClaimsSchema = v.optional(
+  v.pipe(
+    v.union([v.string(), v.array(v.string())]),
+    v.transform((val) => (Array.isArray(val) ? val : [val])),
+  ),
+  [],
+);
+
+const grantTypesSchema = v.optional(
+  v.pipe(
+    v.union([v.string(), v.array(v.string())]),
+    v.transform((val) => (Array.isArray(val) ? val : [val])),
+  ),
+  ["authorization_code"],
+);
+
+const generateSecretSchema = v.optional(
+  v.pipe(
+    v.union([v.boolean(), v.string()]),
+    v.transform((val) => val === true || val === "true" || val === "on"),
+  ),
+  false,
+);
+
+export const createOidcClientSchema = v.object({
+  name: v.pipe(v.string(), v.minLength(1, "Name is required")),
+  allowedOrigins: v.optional(v.string(), ""),
+  redirectUris: v.optional(v.string(), ""),
+  idTokenClaims: idTokenClaimsSchema,
+  "idTokenClaims[]": idTokenClaimsSchema,
+  grantTypes: grantTypesSchema,
+  "grantTypes[]": grantTypesSchema,
+  generateSecret: generateSecretSchema,
+});
+
+export const updateOidcClientSchema = v.object({
+  id: v.pipe(v.string(), v.minLength(1)),
+  name: v.pipe(v.string(), v.minLength(1, "Name is required")),
+  allowedOrigins: v.optional(v.string(), ""),
+  redirectUris: v.optional(v.string(), ""),
+  idTokenClaims: idTokenClaimsSchema,
+  "idTokenClaims[]": idTokenClaimsSchema,
+  grantTypes: grantTypesSchema,
+  "grantTypes[]": grantTypesSchema,
+  clientSecret: v.optional(v.string()),
+});
+
+export const deleteOidcClientSchema = v.object({
+  id: v.pipe(v.string(), v.minLength(1)),
+});
+
+export const regenerateOidcClientSecretSchema = v.object({
+  id: v.pipe(v.string(), v.minLength(1)),
+});
