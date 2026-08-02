@@ -35,7 +35,15 @@ export type AuditAction =
   | "user.role_change"
   | "user.merge"
   | "user.change_primary_email"
-  | "user.update_profile";
+  | "user.update_profile"
+  | "oidc_client.create"
+  | "oidc_client.update"
+  | "oidc_client.delete"
+  | "oidc_client.regenerate_secret"
+  | "oidc_consent.create"
+  | "oidc_consent.revoke"
+  | "oidc_entity.create"
+  | "oidc_entity.error";
 
 export interface AuditLogParams {
   userId?: string;
@@ -50,10 +58,10 @@ export interface AuditLogParams {
 /**
  * Create an audit log entry
  */
-export async function createAuditLog(params: AuditLogParams): Promise<void> {
-  try {
-    const id = encodeBase32LowerCase(crypto.getRandomValues(new Uint8Array(16)));
+export async function createAuditLog(params: AuditLogParams): Promise<string> {
+  const id = encodeBase32LowerCase(crypto.getRandomValues(new Uint8Array(16)));
 
+  try {
     await db.insert(table.auditLog).values({
       id,
       userId: params.userId || null,
@@ -64,9 +72,11 @@ export async function createAuditLog(params: AuditLogParams): Promise<void> {
       ipAddress: params.ipAddress || null,
       userAgent: params.userAgent || null,
     });
+    return id;
   } catch (error) {
     // Don't fail the operation if audit logging fails, but log the error
     console.error("[Audit] Failed to create audit log:", error);
+    return id;
   }
 }
 
@@ -84,8 +94,8 @@ export async function auditFromEvent(
     targetId?: string;
     metadata?: Record<string, unknown>;
   },
-): Promise<void> {
-  await createAuditLog({
+): Promise<string> {
+  return await createAuditLog({
     userId: event.locals.user?.id,
     action,
     targetType: options?.targetType,
