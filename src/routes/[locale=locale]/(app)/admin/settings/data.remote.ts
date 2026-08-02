@@ -202,13 +202,13 @@ export const updateCustomization = form(updateCustomizationSchema, async (values
     await updateCustomizationCache();
     event.locals.customizations = await getCustomizations();
 
-    return { success: true, message: LL.admin.customize.success() };
+    return { success: true, message: LL.admin.settings.success() };
   } catch (e) {
     if (e instanceof CustomizationUploadError) {
       return invalidUpload(issue, e);
     }
 
-    console.error("Failed to update customizations", e);
-    return invalid(LL.admin.customize.error());
+    console.error("Failed to update app customization", e);
+    return invalid(LL.admin.settings.error());
   }
 });

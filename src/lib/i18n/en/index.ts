@@ -22,7 +22,7 @@ const en = {
       membershipTypes: "Membership types",
       users: "Users",
       verifyQr: "Verify QR",
-      customize: "Customize",
+      settings: "Settings",
     },
     signOut: "Sign out",
   },
@@ -402,11 +402,17 @@ Best regards,
       membershipTypeNotFound: "Membership type not found",
     },
 
-    customize: {
-      title: "App Customizations",
-      description: "Manage the high-level application settings, colors, and branding details.",
+    settings: {
+      title: "Settings",
+      description: "Manage application settings, branding, organization details, and policies.",
       success: "Settings updated successfully",
       error: "Failed to update settings",
+      tabs: {
+        branding: "Branding & Appearance",
+        organization: "Organization",
+        resignation: "Resignation & Rules",
+        privacyPolicy: "Privacy Policy",
+      },
       brandingDefaults: {
         title: "General Branding",
         accentColor: "Accent Color",
