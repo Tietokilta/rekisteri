@@ -39,13 +39,11 @@ const globalForOidc = globalThis as unknown as {
   __oidcProvider?: Provider;
 };
 
-// fallow-ignore-next-line unused-export
 export function calculateRfc7638Thumbprint(jwk: Record<string, unknown>): string {
   const canonicalJson = JSON.stringify({ e: jwk.e, kty: jwk.kty, n: jwk.n });
   return createHash("sha256").update(canonicalJson).digest("base64url");
 }
 
-// fallow-ignore-next-line unused-export
 export function parseBase64Jwk(input: string): Record<string, unknown> | null {
   if (!input || typeof input !== "string") return null;
   const trimmed = input.trim();
@@ -68,7 +66,6 @@ export function parseBase64Jwk(input: string): Record<string, unknown> | null {
   return null;
 }
 
-// fallow-ignore-next-line unused-export
 export function getOrCreateJwk(): Record<string, unknown> {
   if (globalForOidc.__oidcJwk) {
     return globalForOidc.__oidcJwk;

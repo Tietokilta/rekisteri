@@ -8,7 +8,6 @@ loadEnvFile();
 process.env.E2E_PORT ??= String(await getFreePort());
 
 export default defineConfig({
-  // The app server and its database container are started in global setup
   testDir: "e2e",
 
   globalSetup: "./e2e/global-setup.ts",
