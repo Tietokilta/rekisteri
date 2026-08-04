@@ -44,6 +44,7 @@ test.describe("CSV Import", () => {
     testUserIds = []; // Reset for next test
 
     for (const membershipId of boundaryMembershipIds) {
+      await db.delete(table.member).where(eq(table.member.membershipId, membershipId));
       await db.delete(table.membership).where(eq(table.membership.id, membershipId));
     }
     boundaryMembershipIds = [];

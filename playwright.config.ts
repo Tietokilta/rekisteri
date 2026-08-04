@@ -17,6 +17,7 @@ export default defineConfig({
       DATABASE_URL: testDbUrl,
       UNSAFE_DISABLE_RATE_LIMITS: "true",
       TEST: "true",
+      PUBLIC_URL: "http://localhost:4173",
       // WebAuthn/Passkey configuration for test environment
       RP_ORIGIN: "http://localhost:4173",
       RP_ID: "localhost",
