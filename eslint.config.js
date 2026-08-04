@@ -132,6 +132,7 @@ export default ts.config(
       "src/lib/server/db/seed.ts",
       "*.config.{js,ts}",
       "e2e/**/*.ts",
+      "tests/**/*.ts",
       "src/start-with-migrations.ts",
     ],
     rules: {
