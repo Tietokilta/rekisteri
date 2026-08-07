@@ -59,10 +59,27 @@
 
   const hasActiveMembership = $derived(memberships.some((m) => m.status === "active"));
   const isAwaitingPayment = $derived(currentMembership?.status === "awaiting_payment");
+  let currentTime = $state(new Date());
   const isRenewalDue = $derived(
-    currentMembership?.status === "active" && currentMembership.endTime < new Date() && hasAvailableMemberships,
+    currentMembership?.status === "active" && currentMembership.endTime <= currentTime && hasAvailableMemberships,
   );
   const showQrButton = $derived(!!qrToken && !isAwaitingPayment && (hasActiveMembership || !!currentMembership));
+
+  $effect(() => {
+    const endTime = currentMembership?.endTime;
+    if (!endTime || endTime <= currentTime) return;
+
+    const remaining = endTime.getTime() - currentTime.getTime();
+    const timeout = setTimeout(
+      () => {
+        currentTime = new Date();
+      },
+      Math.min(remaining, 2 ** 31 - 1),
+    );
+    return () => {
+      clearTimeout(timeout);
+    };
+  });
 
   // Compute purchase/renew button config
   const purchaseAction = $derived.by(() => {
