@@ -18,6 +18,9 @@
   import Banknote from "@lucide/svelte/icons/banknote";
   import CreditCard from "@lucide/svelte/icons/credit-card";
 
+  // Browsers limit setTimeout delays to a signed 32-bit integer.
+  const MAX_TIMEOUT_DELAY_MS = 2_147_483_647;
+
   interface MembershipType {
     id: string;
     name: LocalizedString;
@@ -74,7 +77,7 @@
       () => {
         currentTime = new Date();
       },
-      Math.min(remaining, 2 ** 31 - 1),
+      Math.min(remaining, MAX_TIMEOUT_DELAY_MS),
     );
     return () => {
       clearTimeout(timeout);
