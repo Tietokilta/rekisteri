@@ -460,7 +460,13 @@ export const changeMemberType = command(changeMemberTypeSchema, async ({ memberI
   const updatedMembers = await db
     .update(table.member)
     .set({ membershipId: targetMembershipId })
-    .where(and(eq(table.member.id, memberId), eq(table.member.membershipId, currentMembership.id)))
+    .where(
+      and(
+        eq(table.member.id, memberId),
+        eq(table.member.membershipId, currentMembership.id),
+        eq(table.member.status, member.status),
+      ),
+    )
     .returning({ id: table.member.id });
 
   if (updatedMembers.length === 0) {
