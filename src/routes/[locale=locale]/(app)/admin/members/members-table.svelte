@@ -6,6 +6,8 @@
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { Checkbox } from "$lib/components/ui/checkbox";
+  import * as NativeSelect from "$lib/components/ui/native-select";
+  import { toast } from "svelte-sonner";
   import {
     getCoreRowModel,
     getFilteredRowModel,
@@ -36,6 +38,7 @@
     reactivateMember,
     bulkApproveMembers,
     bulkMarkMembersResigned,
+    changeMemberType,
   } from "./data.remote";
 
   import type { LocalizedString, MembershipType } from "$lib/server/db/schema";
@@ -117,11 +120,21 @@
   type Props = {
     data: RawMemberRow[];
     membershipTypes: MembershipType[];
+    availableMemberships: Array<{
+      id: string;
+      membershipTypeId: string;
+      membershipTypeName: LocalizedString;
+      stripePriceId: string | null;
+      stripePriceAmount: number | null;
+      stripePriceCurrency: string | null;
+      startTime: Date;
+      endTime: Date;
+    }>;
     years: number[];
     canWrite: boolean;
   };
 
-  let { data: rawData, membershipTypes, years, canWrite }: Props = $props();
+  let { data: rawData, membershipTypes, availableMemberships, years, canWrite }: Props = $props();
 
   const data = $derived(rawData.map(narrowMemberRow));
 
@@ -165,6 +178,68 @@
   let individualAction = $state<{ type: IndividualAction; memberId: string; memberName: string } | null>(null);
   let individualReason = $state("");
   let individualActionLoading = $state(false);
+
+  // Membership type correction state
+  let typeChangeAction = $state<{
+    memberId: string;
+    memberName: string;
+    membership: MembershipData;
+  } | null>(null);
+  let targetMembershipId = $state("");
+  let typeChangeLoading = $state(false);
+
+  function getTypeChangeTargets(membership: MembershipData) {
+    if (!membership.membershipStartTime || !membership.membershipEndTime) return [];
+
+    const currentMembership = availableMemberships.find((candidate) => candidate.id === membership.membershipId);
+    if (!currentMembership?.stripePriceId) return [];
+
+    return availableMemberships.filter((candidate) => {
+      const hasEqualPrice =
+        candidate.stripePriceId !== null &&
+        (candidate.stripePriceId === currentMembership.stripePriceId ||
+          (candidate.stripePriceAmount !== null &&
+            candidate.stripePriceAmount === currentMembership.stripePriceAmount &&
+            candidate.stripePriceCurrency === currentMembership.stripePriceCurrency));
+
+      return (
+        candidate.id !== membership.membershipId &&
+        candidate.membershipTypeId !== membership.membershipTypeId &&
+        candidate.startTime.getTime() === membership.membershipStartTime?.getTime() &&
+        candidate.endTime.getTime() === membership.membershipEndTime?.getTime() &&
+        hasEqualPrice
+      );
+    });
+  }
+
+  function openTypeChange(memberId: string, memberName: string, membership: MembershipData) {
+    const targets = getTypeChangeTargets(membership);
+    typeChangeAction = { memberId, memberName, membership };
+    targetMembershipId = targets[0]?.id ?? "";
+  }
+
+  async function confirmTypeChange() {
+    if (!typeChangeAction || !targetMembershipId) return;
+
+    typeChangeLoading = true;
+    try {
+      await changeMemberType({ memberId: typeChangeAction.memberId, targetMembershipId });
+      typeChangeAction = null;
+      targetMembershipId = "";
+      toast.success($LL.admin.members.table.membershipTypeChanged());
+      await invalidateAll();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : error && typeof error === "object" && "message" in error
+            ? String(error.message)
+            : $LL.error.updateFailed();
+      toast.error(message);
+    } finally {
+      typeChangeLoading = false;
+    }
+  }
 
   // Filter state - synced with URL
   let selectedYear = $state<string>(urlParams.get("year") ?? "all");
@@ -1102,6 +1177,16 @@
                           {#if canWrite}
                             {#if membership.status === "awaiting_approval"}
                               <div class="flex gap-2 border-t pt-3">
+                                {#if getTypeChangeTargets(membership).length > 0}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    data-testid={`change-membership-type-${membership.id}`}
+                                    onclick={() => openTypeChange(membership.id, memberName, membership)}
+                                  >
+                                    {$LL.admin.members.table.changeMembershipType()}
+                                  </Button>
+                                {/if}
                                 <Button
                                   size="sm"
                                   variant="default"
@@ -1146,6 +1231,16 @@
                               </div>
                             {:else if membership.status === "active"}
                               <div class="flex gap-2 border-t pt-3">
+                                {#if getTypeChangeTargets(membership).length > 0}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    data-testid={`change-membership-type-${membership.id}`}
+                                    onclick={() => openTypeChange(membership.id, memberName, membership)}
+                                  >
+                                    {$LL.admin.members.table.changeMembershipType()}
+                                  </Button>
+                                {/if}
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -1228,6 +1323,58 @@
         {$LL.admin.members.table.confirm()}
       </AlertDialog.Action>
     </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
+
+<!-- Membership Type Correction Dialog -->
+<AlertDialog.Root
+  open={typeChangeAction !== null}
+  onOpenChange={(open) => {
+    if (open) return;
+    typeChangeAction = null;
+    targetMembershipId = "";
+  }}
+>
+  <AlertDialog.Content>
+    {#if typeChangeAction}
+      {@const targets = getTypeChangeTargets(typeChangeAction.membership)}
+      <AlertDialog.Header>
+        <AlertDialog.Title>{$LL.admin.members.table.changeMembershipTypeTitle()}</AlertDialog.Title>
+        <AlertDialog.Description>
+          {$LL.admin.members.table.changeMembershipTypeDescription({ name: typeChangeAction.memberName })}
+        </AlertDialog.Description>
+      </AlertDialog.Header>
+
+      <div class="space-y-2">
+        <label for="target-membership-type" class="text-sm font-medium">
+          {$LL.admin.members.table.newMembershipType()}
+        </label>
+        <NativeSelect.Root id="target-membership-type" bind:value={targetMembershipId}>
+          {#each targets as target (target.id)}
+            <NativeSelect.Option value={target.id}>
+              {getLocalizedTypeName(target.membershipTypeName)}
+            </NativeSelect.Option>
+          {/each}
+        </NativeSelect.Root>
+      </div>
+
+      <p class="text-sm text-muted-foreground">
+        {$LL.admin.members.table.changeMembershipTypeNote()}
+      </p>
+
+      <AlertDialog.Footer>
+        <AlertDialog.Cancel disabled={typeChangeLoading}>
+          {$LL.admin.members.table.cancel()}
+        </AlertDialog.Cancel>
+        <AlertDialog.Action
+          data-testid="confirm-membership-type-change"
+          onclick={confirmTypeChange}
+          disabled={typeChangeLoading || !targetMembershipId}
+        >
+          {$LL.admin.members.table.confirm()}
+        </AlertDialog.Action>
+      </AlertDialog.Footer>
+    {/if}
   </AlertDialog.Content>
 </AlertDialog.Root>
 

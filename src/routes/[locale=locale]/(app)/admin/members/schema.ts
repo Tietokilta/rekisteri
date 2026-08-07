@@ -9,6 +9,11 @@ export const memberIdWithReasonSchema = v.object({
   reason: v.optional(v.pipe(v.string(), v.maxLength(500))),
 });
 
+export const changeMemberTypeSchema = v.object({
+  memberId: v.pipe(v.string(), v.minLength(1)),
+  targetMembershipId: v.pipe(v.string(), v.minLength(1)),
+});
+
 export const bulkMemberIdsSchema = v.object({
   memberIds: v.pipe(v.array(v.string()), v.minLength(1)),
 });
