@@ -18,6 +18,9 @@
   import Banknote from "@lucide/svelte/icons/banknote";
   import CreditCard from "@lucide/svelte/icons/credit-card";
 
+  // Browsers limit setTimeout delays to a signed 32-bit integer.
+  const MAX_TIMEOUT_DELAY_MS = 2_147_483_647;
+
   interface MembershipType {
     id: string;
     name: LocalizedString;
@@ -59,12 +62,33 @@
 
   const hasActiveMembership = $derived(memberships.some((m) => m.status === "active"));
   const isAwaitingPayment = $derived(currentMembership?.status === "awaiting_payment");
+  let currentTime = $state(new Date());
+  const isRenewalDue = $derived(
+    currentMembership?.status === "active" && currentMembership.endTime <= currentTime && hasAvailableMemberships,
+  );
   const showQrButton = $derived(!!qrToken && !isAwaitingPayment && (hasActiveMembership || !!currentMembership));
+
+  $effect(() => {
+    const endTime = currentMembership?.endTime;
+    if (!endTime || endTime <= currentTime) return;
+
+    const remaining = endTime.getTime() - currentTime.getTime();
+    const timeout = setTimeout(
+      () => {
+        currentTime = new Date();
+      },
+      Math.min(remaining, MAX_TIMEOUT_DELAY_MS),
+    );
+    return () => {
+      clearTimeout(timeout);
+    };
+  });
 
   // Compute purchase/renew button config
   const purchaseAction = $derived.by(() => {
     if (isAwaitingPayment || !hasAvailableMemberships) return null;
     if (!currentMembership) return { label: $LL.dashboard.getFirstMembership(), variant: "default" as const };
+    if (isRenewalDue) return { label: $LL.dashboard.renewMembership(), variant: "default" as const };
     if (hasActiveMembership)
       return {
         label: $LL.dashboard.purchaseNew(),
@@ -84,6 +108,15 @@
         icon: CircleAlert,
         label: $LL.dashboard.noMembership(),
         cardClass: "border-muted",
+      };
+    }
+
+    if (isRenewalDue) {
+      return {
+        variant: "secondary" as const,
+        icon: Banknote,
+        label: $LL.membership.status.activePaymentDue(),
+        cardClass: "border-yellow-500/50 bg-yellow-500/5",
       };
     }
 

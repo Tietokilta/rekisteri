@@ -338,7 +338,7 @@ Terveisin,
     moreInfoInBylaws: "Lisätietoja jäsenyyksistä killan säännöissä",
     alreadyHaveMembershipForPeriod: "Sinulla on jo jäsenyys tälle ajanjaksolle",
     noAvailableMemberships:
-      "Ei ostettavia jäsenyyksiä. Sinulla on jo jäsenyys kaikille saatavilla oleville ajanjaksoille.",
+      "Jäsenyyksiä ei ole tällä hetkellä ostettavissa. Sinulla voi jo olla jäsenyys kaikille saatavilla oleville kausille, tai seuraavan kauden jäsenyyksiä ei ole vielä avattu.",
     willAutoApprove: "Hyväksytään automaattisesti maksun jälkeen",
     willRequireApproval: "Vaatii hallituksen hyväksynnän maksun jälkeen",
     autoApprovalAdminNote:
@@ -350,6 +350,7 @@ Terveisin,
     // Status (aligned with bylaws / säännöt)
     status: {
       active: "Voimassa oleva jäsenyys",
+      activePaymentDue: "Voimassa — uusi jäsenmaksu maksamatta",
       resigned: "Eronnut",
       renewed: "Uusittu",
       rejected: "Hylätty",

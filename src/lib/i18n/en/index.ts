@@ -337,7 +337,7 @@ Best regards,
     moreInfoInBylaws: "More information about memberships in the guild bylaws",
     alreadyHaveMembershipForPeriod: "You already have a membership for this period",
     noAvailableMemberships:
-      "No memberships available for purchase. You already have a membership for all available periods.",
+      "No memberships are currently available for purchase. You may already have a membership for every available period, or the next period may not be open yet.",
     willAutoApprove: "Will be automatically approved after payment",
     willRequireApproval: "Will require board approval after payment",
     autoApprovalAdminNote:
@@ -348,6 +348,7 @@ Best regards,
     // Status (aligned with bylaws / säännöt)
     status: {
       active: "Valid membership",
+      activePaymentDue: "Active — new membership fee unpaid",
       resigned: "Resigned",
       renewed: "Renewed",
       rejected: "Rejected",
