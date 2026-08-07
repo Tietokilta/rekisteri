@@ -45,11 +45,13 @@ export const load: PageServerLoad = async (event) => {
   const [availableCount] = await db
     .select({ value: count() })
     .from(table.membership)
+    .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
     .where(
       and(
         gt(table.membership.endTime, new Date()),
         gte(table.membership.startTime, latestEndTime),
         isNotNull(table.membership.stripePriceId),
+        eq(table.membershipType.purchasable, true),
       ),
     );
 

@@ -59,12 +59,16 @@
 
   const hasActiveMembership = $derived(memberships.some((m) => m.status === "active"));
   const isAwaitingPayment = $derived(currentMembership?.status === "awaiting_payment");
+  const isRenewalDue = $derived(
+    currentMembership?.status === "active" && currentMembership.endTime < new Date() && hasAvailableMemberships,
+  );
   const showQrButton = $derived(!!qrToken && !isAwaitingPayment && (hasActiveMembership || !!currentMembership));
 
   // Compute purchase/renew button config
   const purchaseAction = $derived.by(() => {
     if (isAwaitingPayment || !hasAvailableMemberships) return null;
     if (!currentMembership) return { label: $LL.dashboard.getFirstMembership(), variant: "default" as const };
+    if (isRenewalDue) return { label: $LL.dashboard.renewMembership(), variant: "default" as const };
     if (hasActiveMembership)
       return {
         label: $LL.dashboard.purchaseNew(),
@@ -84,6 +88,15 @@
         icon: CircleAlert,
         label: $LL.dashboard.noMembership(),
         cardClass: "border-muted",
+      };
+    }
+
+    if (isRenewalDue) {
+      return {
+        variant: "secondary" as const,
+        icon: Banknote,
+        label: $LL.membership.status.activePaymentDue(),
+        cardClass: "border-amber-500/50 bg-amber-500/5",
       };
     }
 
