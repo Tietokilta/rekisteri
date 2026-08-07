@@ -5,23 +5,6 @@ import * as table from "$lib/server/db/schema";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import type { NonEmptyArray } from "$lib/utils";
 import { userHasAdminAccess } from "$lib/server/auth/admin";
-import { stripe } from "$lib/server/payment";
-
-type PriceDetails = { amount: number; currency: string };
-
-async function loadPriceDetails(priceIds: string[]): Promise<Map<string, PriceDetails>> {
-  const uniquePriceIds = [...new Set(priceIds)];
-  const results = await Promise.allSettled(uniquePriceIds.map((priceId) => stripe.prices.retrieve(priceId)));
-  const prices = new Map<string, PriceDetails>();
-
-  for (const [index, result] of results.entries()) {
-    const priceId = uniquePriceIds[index];
-    if (!priceId || result.status !== "fulfilled" || result.value.unit_amount === null) continue;
-    prices.set(priceId, { amount: result.value.unit_amount, currency: result.value.currency });
-  }
-
-  return prices;
-}
 
 async function loadMembers() {
   const subQuery = db
@@ -111,7 +94,7 @@ export const load: PageServerLoad = async (event) => {
   }
 
   // Await filter/dropdown data (fast queries, needed for immediate UI)
-  const [membershipTypes, memberships, availableMembershipRows] = await Promise.all([
+  const [membershipTypes, memberships, availableMemberships] = await Promise.all([
     db
       .select()
       .from(table.membershipType)
@@ -137,17 +120,6 @@ export const load: PageServerLoad = async (event) => {
       .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
       .orderBy(desc(table.membership.startTime)),
   ]);
-
-  const priceDetails = await loadPriceDetails(
-    availableMembershipRows.flatMap((membership) => (membership.stripePriceId ? [membership.stripePriceId] : [])),
-  );
-  const availableMemberships = availableMembershipRows.map((membership) => ({
-    ...membership,
-    stripePriceAmount: membership.stripePriceId ? (priceDetails.get(membership.stripePriceId)?.amount ?? null) : null,
-    stripePriceCurrency: membership.stripePriceId
-      ? (priceDetails.get(membership.stripePriceId)?.currency ?? null)
-      : null,
-  }));
 
   const years = Array.from(
     new Set(memberships.flatMap((m) => [m.startTime.getFullYear(), m.endTime.getFullYear()])),
