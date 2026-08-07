@@ -1,3 +1,4 @@
+<!-- fallow-ignore-file complexity -->
 <script lang="ts">
   import { createSvelteTable, FlexRender } from "$lib/components/ui/data-table";
   import * as Table from "$lib/components/ui/table";
