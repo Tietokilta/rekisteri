@@ -1403,7 +1403,7 @@
 
       {#if typeChangeTargetsLoading}
         <p class="text-sm text-muted-foreground">{$LL.common.loading()}</p>
-      {:else}
+      {:else if typeChangeTargets.length > 0}
         <div class="space-y-2">
           <label for="target-membership-type" class="text-sm font-medium">
             {$LL.admin.members.table.newMembershipType()}
@@ -1416,6 +1416,10 @@
             {/each}
           </NativeSelect.Root>
         </div>
+      {:else if !typeChangeTargetsError}
+        <p class="text-sm text-muted-foreground" data-testid="no-compatible-membership-type">
+          {$LL.admin.members.table.noCompatibleMembershipType()}
+        </p>
       {/if}
 
       {#if typeChangeTargetsError}

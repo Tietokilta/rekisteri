@@ -563,6 +563,7 @@ Best regards,
         newMembershipType: "New membership type",
         changeMembershipTypeNote:
           "Only equal-priced types from the same period can be selected. Stripe's original purchase data will not be changed.",
+        noCompatibleMembershipType: "No equal-priced membership type is available for this period.",
         membershipTypeChanged: "Membership type corrected",
         reasonLabel: "Reason (saved to audit log)",
         deemResignedDefaultReason: "Deemed resigned (bylaws §8 p2) — membership fee unpaid",
