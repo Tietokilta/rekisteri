@@ -96,7 +96,7 @@
         variant: "secondary" as const,
         icon: Banknote,
         label: $LL.membership.status.activePaymentDue(),
-        cardClass: "border-amber-500/50 bg-amber-500/5",
+        cardClass: "border-yellow-500/50 bg-yellow-500/5",
       };
     }
 
