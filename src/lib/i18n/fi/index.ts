@@ -565,6 +565,7 @@ Terveisin,
         newMembershipType: "Uusi jäsenyysluokka",
         changeMembershipTypeNote:
           "Voit valita vain saman kauden samanhintaisen jäsenyysluokan. Alkuperäisen ostoksen tietoja ei muuteta Stripessä.",
+        noCompatibleMembershipType: "Tälle kaudelle ei ole saatavilla toista samanhintaista jäsenyysluokkaa.",
         membershipTypeChanged: "Jäsenyysluokka korjattu",
         reasonLabel: "Syy (tallennetaan lokiin)",
         deemResignedDefaultReason: "Eronneeksi katsominen (sääntöjen 8 § 2 mom.) — jäsenmaksu maksamatta",
