@@ -31,6 +31,7 @@
   import { SvelteURLSearchParams } from "svelte/reactivity";
   import { LL, locale } from "$lib/i18n/i18n-svelte";
   import { isNonEmpty, formatDate } from "$lib/utils";
+  import { getStripePriceMetadata } from "$lib/api/stripe.remote";
   import {
     approveMember,
     rejectMember,
@@ -126,8 +127,6 @@
       membershipTypeId: string;
       membershipTypeName: LocalizedString;
       stripePriceId: string | null;
-      stripePriceAmount: number | null;
-      stripePriceCurrency: string | null;
       startTime: Date;
       endTime: Date;
     }>;
@@ -188,35 +187,88 @@
   } | null>(null);
   let targetMembershipId = $state("");
   let typeChangeLoading = $state(false);
+  let typeChangeTargets = $state<typeof availableMemberships>([]);
+  let typeChangeTargetsLoading = $state(false);
+  let typeChangeTargetsError = $state(false);
+  let typeChangeRequestId = 0;
 
-  function getTypeChangeTargets(membership: MembershipData) {
+  function getTypeChangeCandidates(membership: MembershipData) {
     if (!membership.membershipStartTime || !membership.membershipEndTime) return [];
 
-    const currentMembership = availableMemberships.find((candidate) => candidate.id === membership.membershipId);
-    if (!currentMembership?.stripePriceId) return [];
-
     return availableMemberships.filter((candidate) => {
-      const hasEqualPrice =
-        candidate.stripePriceId !== null &&
-        (candidate.stripePriceId === currentMembership.stripePriceId ||
-          (candidate.stripePriceAmount !== null &&
-            candidate.stripePriceAmount === currentMembership.stripePriceAmount &&
-            candidate.stripePriceCurrency === currentMembership.stripePriceCurrency));
-
       return (
         candidate.id !== membership.membershipId &&
         candidate.membershipTypeId !== membership.membershipTypeId &&
         candidate.startTime.getTime() === membership.membershipStartTime?.getTime() &&
         candidate.endTime.getTime() === membership.membershipEndTime?.getTime() &&
-        hasEqualPrice
+        candidate.stripePriceId !== null
       );
     });
   }
 
-  function openTypeChange(memberId: string, memberName: string, membership: MembershipData) {
-    const targets = getTypeChangeTargets(membership);
+  function canChangeMemberType(membership: MembershipData) {
+    const currentMembership = availableMemberships.find((candidate) => candidate.id === membership.membershipId);
+    return Boolean(currentMembership?.stripePriceId && getTypeChangeCandidates(membership).length > 0);
+  }
+
+  async function openTypeChange(memberId: string, memberName: string, membership: MembershipData) {
+    const requestId = ++typeChangeRequestId;
     typeChangeAction = { memberId, memberName, membership };
-    targetMembershipId = targets[0]?.id ?? "";
+    targetMembershipId = "";
+    typeChangeTargets = [];
+    typeChangeTargetsLoading = false;
+    typeChangeTargetsError = false;
+
+    const currentMembership = availableMemberships.find((candidate) => candidate.id === membership.membershipId);
+    if (!currentMembership?.stripePriceId) return;
+
+    const candidates = getTypeChangeCandidates(membership);
+    const exactPriceTargets = candidates.filter(
+      (candidate) => candidate.stripePriceId === currentMembership.stripePriceId,
+    );
+    const differingPriceTargets = candidates.filter(
+      (candidate) => candidate.stripePriceId !== currentMembership.stripePriceId,
+    );
+
+    if (differingPriceTargets.length === 0) {
+      typeChangeTargets = exactPriceTargets;
+      targetMembershipId = exactPriceTargets[0]?.id ?? "";
+      return;
+    }
+
+    typeChangeTargetsLoading = true;
+    const priceIds = [
+      currentMembership.stripePriceId,
+      ...new Set(
+        differingPriceTargets.flatMap((candidate) => (candidate.stripePriceId ? [candidate.stripePriceId] : [])),
+      ),
+    ];
+    const priceResults = await Promise.allSettled(priceIds.map((priceId) => getStripePriceMetadata(priceId)));
+
+    if (requestId !== typeChangeRequestId) return;
+
+    const prices = new Map(
+      priceResults.flatMap((result, index) =>
+        result.status === "fulfilled" ? ([[priceIds[index], result.value]] as const) : [],
+      ),
+    );
+    const currentPrice = prices.get(currentMembership.stripePriceId);
+    const equalPriceTargets = differingPriceTargets.filter((candidate) => {
+      if (!candidate.stripePriceId || currentPrice?.unitAmount === null || currentPrice?.unitAmount === undefined) {
+        return false;
+      }
+      const candidatePrice = prices.get(candidate.stripePriceId);
+      return (
+        candidatePrice?.unitAmount !== null &&
+        candidatePrice?.unitAmount === currentPrice.unitAmount &&
+        candidatePrice.currency === currentPrice.currency
+      );
+    });
+
+    typeChangeTargets = [...exactPriceTargets, ...equalPriceTargets];
+    targetMembershipId = typeChangeTargets[0]?.id ?? "";
+    typeChangeTargetsError = priceResults.some((result) => result.status === "rejected");
+    typeChangeTargetsLoading = false;
   }
 
   async function confirmTypeChange() {
@@ -1178,7 +1230,7 @@
                           {#if canWrite}
                             {#if membership.status === "awaiting_approval"}
                               <div class="flex gap-2 border-t pt-3">
-                                {#if getTypeChangeTargets(membership).length > 0}
+                                {#if canChangeMemberType(membership)}
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -1232,7 +1284,7 @@
                               </div>
                             {:else if membership.status === "active"}
                               <div class="flex gap-2 border-t pt-3">
-                                {#if getTypeChangeTargets(membership).length > 0}
+                                {#if canChangeMemberType(membership)}
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -1332,13 +1384,16 @@
   open={typeChangeAction !== null}
   onOpenChange={(open) => {
     if (open) return;
+    typeChangeRequestId++;
     typeChangeAction = null;
     targetMembershipId = "";
+    typeChangeTargets = [];
+    typeChangeTargetsLoading = false;
+    typeChangeTargetsError = false;
   }}
 >
   <AlertDialog.Content>
     {#if typeChangeAction}
-      {@const targets = getTypeChangeTargets(typeChangeAction.membership)}
       <AlertDialog.Header>
         <AlertDialog.Title>{$LL.admin.members.table.changeMembershipTypeTitle()}</AlertDialog.Title>
         <AlertDialog.Description>
@@ -1346,18 +1401,26 @@
         </AlertDialog.Description>
       </AlertDialog.Header>
 
-      <div class="space-y-2">
-        <label for="target-membership-type" class="text-sm font-medium">
-          {$LL.admin.members.table.newMembershipType()}
-        </label>
-        <NativeSelect.Root id="target-membership-type" bind:value={targetMembershipId}>
-          {#each targets as target (target.id)}
-            <NativeSelect.Option value={target.id}>
-              {getLocalizedTypeName(target.membershipTypeName)}
-            </NativeSelect.Option>
-          {/each}
-        </NativeSelect.Root>
-      </div>
+      {#if typeChangeTargetsLoading}
+        <p class="text-sm text-muted-foreground">{$LL.common.loading()}</p>
+      {:else}
+        <div class="space-y-2">
+          <label for="target-membership-type" class="text-sm font-medium">
+            {$LL.admin.members.table.newMembershipType()}
+          </label>
+          <NativeSelect.Root id="target-membership-type" bind:value={targetMembershipId}>
+            {#each typeChangeTargets as target (target.id)}
+              <NativeSelect.Option value={target.id}>
+                {getLocalizedTypeName(target.membershipTypeName)}
+              </NativeSelect.Option>
+            {/each}
+          </NativeSelect.Root>
+        </div>
+      {/if}
+
+      {#if typeChangeTargetsError}
+        <p class="text-sm text-destructive">{$LL.admin.memberships.failedToLoadPrice()}</p>
+      {/if}
 
       <p class="text-sm text-muted-foreground">
         {$LL.admin.members.table.changeMembershipTypeNote()}
@@ -1370,7 +1433,7 @@
         <AlertDialog.Action
           data-testid="confirm-membership-type-change"
           onclick={confirmTypeChange}
-          disabled={typeChangeLoading || !targetMembershipId}
+          disabled={typeChangeLoading || typeChangeTargetsLoading || !targetMembershipId}
         >
           {$LL.admin.members.table.confirm()}
         </AlertDialog.Action>

@@ -8,6 +8,7 @@ type StripePrice = Awaited<ReturnType<typeof stripe.prices.retrieve>>;
 type StripePriceMetadata = {
   priceId: string;
   priceCents: number;
+  unitAmount: number | null;
   currency: string;
   nickname: string | null;
   productId: string;
@@ -45,6 +46,7 @@ function toStripePriceMetadata(price: StripePrice): StripePriceMetadata {
   return {
     priceId: price.id,
     priceCents: price.unit_amount ?? 0,
+    unitAmount: price.unit_amount,
     currency: price.currency,
     nickname: price.nickname,
     productId: product.id,
