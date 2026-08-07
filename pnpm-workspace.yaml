@@ -6,7 +6,6 @@ allowBuilds:
   protobufjs: false
   ssh2: false
 overrides:
-  axios: ^1.13.0
   esbuild@<=0.24.2: ">=0.25.0"
   cookie@<0.7.0: ">=0.7.0"
   valibot@>=0.31.0 <1.2.0: ">=1.2.0"
