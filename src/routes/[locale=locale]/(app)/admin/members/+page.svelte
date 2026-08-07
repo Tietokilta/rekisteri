@@ -40,6 +40,7 @@
     <MembersTableAsync
       membersPromise={data.members}
       membershipTypes={data.membershipTypes}
+      availableMemberships={data.availableMemberships}
       years={data.years}
       canWrite={data.canWrite}
     />

@@ -15,6 +15,7 @@ export type AuditAction =
   | "member.deem_resigned"
   | "member.resign"
   | "member.reactivate"
+  | "member.type_change"
   | "member.create"
   | "member.bulk_approve"
   | "member.bulk_reject"
@@ -123,7 +124,12 @@ export async function auditMemberAction(
   event: RequestEvent,
   action: Extract<
     AuditAction,
-    "member.approve" | "member.reject" | "member.deem_resigned" | "member.resign" | "member.reactivate"
+    | "member.approve"
+    | "member.reject"
+    | "member.deem_resigned"
+    | "member.resign"
+    | "member.reactivate"
+    | "member.type_change"
   >,
   memberId: string,
   metadata?: Record<string, unknown>,

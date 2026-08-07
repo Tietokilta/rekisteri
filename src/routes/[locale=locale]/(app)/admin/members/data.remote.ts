@@ -2,13 +2,14 @@ import { error } from "@sveltejs/kit";
 import { getRequestEvent, command } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { auditFromEvent, auditMemberAction, auditBulkMemberAction } from "$lib/server/audit";
 import {
   memberIdSchema,
   memberIdWithReasonSchema,
   bulkMemberIdsSchema,
   bulkMemberIdsWithReasonSchema,
+  changeMemberTypeSchema,
   createMemberSchema,
 } from "./schema";
 import { getLL } from "$lib/server/i18n";
@@ -20,6 +21,7 @@ import { generateUserId } from "$lib/server/auth/utils";
 import { getDisplayFirstName } from "$lib/utils";
 import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
 import type { InferOutput } from "valibot";
+import { stripe } from "$lib/server/payment";
 
 type CreateMemberData = InferOutput<typeof createMemberSchema>;
 type CreateAssociationMemberData = Extract<CreateMemberData, { type: "association" }>;
@@ -357,6 +359,128 @@ export const reactivateMember = command(memberIdWithReasonSchema, async ({ membe
   });
 
   return { success: true, message: "Membership reactivated successfully" };
+});
+
+export const changeMemberType = command(changeMemberTypeSchema, async ({ memberId, targetMembershipId }) => {
+  const event = getRequestEvent();
+  const LL = getLL(event.locals.locale);
+
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
+    error(404, LL.error.resourceNotFound());
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const member = await db._query.member.findFirst({
+    where: eq(table.member.id, memberId),
+    with: {
+      membership: {
+        with: { membershipType: true },
+      },
+    },
+  });
+
+  if (!member) {
+    error(404, LL.admin.members.memberNotFound());
+  }
+
+  if (member.status !== "awaiting_approval" && member.status !== "active") {
+    error(400, LL.admin.members.cannotChangeMembershipTypeFromStatus());
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  const targetMembership = await db._query.membership.findFirst({
+    where: eq(table.membership.id, targetMembershipId),
+    with: { membershipType: true },
+  });
+
+  if (!targetMembership) {
+    error(404, LL.admin.members.membershipNotFound());
+  }
+
+  const currentMembership = member.membership;
+  const isSamePeriod =
+    currentMembership.startTime.getTime() === targetMembership.startTime.getTime() &&
+    currentMembership.endTime.getTime() === targetMembership.endTime.getTime();
+
+  if (!isSamePeriod) {
+    error(400, LL.admin.members.membershipTypeChangePeriodMismatch());
+  }
+
+  if (currentMembership.membershipTypeId === targetMembership.membershipTypeId) {
+    error(400, LL.admin.members.membershipTypeUnchanged());
+  }
+
+  if (!currentMembership.stripePriceId || !targetMembership.stripePriceId) {
+    error(400, LL.admin.members.membershipTypeChangeRequiresStripePrice());
+  }
+
+  if (currentMembership.stripePriceId !== targetMembership.stripePriceId) {
+    try {
+      const [currentPrice, targetPrice] = await Promise.all([
+        stripe.prices.retrieve(currentMembership.stripePriceId),
+        stripe.prices.retrieve(targetMembership.stripePriceId),
+      ]);
+
+      if (
+        currentPrice.unit_amount === null ||
+        targetPrice.unit_amount === null ||
+        currentPrice.unit_amount !== targetPrice.unit_amount ||
+        currentPrice.currency !== targetPrice.currency
+      ) {
+        error(400, LL.admin.members.membershipTypeChangePriceMismatch());
+      }
+    } catch (priceError) {
+      if (priceError && typeof priceError === "object" && "status" in priceError) {
+        throw priceError;
+      }
+      console.error("[changeMemberType] Failed to compare Stripe prices:", priceError);
+      error(502, LL.admin.members.membershipTypeChangePriceCheckFailed());
+    }
+  }
+
+  let ownerCondition;
+  if (member.userId === null) {
+    if (member.organizationName === null) {
+      throw new Error(`Member ${member.id} has neither a user nor an organization`);
+    }
+    ownerCondition = eq(table.member.organizationName, member.organizationName);
+  } else {
+    ownerCondition = eq(table.member.userId, member.userId);
+  }
+  const [duplicateMember] = await db
+    .select({ id: table.member.id })
+    .from(table.member)
+    .where(and(ne(table.member.id, memberId), eq(table.member.membershipId, targetMembershipId), ownerCondition))
+    .limit(1);
+
+  if (duplicateMember) {
+    error(400, LL.admin.members.duplicateMembership());
+  }
+
+  const updatedMembers = await db
+    .update(table.member)
+    .set({ membershipId: targetMembershipId })
+    .where(and(eq(table.member.id, memberId), eq(table.member.membershipId, currentMembership.id)))
+    .returning({ id: table.member.id });
+
+  if (updatedMembers.length === 0) {
+    error(409, LL.admin.members.membershipTypeChangeConflict());
+  }
+
+  await auditMemberAction(event, "member.type_change", memberId, {
+    changeKind: "purchase_correction",
+    previousMembershipId: currentMembership.id,
+    previousMembershipTypeId: currentMembership.membershipTypeId,
+    previousStripePriceId: currentMembership.stripePriceId,
+    targetMembershipId: targetMembership.id,
+    targetMembershipTypeId: targetMembership.membershipTypeId,
+    targetStripePriceId: targetMembership.stripePriceId,
+    periodStart: currentMembership.startTime.toISOString(),
+    periodEnd: currentMembership.endTime.toISOString(),
+    previousStatus: member.status,
+  });
+
+  return { success: true };
 });
 
 export const createMember = command(createMemberSchema, async (data) => {
