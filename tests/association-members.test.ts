@@ -81,9 +81,8 @@ describe("member_user_or_org CHECK constraint", () => {
       status: "active",
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const member = await testDb.db._query.member.findFirst({
-      where: eq(table.member.id, memberId),
+    const member = await testDb.db.query.member.findFirst({
+      where: { id: memberId },
     });
     expect(member).toBeDefined();
     expect(member?.userId).toBe(userId);
@@ -101,9 +100,8 @@ describe("member_user_or_org CHECK constraint", () => {
       status: "active",
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const member = await testDb.db._query.member.findFirst({
-      where: eq(table.member.id, memberId),
+    const member = await testDb.db.query.member.findFirst({
+      where: { id: memberId },
     });
     expect(member).toBeDefined();
     expect(member?.userId).toBeNull();
@@ -148,17 +146,15 @@ describe("member_user_or_org CHECK constraint", () => {
 
 describe("purchasable flag on membership types", () => {
   it("stores purchasable=true for person membership types", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const mt = await testDb.db._query.membershipType.findFirst({
-      where: eq(table.membershipType.id, membershipTypeId),
+    const mt = await testDb.db.query.membershipType.findFirst({
+      where: { id: membershipTypeId },
     });
     expect(mt?.purchasable).toBe(true);
   });
 
   it("stores purchasable=false for association membership types", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const mt = await testDb.db._query.membershipType.findFirst({
-      where: eq(table.membershipType.id, associationMembershipTypeId),
+    const mt = await testDb.db.query.membershipType.findFirst({
+      where: { id: associationMembershipTypeId },
     });
     expect(mt?.purchasable).toBe(false);
   });
@@ -170,9 +166,8 @@ describe("purchasable flag on membership types", () => {
       name: { fi: "Oletus", en: "Default" },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const mt = await testDb.db._query.membershipType.findFirst({
-      where: eq(table.membershipType.id, id),
+    const mt = await testDb.db.query.membershipType.findFirst({
+      where: { id: id },
     });
     expect(mt?.purchasable).toBe(true);
   });
@@ -194,18 +189,16 @@ describe("association member lifecycle", () => {
     // Transition to resigned
     await testDb.db.update(table.member).set({ status: "resigned" }).where(eq(table.member.id, memberId));
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    let member = await testDb.db._query.member.findFirst({
-      where: eq(table.member.id, memberId),
+    let member = await testDb.db.query.member.findFirst({
+      where: { id: memberId },
     });
     expect(member?.status).toBe("resigned");
 
     // Reactivate
     await testDb.db.update(table.member).set({ status: "active" }).where(eq(table.member.id, memberId));
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    member = await testDb.db._query.member.findFirst({
-      where: eq(table.member.id, memberId),
+    member = await testDb.db.query.member.findFirst({
+      where: { id: memberId },
     });
     expect(member?.status).toBe("active");
   });

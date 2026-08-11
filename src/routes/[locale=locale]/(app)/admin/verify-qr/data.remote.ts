@@ -23,9 +23,8 @@ export const verifyQr = command(verifyQrSchema, async ({ token }) => {
     error(422, LL.admin.verifyQr.invalidQr());
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const user = await db._query.user.findFirst({
-    where: eq(table.user.id, userId),
+  const user = await db.query.user.findFirst({
+    where: { id: userId },
     columns: {
       id: true,
       email: true,

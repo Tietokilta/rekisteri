@@ -80,9 +80,8 @@ async function createSecondaryEmail(
 
 // Helper to fetch a membership by ID with assertion
 async function getMembership(db: TestDatabase["db"], id: string) {
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const membership = await db._query.membership.findFirst({
-    where: (m, { eq }) => eq(m.id, id),
+  const membership = await db.query.membership.findFirst({
+    where: { id },
   });
   if (!membership) throw new Error(`Membership ${id} not found`);
   return membership;

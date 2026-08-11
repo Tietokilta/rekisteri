@@ -1,11 +1,10 @@
-import { and, eq, lte, desc } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Schema } from "$lib/server/db";
 import type { Membership, SecondaryEmail } from "$lib/server/db/schema";
-import { membership, member, user, secondaryEmail } from "$lib/server/db/schema";
+import { secondaryEmail } from "$lib/server/db/schema";
 import type { PostgresJsDatabase, PostgresJsTransaction } from "drizzle-orm/postgres-js";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DbHandle = PostgresJsDatabase<Schema> | PostgresJsTransaction<Schema, any, any>;
+type DbHandle = PostgresJsDatabase<Schema> | PostgresJsTransaction<Schema>;
 
 /** Maximum gap (in ms) between preceding period end and new period start for auto-approval. */
 const MAX_PRECEDING_GAP_MS = 6 * 30 * 24 * 60 * 60 * 1000; // ~6 months
@@ -29,14 +28,12 @@ export async function checkAutoApprovalEligibility<T extends DbHandle>(
 ): Promise<boolean> {
   // Find the immediately preceding membership of the same type
   // (same membershipTypeId, endTime <= newMembership.startTime, most recent)
-  // @ts-expect-error - union type callability issue
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const precedingMembership = await db._query.membership.findFirst({
-    where: and(
-      eq(membership.membershipTypeId, newMembership.membershipTypeId),
-      lte(membership.endTime, newMembership.startTime),
-    ),
-    orderBy: desc(membership.endTime),
+  const precedingMembership = await db.query.membership.findFirst({
+    where: {
+      membershipTypeId: newMembership.membershipTypeId,
+      endTime: { lte: newMembership.startTime },
+    },
+    orderBy: { endTime: "desc" },
   });
 
   if (!precedingMembership) {
@@ -52,10 +49,8 @@ export async function checkAutoApprovalEligibility<T extends DbHandle>(
   // Check if user had an active member record for that preceding membership.
   // Only "active" qualifies — resigned members were deliberately removed by the
   // board at year-end (§8 p2) and should go through board review again.
-  // @ts-expect-error - union type callability issue
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const previousMember = await db._query.member.findFirst({
-    where: and(eq(member.userId, userId), eq(member.membershipId, precedingMembership.id), eq(member.status, "active")),
+  const previousMember = await db.query.member.findFirst({
+    where: { userId: userId, membershipId: precedingMembership.id, status: "active" },
   });
 
   if (!previousMember) {
@@ -78,10 +73,8 @@ export async function checkAutoApprovalEligibility<T extends DbHandle>(
  */
 async function checkStudentEmail(db: DbHandle, userId: string): Promise<boolean> {
   // Check primary email
-  // @ts-expect-error - union type callability issue
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const u = await db._query.user.findFirst({
-    where: eq(user.id, userId),
+  const u = await db.query.user.findFirst({
+    where: { id: userId },
     columns: { email: true },
   });
 

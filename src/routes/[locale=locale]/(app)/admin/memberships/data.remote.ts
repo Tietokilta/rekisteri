@@ -15,9 +15,9 @@ export const createMembership = form(createMembershipSchema, async (data) => {
   }
 
   // For non-purchasable types, ignore stripePriceId and requiresStudentVerification
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const membershipType = await db._query.membershipType.findFirst({
-    where: eq(table.membershipType.id, data.membershipTypeId),
+
+  const membershipType = await db.query.membershipType.findFirst({
+    where: { id: data.membershipTypeId },
   });
   if (!membershipType) {
     error(400, "Membership type not found");
@@ -93,9 +93,9 @@ export const updateMembership = form(updateMembershipSchema, async (data) => {
   }
 
   // For non-purchasable types, ignore stripePriceId and requiresStudentVerification
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const membershipType = await db._query.membershipType.findFirst({
-    where: eq(table.membershipType.id, data.membershipTypeId),
+
+  const membershipType = await db.query.membershipType.findFirst({
+    where: { id: data.membershipTypeId },
   });
   if (!membershipType) {
     error(400, "Membership type not found");

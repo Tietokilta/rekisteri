@@ -8,7 +8,7 @@ import {
   json,
   jsonb,
   pgEnum,
-  pgTable,
+  snakeCase,
   text,
   timestamp,
   uniqueIndex,
@@ -40,7 +40,7 @@ export const memberStatusEnum = pgEnum("member_status", MEMBER_STATUS_VALUES);
 
 export const memberStatusEnumSchema = v.picklist(MEMBER_STATUS_VALUES);
 
-export const user = pgTable("user", {
+export const user = snakeCase.table("user", {
   id: text().primaryKey(),
   email: text().notNull().unique(),
   adminRole: adminRoleEnum().notNull().default("none"),
@@ -55,7 +55,7 @@ export const user = pgTable("user", {
   ...timestamps,
 });
 
-export const session = pgTable("session", {
+export const session = snakeCase.table("session", {
   id: text().primaryKey(),
   userId: text()
     .notNull()
@@ -63,14 +63,14 @@ export const session = pgTable("session", {
   expiresAt: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 });
 
-export const emailOTP = pgTable("email_otp", {
+export const emailOTP = snakeCase.table("email_otp", {
   id: text().primaryKey(),
   code: text().notNull(),
   email: text().notNull(),
   expiresAt: timestamp({ withTimezone: true, mode: "date" }).notNull(),
 });
 
-export const passkey = pgTable(
+export const passkey = snakeCase.table(
   "passkey",
   {
     id: text().primaryKey(), // credentialId from WebAuthn (base64url encoded)
@@ -88,7 +88,7 @@ export const passkey = pgTable(
   (table) => [index("idx_passkey_user_id").on(table.userId)],
 );
 
-export const secondaryEmail = pgTable(
+export const secondaryEmail = snakeCase.table(
   "secondary_email",
   {
     id: text().primaryKey(),
@@ -114,7 +114,7 @@ export const secondaryEmail = pgTable(
   ],
 );
 
-export const membershipType = pgTable("membership_type", {
+export const membershipType = snakeCase.table("membership_type", {
   id: text().primaryKey(),
   name: jsonb("name").$type<LocalizedString>().notNull(),
   description: jsonb("description").$type<LocalizedString>(),
@@ -122,7 +122,7 @@ export const membershipType = pgTable("membership_type", {
   ...timestamps,
 });
 
-export const membership = pgTable(
+export const membership = snakeCase.table(
   "membership",
   {
     id: text().primaryKey(),
@@ -137,7 +137,7 @@ export const membership = pgTable(
   (table) => [uniqueIndex("membership_type_start_unique").on(table.membershipTypeId, table.startTime)],
 );
 
-export const member = pgTable(
+export const member = snakeCase.table(
   "member",
   {
     id: text().primaryKey(),
@@ -163,7 +163,7 @@ export const member = pgTable(
   ],
 );
 
-export const auditLog = pgTable("audit_log", {
+export const auditLog = snakeCase.table("audit_log", {
   id: text().primaryKey(),
   userId: text().references(() => user.id),
   action: text().notNull(),
@@ -175,7 +175,7 @@ export const auditLog = pgTable("audit_log", {
   ...timestamps,
 });
 
-export const appCustomization = pgTable(
+export const appCustomization = snakeCase.table(
   "app_customization",
   {
     id: integer().primaryKey(),

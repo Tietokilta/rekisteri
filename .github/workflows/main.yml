@@ -98,6 +98,9 @@ jobs:
       - name: Copy .env example
         run: cp .env.example .env
 
+      - name: Check migration history
+        run: pnpm db:check
+
       - name: Migrate db schema
         run: pnpm db:migrate
 

@@ -11,7 +11,7 @@ try {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set");
 
   const client = postgres(process.env.DATABASE_URL);
-  const db = drizzle({ client, schema: table, casing: "snake_case" });
+  const db = drizzle({ client });
 
   console.log("Resetting database...");
   const { appCustomization: _appCustomization, ...resetSchema } = table;

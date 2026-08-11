@@ -22,9 +22,8 @@ function generateQrToken(): string {
  * @throws Error if user not found
  */
 export async function ensureUserHasQrToken(userId: string): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const user = await db._query.user.findFirst({
-    where: eq(table.user.id, userId),
+  const user = await db.query.user.findFirst({
+    where: { id: userId },
     columns: {
       id: true,
       qrToken: true,
@@ -47,9 +46,9 @@ export async function ensureUserHasQrToken(userId: string): Promise<string> {
     .where(and(eq(table.user.id, userId), isNull(table.user.qrToken)));
 
   // Re-read to get the actual token (ours or the concurrent one)
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const updated = await db._query.user.findFirst({
-    where: eq(table.user.id, userId),
+
+  const updated = await db.query.user.findFirst({
+    where: { id: userId },
     columns: { qrToken: true },
   });
 
@@ -67,9 +66,8 @@ export async function ensureUserHasQrToken(userId: string): Promise<string> {
  * @returns User ID if valid, null otherwise
  */
 export async function verifyQrToken(token: string): Promise<string | null> {
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const user = await db._query.user.findFirst({
-    where: eq(table.user.qrToken, token),
+  const user = await db.query.user.findFirst({
+    where: { qrToken: token },
     columns: {
       id: true,
     },

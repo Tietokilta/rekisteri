@@ -2,6 +2,7 @@ import { chromium, type FullConfig } from "@playwright/test";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as table from "$lib/server/db/schema";
+import { relations } from "$lib/server/db/relations";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { encodeBase64url, encodeHexLowerCase } from "@oslojs/encoding";
 import { eq } from "drizzle-orm";
@@ -55,7 +56,7 @@ async function globalSetup(_config: FullConfig) {
   });
 
   const client = postgres(dbUrl);
-  const db = drizzle({ client, schema: table, casing: "snake_case" });
+  const db = drizzle({ client, relations });
 
   const [adminUser] = await db.select().from(table.user).where(eq(table.user.email, "root@tietokilta.fi")).limit(1);
   const [appCustomization] = await db
@@ -110,9 +111,9 @@ async function globalSetup(_config: FullConfig) {
 
   // Create readonly admin user and session
   const readonlyEmail = "readonly@tietokilta.fi";
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  let readonlyUser = await db._query.user.findFirst({
-    where: eq(table.user.email, readonlyEmail),
+
+  let readonlyUser = await db.query.user.findFirst({
+    where: { email: readonlyEmail },
   });
 
   if (!readonlyUser) {
