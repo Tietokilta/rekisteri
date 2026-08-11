@@ -3,11 +3,9 @@ import postgres from "postgres";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import path from "node:path";
-import * as table from "../../src/lib/server/db/schema";
-import * as relations from "../../src/lib/server/db/relations";
+import { relations } from "../../src/lib/server/db/relations";
 
-const dbSchema = { ...table, ...relations } as const;
-type Schema = typeof dbSchema;
+type Schema = typeof relations;
 
 export type TestDatabase = {
   container: StartedPostgreSqlContainer;
@@ -25,7 +23,7 @@ export async function createTestDatabase(): Promise<TestDatabase> {
 
   // Run migrations programmatically
   const migrationClient = postgres(connectionUri, { max: 1 });
-  const migrationDb = drizzle({ client: migrationClient, casing: "snake_case" });
+  const migrationDb = drizzle({ client: migrationClient });
   const migrationsFolder = path.join(process.cwd(), "drizzle");
 
   await migrate(migrationDb, { migrationsFolder });
@@ -33,7 +31,7 @@ export async function createTestDatabase(): Promise<TestDatabase> {
 
   // Create the main connection
   const client = postgres(connectionUri);
-  const db = drizzle({ client, schema: dbSchema, casing: "snake_case" });
+  const db = drizzle({ client, relations });
 
   return { container, client, db };
 }

@@ -4,14 +4,12 @@ import fs from "node:fs";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as table from "$lib/server/db/schema";
-import * as relations from "$lib/server/db/schema";
+import { relations } from "$lib/server/db/relations";
 import { eq, inArray } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { createVerifiedSecondaryEmail, createUnverifiedSecondaryEmail } from "./helpers/secondary-email";
 import { route } from "../src/lib/ROUTES";
 import type { Schema } from "$lib/server/db";
-
-const dbSchema = { ...table, ...relations } as Schema;
 
 test.describe("CSV Import", () => {
   let client: ReturnType<typeof postgres>;
@@ -27,7 +25,7 @@ test.describe("CSV Import", () => {
     const dbUrl = process.env.DATABASE_URL_TEST;
     if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
     client = postgres(dbUrl);
-    db = drizzle({ client, schema: dbSchema, casing: "snake_case" });
+    db = drizzle({ client, relations });
   });
 
   test.afterAll(async () => {

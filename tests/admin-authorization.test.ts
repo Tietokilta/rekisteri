@@ -142,9 +142,8 @@ describe("Admin role database operations", () => {
         adminRole: role,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
-      const user = await db._query.user.findFirst({
-        where: eq(table.user.id, userId),
+      const user = await db.query.user.findFirst({
+        where: { id: userId },
       });
 
       expect(user?.adminRole).toBe(role);
@@ -160,9 +159,8 @@ describe("Admin role database operations", () => {
       email: `test-default-${userId}@example.com`,
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const user = await db._query.user.findFirst({
-      where: eq(table.user.id, userId),
+    const user = await db.query.user.findFirst({
+      where: { id: userId },
     });
 
     expect(user?.adminRole).toBe("none");
@@ -180,9 +178,8 @@ describe("Admin role database operations", () => {
 
     await db.update(table.user).set({ adminRole: "admin" }).where(eq(table.user.id, userId));
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const user = await db._query.user.findFirst({
-      where: eq(table.user.id, userId),
+    const user = await db.query.user.findFirst({
+      where: { id: userId },
     });
 
     expect(user?.adminRole).toBe("admin");
@@ -200,9 +197,8 @@ describe("Admin role database operations", () => {
 
     await db.update(table.user).set({ adminRole: "readonly" }).where(eq(table.user.id, userId));
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const user = await db._query.user.findFirst({
-      where: eq(table.user.id, userId),
+    const user = await db.query.user.findFirst({
+      where: { id: userId },
     });
 
     expect(user?.adminRole).toBe("readonly");
@@ -220,9 +216,8 @@ describe("Admin role database operations", () => {
 
     await db.update(table.user).set({ adminRole: "none" }).where(eq(table.user.id, userId));
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const user = await db._query.user.findFirst({
-      where: eq(table.user.id, userId),
+    const user = await db.query.user.findFirst({
+      where: { id: userId },
     });
 
     expect(user?.adminRole).toBe("none");
@@ -283,9 +278,8 @@ describe("Last admin protection", () => {
 
     expect(await countAdmins(db, localUserIds)).toBe(1);
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const admin2 = await db._query.user.findFirst({
-      where: eq(table.user.id, admin2Id),
+    const admin2 = await db.query.user.findFirst({
+      where: { id: admin2Id },
     });
     expect(admin2?.adminRole).toBe("admin");
   });
@@ -303,9 +297,8 @@ describe("Last admin protection", () => {
     const shouldBlockDemotion = adminCount <= 1;
     expect(shouldBlockDemotion).toBe(true);
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const admin = await db._query.user.findFirst({
-      where: eq(table.user.id, adminId),
+    const admin = await db.query.user.findFirst({
+      where: { id: adminId },
     });
     expect(admin?.adminRole).toBe("admin");
   });
@@ -326,9 +319,8 @@ describe("Last admin protection", () => {
 
     expect(await countAdmins(db, localUserIds)).toBe(initialAdminCount);
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const admin = await db._query.user.findFirst({
-      where: eq(table.user.id, adminId),
+    const admin = await db.query.user.findFirst({
+      where: { id: adminId },
     });
     expect(admin?.adminRole).toBe("admin");
   });

@@ -2,11 +2,9 @@ import { test as authTest, type UserInfo } from "./auth";
 import type { Page } from "@playwright/test";
 import postgres from "postgres";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import * as table from "../../src/lib/server/db/schema";
-import * as relations from "../../src/lib/server/db/relations";
+import { relations } from "../../src/lib/server/db/relations";
 
-const dbSchema = { ...table, ...relations } as const;
-type Schema = typeof dbSchema;
+type Schema = typeof relations;
 
 type DbFixtures = {
   authenticatedPage: Page;
@@ -37,7 +35,7 @@ export const test = authTest.extend<DbFixtures, WorkerFixtures>({
       if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
 
       const client = postgres(dbUrl);
-      const db = drizzle({ client, schema: dbSchema, casing: "snake_case" });
+      const db = drizzle({ client, relations });
 
       await use({ client, db });
 

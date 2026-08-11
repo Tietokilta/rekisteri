@@ -1,61 +1,43 @@
-import { relations } from "drizzle-orm/_relations";
-import { user, session, passkey, secondaryEmail, membershipType, membership, member, auditLog } from "./schema";
+import { defineRelations } from "drizzle-orm";
+import * as schema from "./schema";
 
-export const userRelations = relations(user, ({ many }) => ({
-  members: many(member),
-  sessions: many(session),
-  passkeys: many(passkey),
-  secondaryEmails: many(secondaryEmail),
-  auditLogs: many(auditLog),
-}));
-
-export const sessionRelations = relations(session, ({ one }) => ({
-  user: one(user, {
-    fields: [session.userId],
-    references: [user.id],
-  }),
-}));
-
-export const passkeyRelations = relations(passkey, ({ one }) => ({
-  user: one(user, {
-    fields: [passkey.userId],
-    references: [user.id],
-  }),
-}));
-
-export const secondaryEmailRelations = relations(secondaryEmail, ({ one }) => ({
-  user: one(user, {
-    fields: [secondaryEmail.userId],
-    references: [user.id],
-  }),
-}));
-
-export const membershipTypeRelations = relations(membershipType, ({ many }) => ({
-  memberships: many(membership),
-}));
-
-export const membershipRelations = relations(membership, ({ one, many }) => ({
-  membershipType: one(membershipType, {
-    fields: [membership.membershipTypeId],
-    references: [membershipType.id],
-  }),
-  members: many(member),
-}));
-
-export const memberRelations = relations(member, ({ one }) => ({
-  user: one(user, {
-    fields: [member.userId],
-    references: [user.id],
-  }),
-  membership: one(membership, {
-    fields: [member.membershipId],
-    references: [membership.id],
-  }),
-}));
-
-export const auditLogRelations = relations(auditLog, ({ one }) => ({
-  user: one(user, {
-    fields: [auditLog.userId],
-    references: [user.id],
-  }),
+export const relations = defineRelations(schema, (r) => ({
+  user: {
+    members: r.many.member({ from: r.user.id, to: r.member.userId }),
+    sessions: r.many.session({ from: r.user.id, to: r.session.userId }),
+    passkeys: r.many.passkey({ from: r.user.id, to: r.passkey.userId }),
+    secondaryEmails: r.many.secondaryEmail({ from: r.user.id, to: r.secondaryEmail.userId }),
+    auditLogs: r.many.auditLog({ from: r.user.id, to: r.auditLog.userId }),
+  },
+  session: {
+    user: r.one.user({ from: r.session.userId, to: r.user.id, optional: false }),
+  },
+  passkey: {
+    user: r.one.user({ from: r.passkey.userId, to: r.user.id, optional: false }),
+  },
+  secondaryEmail: {
+    user: r.one.user({ from: r.secondaryEmail.userId, to: r.user.id, optional: false }),
+  },
+  membershipType: {
+    memberships: r.many.membership({ from: r.membershipType.id, to: r.membership.membershipTypeId }),
+  },
+  membership: {
+    membershipType: r.one.membershipType({
+      from: r.membership.membershipTypeId,
+      to: r.membershipType.id,
+      optional: false,
+    }),
+    members: r.many.member({ from: r.membership.id, to: r.member.membershipId }),
+  },
+  member: {
+    user: r.one.user({ from: r.member.userId, to: r.user.id }),
+    membership: r.one.membership({
+      from: r.member.membershipId,
+      to: r.membership.id,
+      optional: false,
+    }),
+  },
+  auditLog: {
+    user: r.one.user({ from: r.auditLog.userId, to: r.user.id }),
+  },
 }));
