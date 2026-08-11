@@ -180,7 +180,7 @@
   </AdminPageHeader>
 
   <Tabs.Root bind:value={activeTab} class="mt-4 w-full">
-    <Tabs.List class="grid w-full grid-cols-2 gap-1 rounded-xl bg-muted/60 p-1.5 items-center md:grid-cols-5 h-auto">
+    <Tabs.List class="grid h-auto w-full grid-cols-2 items-center gap-1 rounded-xl bg-muted/60 p-1.5 md:grid-cols-5">
       <Tabs.Trigger value="branding" data-testid="tab-branding" class="relative">
         <Palette class="size-4" />
         <span>{$LL.admin.settings.tabs.branding()}</span>
@@ -248,7 +248,7 @@
       {#if removeImages.faviconDark}<input type="hidden" name="removeFaviconDark" value="true" />{/if}
 
       <!-- TAB 1: Branding & Appearance -->
-      <Tabs.Content value="branding" class="space-y-4 mt-4">
+      <Tabs.Content value="branding" class="mt-4 space-y-4">
         <div class="rounded-xl border border-border/60 bg-card p-5 shadow-xs">
           <h3 class="mb-3 text-base font-semibold text-foreground">
             {$LL.admin.settings.brandingDefaults.title()}
@@ -282,7 +282,7 @@
                     bind:value={accentColorInputValue}
                     class="h-10 w-20 cursor-pointer rounded border-border bg-background shadow-xs focus:border-ring focus:ring-ring sm:text-sm"
                   />
-                  <code class="rounded bg-muted px-2 py-1 text-sm font-mono">{accentColorInputValue}</code>
+                  <code class="rounded bg-muted px-2 py-1 font-mono text-sm">{accentColorInputValue}</code>
                 </div>
               {:else}
                 <p class="mt-3 text-sm text-muted-foreground">

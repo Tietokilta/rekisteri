@@ -10,7 +10,7 @@
   let { message, children }: Props = $props();
 
   const parts = $derived.by(() => {
-    const [prefix, infix, postfix] = message.split("<>");
+    const [prefix, infix, postfix] = message.split("<>", 3);
     // If no delimiters found, treat whole message as infix
     if (!infix && !postfix) {
       return { prefix: "", infix: prefix ?? "", postfix: "" };
