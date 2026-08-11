@@ -54,7 +54,7 @@
               inherit (finalAttrs) pname version src;
               inherit pnpm;
               fetcherVersion = 4;
-              hash = "sha256-vfjf0LsfkwKasWnY9PyGZPA5Vo1RCo7RtV3BZtvD48o=";
+              hash = "sha256-Wu7qBPjm5BKTolxvj0S+GnerTJySiGWdVG0e7CkppF0=";
             };
 
             installPhase = ''
@@ -92,7 +92,7 @@
                 "${default}/bin/rekisteri"
               ];
               ExposedPorts = {
-                "3000/tcp" = {};
+                "3000/tcp" = { };
               };
               Env = [
                 "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
