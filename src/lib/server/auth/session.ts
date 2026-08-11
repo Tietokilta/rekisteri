@@ -1,11 +1,11 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
-import { sha256 } from "@oslojs/crypto/sha2";
-import { encodeBase64url, encodeHexLowerCase } from "@oslojs/encoding";
+import { encodeBase64url } from "@oslojs/encoding";
 import { dev } from "$app/environment";
 import { env } from "$lib/server/env";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
+import { hashSessionToken } from "./utils";
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
 export const sessionCookieName = "auth-session";
@@ -17,7 +17,7 @@ export function generateSessionToken() {
 }
 
 export async function createSession(token: string, userId: string) {
-  const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
+  const sessionId = hashSessionToken(token);
   const session: table.Session = {
     id: sessionId,
     userId,
@@ -28,7 +28,7 @@ export async function createSession(token: string, userId: string) {
 }
 
 export async function validateSessionToken(token: string) {
-  const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
+  const sessionId = hashSessionToken(token);
   const [result] = await db
     .select({
       // Adjust user table here to tweak returned data

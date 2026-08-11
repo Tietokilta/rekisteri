@@ -2,8 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { createTestDatabase, stopTestDatabase, type TestDatabase } from "./utils/db";
 import * as table from "$lib/server/db/schema";
-import { sha256 } from "@oslojs/crypto/sha2";
-import { encodeBase64url, encodeHexLowerCase } from "@oslojs/encoding";
+import { hashSessionToken } from "$lib/server/auth/utils";
+import { encodeBase64url } from "@oslojs/encoding";
 
 function generateSessionToken() {
   const bytes = crypto.getRandomValues(new Uint8Array(18));
@@ -45,7 +45,7 @@ describe("GDPR - lastActiveAt trigger", () => {
 
     // Create a session - this should trigger the lastActiveAt update
     const sessionToken = generateSessionToken();
-    const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(sessionToken)));
+    const sessionId = hashSessionToken(sessionToken);
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
 
     await db.insert(table.session).values({
@@ -83,7 +83,7 @@ describe("GDPR - lastActiveAt trigger", () => {
 
     // Create a session (this will update lastActiveAt)
     const sessionToken = generateSessionToken();
-    const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(sessionToken)));
+    const sessionId = hashSessionToken(sessionToken);
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
 
     await db.insert(table.session).values({

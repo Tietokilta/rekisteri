@@ -2,9 +2,8 @@ import { test as dbTest } from "./db";
 import type { Page, BrowserContext } from "@playwright/test";
 import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
-import { generateUserId } from "../../src/lib/server/auth/utils";
-import { sha256 } from "@oslojs/crypto/sha2";
-import { encodeBase64url, encodeHexLowerCase } from "@oslojs/encoding";
+import { generateUserId, hashSessionToken } from "../../src/lib/server/auth/utils";
+import { encodeBase64url } from "@oslojs/encoding";
 
 export type IsolatedUser = {
   id: string;
@@ -85,7 +84,7 @@ export const test = dbTest.extend<IsolatedUserFixtures>({
   isolatedContext: async ({ browser, db, isolatedUser }, use) => {
     // Create a session for the isolated user
     const sessionToken = encodeBase64url(crypto.getRandomValues(new Uint8Array(18)));
-    const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(sessionToken)));
+    const sessionId = hashSessionToken(sessionToken);
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 1 day
 
     await db.insert(table.session).values({

@@ -3,8 +3,8 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as table from "$lib/server/db/schema";
 import { relations } from "$lib/server/db/relations";
-import { sha256 } from "@oslojs/crypto/sha2";
-import { encodeBase64url, encodeHexLowerCase } from "@oslojs/encoding";
+import { hashSessionToken } from "$lib/server/auth/utils";
+import { encodeBase64url } from "@oslojs/encoding";
 import { eq } from "drizzle-orm";
 import { execSync } from "node:child_process";
 import { loadEnvFile } from "./utils";
@@ -73,7 +73,7 @@ async function globalSetup(_config: FullConfig) {
   }
 
   const sessionToken = generateSessionToken();
-  const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(sessionToken)));
+  const sessionId = hashSessionToken(sessionToken);
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
 
   await db.insert(table.session).values({
@@ -140,7 +140,7 @@ async function globalSetup(_config: FullConfig) {
 
   // Create session for readonly admin
   const readonlySessionToken = generateSessionToken();
-  const readonlySessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(readonlySessionToken)));
+  const readonlySessionId = hashSessionToken(readonlySessionToken);
   const readonlyExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
 
   await db.insert(table.session).values({
