@@ -1,6 +1,11 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
-  "entry": ["src/index.{ts,tsx,js,jsx}", "src/main.{ts,tsx,js,jsx}", "src/start-with-migrations.ts"],
+  "entry": [
+    "src/index.{ts,tsx,js,jsx}",
+    "src/main.{ts,tsx,js,jsx}",
+    "src/start-with-migrations.ts",
+    "src/lib/server/db/membership-schema.next.ts"
+  ],
   "ignorePatterns": ["src/lib/ROUTES.ts"],
   "ignoreUnresolvedImports": ["./server/index.js"],
   "ignoreExports": [
