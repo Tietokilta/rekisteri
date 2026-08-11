@@ -104,6 +104,12 @@
     "valibot": "^1.5.0"
   },
   "packageManager": "pnpm@11.20.0",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=22.22.0 <25.0.0"
+    }
+  },
   "engines": {
     "node": ">=22.22.0 <25.0.0"
   }
