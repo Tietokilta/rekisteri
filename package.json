@@ -44,7 +44,7 @@
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
-    "@tanstack/table-core": "^8.21.3",
+    "@tanstack/svelte-table": "^9.1.2",
     "@testcontainers/postgresql": "^12.1.0",
     "@types/node": "^24.13.3",
     "@types/node-cron": "^3.0.11",

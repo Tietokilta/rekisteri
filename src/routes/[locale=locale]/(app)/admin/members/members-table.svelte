@@ -1,6 +1,28 @@
 <!-- fallow-ignore-file complexity -->
 <script lang="ts">
-  import { createSvelteTable, FlexRender } from "$lib/components/ui/data-table";
+  import {
+    FlexRender,
+    columnFilteringFeature,
+    columnVisibilityFeature,
+    createFilteredRowModel,
+    createPaginatedRowModel,
+    createSortedRowModel,
+    createTable,
+    filterFn_equals,
+    globalFilteringFeature,
+    rowPaginationFeature,
+    rowSelectionFeature,
+    rowSortingFeature,
+    sortFn_alphanumeric,
+    sortFn_datetime,
+    sortFn_text,
+    tableFeatures,
+    type ColumnDef,
+    type ColumnFiltersState,
+    type Row as TanStackRow,
+    type RowSelectionState,
+    type SortingState,
+  } from "@tanstack/svelte-table";
   import * as Table from "$lib/components/ui/table";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
   import { Badge } from "$lib/components/ui/badge";
@@ -9,17 +31,6 @@
   import { Checkbox } from "$lib/components/ui/checkbox";
   import * as NativeSelect from "$lib/components/ui/native-select";
   import { toast } from "svelte-sonner";
-  import {
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    type ColumnDef,
-    type SortingState,
-    type ColumnFiltersState,
-    type RowSelectionState,
-    type Row as TanStackRow,
-  } from "@tanstack/table-core";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import ArrowUpDown from "@lucide/svelte/icons/arrow-up-down";
@@ -88,6 +99,23 @@
   };
 
   type MemberRow = PersonMemberRow | AssociationMemberRow;
+
+  const features = tableFeatures({
+    columnFilteringFeature,
+    globalFilteringFeature,
+    columnVisibilityFeature,
+    rowPaginationFeature,
+    rowSelectionFeature,
+    rowSortingFeature,
+    filteredRowModel: createFilteredRowModel(),
+    paginatedRowModel: createPaginatedRowModel(),
+    sortedRowModel: createSortedRowModel(),
+    sortFns: {
+      alphanumeric: sortFn_alphanumeric,
+      datetime: sortFn_datetime,
+      text: sortFn_text,
+    },
+  });
 
   // Raw type from the server — userId and organizationName are both `| null`
   // The DB CHECK constraint guarantees exactly one is non-null,
@@ -510,7 +538,7 @@
   }
 
   // Custom filter function for year
-  const yearFilterFn = (row: TanStackRow<MemberRow>, columnId: string, filterValue: string) => {
+  const yearFilterFn = (row: TanStackRow<typeof features, MemberRow>, columnId: string, filterValue: string) => {
     const startTime = row.getValue(columnId) as Date | null;
     if (!startTime) return false;
     const year = startTime.getFullYear().toString();
@@ -518,16 +546,16 @@
   };
 
   // Column definitions
-  const columns = $derived<ColumnDef<MemberRow>[]>([
+  const columns = $derived<ColumnDef<typeof features, MemberRow>[]>([
     // Only include select column if user has write access
     ...(canWrite
       ? [
           {
             id: "select",
             header: "",
-            cell: ({ row }: { row: TanStackRow<MemberRow> }) => row.original.id,
+            cell: ({ row }: { row: TanStackRow<typeof features, MemberRow> }) => row.original.id,
             enableSorting: false,
-          } satisfies ColumnDef<MemberRow>,
+          } satisfies ColumnDef<typeof features, MemberRow>,
         ]
       : []),
     {
@@ -553,12 +581,14 @@
       header: $LL.admin.members.table.membershipType(),
       cell: ({ row }) => getLocalizedTypeName(row.original.membershipTypeName),
       enableSorting: true,
+      filterFn: filterFn_equals,
     },
     {
       accessorKey: "status",
       header: $LL.admin.members.table.status(),
       cell: ({ row }) => row.original.status,
       enableSorting: true,
+      filterFn: filterFn_equals,
     },
     // Hidden column for filtering by year
     {
@@ -602,72 +632,71 @@
   });
 
   // Create table
-  const table = $derived(
-    createSvelteTable({
-      data,
-      columns,
-      state: {
-        get sorting() {
-          return sorting;
-        },
-        get columnFilters() {
-          return columnFilters;
-        },
-        get globalFilter() {
-          return globalFilter;
-        },
-        get columnVisibility() {
-          return columnVisibility;
-        },
-        get pagination() {
-          return pagination;
-        },
-        get rowSelection() {
-          return rowSelection;
-        },
+  const table = createTable({
+    features,
+    get data() {
+      return data;
+    },
+    get columns() {
+      return columns;
+    },
+    state: {
+      get sorting() {
+        return sorting;
       },
-      onSortingChange: (updater) => {
-        sorting = typeof updater === "function" ? updater(sorting) : updater;
+      get columnFilters() {
+        return columnFilters;
       },
-      onColumnFiltersChange: (updater) => {
-        columnFilters = typeof updater === "function" ? updater(columnFilters) : updater;
+      get globalFilter() {
+        return globalFilter;
       },
-      onGlobalFilterChange: (updater) => {
-        globalFilter = typeof updater === "function" ? updater(globalFilter) : updater;
+      get columnVisibility() {
+        return columnVisibility;
       },
-      onColumnVisibilityChange: (updater) => {
-        columnVisibility = typeof updater === "function" ? updater(columnVisibility) : updater;
+      get pagination() {
+        return pagination;
       },
-      onPaginationChange: (updater) => {
-        pagination = typeof updater === "function" ? updater(pagination) : updater;
+      get rowSelection() {
+        return rowSelection;
       },
-      onRowSelectionChange: (updater) => {
-        rowSelection = typeof updater === "function" ? updater(rowSelection) : updater;
-      },
-      enableRowSelection: true,
-      getRowId: (row) => row.id,
-      getCoreRowModel: getCoreRowModel(),
-      getSortedRowModel: getSortedRowModel(),
-      getFilteredRowModel: getFilteredRowModel(),
-      getPaginationRowModel: getPaginationRowModel(),
-      globalFilterFn: (row, columnId, filterValue) => {
-        const searchValue = filterValue.toLowerCase();
-        const orgName = (row.original.organizationName ?? "").toLowerCase();
-        const firstName = (row.original.firstNames ?? "").toLowerCase();
-        const lastName = (row.original.lastName ?? "").toLowerCase();
-        const email = (row.original.email ?? "").toLowerCase();
-        const municipality = (row.original.homeMunicipality ?? "").toLowerCase();
+    },
+    onSortingChange: (updater) => {
+      sorting = typeof updater === "function" ? updater(sorting) : updater;
+    },
+    onColumnFiltersChange: (updater) => {
+      columnFilters = typeof updater === "function" ? updater(columnFilters) : updater;
+    },
+    onGlobalFilterChange: (updater) => {
+      globalFilter = typeof updater === "function" ? updater(globalFilter) : updater;
+    },
+    onColumnVisibilityChange: (updater) => {
+      columnVisibility = typeof updater === "function" ? updater(columnVisibility) : updater;
+    },
+    onPaginationChange: (updater) => {
+      pagination = typeof updater === "function" ? updater(pagination) : updater;
+    },
+    onRowSelectionChange: (updater) => {
+      rowSelection = typeof updater === "function" ? updater(rowSelection) : updater;
+    },
+    enableRowSelection: true,
+    getRowId: (row) => row.id,
+    globalFilterFn: (row, columnId, filterValue) => {
+      const searchValue = filterValue.toLowerCase();
+      const orgName = (row.original.organizationName ?? "").toLowerCase();
+      const firstName = (row.original.firstNames ?? "").toLowerCase();
+      const lastName = (row.original.lastName ?? "").toLowerCase();
+      const email = (row.original.email ?? "").toLowerCase();
+      const municipality = (row.original.homeMunicipality ?? "").toLowerCase();
 
-        return (
-          orgName.includes(searchValue) ||
-          firstName.includes(searchValue) ||
-          lastName.includes(searchValue) ||
-          email.includes(searchValue) ||
-          municipality.includes(searchValue)
-        );
-      },
-    }),
-  );
+      return (
+        orgName.includes(searchValue) ||
+        firstName.includes(searchValue) ||
+        lastName.includes(searchValue) ||
+        email.includes(searchValue) ||
+        municipality.includes(searchValue)
+      );
+    },
+  });
 
   // Helper to get selected member IDs
   function getSelectedMemberIds(): string[] {
@@ -1042,11 +1071,11 @@
                       class="-ml-3 h-8 data-[state=open]:bg-accent"
                       onclick={() => header.column.toggleSorting()}
                     >
-                      <FlexRender content={header.column.columnDef.header} context={header.getContext()} />
+                      <FlexRender {header} />
                       <ArrowUpDown class="ml-2 size-4" />
                     </Button>
                   {:else}
-                    <FlexRender content={header.column.columnDef.header} context={header.getContext()} />
+                    <FlexRender {header} />
                   {/if}
                 {/if}
               </Table.Head>
@@ -1102,7 +1131,7 @@
                     {/if}
                   </div>
                 {:else}
-                  <FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
+                  <FlexRender {cell} />
                 {/if}
               </Table.Cell>
             {/each}
