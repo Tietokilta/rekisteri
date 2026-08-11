@@ -21,7 +21,7 @@ jobs:
     name: nix flake check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Nix
         uses: nixbuild/nix-quick-install-action@ef2850366b5ded57dc77cad10392197c5ce70343
         with:
@@ -62,7 +62,7 @@ jobs:
       STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 2
 
@@ -147,7 +147,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Nix
         uses: nixbuild/nix-quick-install-action@ef2850366b5ded57dc77cad10392197c5ce70343
         with:
