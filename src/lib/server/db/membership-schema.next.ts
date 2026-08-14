@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
   boolean,
+  bytea,
   check,
   date,
   foreignKey,
@@ -272,6 +273,33 @@ export const payment = snakeCase.table(
   ],
 );
 
-export const membershipOnboardingColumns = {
-  membershipDataLiveAt: timestamp({ withTimezone: true }),
-};
+export const appCustomizationNext = snakeCase.table(
+  "app_customization",
+  {
+    id: integer().primaryKey(),
+    accentColor: text(),
+    organizationName: jsonb().$type<LocalizedString>().notNull(),
+    organizationLegalName: jsonb().$type<LocalizedString>().notNull(),
+    appName: jsonb().$type<LocalizedString>().notNull(),
+    logo: bytea(),
+    logoDark: bytea(),
+    favicon: bytea(),
+    faviconDark: bytea(),
+    businessId: text().notNull(),
+    overseerContact: text().notNull(),
+    overseerAddress: text().notNull(),
+    privacyPolicy: jsonb().$type<LocalizedString>().notNull(),
+    organizationRulesUrl: text().notNull(),
+    memberResignRule: text().notNull(),
+    memberResignDefaultReason: jsonb().$type<LocalizedString>().notNull(),
+    membershipDataLiveAt: timestamp({ withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    check("app_customization_singleton", sql`${table.id} = 1`),
+    check("app_customization_logo_size", sql`octet_length(${table.logo}) <= ${64 * 1024}`),
+    check("app_customization_logo_dark_size", sql`octet_length(${table.logoDark}) <= ${64 * 1024}`),
+    check("app_customization_favicon_size", sql`octet_length(${table.favicon}) <= ${32 * 1024}`),
+    check("app_customization_favicon_dark_size", sql`octet_length(${table.faviconDark}) <= ${32 * 1024}`),
+  ],
+);

@@ -13,8 +13,6 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import * as v from "valibot";
-
 import { ADMIN_ROLE_VALUES, MEMBER_STATUS_VALUES, PREFERRED_LANGUAGE_VALUES } from "../../shared/enums";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 
@@ -30,15 +28,9 @@ const timestamps = {
 
 export const adminRoleEnum = pgEnum("admin_role", ADMIN_ROLE_VALUES);
 
-export const adminRoleEnumSchema = v.picklist(ADMIN_ROLE_VALUES);
-
 export const preferredLanguageEnum = pgEnum("preferred_language", PREFERRED_LANGUAGE_VALUES);
 
-export const preferredLanguageEnumSchema = v.picklist(PREFERRED_LANGUAGE_VALUES);
-
 export const memberStatusEnum = pgEnum("member_status", MEMBER_STATUS_VALUES);
-
-export const memberStatusEnumSchema = v.picklist(MEMBER_STATUS_VALUES);
 
 export const user = snakeCase.table("user", {
   id: text().primaryKey(),
@@ -206,12 +198,6 @@ export const appCustomization = snakeCase.table(
 );
 
 export type Member = typeof member.$inferSelect;
-
-export type MemberStatus = v.InferOutput<typeof memberStatusEnumSchema>;
-
-export type PreferredLanguage = v.InferOutput<typeof preferredLanguageEnumSchema>;
-
-export type AdminRole = v.InferOutput<typeof adminRoleEnumSchema>;
 
 export type MembershipType = typeof membershipType.$inferSelect;
 

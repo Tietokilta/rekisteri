@@ -4,7 +4,7 @@
     "src/index.{ts,tsx,js,jsx}",
     "src/main.{ts,tsx,js,jsx}",
     "src/start-with-migrations.ts",
-    "src/lib/server/db/membership-schema.next.ts"
+    "src/lib/server/db/schema.next.ts"
   ],
   "ignorePatterns": ["src/lib/ROUTES.ts"],
   "ignoreUnresolvedImports": ["./server/index.js"],
