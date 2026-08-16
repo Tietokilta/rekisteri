@@ -18,6 +18,7 @@
     membershipTypeName: LocalizedString | null;
     startTime: Date;
     endTime: Date;
+    requiresPayment: boolean;
   }
 
   interface Props {
@@ -42,6 +43,7 @@
 
   // Association fields
   let organizationName = $state("");
+  const selectedMembership = $derived(availableMemberships.find((membership) => membership.id === membershipId));
 
   function getLocalizedName(name: LocalizedString | null): string {
     if (!name) return "-";
@@ -204,13 +206,20 @@
     <p class="text-sm text-muted-foreground">{$LL.admin.members.initialStatusDescription()}</p>
   </div>
 
-  <!-- Description (optional) -->
+  <!-- Paid memberships are waived when an admin creates them, so the reason is required. -->
   <div class="space-y-2">
     <Label for="create-member-description"
       >{$LL.membership.description()}
-      <span class="font-normal text-muted-foreground">({$LL.common.optional()})</span></Label
+      {#if !selectedMembership?.requiresPayment}
+        <span class="font-normal text-muted-foreground">({$LL.common.optional()})</span>
+      {/if}</Label
     >
-    <Textarea id="create-member-description" bind:value={description} rows={2} />
+    <Textarea
+      id="create-member-description"
+      bind:value={description}
+      rows={2}
+      required={selectedMembership?.requiresPayment ?? false}
+    />
   </div>
 
   <Sheet.Footer>

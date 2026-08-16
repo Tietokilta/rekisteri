@@ -1,580 +1,406 @@
 import { error } from "@sveltejs/kit";
-import { form, command, getRequestEvent } from "$app/server";
+import { command, form, getRequestEvent } from "$app/server";
 import * as v from "valibot";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { and, eq, inArray } from "drizzle-orm";
+import { inArray, sql } from "drizzle-orm";
 import { generateUserId } from "$lib/server/auth/utils";
 import { getUsersByEmails } from "$lib/server/auth/secondary-email";
-import {
-  csvRowSchema,
-  importMembersSchema,
-  createLegacyMembershipSchema,
-  createLegacyMembershipsBatchSchema,
-  type CsvRow,
-} from "./schema";
 import { getLL } from "$lib/server/i18n";
 import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
-import { normalizeEmail } from "$lib/utils";
 import { auditFromEvent } from "$lib/server/audit";
-
-const IMPORT_BATCH_SIZE = 500;
+import { normalizeEmail } from "$lib/utils";
+import {
+  createLegacyMembershipSchema,
+  createLegacyMembershipsBatchSchema,
+  csvRowSchema,
+  importMembersSchema,
+  type CsvRow,
+} from "./schema";
 
 type ImportError = { row: number; email: string; error: string };
-
-type ImportMembership = {
-  id: string;
-  membershipTypeId: string;
-  startTime: Date;
-  endTime: Date;
+type FeePeriod = typeof table.membershipFeePeriod.$inferSelect & {
+  membershipType: typeof table.membershipType.$inferSelect;
 };
+type PreparedRow = { row: CsvRow; rowNumber: number; period: FeePeriod };
 
-type ProcessedImportRow = {
-  index: number;
-  row: CsvRow;
-  userId: string;
-  membershipId: string;
-  membership: ImportMembership;
-  status: "active" | "resigned";
-  isNewUser: boolean;
-};
-
-type RowReference = {
-  row: CsvRow;
-  originalIndex: number;
-};
-
-type MembershipLookup = {
-  validTypeIds: Set<string>;
-  membershipsByTypeId: Map<string, ImportMembership[]>;
-};
-
-function parseImportRows(rowsJson: string, invalidDataFormatMessage: string): CsvRow[] {
-  let rows: unknown;
+function parseRows(rowsJson: string, invalidDataFormatMessage: string): CsvRow[] {
+  let input: unknown;
   try {
-    rows = JSON.parse(rowsJson);
+    input = JSON.parse(rowsJson);
   } catch {
     error(400, invalidDataFormatMessage);
   }
-
-  const validation = v.safeParse(v.array(csvRowSchema), rows);
-  if (!validation.success) {
-    const issues = validation.issues
-      .slice(0, 5)
-      .map((issue) => {
-        const path = issue.path?.map((p) => p.key).join(".") || "unknown";
-        return `Row ${path}: ${issue.message}`;
-      })
-      .join("; ");
-    error(400, `Validation failed: ${issues}`);
-  }
-
-  return validation.output;
+  const result = v.safeParse(v.array(csvRowSchema), input);
+  if (!result.success) error(400, "Invalid CSV row data");
+  return result.output.map((row) => ({ ...row, email: normalizeEmail(row.email) }));
 }
 
-function groupMembershipsByTypeId(memberships: ImportMembership[]): Map<string, ImportMembership[]> {
-  const membershipsByTypeId = new Map<string, ImportMembership[]>();
-
-  for (const membership of memberships) {
-    const membershipsForType = membershipsByTypeId.get(membership.membershipTypeId) ?? [];
-    membershipsForType.push(membership);
-    membershipsByTypeId.set(membership.membershipTypeId, membershipsForType);
-  }
-
-  return membershipsByTypeId;
+function dateOnly(value: string) {
+  const date = value.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const parsed = new Date(`${date}T00:00:00Z`);
+  return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date ? null : date;
 }
 
-async function loadMembershipLookup(): Promise<MembershipLookup> {
-  const membershipTypes = await db.select().from(table.membershipType);
-  const memberships = await db
-    .select({
-      id: table.membership.id,
-      membershipTypeId: table.membership.membershipTypeId,
-      startTime: table.membership.startTime,
-      endTime: table.membership.endTime,
-    })
-    .from(table.membership);
-
-  return {
-    validTypeIds: new Set(membershipTypes.map((membershipType) => membershipType.id)),
-    membershipsByTypeId: groupMembershipsByTypeId(memberships),
-  };
+function helsinkiTimestamp(date: string) {
+  return sql<Date>`${date}::date::timestamp AT TIME ZONE 'Europe/Helsinki'`;
 }
 
-async function loadUserIdsByEmail(rows: CsvRow[]): Promise<Map<string, string>> {
-  const uniqueEmails = [...new Set(rows.map((row) => row.email))];
-  const existingUsersByEmail = await getUsersByEmails(uniqueEmails);
-
-  return new Map(Array.from(existingUsersByEmail, ([email, user]) => [email, user.id]));
+function todayInHelsinki() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Helsinki",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
-function normalizeImportEmails(rows: CsvRow[]): CsvRow[] {
-  return rows.map((row) => ({ ...row, email: normalizeEmail(row.email) }));
+function nextNonPaymentAction(endDate: string) {
+  return `${endDate.slice(0, 4)}-12-01`;
 }
 
-function sortRowsByLatestMembershipStart(rows: CsvRow[]): RowReference[] {
-  return rows
-    .map((row, originalIndex) => ({ row, originalIndex }))
-    .toSorted((a, b) => new Date(b.row.membershipStartDate).getTime() - new Date(a.row.membershipStartDate).getTime());
+function areConsecutive(previous: FeePeriod, next: FeePeriod) {
+  const dayAfterPrevious = new Date(`${previous.endDate}T00:00:00Z`);
+  dayAfterPrevious.setUTCDate(dayAfterPrevious.getUTCDate() + 1);
+  return dayAfterPrevious.toISOString().slice(0, 10) === next.startDate;
 }
 
-function buildImportError(row: CsvRow, originalIndex: number, message: string): ImportError {
-  return {
-    row: originalIndex + 1,
-    email: row.email,
-    error: message,
-  };
-}
-
-function findImportMembership(
-  { row, originalIndex }: RowReference,
-  { validTypeIds, membershipsByTypeId }: MembershipLookup,
-): ImportMembership | ImportError {
-  const membershipStartDate = new Date(row.membershipStartDate);
-
-  if (Number.isNaN(membershipStartDate.getTime())) {
-    return buildImportError(row, originalIndex, `Invalid membership start date "${row.membershipStartDate}"`);
-  }
-
-  if (!validTypeIds.has(row.membershipTypeId)) {
-    return buildImportError(row, originalIndex, `Membership type ID "${row.membershipTypeId}" not found`);
-  }
-
-  const membershipOptions = membershipsByTypeId.get(row.membershipTypeId);
-  if (!membershipOptions?.length) {
-    return buildImportError(row, originalIndex, `No memberships found for type "${row.membershipTypeId}"`);
-  }
-
-  const matchingMembership = membershipOptions.find(
-    (membership) => membership.startTime.getTime() === membershipStartDate.getTime(),
+function prepareRows(rows: CsvRow[], periods: FeePeriod[]) {
+  const periodByTypeAndStart = new Map(
+    periods.map((period) => [`${period.membershipTypeId}:${period.startDate}`, period]),
   );
-
-  return (
-    matchingMembership ??
-    buildImportError(
-      row,
-      originalIndex,
-      `No membership found for type "${row.membershipTypeId}" starting on ${row.membershipStartDate}`,
-    )
-  );
-}
-
-function prepareImportRow(
-  rowReference: RowReference,
-  membershipLookup: MembershipLookup,
-  userIdsByEmail: Map<string, string>,
-  now: Date,
-): ProcessedImportRow | ImportError {
-  const membership = findImportMembership(rowReference, membershipLookup);
-  if ("error" in membership) {
-    return membership;
-  }
-
-  const existingUserId = userIdsByEmail.get(rowReference.row.email);
-  const userId = existingUserId ?? generateUserId();
-  const isNewUser = !existingUserId;
-
-  if (isNewUser) {
-    userIdsByEmail.set(rowReference.row.email, userId);
-  }
-
-  return {
-    index: rowReference.originalIndex,
-    row: rowReference.row,
-    userId,
-    membershipId: membership.id,
-    membership,
-    status: membership.endTime < now ? "resigned" : "active",
-    isNewUser,
-  };
-}
-
-function membershipPeriod(membership: ImportMembership): string {
-  return `${membership.startTime.toISOString().slice(0, 10)}–${membership.endTime.toISOString().slice(0, 10)}`;
-}
-
-function membershipsConflict(left: ImportMembership, right: ImportMembership): boolean {
-  return (
-    left.membershipTypeId !== right.membershipTypeId && left.startTime < right.endTime && right.startTime < left.endTime
-  );
-}
-
-async function loadExistingApprovedMemberships(
-  processedRows: ProcessedImportRow[],
-): Promise<Map<string, ImportMembership[]>> {
-  const userIds = [...new Set(processedRows.map((row) => row.userId))];
-  const membershipsByUserId = new Map<string, ImportMembership[]>();
-
-  for (let i = 0; i < userIds.length; i += IMPORT_BATCH_SIZE) {
-    const userIdBatch = userIds.slice(i, i + IMPORT_BATCH_SIZE);
-    if (userIdBatch.length === 0) continue;
-
-    const existingRows = await db
-      .select({
-        userId: table.member.userId,
-        id: table.membership.id,
-        membershipTypeId: table.membership.membershipTypeId,
-        startTime: table.membership.startTime,
-        endTime: table.membership.endTime,
-      })
-      .from(table.member)
-      .innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
-      .where(and(inArray(table.member.userId, userIdBatch), inArray(table.member.status, ["active", "resigned"])));
-
-    for (const existingRow of existingRows) {
-      if (!existingRow.userId) continue;
-      const memberships = membershipsByUserId.get(existingRow.userId) ?? [];
-      memberships.push(existingRow);
-      membershipsByUserId.set(existingRow.userId, memberships);
-    }
-  }
-
-  return membershipsByUserId;
-}
-
-async function rejectAmbiguousMembershipTypes(
-  processedRows: ProcessedImportRow[],
-): Promise<{ importableRows: ProcessedImportRow[]; errors: ImportError[] }> {
-  const rowsByUserId = Map.groupBy(processedRows, (row) => row.userId);
-  const existingByUserId = await loadExistingApprovedMemberships(processedRows);
-  const conflictsByUserId = new Map<string, Set<string>>();
-
-  for (const [userId, userRows] of rowsByUserId) {
-    const conflicts = new Set<string>();
-
-    for (let leftIndex = 0; leftIndex < userRows.length; leftIndex++) {
-      const left = userRows[leftIndex];
-      if (!left) continue;
-
-      for (let rightIndex = leftIndex + 1; rightIndex < userRows.length; rightIndex++) {
-        const right = userRows[rightIndex];
-        if (!right || !membershipsConflict(left.membership, right.membership)) continue;
-        conflicts.add(
-          `${left.membership.membershipTypeId} ${membershipPeriod(left.membership)} overlaps ` +
-            `${right.membership.membershipTypeId} ${membershipPeriod(right.membership)} in the import`,
-        );
-      }
-
-      for (const existing of existingByUserId.get(userId) ?? []) {
-        if (!membershipsConflict(left.membership, existing)) continue;
-        conflicts.add(
-          `${left.membership.membershipTypeId} ${membershipPeriod(left.membership)} overlaps existing ` +
-            `${existing.membershipTypeId} ${membershipPeriod(existing)}`,
-        );
-      }
-    }
-
-    if (conflicts.size > 0) conflictsByUserId.set(userId, conflicts);
-  }
-
+  const preparedRows: PreparedRow[] = [];
   const errors: ImportError[] = [];
-  const importableRows = processedRows.filter((row) => {
-    const conflicts = conflictsByUserId.get(row.userId);
-    if (!conflicts) return true;
-    errors.push(
-      buildImportError(
-        row.row,
-        row.index,
-        `Conflicting approved membership types: ${[...conflicts].join("; ")}. Resolve the membership type before importing.`,
-      ),
-    );
-    return false;
-  });
+  const exactDateRows = new Map<string, CsvRow>();
 
-  return { importableRows, errors };
+  for (const [index, row] of rows.entries()) {
+    const startDate = dateOnly(row.membershipStartDate);
+    const period = startDate ? periodByTypeAndStart.get(`${row.membershipTypeId}:${startDate}`) : null;
+    if (!startDate) {
+      errors.push({
+        row: index + 1,
+        email: row.email,
+        error: `Invalid membership start date: ${row.membershipStartDate}`,
+      });
+      continue;
+    }
+    if (!period) {
+      errors.push({
+        row: index + 1,
+        email: row.email,
+        error: `No fee period found for ${row.membershipTypeId} starting on ${startDate}`,
+      });
+      continue;
+    }
+
+    const exactDateKey = `${row.email}:${startDate}`;
+    const existing = exactDateRows.get(exactDateKey);
+    if (
+      existing &&
+      (existing.firstNames !== row.firstNames ||
+        existing.lastName !== row.lastName ||
+        existing.homeMunicipality !== row.homeMunicipality ||
+        existing.membershipTypeId !== row.membershipTypeId)
+    ) {
+      errors.push({ row: index + 1, email: row.email, error: "Conflicting rows for the same member and start date" });
+      continue;
+    }
+    exactDateRows.set(exactDateKey, row);
+    preparedRows.push({ row, rowNumber: index + 1, period });
+  }
+
+  return { preparedRows, errors };
 }
 
-function prepareImportRows(
-  rows: CsvRow[],
-  membershipLookup: MembershipLookup,
-  userIdsByEmail: Map<string, string>,
-): { processedRows: ProcessedImportRow[]; errors: ImportError[] } {
-  const processedRows: ProcessedImportRow[] = [];
-  const errors: ImportError[] = [];
-  const now = new Date();
+function latestRowsByEmail(rows: PreparedRow[]) {
+  const grouped = new Map<string, PreparedRow[]>();
+  for (const prepared of rows) {
+    const group = grouped.get(prepared.row.email) ?? [];
+    group.push(prepared);
+    grouped.set(prepared.row.email, group);
+  }
+  for (const group of grouped.values()) {
+    group.sort((left, right) => left.period.startDate.localeCompare(right.period.startDate));
+  }
+  return grouped;
+}
 
-  for (const rowReference of sortRowsByLatestMembershipStart(rows)) {
-    const result = prepareImportRow(rowReference, membershipLookup, userIdsByEmail, now);
-    if ("error" in result) {
-      errors.push(result);
-    } else {
-      processedRows.push(result);
+function isAllowedEmail(value: string | undefined) {
+  return ["true", "yes"].includes(value?.trim().toLowerCase() ?? "");
+}
+
+function finalSegmentStart(rows: PreparedRow[]) {
+  let index = rows.length - 1;
+  while (index > 0) {
+    const previous = rows[index - 1];
+    const current = rows[index];
+    if (!previous || !current || !areConsecutive(previous.period, current.period)) break;
+    index--;
+  }
+  const first = rows[index];
+  if (!first) throw new Error("Cannot infer a membership timeline without imported rows");
+  return first.period.startDate;
+}
+
+function inferredTimelineValues(memberId: string, rows: PreparedRow[]) {
+  type StagedEvent = Omit<typeof table.membershipEvent.$inferInsert, "effectiveAt"> & { effectiveDate: string };
+  const events: StagedEvent[] = [];
+  for (const [index, prepared] of rows.entries()) {
+    const previous = rows[index - 1];
+    const startsSegment = !previous || !areConsecutive(previous.period, prepared.period);
+    if (startsSegment) {
+      if (previous) {
+        const endedOn = nextNonPaymentAction(previous.period.endDate);
+        events.push({
+          id: crypto.randomUUID(),
+          memberId,
+          eventType: "legacy_resignation_inferred",
+          effectiveDate: endedOn,
+          source: "imported",
+          certainty: "inferred",
+          data: { reason: "Missing imported fee period" },
+        });
+      }
+      events.push({
+        id: crypto.randomUUID(),
+        memberId,
+        eventType: previous ? "legacy_rejoin_inferred" : "legacy_membership_started_inferred",
+        effectiveDate: prepared.period.startDate,
+        source: "imported",
+        certainty: "inferred",
+        membershipFeePeriodId: prepared.period.id,
+        data: { membershipTypeId: prepared.period.membershipTypeId },
+      });
+    } else if (previous.period.membershipTypeId !== prepared.period.membershipTypeId) {
+      events.push({
+        id: crypto.randomUUID(),
+        memberId,
+        eventType: "legacy_type_changed_inferred",
+        effectiveDate: prepared.period.startDate,
+        source: "imported",
+        certainty: "inferred",
+        membershipFeePeriodId: prepared.period.id,
+        data: {
+          fromMembershipTypeId: previous.period.membershipTypeId,
+          toMembershipTypeId: prepared.period.membershipTypeId,
+        },
+      });
     }
   }
 
-  return { processedRows, errors };
-}
-
-function uniqueProcessedRowsByEmail(rows: ProcessedImportRow[]): ProcessedImportRow[] {
-  const rowsByEmail = new Map<string, ProcessedImportRow>();
-
-  for (const row of rows) {
-    if (!rowsByEmail.has(row.row.email)) {
-      rowsByEmail.set(row.row.email, row);
-    }
-  }
-
-  return Array.from(rowsByEmail.values());
-}
-
-function isAllowedEmailValue(value: string | undefined): boolean {
-  return ["true", "yes"].includes(value?.toLowerCase().trim() ?? "");
-}
-
-async function insertNewUsers(processedRows: ProcessedImportRow[]): Promise<ProcessedImportRow[]> {
-  const uniqueNewUsers = uniqueProcessedRowsByEmail(processedRows.filter((row) => row.isNewUser));
-
-  for (let i = 0; i < uniqueNewUsers.length; i += IMPORT_BATCH_SIZE) {
-    const batch = uniqueNewUsers.slice(i, i + IMPORT_BATCH_SIZE);
-    const userValues = batch.map((processedRow) => ({
-      id: processedRow.userId,
-      email: processedRow.row.email,
-      firstNames: processedRow.row.firstNames,
-      lastName: processedRow.row.lastName,
-      homeMunicipality: processedRow.row.homeMunicipality,
-      adminRole: "none" as const,
-      isAllowedEmails: isAllowedEmailValue(processedRow.row.isAllowedEmails),
-    }));
-
-    if (userValues.length > 0) {
-      await db.insert(table.user).values(userValues);
-    }
-  }
-
-  return uniqueNewUsers;
-}
-
-async function updateExistingUsers(processedRows: ProcessedImportRow[], errors: ImportError[]): Promise<void> {
-  const uniqueExistingUsers = uniqueProcessedRowsByEmail(processedRows.filter((row) => !row.isNewUser));
-
-  for (const processedRow of uniqueExistingUsers) {
-    try {
-      await db
-        .update(table.user)
-        .set({
-          firstNames: processedRow.row.firstNames,
-          lastName: processedRow.row.lastName,
-          homeMunicipality: processedRow.row.homeMunicipality,
-        })
-        .where(eq(table.user.id, processedRow.userId));
-    } catch (err) {
-      errors.push(
-        buildImportError(
-          processedRow.row,
-          processedRow.index,
-          err instanceof Error ? err.message : "Failed to update user",
-        ),
-      );
-    }
-  }
-}
-
-async function loadExistingMemberKeys(processedRows: ProcessedImportRow[]): Promise<Set<string>> {
-  const userIds = [...new Set(processedRows.map((processedRow) => processedRow.userId))];
-  const existingMemberKeys = new Set<string>();
-
-  for (let i = 0; i < userIds.length; i += IMPORT_BATCH_SIZE) {
-    const userIdBatch = userIds.slice(i, i + IMPORT_BATCH_SIZE);
-    if (userIdBatch.length === 0) continue;
-
-    const existingMembers = await db
-      .select({
-        userId: table.member.userId,
-        membershipId: table.member.membershipId,
-      })
-      .from(table.member)
-      .where(inArray(table.member.userId, userIdBatch));
-
-    for (const member of existingMembers) {
-      existingMemberKeys.add(`${member.userId}:${member.membershipId}`);
-    }
-  }
-
-  return existingMemberKeys;
-}
-
-function getNewMemberRows(processedRows: ProcessedImportRow[], existingMemberKeys: Set<string>): ProcessedImportRow[] {
-  const rowsByMemberKey = new Map<string, ProcessedImportRow>();
-
-  for (const processedRow of processedRows) {
-    const memberKey = `${processedRow.userId}:${processedRow.membershipId}`;
-    if (!existingMemberKeys.has(memberKey) && !rowsByMemberKey.has(memberKey)) {
-      rowsByMemberKey.set(memberKey, processedRow);
-    }
-  }
-
-  return Array.from(rowsByMemberKey.values());
-}
-
-async function insertMemberBatch(memberRows: ProcessedImportRow[], errors: ImportError[]): Promise<void> {
-  const rowByMemberKey = new Map<string, ProcessedImportRow>();
-  const memberValues = memberRows.map((processedRow) => {
-    const memberKey = `${processedRow.userId}:${processedRow.membershipId}`;
-    rowByMemberKey.set(memberKey, processedRow);
-
-    return {
+  const latest = rows.at(-1);
+  if (!latest) throw new Error("Cannot infer a membership timeline without imported rows");
+  const inferredEndDate = nextNonPaymentAction(latest.period.endDate);
+  if (inferredEndDate <= todayInHelsinki()) {
+    events.push({
       id: crypto.randomUUID(),
-      userId: processedRow.userId,
-      membershipId: processedRow.membershipId,
-      status: processedRow.status,
-    };
-  });
-
-  try {
-    await db.insert(table.member).values(memberValues);
-  } catch {
-    await insertMemberBatchIndividually(memberValues, rowByMemberKey, errors);
+      memberId,
+      eventType: "legacy_resignation_inferred",
+      effectiveDate: inferredEndDate,
+      source: "imported",
+      certainty: "inferred",
+      data: { reason: "No later imported fee period" },
+    });
   }
-}
-
-async function insertMemberBatchIndividually(
-  memberValues: Array<{ id: string; userId: string; membershipId: string; status: "active" | "resigned" }>,
-  rowByMemberKey: Map<string, ProcessedImportRow>,
-  errors: ImportError[],
-): Promise<void> {
-  for (const memberValue of memberValues) {
-    const memberKey = `${memberValue.userId}:${memberValue.membershipId}`;
-    const processedRow = rowByMemberKey.get(memberKey);
-
-    try {
-      await db.insert(table.member).values(memberValue);
-    } catch (innerErr) {
-      if (!processedRow) continue;
-
-      errors.push(
-        buildImportError(
-          processedRow.row,
-          processedRow.index,
-          innerErr instanceof Error ? innerErr.message : "Failed to create member record",
-        ),
-      );
-    }
-  }
-}
-
-async function insertNewMembers(memberRows: ProcessedImportRow[], errors: ImportError[]): Promise<void> {
-  for (let i = 0; i < memberRows.length; i += IMPORT_BATCH_SIZE) {
-    const batch = memberRows.slice(i, i + IMPORT_BATCH_SIZE);
-    if (batch.length > 0) {
-      await insertMemberBatch(batch, errors);
-    }
-  }
+  return events.map(({ effectiveDate, ...event }) => ({
+    ...event,
+    effectiveAt: helsinkiTimestamp(effectiveDate),
+  }));
 }
 
 export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
-
-  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !event.locals.user || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
-  const parsedRows = parseImportRows(rowsJson, LL.admin.import.invalidDataFormat());
-  const membershipLookup = await loadMembershipLookup();
-  const userIdsByEmail = await loadUserIdsByEmail(parsedRows);
-  const rows = normalizeImportEmails(parsedRows);
-  const { processedRows, errors } = prepareImportRows(rows, membershipLookup, userIdsByEmail);
-  const ambiguityResult = await rejectAmbiguousMembershipTypes(processedRows);
-  errors.push(...ambiguityResult.errors);
-  const importableRows = ambiguityResult.importableRows;
+  const rows = parseRows(rowsJson, LL.admin.import.invalidDataFormat());
+  const periods = await db.query.membershipFeePeriod.findMany({ with: { membershipType: true } });
+  const { preparedRows, errors } = prepareRows(rows, periods);
+  if (errors.length > 0) return { success: false, successCount: 0, totalRows: rows.length, errors };
 
-  const uniqueNewUsers = await insertNewUsers(importableRows);
-  await updateExistingUsers(importableRows, errors);
+  const rowsByEmail = latestRowsByEmail(preparedRows);
+  const existingUsers = await getUsersByEmails([...rowsByEmail.keys()]);
+  let usersCreated = 0;
+  let membersCreated = 0;
+  let paymentsCreated = 0;
 
-  const existingMemberKeys = await loadExistingMemberKeys(importableRows);
-  const membersToInsert = getNewMemberRows(importableRows, existingMemberKeys);
-  await insertNewMembers(membersToInsert, errors);
+  await db.transaction(async (tx) => {
+    const importsByUserId = new Map<string, PreparedRow[]>();
+    const newUserValues: (typeof table.user.$inferInsert)[] = [];
 
-  const errorRowIndices = new Set(errors.map((e) => e.row - 1));
-  const successCount = rows.length - errorRowIndices.size;
+    for (const [email, memberRows] of rowsByEmail) {
+      const latest = memberRows.at(-1);
+      if (!latest) throw new Error("Cannot import an empty member row group");
+      const existingUser = existingUsers.get(email);
+      const userId = existingUser?.id ?? generateUserId();
+      if (!existingUser) {
+        newUserValues.push({
+          id: userId,
+          email,
+          firstNames: latest.row.firstNames,
+          lastName: latest.row.lastName,
+          homeMunicipality: latest.row.homeMunicipality,
+          isAllowedEmails: isAllowedEmail(latest.row.isAllowedEmails),
+        });
+      }
+      const combinedRows = [...(importsByUserId.get(userId) ?? []), ...memberRows];
+      combinedRows.sort((left, right) => left.period.startDate.localeCompare(right.period.startDate));
+      importsByUserId.set(userId, combinedRows);
+    }
+
+    if (newUserValues.length > 0) {
+      await tx.insert(table.user).values(newUserValues);
+      usersCreated = newUserValues.length;
+    }
+
+    const userIds = [...importsByUserId.keys()];
+    const existingMembers =
+      userIds.length === 0 ? [] : await tx.select().from(table.member).where(inArray(table.member.userId, userIds));
+    const existingMembersByUserId = new Map(
+      existingMembers.flatMap((member) => (member.userId ? [[member.userId, member] as const] : [])),
+    );
+    const existingMemberIds = existingMembers.map((member) => member.id);
+    const existingPayments =
+      existingMemberIds.length === 0
+        ? []
+        : await tx.select().from(table.payment).where(inArray(table.payment.memberId, existingMemberIds));
+    const paidPeriodsByMemberId = new Map<string, Set<string>>();
+    for (const payment of existingPayments) {
+      if (payment.status !== "succeeded" || payment.refundConfirmedAt || payment.invalidatedAt) continue;
+      const paidPeriods = paidPeriodsByMemberId.get(payment.memberId) ?? new Set<string>();
+      paidPeriods.add(payment.membershipFeePeriodId);
+      paidPeriodsByMemberId.set(payment.memberId, paidPeriods);
+    }
+
+    const newMemberValues: (typeof table.member.$inferInsert)[] = [];
+    const timelineValues: (typeof table.membershipEvent.$inferInsert)[] = [];
+    const memberIdByUserId = new Map(existingMembersByUserId.entries().map(([userId, member]) => [userId, member.id]));
+
+    for (const [userId, memberRows] of importsByUserId) {
+      if (existingMembersByUserId.has(userId)) continue;
+      const latest = memberRows.at(-1);
+      if (!latest) throw new Error("Cannot import an empty member row group");
+      const memberId = crypto.randomUUID();
+      const inferredEndDate = nextNonPaymentAction(latest.period.endDate);
+      const ended = inferredEndDate <= todayInHelsinki();
+      newMemberValues.push({
+        id: memberId,
+        userId,
+        status: ended ? "ended" : "active",
+        membershipTypeId: latest.period.membershipTypeId,
+        currentMembershipStartedAt: helsinkiTimestamp(finalSegmentStart(memberRows)),
+        currentMembershipEndedAt: ended ? helsinkiTimestamp(inferredEndDate) : null,
+      });
+      timelineValues.push(...inferredTimelineValues(memberId, memberRows));
+      memberIdByUserId.set(userId, memberId);
+    }
+
+    if (newMemberValues.length > 0) {
+      await tx.insert(table.member).values(newMemberValues);
+      membersCreated = newMemberValues.length;
+    }
+    if (timelineValues.length > 0) {
+      await tx.insert(table.membershipEvent).values(timelineValues);
+    }
+
+    const paymentValues: (typeof table.payment.$inferInsert)[] = [];
+    for (const [userId, memberRows] of importsByUserId) {
+      const memberId = memberIdByUserId.get(userId);
+      if (!memberId) throw new Error("Imported member could not be resolved");
+      const existingPaidPeriods = paidPeriodsByMemberId.get(memberId) ?? new Set<string>();
+      const rowsByPeriod = new Map(memberRows.map((prepared) => [prepared.period.id, prepared]));
+      for (const prepared of rowsByPeriod.values()) {
+        if (!prepared.period.membershipType.requiresPayment || existingPaidPeriods.has(prepared.period.id)) continue;
+        paymentValues.push({
+          id: `import-payment-${memberId}-${prepared.period.id}`,
+          memberId,
+          membershipFeePeriodId: prepared.period.id,
+          source: "imported",
+          status: "succeeded",
+        });
+      }
+    }
+
+    if (paymentValues.length > 0) {
+      const inserted = await tx
+        .insert(table.payment)
+        .values(paymentValues)
+        .onConflictDoNothing()
+        .returning({ id: table.payment.id });
+      paymentsCreated = inserted.length;
+    }
+  });
 
   await auditFromEvent(event, "member.bulk_import", {
     targetType: "member",
     metadata: {
       totalRows: rows.length,
-      successCount,
-      errorCount: errors.length,
-      newUsersCreated: uniqueNewUsers.length,
-      membersCreated: membersToInsert.length,
+      successCount: rows.length,
+      newUsersCreated: usersCreated,
+      membersCreated,
+      paymentsCreated,
+      model: "indefinite_membership",
     },
   });
-
-  return {
-    success: true,
-    successCount,
-    totalRows: rows.length,
-    errors,
-  };
+  return { success: true, successCount: rows.length, totalRows: rows.length, errors: [] as ImportError[] };
 });
 
-// Create a single legacy membership (no Stripe price)
+function historicalPeriodValues(data: { membershipTypeId: string; startTime: string; endTime: string }) {
+  const startDate = dateOnly(data.startTime);
+  const endDate = dateOnly(data.endTime);
+  if (!startDate || !endDate) error(400, "Invalid fee-period dates");
+  const year = startDate.slice(0, 4);
+  return {
+    id: crypto.randomUUID(),
+    membershipTypeId: data.membershipTypeId,
+    stripePriceId: null,
+    startDate,
+    endDate,
+    dueDate: `${year}-09-30`,
+    nonPaymentActionAt: `${year}-12-01`,
+  };
+}
+
 export const createLegacyMembership = command(createLegacyMembershipSchema, async (data) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
-
   if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
-
-  const membership = await db
-    .insert(table.membership)
-    .values({
-      id: crypto.randomUUID(),
-      membershipTypeId: data.membershipTypeId,
-      stripePriceId: null,
-      startTime: new Date(data.startTime),
-      endTime: new Date(data.endTime),
-      requiresStudentVerification: false,
-    })
-    .onConflictDoNothing({ target: [table.membership.membershipTypeId, table.membership.startTime] })
+  const [period] = await db
+    .insert(table.membershipFeePeriod)
+    .values(historicalPeriodValues(data))
+    .onConflictDoNothing({ target: [table.membershipFeePeriod.membershipTypeId, table.membershipFeePeriod.startDate] })
     .returning();
-
-  if (membership[0]) {
+  if (period) {
     await auditFromEvent(event, "membership.create", {
       targetType: "membership",
-      targetId: membership[0].id,
-      metadata: {
-        membershipTypeId: data.membershipTypeId,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        legacy: true,
-      },
+      targetId: period.id,
+      metadata: { membershipTypeId: data.membershipTypeId, startDate: data.startTime, historical: true },
     });
   }
-
-  return { success: true, membership: membership[0] ?? null };
+  return { success: true, membership: period ?? null };
 });
 
-// Batch create multiple legacy memberships
 export const createLegacyMemberships = command(createLegacyMembershipsBatchSchema, async ({ memberships }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
-
   if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
-
   const created = await db
-    .insert(table.membership)
-    .values(
-      memberships.map((m) => ({
-        id: crypto.randomUUID(),
-        membershipTypeId: m.membershipTypeId,
-        stripePriceId: null,
-        startTime: new Date(m.startTime),
-        endTime: new Date(m.endTime),
-        requiresStudentVerification: false,
-      })),
-    )
-    .onConflictDoNothing({ target: [table.membership.membershipTypeId, table.membership.startTime] })
+    .insert(table.membershipFeePeriod)
+    .values(memberships.map(historicalPeriodValues))
+    .onConflictDoNothing({ target: [table.membershipFeePeriod.membershipTypeId, table.membershipFeePeriod.startDate] })
     .returning();
-
   if (created.length > 0) {
     await auditFromEvent(event, "membership.create", {
       targetType: "membership",
-      metadata: { count: created.length, legacy: true, batch: true },
+      metadata: { count: created.length, historical: true, batch: true },
     });
   }
-
   return { success: true, count: created.length };
 });

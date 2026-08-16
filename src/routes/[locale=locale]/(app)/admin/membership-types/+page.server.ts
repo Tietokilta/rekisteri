@@ -17,12 +17,23 @@ export const load: PageServerLoad = async (event) => {
       name: table.membershipType.name,
       description: table.membershipType.description,
       purchasable: table.membershipType.purchasable,
+      requiresPayment: table.membershipType.requiresPayment,
+      requiresStudentVerification: table.membershipType.requiresStudentVerification,
       createdAt: table.membershipType.createdAt,
       updatedAt: table.membershipType.updatedAt,
-      membershipCount: count(table.membership.id),
+      membershipCount: count(table.membershipFeePeriod.id),
+      hasApplicationTarget: sql<boolean>`COALESCE(bool_or(
+        ${table.membershipFeePeriod.acceptsApplications}
+        AND ${table.membershipFeePeriod.publishedAt} IS NOT NULL
+        AND ${table.membershipFeePeriod.endDate} >= (CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Helsinki')::date
+        AND (NOT ${table.membershipType.requiresPayment} OR ${table.membershipFeePeriod.stripePriceId} IS NOT NULL)
+      ), false)`,
     })
     .from(table.membershipType)
-    .leftJoin(table.membership, sql`${table.membershipType.id} = ${table.membership.membershipTypeId}`)
+    .leftJoin(
+      table.membershipFeePeriod,
+      sql`${table.membershipType.id} = ${table.membershipFeePeriod.membershipTypeId}`,
+    )
     .groupBy(table.membershipType.id)
     .orderBy(asc(sql`${table.membershipType.name}->>'fi'`));
 

@@ -19,32 +19,41 @@ export const load: PageServerLoad = async (event) => {
   // add information member count to db query
   const memberships = await db
     .select({
-      id: table.membership.id,
-      membershipTypeId: table.membership.membershipTypeId,
-      stripePriceId: table.membership.stripePriceId,
-      startTime: table.membership.startTime,
-      endTime: table.membership.endTime,
-      requiresStudentVerification: table.membership.requiresStudentVerification,
-      memberCount: count(table.member.userId),
+      id: table.membershipFeePeriod.id,
+      membershipTypeId: table.membershipFeePeriod.membershipTypeId,
+      stripePriceId: table.membershipFeePeriod.stripePriceId,
+      startDate: table.membershipFeePeriod.startDate,
+      endDate: table.membershipFeePeriod.endDate,
+      publishedAt: table.membershipFeePeriod.publishedAt,
+      acceptsApplications: table.membershipFeePeriod.acceptsApplications,
+      requiresStudentVerification: table.membershipType.requiresStudentVerification,
+      memberCount: count(table.membershipObligation.memberId),
     })
-    .from(table.membership)
-    .leftJoin(table.member, sql`${table.membership.id} = ${table.member.membershipId}`)
-    .groupBy(table.membership.id)
-    .orderBy(desc(table.membership.startTime));
+    .from(table.membershipFeePeriod)
+    .innerJoin(table.membershipType, sql`${table.membershipFeePeriod.membershipTypeId} = ${table.membershipType.id}`)
+    .leftJoin(
+      table.membershipObligation,
+      sql`${table.membershipFeePeriod.id} = ${table.membershipObligation.membershipFeePeriodId}`,
+    )
+    .groupBy(table.membershipFeePeriod.id, table.membershipType.id)
+    .orderBy(desc(table.membershipFeePeriod.startDate));
 
   const currentYear = new Date().getFullYear();
   // Format dates to YYYY-MM-DD for date inputs
   const formatDate = (date: Date) => date.toISOString().slice(0, 10);
 
   return {
-    memberships,
+    memberships: memberships.map((membership) => ({
+      ...membership,
+      startTime: new Date(`${membership.startDate}T00:00:00`),
+      endTime: new Date(`${membership.endDate}T00:00:00`),
+    })),
     membershipTypes,
     defaultValues: {
       membershipTypeId: "",
       stripePriceId: "",
       startTime: formatDate(new Date(currentYear, 7, 1, 12)),
       endTime: formatDate(new Date(currentYear + 1, 6, 31, 12)),
-      requiresStudentVerification: false,
     },
   };
 };

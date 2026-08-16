@@ -3,89 +3,70 @@ import type { PageServerLoad } from "./$types";
 import { route } from "$lib/ROUTES";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { eq, desc, gt, gte, and, isNotNull } from "drizzle-orm";
+import { and, eq, gte } from "drizzle-orm";
 import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
-import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
-import { checkAutoApprovalEligibility } from "$lib/server/payment/auto-approval";
+
+function todayInHelsinki() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Helsinki",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.user) {
     return redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
   }
-
   const user = event.locals.user;
 
-  const result = await db
-    .select()
-    .from(table.member)
-    .innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
-    .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
-    .where(eq(table.member.userId, user.id))
-    .orderBy(desc(table.membership.startTime));
+  const member = await db.query.member.findFirst({
+    where: { userId: user.id },
+    with: { obligations: { with: { payments: true } } },
+  });
 
-  const memberships = result.map((m) => ({
-    ...m.membership,
-    membershipType: m.membership_type,
-    status: m.member.status,
-  }));
-
-  // Only consider memberships with blocking statuses when calculating the latest end time
-  // This allows users to repurchase memberships if their previous one was resigned or rejected
-  const blockingMemberships = memberships.filter((m) => BLOCKING_MEMBER_STATUSES.has(m.status));
-  const latestEndTime =
-    blockingMemberships.length > 0
-      ? new Date(Math.max(...blockingMemberships.map((m) => m.endTime.getTime())))
-      : new Date(0);
-
-  // Only show purchasable memberships (non-expired, non-overlapping, with Stripe price)
   const availableResult = await db
     .select()
-    .from(table.membership)
-    .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
+    .from(table.membershipFeePeriod)
+    .innerJoin(table.membershipType, eq(table.membershipFeePeriod.membershipTypeId, table.membershipType.id))
     .where(
       and(
-        gt(table.membership.endTime, new Date()),
-        gte(table.membership.startTime, latestEndTime),
-        isNotNull(table.membership.stripePriceId),
+        eq(table.membershipFeePeriod.acceptsApplications, true),
+        gte(table.membershipFeePeriod.endDate, todayInHelsinki()),
         eq(table.membershipType.purchasable, true),
       ),
     );
 
-  const availableMembershipsRaw = availableResult.map((r) => ({
-    ...r.membership,
-    membershipType: r.membership_type,
-  }));
+  const blockedByPendingApplication = member?.status === "awaiting_payment" || member?.status === "awaiting_approval";
+  const availableMemberships = blockedByPendingApplication
+    ? []
+    : availableResult
+        .filter(({ membership_fee_period: period }) => {
+          const obligation = member?.obligations.find((item) => item.membershipFeePeriodId === period.id);
+          return !obligation?.payments.some(
+            (payment) => payment.status === "succeeded" && !payment.refundConfirmedAt && !payment.invalidatedAt,
+          );
+        })
+        .map(({ membership_fee_period: period, membership_type: membershipType }) => ({
+          ...period,
+          membershipType,
+          requiresBoardApproval: member?.status !== "active" || member.membershipTypeId !== period.membershipTypeId,
+        }));
 
-  // Check auto-approval eligibility for each available membership.
-  // This runs 2-3 queries per membership (N+1), but the number of available
-  // memberships is typically very small (2-5), so batching isn't worth the complexity.
-  const availableMemberships = await Promise.all(
-    availableMembershipsRaw.map(async (m) => ({
-      ...m,
-      willAutoApprove: await checkAutoApprovalEligibility(db, user.id, m),
-    })),
-  );
-
-  // Check for valid aalto.fi email (primary or secondary)
   const primaryEmailDomain = user.email.split("@", 2)[1]?.toLowerCase();
   const isPrimaryAalto = primaryEmailDomain === "aalto.fi";
-
   const secondaryEmails = await getUserSecondaryEmails(user.id);
-  const aaltoSecondaryEmail = secondaryEmails.find((e) => e.domain === "aalto.fi");
+  const aaltoSecondaryEmail = secondaryEmails.find((email) => email.domain === "aalto.fi");
   const hasValidSecondaryAalto = aaltoSecondaryEmail ? isSecondaryEmailValid(aaltoSecondaryEmail) : false;
   const hasExpiredSecondaryAalto = aaltoSecondaryEmail && !isSecondaryEmailValid(aaltoSecondaryEmail);
 
-  // Primary email is always considered valid (no expiration tracking for primary)
-  // TODO: Consider adding expiration tracking for primary emails with expiring domains
-  const hasValidAaltoEmail = isPrimaryAalto || hasValidSecondaryAalto;
-  const hasExpiredAaltoEmail = !isPrimaryAalto && hasExpiredSecondaryAalto;
-
   return {
     user,
-    memberships,
+    member: member ? { id: member.id, status: member.status } : null,
     availableMemberships,
-    hasValidAaltoEmail,
-    hasExpiredAaltoEmail,
+    hasValidAaltoEmail: isPrimaryAalto || hasValidSecondaryAalto,
+    hasExpiredAaltoEmail: !isPrimaryAalto && hasExpiredSecondaryAalto,
     aaltoEmailExpiry: isPrimaryAalto ? null : aaltoSecondaryEmail?.expiresAt,
   };
 };

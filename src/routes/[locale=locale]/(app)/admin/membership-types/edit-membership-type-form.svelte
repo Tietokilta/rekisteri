@@ -18,6 +18,9 @@
     name: LocalizedString;
     description: LocalizedString | null;
     purchasable: boolean;
+    requiresPayment: boolean;
+    requiresStudentVerification: boolean;
+    hasApplicationTarget: boolean;
     membershipCount: number;
   }
 
@@ -48,6 +51,8 @@
         descriptionFi: membershipType.description?.fi ?? "",
         descriptionEn: membershipType.description?.en ?? "",
         purchasable: membershipType.purchasable,
+        requiresPayment: membershipType.requiresPayment,
+        requiresStudentVerification: membershipType.requiresStudentVerification,
       });
     });
   });
@@ -119,10 +124,42 @@
 
   <!-- Purchasable -->
   <div class="flex items-center gap-3">
-    <Checkbox {...editForm.fields.purchasable.as("checkbox")} id={`edit-purchasable-${membershipType.id}`} />
+    <Checkbox
+      {...editForm.fields.purchasable.as("checkbox")}
+      id={`edit-purchasable-${membershipType.id}`}
+      disabled={!membershipType.hasApplicationTarget}
+    />
     <div>
       <Label for={`edit-purchasable-${membershipType.id}`}>{$LL.admin.membershipTypes.purchasable()}</Label>
       <p class="text-sm text-muted-foreground">{$LL.admin.membershipTypes.purchasableDescription()}</p>
+      {#if !membershipType.hasApplicationTarget}
+        <p class="text-sm text-amber-700 dark:text-amber-300">
+          {$LL.admin.membershipTypes.applicationTargetRequired()}
+        </p>
+      {/if}
+    </div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <Checkbox {...editForm.fields.requiresPayment.as("checkbox")} id={`edit-requiresPayment-${membershipType.id}`} />
+    <div>
+      <Label for={`edit-requiresPayment-${membershipType.id}`}>{$LL.admin.membershipTypes.requiresPayment()}</Label>
+      <p class="text-sm text-muted-foreground">{$LL.admin.membershipTypes.requiresPaymentDescription()}</p>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <Checkbox
+      {...editForm.fields.requiresStudentVerification.as("checkbox")}
+      id={`edit-requiresStudentVerification-${membershipType.id}`}
+    />
+    <div>
+      <Label for={`edit-requiresStudentVerification-${membershipType.id}`}>
+        {$LL.membership.requiresStudentVerification()}
+      </Label>
+      <p class="text-sm text-muted-foreground">
+        {$LL.admin.membershipTypes.requiresStudentVerificationDescription()}
+      </p>
     </div>
   </div>
 </form>

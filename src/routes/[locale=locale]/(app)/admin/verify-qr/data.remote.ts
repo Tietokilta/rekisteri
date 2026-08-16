@@ -1,8 +1,6 @@
 import { error } from "@sveltejs/kit";
 import { command, getRequestEvent } from "$app/server";
 import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
-import { eq, desc, and, or } from "drizzle-orm";
 import { verifyQrToken } from "$lib/server/attendance/qr-token";
 import { verifyQrSchema } from "./schema";
 import { getLL } from "$lib/server/i18n";
@@ -37,28 +35,23 @@ export const verifyQr = command(verifyQrSchema, async ({ token }) => {
     error(404, LL.error.resourceNotFound());
   }
 
-  const memberships = await db
-    .select({
-      id: table.member.id,
-      status: table.member.status,
-      createdAt: table.member.createdAt,
-      membershipType: {
-        id: table.membershipType.id,
-        name: table.membershipType.name,
-      },
-      membership: {
-        startTime: table.membership.startTime,
-        endTime: table.membership.endTime,
-      },
-    })
-    .from(table.member)
-    .innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
-    .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
-    .where(
-      and(eq(table.member.userId, userId), or(eq(table.member.status, "active"), eq(table.member.status, "resigned"))),
-    )
-    .orderBy(desc(table.membership.startTime))
-    .limit(3);
+  const member = await db.query.member.findFirst({
+    where: { userId },
+    with: { membershipType: true },
+  });
+
+  const memberships =
+    member?.membershipType && member.status === "active"
+      ? [
+          {
+            id: member.id,
+            status: member.status,
+            membershipType: member.membershipType,
+            startedAt: member.currentMembershipStartedAt,
+            endedAt: member.currentMembershipEndedAt,
+          },
+        ]
+      : [];
 
   await auditFromEvent(event, "admin.verify_qr", {
     targetType: "user",

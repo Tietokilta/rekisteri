@@ -69,6 +69,7 @@
     membershipStripePriceId: string | null;
     membershipStartTime: Date | null;
     membershipEndTime: Date | null;
+    canBeDeemedResigned: boolean;
   };
 
   type BaseMemberRow = MembershipData & {
@@ -703,17 +704,10 @@
     return Object.keys(rowSelection).filter((id) => rowSelection[id]);
   }
 
-  // Check if a membership period has ended (endTime is in the past)
-  function isMembershipPeriodEnded(endTime: Date | null, now: Date = new Date()): boolean {
-    if (!endTime) return false;
-    return endTime < now;
-  }
-
   // Helper to get the count of selected members by status
   function getSelectedMembersByStatus() {
     const selectedIds = getSelectedMemberIds();
     const selectedRows = table.getRowModel().rows.filter((row) => selectedIds.includes(row.id));
-    const now = new Date();
 
     const counts = {
       awaitingApproval: 0,
@@ -731,7 +725,7 @@
           break;
         case "active":
           counts.active++;
-          if (isMembershipPeriodEnded(row.original.membershipEndTime, now)) {
+          if (row.original.canBeDeemedResigned) {
             counts.eligibleForDeemResigned++;
           }
           break;
@@ -777,20 +771,17 @@
     };
   }
 
-  // Helper to get selected members eligible for bulk deem resigned.
-  // Only active members whose membership period has ended — this is stricter
-  // than individual deem resigned (which works on any active member) because
-  // the bulk action is specifically for the year-end cleanup per §8 p2.
+  // Only active members with an actionable unpaid obligation can be deemed
+  // resigned for non-payment under §8 p2.
   function getSelectedDeemResignedMembers(): { ids: string[]; names: string[] } {
     const selectedIds = getSelectedMemberIds();
-    const now = new Date();
     const eligible = table
       .getRowModel()
       .rows.filter(
         (row) =>
           selectedIds.includes(row.id) &&
           row.original.status === "active" &&
-          isMembershipPeriodEnded(row.original.membershipEndTime, now),
+          row.original.canBeDeemedResigned,
       );
     return {
       ids: eligible.map((row) => row.id),

@@ -2,7 +2,7 @@ import { error } from "@sveltejs/kit";
 import { getRequestEvent, command } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { auditFromEvent, auditMemberAction, auditBulkMemberAction } from "$lib/server/audit";
 import {
   memberIdSchema,
@@ -14,14 +14,22 @@ import {
 } from "./schema";
 import { getLL } from "$lib/server/i18n";
 import { sendMemberEmail } from "$lib/server/emails";
-import { getMembershipName } from "$lib/server/utils/membership";
 import { getUserLocale } from "$lib/server/utils/user";
-import { isValidTransition } from "$lib/server/utils/member";
 import { generateUserId } from "$lib/server/auth/utils";
 import { getDisplayFirstName } from "$lib/utils";
 import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
-import type { InferOutput } from "valibot";
 import { stripe } from "$lib/server/payment";
+import type { InferOutput } from "valibot";
+import {
+  approveMembership,
+  approveMembershipInTransaction,
+  correctMembershipType,
+  correctMembershipEnding,
+  endMembership,
+  endMembershipForNonPayment,
+  endMembershipInTransaction,
+  rejectMembership,
+} from "$lib/server/membership/admin-actions";
 
 type CreateMemberData = InferOutput<typeof createMemberSchema>;
 type CreateAssociationMemberData = Extract<CreateMemberData, { type: "association" }>;
@@ -29,24 +37,27 @@ type CreatePersonMemberData = Extract<CreateMemberData, { type: "person" }>;
 type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type UserProfileUpdates = Partial<{ firstNames: string; lastName: string; homeMunicipality: string }>;
 
-async function assertMembershipExists(membershipId: string, missingMembershipMessage: string): Promise<void> {
-  const membership = await db.query.membership.findFirst({
+async function assertMembershipExists(membershipId: string, missingMembershipMessage: string) {
+  const membership = await db.query.membershipFeePeriod.findFirst({
     where: { id: membershipId },
+    with: { membershipType: true },
   });
 
   if (!membership) {
     error(400, missingMembershipMessage);
   }
+  return membership;
 }
 
 async function createAssociationMemberInTransaction(
   tx: DbTransaction,
   memberId: string,
   data: CreateAssociationMemberData,
+  membershipTypeId: string,
   duplicateMembershipMessage: string,
 ): Promise<void> {
   const existingMember = await tx.query.member.findFirst({
-    where: { organizationName: data.organizationName, membershipId: data.membershipId },
+    where: { organizationName: data.organizationName },
   });
 
   if (existingMember) {
@@ -57,9 +68,11 @@ async function createAssociationMemberInTransaction(
     id: memberId,
     userId: null,
     organizationName: data.organizationName,
-    membershipId: data.membershipId,
     status: data.status,
-    description: data.description || null,
+    membershipTypeId: data.status === "active" ? membershipTypeId : null,
+    pendingMembershipTypeId: data.status === "awaiting_approval" ? membershipTypeId : null,
+    currentMembershipStartedAt: data.status === "active" ? new Date() : null,
+    applicationMotive: data.description || null,
   });
 }
 
@@ -87,11 +100,10 @@ async function updateMissingUserProfile(
 async function assertNoDuplicatePersonMembership(
   tx: DbTransaction,
   userId: string,
-  membershipId: string,
   duplicateMembershipMessage: string,
 ): Promise<void> {
   const existingMember = await tx.query.member.findFirst({
-    where: { userId, membershipId },
+    where: { userId },
   });
 
   if (existingMember) {
@@ -122,7 +134,7 @@ async function findOrCreateUserForMember(
     return userId;
   }
 
-  await assertNoDuplicatePersonMembership(tx, existingUser.id, data.membershipId, duplicateMembershipMessage);
+  await assertNoDuplicatePersonMembership(tx, existingUser.id, duplicateMembershipMessage);
   await updateMissingUserProfile(tx, existingUser, data);
 
   return existingUser.id;
@@ -132,6 +144,7 @@ async function createPersonMemberInTransaction(
   tx: DbTransaction,
   memberId: string,
   data: CreatePersonMemberData,
+  membershipTypeId: string,
   duplicateMembershipMessage: string,
 ): Promise<void> {
   const userId = await findOrCreateUserForMember(tx, data, duplicateMembershipMessage);
@@ -139,9 +152,11 @@ async function createPersonMemberInTransaction(
   await tx.insert(table.member).values({
     id: memberId,
     userId,
-    membershipId: data.membershipId,
     status: data.status,
-    description: data.description || null,
+    membershipTypeId: data.status === "active" ? membershipTypeId : null,
+    pendingMembershipTypeId: data.status === "awaiting_approval" ? membershipTypeId : null,
+    currentMembershipStartedAt: data.status === "active" ? new Date() : null,
+    applicationMotive: data.description || null,
   });
 }
 
@@ -149,42 +164,45 @@ async function createMemberInTransaction(
   tx: DbTransaction,
   memberId: string,
   data: CreateMemberData,
+  membershipTypeId: string,
   duplicateMembershipMessage: string,
 ): Promise<void> {
   if (data.type === "association") {
-    await createAssociationMemberInTransaction(tx, memberId, data, duplicateMembershipMessage);
+    await createAssociationMemberInTransaction(tx, memberId, data, membershipTypeId, duplicateMembershipMessage);
     return;
   }
 
-  await createPersonMemberInTransaction(tx, memberId, data, duplicateMembershipMessage);
+  await createPersonMemberInTransaction(tx, memberId, data, membershipTypeId, duplicateMembershipMessage);
 }
 
 export const approveMember = command(memberIdSchema, async ({ memberId }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !event.locals.user || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
-  const member = await db.query.member.findFirst({
-    where: { id: memberId },
-  });
-
-  if (!member) {
-    error(404, LL.admin.members.memberNotFound());
+  try {
+    await approveMembership(memberId, event.locals.user.id);
+  } catch (approvalError) {
+    if (approvalError instanceof Error) {
+      if (approvalError.message === "not_awaiting_approval") {
+        error(400, LL.admin.members.notAwaitingApproval());
+      }
+      if (
+        ["pending_fee_period_not_found", "pending_fee_period_not_payable", "pending_obligation_not_settled"].includes(
+          approvalError.message,
+        )
+      ) {
+        error(400, LL.admin.members.paymentRequiredBeforeApproval());
+      }
+    }
+    throw approvalError;
   }
-
-  // approveMember is specifically for new applications — resigned/rejected
-  // members should go through reactivateMember instead
-  if (member.status !== "awaiting_approval" && member.status !== "awaiting_payment") {
-    error(400, LL.admin.members.notAwaitingApproval());
-  }
-
-  await db.update(table.member).set({ status: "active" }).where(eq(table.member.id, memberId));
 
   await auditMemberAction(event, "member.approve", memberId, {
-    previousStatus: member.status,
+    model: "indefinite_membership",
   });
 
   // Send membership approved email
@@ -193,13 +211,11 @@ export const approveMember = command(memberIdSchema, async ({ memberId }) => {
       where: { id: memberId },
       with: {
         user: true,
-        membership: {
-          with: { membershipType: true },
-        },
+        membershipType: true,
       },
     });
 
-    if (memberWithDetails?.user) {
+    if (memberWithDetails?.user && memberWithDetails.membershipType) {
       const userLocale = getUserLocale(memberWithDetails.user);
 
       await sendMemberEmail({
@@ -207,9 +223,7 @@ export const approveMember = command(memberIdSchema, async ({ memberId }) => {
         emailType: "membership_approved",
         metadata: {
           firstName: getDisplayFirstName(memberWithDetails.user),
-          membershipName: getMembershipName(memberWithDetails.membership, userLocale),
-          startDate: memberWithDetails.membership.startTime,
-          endDate: memberWithDetails.membership.endTime,
+          membershipName: memberWithDetails.membershipType.name[userLocale],
         },
         locale: userLocale,
       });
@@ -226,27 +240,22 @@ export const rejectMember = command(memberIdWithReasonSchema, async ({ memberId,
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !event.locals.user || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
-  const member = await db.query.member.findFirst({
-    where: { id: memberId },
-  });
-
-  if (!member) {
-    error(404, LL.admin.members.memberNotFound());
+  try {
+    await rejectMembership(memberId, event.locals.user.id, reason);
+  } catch (rejectionError) {
+    if (rejectionError instanceof Error && rejectionError.message === "cannot_reject") {
+      error(400, LL.admin.members.cannotReject());
+    }
+    throw rejectionError;
   }
-
-  if (!isValidTransition(member.status, "rejected")) {
-    error(400, LL.admin.members.cannotReject());
-  }
-
-  await db.update(table.member).set({ status: "rejected" }).where(eq(table.member.id, memberId));
 
   await auditMemberAction(event, "member.reject", memberId, {
-    previousStatus: member.status,
     reason,
+    model: "indefinite_membership",
   });
 
   return { success: true, message: "Member rejected successfully" };
@@ -261,27 +270,25 @@ export const markMemberResigned = command(memberIdWithReasonSchema, async ({ mem
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !event.locals.user || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
-  const member = await db.query.member.findFirst({
-    where: { id: memberId },
-  });
-
-  if (!member) {
-    error(404, LL.admin.members.memberNotFound());
+  try {
+    await endMembershipForNonPayment(memberId, event.locals.user.id, reason);
+  } catch (endingError) {
+    if (
+      endingError instanceof Error &&
+      (endingError.message === "cannot_end" || endingError.message === "nonpayment_not_actionable")
+    ) {
+      error(400, LL.admin.members.cannotDeemResigned());
+    }
+    throw endingError;
   }
-
-  if (!isValidTransition(member.status, "resigned")) {
-    error(400, LL.admin.members.cannotDeemResigned());
-  }
-
-  await db.update(table.member).set({ status: "resigned" }).where(eq(table.member.id, memberId));
 
   await auditMemberAction(event, "member.deem_resigned", memberId, {
-    previousStatus: member.status,
     reason,
+    model: "indefinite_membership",
   });
 
   return { success: true, message: "Member deemed resigned" };
@@ -295,27 +302,22 @@ export const resignMember = command(memberIdWithReasonSchema, async ({ memberId,
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !event.locals.user || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
-  const member = await db.query.member.findFirst({
-    where: { id: memberId },
-  });
-
-  if (!member) {
-    error(404, LL.admin.members.memberNotFound());
+  try {
+    await endMembership(memberId, event.locals.user.id, "resigned_voluntarily", reason);
+  } catch (endingError) {
+    if (endingError instanceof Error && endingError.message === "cannot_end") {
+      error(400, LL.admin.members.cannotResign());
+    }
+    throw endingError;
   }
-
-  if (!isValidTransition(member.status, "resigned")) {
-    error(400, LL.admin.members.cannotResign());
-  }
-
-  await db.update(table.member).set({ status: "resigned" }).where(eq(table.member.id, memberId));
 
   await auditMemberAction(event, "member.resign", memberId, {
-    previousStatus: member.status,
     reason,
+    model: "indefinite_membership",
   });
 
   return { success: true, message: "Membership resignation recorded" };
@@ -325,27 +327,25 @@ export const reactivateMember = command(memberIdWithReasonSchema, async ({ membe
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !event.locals.user || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
-  const member = await db.query.member.findFirst({
-    where: { id: memberId },
-  });
-
-  if (!member) {
-    error(404, LL.admin.members.memberNotFound());
-  }
-
-  if (!isValidTransition(member.status, "active")) {
+  if (!reason?.trim()) {
     error(400, LL.admin.members.cannotReactivate());
   }
-
-  await db.update(table.member).set({ status: "active" }).where(eq(table.member.id, memberId));
+  try {
+    await correctMembershipEnding(memberId, event.locals.user.id, reason.trim());
+  } catch (correctionError) {
+    if (correctionError instanceof Error && correctionError.message === "cannot_correct_ending") {
+      error(400, LL.admin.members.cannotReactivate());
+    }
+    throw correctionError;
+  }
 
   await auditMemberAction(event, "member.reactivate", memberId, {
-    previousStatus: member.status,
     reason,
+    changeKind: "ending_correction",
   });
 
   return { success: true, message: "Membership reactivated successfully" };
@@ -355,123 +355,66 @@ export const changeMemberType = command(changeMemberTypeSchema, async ({ memberI
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !event.locals.user || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
 
-  const member = await db.query.member.findFirst({
-    where: { id: memberId },
-    with: {
-      membership: {
-        with: { membershipType: true },
+  let correction: Awaited<ReturnType<typeof correctMembershipType>>;
+  try {
+    correction = await correctMembershipType(
+      memberId,
+      targetMembershipId,
+      event.locals.user.id,
+      async (sourceStripePriceId, targetStripePriceId) => {
+        if (sourceStripePriceId === targetStripePriceId) return;
+        let sourcePrice;
+        let targetPrice;
+        try {
+          [sourcePrice, targetPrice] = await Promise.all([
+            stripe.prices.retrieve(sourceStripePriceId),
+            stripe.prices.retrieve(targetStripePriceId),
+          ]);
+        } catch {
+          throw new Error("price_check_failed");
+        }
+        if (
+          sourcePrice.unit_amount === null ||
+          targetPrice.unit_amount === null ||
+          sourcePrice.unit_amount !== targetPrice.unit_amount ||
+          sourcePrice.currency !== targetPrice.currency
+        ) {
+          throw new Error("price_mismatch");
+        }
       },
-    },
-  });
-
-  if (!member) {
-    error(404, LL.admin.members.memberNotFound());
-  }
-
-  if (member.status !== "awaiting_approval" && member.status !== "active") {
-    error(400, LL.admin.members.cannotChangeMembershipTypeFromStatus());
-  }
-
-  const targetMembership = await db.query.membership.findFirst({
-    where: { id: targetMembershipId },
-    with: { membershipType: true },
-  });
-
-  if (!targetMembership) {
-    error(404, LL.admin.members.membershipNotFound());
-  }
-
-  const currentMembership = member.membership;
-  const isSamePeriod =
-    currentMembership.startTime.getTime() === targetMembership.startTime.getTime() &&
-    currentMembership.endTime.getTime() === targetMembership.endTime.getTime();
-
-  if (!isSamePeriod) {
-    error(400, LL.admin.members.membershipTypeChangePeriodMismatch());
-  }
-
-  if (currentMembership.membershipTypeId === targetMembership.membershipTypeId) {
-    error(400, LL.admin.members.membershipTypeUnchanged());
-  }
-
-  if (!currentMembership.stripePriceId || !targetMembership.stripePriceId) {
-    error(400, LL.admin.members.membershipTypeChangeRequiresStripePrice());
-  }
-
-  if (currentMembership.stripePriceId !== targetMembership.stripePriceId) {
-    try {
-      const [currentPrice, targetPrice] = await Promise.all([
-        stripe.prices.retrieve(currentMembership.stripePriceId),
-        stripe.prices.retrieve(targetMembership.stripePriceId),
-      ]);
-
-      if (
-        currentPrice.unit_amount === null ||
-        targetPrice.unit_amount === null ||
-        currentPrice.unit_amount !== targetPrice.unit_amount ||
-        currentPrice.currency !== targetPrice.currency
-      ) {
+    );
+  } catch (correctionError: unknown) {
+    if (correctionError instanceof Error) {
+      if (correctionError.message === "period_mismatch") {
+        error(400, LL.admin.members.membershipTypeChangePeriodMismatch());
+      }
+      if (correctionError.message === "membership_type_unchanged") {
+        error(400, LL.admin.members.membershipTypeUnchanged());
+      }
+      if (correctionError.message === "price_mismatch") {
         error(400, LL.admin.members.membershipTypeChangePriceMismatch());
       }
-    } catch (priceError) {
-      if (priceError && typeof priceError === "object" && "status" in priceError) {
-        throw priceError;
+      if (correctionError.message === "cannot_correct_type") {
+        error(400, LL.admin.members.cannotChangeMembershipTypeFromStatus());
       }
-      console.error("[changeMemberType] Failed to compare Stripe prices:", priceError);
-      error(502, LL.admin.members.membershipTypeChangePriceCheckFailed());
+      if (correctionError.message === "correction_conflict") {
+        error(409, LL.admin.members.membershipTypeChangeConflict());
+      }
+      if (correctionError.message === "price_check_failed") {
+        error(502, LL.admin.members.membershipTypeChangePriceCheckFailed());
+      }
     }
-  }
-
-  let ownerCondition;
-  if (member.userId === null) {
-    if (member.organizationName === null) {
-      throw new Error(`Member ${member.id} has neither a user nor an organization`);
-    }
-    ownerCondition = eq(table.member.organizationName, member.organizationName);
-  } else {
-    ownerCondition = eq(table.member.userId, member.userId);
-  }
-  const [duplicateMember] = await db
-    .select({ id: table.member.id })
-    .from(table.member)
-    .where(and(ne(table.member.id, memberId), eq(table.member.membershipId, targetMembershipId), ownerCondition))
-    .limit(1);
-
-  if (duplicateMember) {
-    error(400, LL.admin.members.duplicateMembership());
-  }
-
-  const updatedMembers = await db
-    .update(table.member)
-    .set({ membershipId: targetMembershipId })
-    .where(
-      and(
-        eq(table.member.id, memberId),
-        eq(table.member.membershipId, currentMembership.id),
-        eq(table.member.status, member.status),
-      ),
-    )
-    .returning({ id: table.member.id });
-
-  if (updatedMembers.length === 0) {
-    error(409, LL.admin.members.membershipTypeChangeConflict());
+    throw correctionError;
   }
 
   await auditMemberAction(event, "member.type_change", memberId, {
     changeKind: "purchase_correction",
-    previousMembershipId: currentMembership.id,
-    previousMembershipTypeId: currentMembership.membershipTypeId,
-    previousStripePriceId: currentMembership.stripePriceId,
-    targetMembershipId: targetMembership.id,
-    targetMembershipTypeId: targetMembership.membershipTypeId,
-    targetStripePriceId: targetMembership.stripePriceId,
-    periodStart: currentMembership.startTime.toISOString(),
-    periodEnd: currentMembership.endTime.toISOString(),
-    previousStatus: member.status,
+    ...correction,
+    model: "indefinite_membership",
   });
 
   return { success: true };
@@ -481,17 +424,48 @@ export const createMember = command(createMemberSchema, async (data) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !event.locals.user || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
+  const actorUserId = event.locals.user.id;
 
-  await assertMembershipExists(data.membershipId, LL.admin.members.membershipNotFound());
+  const membership = await assertMembershipExists(data.membershipId, LL.admin.members.membershipNotFound());
+  if (membership.membershipType.requiresPayment && !data.description?.trim()) {
+    error(400, LL.membership.descriptionRequired());
+  }
 
   const memberId = crypto.randomUUID();
 
   // NOTE: error() throws a SvelteKit HttpError which aborts the transaction (auto-rollback)
   await db.transaction(async (tx) => {
-    await createMemberInTransaction(tx, memberId, data, LL.admin.members.duplicateMembership());
+    await createMemberInTransaction(
+      tx,
+      memberId,
+      data,
+      membership.membershipTypeId,
+      LL.admin.members.duplicateMembership(),
+    );
+    if (membership.membershipType.requiresPayment) {
+      await tx.insert(table.membershipObligation).values({
+        id: crypto.randomUUID(),
+        memberId,
+        membershipFeePeriodId: membership.id,
+        kind: "application",
+        disposition: "waived",
+        dispositionReason: data.description?.trim(),
+      });
+    }
+    await tx.insert(table.membershipEvent).values({
+      id: crypto.randomUUID(),
+      memberId,
+      eventType: data.status === "active" ? "application_approved" : "application_submitted",
+      effectiveAt: new Date(),
+      source: "admin",
+      certainty: "confirmed",
+      actorUserId,
+      membershipFeePeriodId: membership.id,
+      data: { membershipTypeId: membership.membershipTypeId },
+    });
   });
 
   await auditFromEvent(event, "member.create", {
@@ -512,30 +486,31 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !event.locals.user || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
+  const actorUserId = event.locals.user.id;
 
-  // Fetch all members to validate they exist and can be approved
-
-  const members = await db.query.member.findMany({
-    where: { id: { in: memberIds } },
-  });
-
-  // Bulk approve is specifically for new applications — not for reactivating
-  // resigned/rejected members
-  const validMembers = members.filter((m) => m.status === "awaiting_approval" || m.status === "awaiting_payment");
-
-  if (validMembers.length === 0) {
-    error(400, LL.admin.members.noMembersAwaitingApproval());
+  const validIds = [...new Set(memberIds)].toSorted((left, right) => left.localeCompare(right));
+  try {
+    await db.transaction(async (tx) => {
+      for (const id of validIds) await approveMembershipInTransaction(tx, id, actorUserId);
+    });
+  } catch (approvalError) {
+    if (approvalError instanceof Error) {
+      if (approvalError.message === "not_awaiting_approval") {
+        error(400, LL.admin.members.noMembersAwaitingApproval());
+      }
+      if (
+        ["pending_fee_period_not_found", "pending_fee_period_not_published", "pending_obligation_not_settled"].includes(
+          approvalError.message,
+        )
+      ) {
+        error(400, LL.admin.members.paymentRequiredBeforeApproval());
+      }
+    }
+    throw approvalError;
   }
-
-  const validIds = validMembers.map((m) => m.id);
-
-  // Use transaction to update all members atomically
-  await db.transaction(async (tx) => {
-    await tx.update(table.member).set({ status: "active" }).where(inArray(table.member.id, validIds));
-  });
 
   await auditBulkMemberAction(event, "member.bulk_approve", validIds, {
     requestedCount: memberIds.length,
@@ -548,15 +523,14 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
       where: { id: { in: validIds } },
       with: {
         user: true,
-        membership: {
-          with: { membershipType: true },
-        },
+        membershipType: true,
       },
     });
 
     // Send emails in parallel, don't fail if some emails fail
     const membersWithUsers = approvedMembersWithDetails.filter(
-      (m): m is typeof m & { user: NonNullable<typeof m.user> } => m.user !== null,
+      (m): m is typeof m & { user: NonNullable<typeof m.user>; membershipType: NonNullable<typeof m.membershipType> } =>
+        m.user !== null && m.membershipType !== null,
     );
     const emailPromises = membersWithUsers.map(async (memberWithDetails) => {
       const userLocale = getUserLocale(memberWithDetails.user);
@@ -566,9 +540,7 @@ export const bulkApproveMembers = command(bulkMemberIdsSchema, async ({ memberId
         emailType: "membership_approved",
         metadata: {
           firstName: getDisplayFirstName(memberWithDetails.user),
-          membershipName: getMembershipName(memberWithDetails.membership, userLocale),
-          startDate: memberWithDetails.membership.startTime,
-          endDate: memberWithDetails.membership.endTime,
+          membershipName: memberWithDetails.membershipType.name[userLocale],
         },
         locale: userLocale,
       });
@@ -608,28 +580,27 @@ export const bulkMarkMembersResigned = command(bulkMemberIdsWithReasonSchema, as
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
-  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
+  if (!event.locals.session || !event.locals.user || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
+  const actorUserId = event.locals.user.id;
 
-  // Fetch all members to validate they exist and can be deemed resigned
-
-  const members = await db.query.member.findMany({
-    where: { id: { in: memberIds } },
-  });
-
-  const validMembers = members.filter((m) => isValidTransition(m.status, "resigned"));
-
-  if (validMembers.length === 0) {
-    error(400, LL.admin.members.noMembersCanBeResigned());
+  const validIds = [...new Set(memberIds)].toSorted((left, right) => left.localeCompare(right));
+  try {
+    await db.transaction(async (tx) => {
+      for (const id of validIds) {
+        await endMembershipInTransaction(tx, id, actorUserId, "deemed_resigned_nonpayment", reason, true);
+      }
+    });
+  } catch (endingError) {
+    if (
+      endingError instanceof Error &&
+      (endingError.message === "cannot_end" || endingError.message === "nonpayment_not_actionable")
+    ) {
+      error(400, LL.admin.members.noMembersCanBeResigned());
+    }
+    throw endingError;
   }
-
-  const validIds = validMembers.map((m) => m.id);
-
-  // Use transaction to update all members atomically
-  await db.transaction(async (tx) => {
-    await tx.update(table.member).set({ status: "resigned" }).where(inArray(table.member.id, validIds));
-  });
 
   await auditBulkMemberAction(event, "member.bulk_deem_resigned", validIds, {
     requestedCount: memberIds.length,

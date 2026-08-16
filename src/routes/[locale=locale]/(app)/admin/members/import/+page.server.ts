@@ -20,12 +20,16 @@ export const load: PageServerLoad = async (event) => {
   // Fetch memberships with their type info
   const membershipResult = await db
     .select()
-    .from(table.membership)
-    .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id));
+    .from(table.membershipFeePeriod)
+    .innerJoin(table.membershipType, eq(table.membershipFeePeriod.membershipTypeId, table.membershipType.id));
 
   const memberships = membershipResult.map((r) => ({
-    ...r.membership,
+    ...r.membership_fee_period,
     membershipType: r.membership_type,
+    // PostgreSQL DATE values have no timezone. Represent them consistently as
+    // UTC midnight so browser-side equality checks do not depend on locale.
+    startTime: new Date(r.membership_fee_period.startDate),
+    endTime: new Date(r.membership_fee_period.endDate),
   }));
 
   // Build a list of valid type IDs

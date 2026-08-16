@@ -11,10 +11,9 @@
   import ExternalLink from "@lucide/svelte/icons/external-link";
   import { payMembership } from "./data.remote";
   import { payMembershipSchema } from "./schema";
-  import { getStripePriceMetadata } from "$lib/api/stripe.remote";
   import { formatDate, formatPrice } from "$lib/utils";
+  import { getStripePriceMetadata } from "$lib/api/stripe.remote";
   import { Textarea } from "$lib/components/ui/textarea";
-  import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
   import { PersistedState } from "runed";
   import { onMount, tick } from "svelte";
 
@@ -30,16 +29,8 @@
 
   const { data }: PageProps = $props();
 
-  const memberships = $derived(data.memberships);
   const availableMemberships = $derived(data.availableMemberships);
-  // Only show memberships that have a Stripe price ID
-  // Only block memberships that are active or pending - allow repurchasing cancelled/expired memberships
-  const filteredMemberships = $derived(
-    availableMemberships.filter(
-      (a): a is typeof a & { stripePriceId: string } =>
-        !!a.stripePriceId && memberships.every((b) => !(a.id === b.id && BLOCKING_MEMBER_STATUSES.has(b.status))),
-    ),
-  );
+  const filteredMemberships = $derived(availableMemberships);
 
   // URL for guild bylaws based on locale
   const bylawsUrl = $derived(
@@ -54,8 +45,8 @@
   let isStudent = $state(false);
   let restored = $state(false);
   let requireStudentVerification = $derived(
-    availableMemberships.find((e) => e.id === payMembership.fields.membershipId.value())?.requiresStudentVerification ??
-      false,
+    availableMemberships.find((feePeriod) => feePeriod.id === payMembership.fields.membershipId.value())?.membershipType
+      .requiresStudentVerification ?? false,
   );
   let disableForm = $derived(
     (requireStudentVerification && (!isStudent || !data.hasValidAaltoEmail)) || filteredMemberships.length === 0,
@@ -151,23 +142,24 @@
               >
                 <input {...payMembership.fields.membershipId.as("radio", membership.id)} required class="mt-1" />
                 <div class="flex flex-col gap-1">
-                  <svelte:boundary>
-                    {@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
-                    <span class="font-medium">
-                      {typeName} ({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
-                    </span>
-                    {#snippet failed()}
-                      <span class="font-medium text-destructive">{$LL.admin.memberships.failedToLoadPrice()}</span>
-                    {/snippet}
-                  </svelte:boundary>
-                  <span class="text-sm text-muted-foreground">
-                    {formatDate(new Date(membership.startTime), $locale)}
-                    – {formatDate(new Date(membership.endTime), $locale)}
+                  <span class="font-medium">
+                    {typeName}
+                    {#if membership.stripePriceId}
+                      <svelte:boundary>
+                        {@const price = await getStripePriceMetadata(membership.stripePriceId)}
+                        ({formatPrice(price.priceCents, price.currency, $locale)})
+                        {#snippet failed()}{/snippet}
+                      </svelte:boundary>
+                    {/if}
                   </span>
-                  {#if membership.willAutoApprove}
-                    <span class="text-xs text-green-600 dark:text-green-400">{$LL.membership.willAutoApprove()}</span>
-                  {:else}
+                  <span class="text-sm text-muted-foreground">
+                    {formatDate(new Date(membership.startDate), $locale)}
+                    – {formatDate(new Date(membership.endDate), $locale)}
+                  </span>
+                  {#if membership.requiresBoardApproval}
                     <span class="text-xs text-muted-foreground">{$LL.membership.willRequireApproval()}</span>
+                  {:else}
+                    <span class="text-xs text-green-600 dark:text-green-400">{$LL.membership.renewalNoApproval()}</span>
                   {/if}
                   {#if typeDescription}
                     <span class="text-sm text-muted-foreground">{typeDescription}</span>
@@ -265,11 +257,9 @@
               )}
               {#if selectedMembership?.stripePriceId}
                 <svelte:boundary>
-                  {@const priceMetadata = await getStripePriceMetadata(selectedMembership.stripePriceId)}
-                  ({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
-                  {#snippet failed()}
-                    <span>(-)</span>
-                  {/snippet}
+                  {@const price = await getStripePriceMetadata(selectedMembership.stripePriceId)}
+                  ({formatPrice(price.priceCents, price.currency, $locale)})
+                  {#snippet failed()}{/snippet}
                 </svelte:boundary>
               {/if}
             {/if}

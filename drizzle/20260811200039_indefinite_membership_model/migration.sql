@@ -168,8 +168,6 @@ ALTER TABLE "member" ADD COLUMN "current_membership_started_at" timestamp with t
 ALTER TABLE "member" ADD COLUMN "current_membership_ended_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "membership_fee_period" ADD COLUMN "due_date" date;--> statement-breakpoint
 ALTER TABLE "membership_fee_period" ADD COLUMN "non_payment_action_at" date;--> statement-breakpoint
-ALTER TABLE "membership_fee_period" ADD COLUMN "amount" integer;--> statement-breakpoint
-ALTER TABLE "membership_fee_period" ADD COLUMN "currency" text;--> statement-breakpoint
 ALTER TABLE "membership_fee_period" ADD COLUMN "published_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "membership_fee_period" ADD COLUMN "accepts_applications" boolean DEFAULT false NOT NULL;--> statement-breakpoint
 ALTER TABLE "membership_fee_period" ADD COLUMN "created_at" timestamp with time zone;--> statement-breakpoint
@@ -225,6 +223,47 @@ SET
 		WHERE legacy."membership_type_id" = type."id" AND legacy."requires_student_verification"
 	);--> statement-breakpoint
 
+-- The migration is deterministic and never consults Stripe. Before production
+-- deployment, update this reference date and rehearse against the sanitized
+-- production snapshot. A payable candidate must already have a Stripe Price ID.
+CREATE TEMP TABLE "migration_application_target" ON COMMIT DROP AS
+SELECT period."membership_type_id", period."id" AS "membership_fee_period_id"
+FROM "membership_fee_period" period
+INNER JOIN "membership_type" type ON type."id" = period."membership_type_id"
+WHERE type."purchasable"
+	AND period."end_date" >= DATE '2026-08-11'
+	AND (NOT type."requires_payment" OR period."stripe_price_id" IS NOT NULL);--> statement-breakpoint
+
+-- A legacy type with no selectable period was only nominally purchasable: the
+-- old application UI already offered no action. Preserve that effective state
+-- explicitly until an admin publishes a target.
+UPDATE "membership_type" type
+SET "purchasable" = false, "updated_at" = now()
+WHERE type."purchasable"
+	AND NOT EXISTS (
+		SELECT 1 FROM "migration_application_target" target
+		WHERE target."membership_type_id" = type."id"
+	);--> statement-breakpoint
+
+DO $$
+BEGIN
+	IF EXISTS (
+		SELECT 1
+		FROM "membership_type" type
+		LEFT JOIN "migration_application_target" target ON target."membership_type_id" = type."id"
+		WHERE type."purchasable"
+		GROUP BY type."id"
+		HAVING COUNT(target."membership_fee_period_id") > 1
+	) THEN
+		RAISE EXCEPTION 'membership migration: a purchasable type has multiple unexpired application targets';
+	END IF;
+END $$;--> statement-breakpoint
+
+UPDATE "membership_fee_period" period
+SET "published_at" = now(), "accepts_applications" = true, "updated_at" = now()
+FROM "migration_application_target" target
+WHERE target."membership_fee_period_id" = period."id";--> statement-breakpoint
+
 UPDATE "membership_type" type
 SET "legacy_inference_through_period_id" = cutoff."id"
 FROM (
@@ -270,6 +309,15 @@ WHERE type."requires_payment"
 	AND (
 		legacy."stripe_session_id" IS NOT NULL
 		OR legacy."legacy_status" IN ('awaiting_approval', 'active', 'resigned')
+		OR (
+			legacy."legacy_status" = 'rejected'
+			AND EXISTS (
+				SELECT 1 FROM "migration_member_audit" audit
+				WHERE audit."old_member_id" = legacy."old_member_id"
+					AND audit."action" IN ('member.reject', 'member.bulk_reject')
+					AND audit."metadata"->>'previousStatus' = 'awaiting_approval'
+			)
+		)
 	);--> statement-breakpoint
 
 -- Build a deterministic inferred legal-membership timeline from approved legacy evidence.
@@ -521,7 +569,7 @@ SELECT
 		WHEN approved."old_member_id" IS NULL AND latest."legacy_status" IN ('awaiting_payment', 'awaiting_approval')
 			THEN latest."membership_type_id"
 		WHEN approved."old_member_id" IS NOT NULL
-			AND latest."legacy_status" IN ('awaiting_payment', 'awaiting_approval')
+			AND latest."legacy_status" = 'awaiting_approval'
 			AND latest."membership_type_id" <> approved."membership_type_id"
 			THEN latest."membership_type_id"
 		ELSE NULL
@@ -552,6 +600,122 @@ SET
 	"updated_at" = snapshot."updated_at"
 FROM "migration_member_snapshot" snapshot
 WHERE snapshot."stable_member_id" = member."id";--> statement-breakpoint
+
+-- Publishing the selected target makes every active member of that approved
+-- type liable for its renewal fee. Non-payable types never receive obligations.
+INSERT INTO "membership_obligation" (
+	"id", "member_id", "membership_fee_period_id", "kind", "disposition", "created_at", "updated_at"
+)
+SELECT
+	'migration-obligation-renewal-' || member."id" || '-' || period."id",
+	member."id",
+	period."id",
+	'renewal',
+	'required',
+	now(),
+	now()
+FROM "member" member
+INNER JOIN "membership_fee_period" period
+	ON period."membership_type_id" = member."membership_type_id"
+	AND period."accepts_applications"
+INNER JOIN "membership_type" type ON type."id" = period."membership_type_id"
+WHERE member."status" = 'active' AND type."requires_payment"
+ON CONFLICT ("member_id", "membership_fee_period_id") DO NOTHING;--> statement-breakpoint
+
+-- Preserve every in-flight application, renewal, or type-change checkout even
+-- if its period is no longer the application target.
+INSERT INTO "membership_obligation" (
+	"id", "member_id", "membership_fee_period_id", "kind", "disposition", "created_at", "updated_at"
+)
+SELECT
+	'migration-obligation-pending-' || legacy."old_member_id",
+	map."stable_member_id",
+	legacy."membership_fee_period_id",
+	CASE
+		WHEN member."membership_type_id" IS NULL THEN 'application'::"membership_obligation_kind"
+		WHEN member."membership_type_id" = legacy."membership_type_id" THEN 'renewal'::"membership_obligation_kind"
+		ELSE 'type_change'::"membership_obligation_kind"
+	END,
+	'required',
+	legacy."created_at",
+	legacy."updated_at"
+FROM "migration_legacy_member" legacy
+INNER JOIN "migration_member_map" map ON map."old_member_id" = legacy."old_member_id"
+INNER JOIN "member" member ON member."id" = map."stable_member_id"
+INNER JOIN "membership_type" type ON type."id" = legacy."membership_type_id"
+WHERE legacy."legacy_status" IN ('awaiting_payment', 'awaiting_approval')
+	AND type."requires_payment"
+ON CONFLICT ("member_id", "membership_fee_period_id") DO NOTHING;--> statement-breakpoint
+
+-- Attach migrated attempts so delayed Stripe webhooks resolve the exact
+-- obligation without any external lookup during migration.
+UPDATE "payment" payment
+SET "obligation_id" = obligation."id", "updated_at" = now()
+FROM "membership_obligation" obligation
+WHERE obligation."member_id" = payment."member_id"
+	AND obligation."membership_fee_period_id" = payment."membership_fee_period_id";--> statement-breakpoint
+
+-- A completed type-change purchase awaits the board while the old approved type
+-- remains authoritative. Its same-period renewal is no longer collectible unless
+-- the board rejects the type change and restores it.
+UPDATE "membership_obligation" old_obligation
+SET
+	"disposition" = 'cancelled',
+	"disposition_reason" = 'pending_type_change',
+	"updated_at" = now()
+FROM "member" member
+INNER JOIN "membership_obligation" requested_obligation
+	ON requested_obligation."member_id" = member."id"
+	AND requested_obligation."kind" = 'type_change'
+INNER JOIN "membership_fee_period" requested_period
+	ON requested_period."id" = requested_obligation."membership_fee_period_id"
+INNER JOIN "membership_fee_period" old_period
+	ON old_period."membership_type_id" = member."membership_type_id"
+	AND old_period."start_date" = requested_period."start_date"
+	AND old_period."end_date" = requested_period."end_date"
+WHERE member."pending_membership_type_id" = requested_period."membership_type_id"
+	AND old_obligation."member_id" = member."id"
+	AND old_obligation."membership_fee_period_id" = old_period."id"
+	AND old_obligation."disposition" = 'required';--> statement-breakpoint
+
+-- `awaiting_approval` proves that the application or type-change request was
+-- submitted, even when a free type has no obligation from which to recover the
+-- target period later.
+WITH latest_pending AS (
+	SELECT DISTINCT ON (map."stable_member_id")
+		legacy.*, map."stable_member_id"
+	FROM "migration_legacy_member" legacy
+	INNER JOIN "migration_member_map" map ON map."old_member_id" = legacy."old_member_id"
+	WHERE legacy."legacy_status" = 'awaiting_approval'
+	ORDER BY map."stable_member_id", legacy."period_start_time" DESC, legacy."created_at" DESC, legacy."old_member_id" DESC
+)
+INSERT INTO "membership_event" (
+	"id", "member_id", "event_type", "effective_at", "recorded_at", "source", "certainty",
+	"membership_fee_period_id", "data"
+)
+SELECT
+	'migration-submission-' || pending."old_member_id",
+	pending."stable_member_id",
+	CASE
+		WHEN member."membership_type_id" IS NULL THEN 'application_submitted'::"membership_event_type"
+		ELSE 'type_change_requested'::"membership_event_type"
+	END,
+	pending."updated_at",
+	pending."updated_at",
+	'migration',
+	'confirmed',
+	pending."membership_fee_period_id",
+	CASE
+		WHEN member."membership_type_id" IS NULL
+			THEN jsonb_build_object('membershipTypeId', pending."membership_type_id")
+		ELSE jsonb_build_object(
+			'fromMembershipTypeId', member."membership_type_id",
+			'toMembershipTypeId', pending."membership_type_id"
+		)
+	END
+FROM latest_pending pending
+INNER JOIN "member" member ON member."id" = pending."stable_member_id"
+WHERE member."pending_membership_type_id" = pending."membership_type_id";--> statement-breakpoint
 
 -- Repoint both scalar and bulk audit targets before duplicate period-shaped rows disappear.
 WITH deduplicated AS (
@@ -635,6 +799,43 @@ BEGIN
 	) THEN
 		RAISE EXCEPTION 'membership migration: pending member snapshot has no target type';
 	END IF;
+
+	IF EXISTS (
+		SELECT 1
+		FROM "payment"
+		WHERE "status" = 'pending' AND "stripe_session_id" IS NOT NULL AND "obligation_id" IS NULL
+	) THEN
+		RAISE EXCEPTION 'membership migration: a pending Stripe payment has no obligation';
+	END IF;
+
+	IF EXISTS (
+		SELECT 1
+		FROM "member" member
+		INNER JOIN "membership_type" type ON type."id" = member."membership_type_id"
+		INNER JOIN "membership_fee_period" period
+			ON period."membership_type_id" = member."membership_type_id"
+			AND period."accepts_applications"
+		LEFT JOIN "membership_obligation" obligation
+			ON obligation."member_id" = member."id"
+			AND obligation."membership_fee_period_id" = period."id"
+		WHERE member."status" = 'active'
+			AND type."requires_payment"
+			AND obligation."id" IS NULL
+	) THEN
+		RAISE EXCEPTION 'membership migration: an active payable member has no target-period obligation';
+	END IF;
+
+	IF EXISTS (
+		SELECT 1
+		FROM "membership_type" type
+		LEFT JOIN "membership_fee_period" period
+			ON period."membership_type_id" = type."id" AND period."accepts_applications"
+		WHERE type."purchasable"
+		GROUP BY type."id"
+		HAVING COUNT(period."id") <> 1
+	) THEN
+		RAISE EXCEPTION 'membership migration: a purchasable type has no unique application target';
+	END IF;
 END $$;--> statement-breakpoint
 
 ALTER TABLE "member" DROP COLUMN "membership_id";--> statement-breakpoint
@@ -679,6 +880,4 @@ ALTER TABLE "member" ADD CONSTRAINT "member_ended_snapshot" CHECK ("status" <> '
 ALTER TABLE "member" ADD CONSTRAINT "member_pending_application_type" CHECK ("status" NOT IN ('awaiting_payment', 'awaiting_approval') OR "pending_membership_type_id" IS NOT NULL);--> statement-breakpoint
 ALTER TABLE "membership_fee_period" ADD CONSTRAINT "membership_fee_period_date_order" CHECK ("end_date" >= "start_date");--> statement-breakpoint
 ALTER TABLE "membership_fee_period" ADD CONSTRAINT "membership_fee_period_action_after_due" CHECK ("non_payment_action_at" > "due_date");--> statement-breakpoint
-ALTER TABLE "membership_fee_period" ADD CONSTRAINT "membership_fee_period_amount_nonnegative" CHECK ("amount" IS NULL OR "amount" >= 0);--> statement-breakpoint
-ALTER TABLE "membership_fee_period" ADD CONSTRAINT "membership_fee_period_published_complete" CHECK ("published_at" IS NULL OR ("amount" IS NOT NULL AND "currency" IS NOT NULL AND ("amount" = 0 OR "stripe_price_id" IS NOT NULL)));--> statement-breakpoint
 ALTER TABLE "membership_fee_period" ADD CONSTRAINT "membership_fee_period_application_target_published" CHECK (NOT "accepts_applications" OR "published_at" IS NOT NULL);

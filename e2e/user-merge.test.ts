@@ -1,24 +1,15 @@
-import { test, expect } from "./fixtures/auth";
-import postgres from "postgres";
-import { drizzle } from "drizzle-orm/postgres-js";
+import { test, expect } from "./fixtures/db";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as table from "$lib/server/db/schema";
-import { relations } from "$lib/server/db/relations";
+import type { relations } from "$lib/server/db/relations";
 import { eq, and } from "drizzle-orm";
 import { generateUserId } from "../src/lib/server/auth/utils";
 
 test.describe("User Merge Feature", () => {
-  let db: ReturnType<typeof drizzle>;
-  let client: ReturnType<typeof postgres>;
+  let db: PostgresJsDatabase<typeof relations>;
 
-  test.beforeAll(async () => {
-    const dbUrl = process.env.DATABASE_URL_TEST;
-    if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
-    client = postgres(dbUrl);
-    db = drizzle({ client, relations });
-  });
-
-  test.afterAll(async () => {
-    await client.end();
+  test.beforeAll(async ({ db: fixtureDb }) => {
+    db = fixtureDb;
   });
 
   test.describe("UI Access", () => {
@@ -89,7 +80,6 @@ test.describe("User Merge Feature", () => {
   test.describe("Negative Cases - Validation", () => {
     let primaryUser: { id: string; email: string };
     let secondaryUser: { id: string; email: string };
-    let membershipId: string;
 
     test.beforeAll(async () => {
       // Create test users with unique emails
@@ -120,15 +110,6 @@ test.describe("User Merge Feature", () => {
           adminRole: "none",
         },
       ]);
-
-      // Get an existing membership for overlapping test
-      const [membership] = await db
-        .select()
-        .from(table.membership)
-        .where(eq(table.membership.membershipTypeId, "varsinainen-jasen"))
-        .limit(1);
-      if (!membership) throw new Error("Membership not found");
-      membershipId = membership.id;
     });
 
     test.afterAll(async () => {
@@ -139,20 +120,21 @@ test.describe("User Merge Feature", () => {
       await db.delete(table.user).where(eq(table.user.id, secondaryUser.id));
     });
 
-    test("cannot merge when overlapping memberships exist", async ({ adminPage }) => {
-      // Add the same membership to both users
+    test("cannot merge two stable membership identities", async ({ adminPage }) => {
       await db.insert(table.member).values([
         {
           id: generateUserId(),
           userId: primaryUser.id,
-          membershipId: membershipId,
-          status: "active",
+          membershipTypeId: "varsinainen-jasen",
+          status: "active" as const,
+          currentMembershipStartedAt: new Date("2024-08-01T00:00:00Z"),
         },
         {
           id: generateUserId(),
           userId: secondaryUser.id,
-          membershipId: membershipId,
-          status: "active",
+          membershipTypeId: "varsinainen-jasen",
+          status: "active" as const,
+          currentMembershipStartedAt: new Date("2024-08-01T00:00:00Z"),
         },
       ]);
 
@@ -191,38 +173,17 @@ test.describe("User Merge Feature", () => {
       // Should move to step 2
       await expect(mergeWizard.getByText("Vaihe 2: Tarkista yhdistettävät tiedot")).toBeVisible();
 
-      // Click next to go to step 3
-      await mergeWizard.getByRole("button", { name: "Seuraava" }).click();
-
-      // Should be on step 3
-      await expect(mergeWizard.getByText("Vaihe 3: Vahvista yhdistäminen")).toBeVisible();
-
-      // Fill in email confirmations - emails are now shown above inputs, not as placeholders
-      const emailInputs = mergeWizard.locator('input[type="email"]');
-      await emailInputs.first().fill(primaryUser.email);
-      await emailInputs.last().fill(secondaryUser.email);
-
-      // Click merge button using testid
-      await adminPage.getByTestId("merge-submit-button").click();
-
-      // Merge should fail due to overlapping memberships
-      // Wait for error toast to appear (indicates merge failed)
-      await expect(adminPage.locator('[data-sonner-toast][data-type="error"]')).toBeVisible();
-
-      // Verify wizard is still visible (didn't close on success)
-      await expect(mergeWizard).toBeVisible();
+      // Combining two legal histories requires an explicit reconciliation flow,
+      // so the wizard prevents proceeding to the destructive confirmation step.
+      await expect(mergeWizard.getByText(/Jäsenhistoriat on yhdistettävä/)).toBeVisible();
+      await expect(mergeWizard.getByRole("button", { name: "Seuraava" })).toBeDisabled();
 
       // Verify secondary user was NOT deleted (merge failed)
       const [userStillExists] = await db.select().from(table.user).where(eq(table.user.id, secondaryUser.id)).limit(1);
       expect(userStillExists).toBeDefined();
 
-      // Clean up the memberships for next tests
-      await db
-        .delete(table.member)
-        .where(and(eq(table.member.userId, primaryUser.id), eq(table.member.membershipId, membershipId)));
-      await db
-        .delete(table.member)
-        .where(and(eq(table.member.userId, secondaryUser.id), eq(table.member.membershipId, membershipId)));
+      await db.delete(table.member).where(eq(table.member.userId, primaryUser.id));
+      await db.delete(table.member).where(eq(table.member.userId, secondaryUser.id));
     });
 
     test("email confirmation must match exactly", async ({ adminPage }) => {
@@ -290,8 +251,8 @@ test.describe("User Merge Feature", () => {
   test.describe("Positive Cases - Successful Merge", () => {
     let primaryUser: { id: string; email: string };
     let secondaryUser: { id: string; email: string };
-    let membership2024: string;
-    let membership2023: string;
+    let feePeriodId: string;
+    let memberId: string;
     let secondaryEmailAddress: string;
 
     test.beforeAll(async () => {
@@ -328,31 +289,50 @@ test.describe("User Merge Feature", () => {
         },
       ]);
 
-      // Get different memberships for non-overlapping test
-      const memberships = await db
+      const [feePeriod] = await db
         .select()
-        .from(table.membership)
-        .where(eq(table.membership.membershipTypeId, "varsinainen-jasen"))
-        .limit(2);
-      if (!memberships[0] || !memberships[1]) throw new Error("Memberships not found");
-      membership2024 = memberships[0].id;
-      membership2023 = memberships[1].id;
+        .from(table.membershipFeePeriod)
+        .where(eq(table.membershipFeePeriod.membershipTypeId, "varsinainen-jasen"))
+        .limit(1);
+      if (!feePeriod) throw new Error("Fee period not found");
+      feePeriodId = feePeriod.id;
 
-      // Add different memberships to each user (no overlap)
-      await db.insert(table.member).values([
-        {
-          id: generateUserId(),
-          userId: primaryUser.id,
-          membershipId: membership2024,
-          status: "active",
-        },
-        {
-          id: generateUserId(),
-          userId: secondaryUser.id,
-          membershipId: membership2023,
-          status: "active",
-        },
-      ]);
+      // Only the secondary account has a legal membership identity. Its full
+      // aggregate should move to the primary account unchanged.
+      memberId = generateUserId();
+      const obligationId = crypto.randomUUID();
+      await db.insert(table.member).values({
+        id: memberId,
+        userId: secondaryUser.id,
+        membershipTypeId: feePeriod.membershipTypeId,
+        status: "active",
+        currentMembershipStartedAt: new Date("2024-08-01T00:00:00Z"),
+      });
+      await db.insert(table.membershipObligation).values({
+        id: obligationId,
+        memberId,
+        membershipFeePeriodId: feePeriodId,
+        kind: "renewal",
+      });
+      await db.insert(table.payment).values({
+        id: crypto.randomUUID(),
+        memberId,
+        membershipFeePeriodId: feePeriodId,
+        obligationId,
+        source: "imported",
+        status: "succeeded",
+      });
+      await db.insert(table.membershipEvent).values({
+        id: crypto.randomUUID(),
+        memberId,
+        eventType: "application_approved",
+        effectiveAt: new Date("2024-08-01T00:00:00Z"),
+        source: "admin",
+        certainty: "confirmed",
+        actorUserId: secondaryUser.id,
+        membershipFeePeriodId: feePeriodId,
+        data: { membershipTypeId: feePeriod.membershipTypeId },
+      });
 
       // Add a secondary email to secondary user
       await db.insert(table.secondaryEmail).values({
@@ -449,13 +429,14 @@ test.describe("User Merge Feature", () => {
       expect(secondaryEmails.length).toBe(1);
       expect(secondaryEmails[0]?.verifiedAt).not.toBeNull();
 
-      // 4. All memberships should now belong to primary user
+      // 4. The one stable membership aggregate and its history move intact.
       const members = await db.select().from(table.member).where(eq(table.member.userId, primaryUser.id));
-      expect(members.length).toBe(2); // Should have both memberships now
-
-      const membershipIds = members.map((m) => m.membershipId);
-      expect(membershipIds).toContain(membership2024);
-      expect(membershipIds).toContain(membership2023);
+      expect(members).toHaveLength(1);
+      expect(members[0]).toMatchObject({ id: memberId, membershipTypeId: "varsinainen-jasen", status: "active" });
+      const event = await db.query.membershipEvent.findFirst({ where: { memberId } });
+      expect(event?.actorUserId).toBe(primaryUser.id);
+      expect(await db.query.membershipObligation.findFirst({ where: { memberId } })).toBeDefined();
+      expect(await db.query.payment.findFirst({ where: { memberId } })).toBeDefined();
 
       // 5. Secondary user's old secondary emails should be transferred
       const transferredSecondaryEmails = await db
@@ -481,6 +462,9 @@ test.describe("User Merge Feature", () => {
 
     test.afterAll(async () => {
       // Clean up - only primary user should exist now
+      await db.delete(table.payment).where(eq(table.payment.memberId, memberId));
+      await db.delete(table.membershipEvent).where(eq(table.membershipEvent.memberId, memberId));
+      await db.delete(table.membershipObligation).where(eq(table.membershipObligation.memberId, memberId));
       await db.delete(table.member).where(eq(table.member.userId, primaryUser.id));
       await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.userId, primaryUser.id));
       await db.delete(table.user).where(eq(table.user.id, primaryUser.id));

@@ -203,10 +203,29 @@ describe("indefinite membership production migration", () => {
       `;
       expect(paymentCounts).toEqual({ total: 9, succeeded: 7, pending: 2, paidDates: 0 });
 
-      const [obligationCount] = await client<{ count: number }[]>`
-        SELECT COUNT(*)::integer AS "count" FROM "membership_obligation"
+      const obligations = await client<
+        { memberId: string; periodId: string; kind: string; paymentStatus: string | null }[]
+      >`
+        SELECT
+          obligation."member_id" AS "memberId",
+          obligation."membership_fee_period_id" AS "periodId",
+          obligation."kind"::text,
+          payment."status"::text AS "paymentStatus"
+        FROM "membership_obligation" obligation
+        LEFT JOIN "payment" payment ON payment."obligation_id" = obligation."id"
+        ORDER BY obligation."member_id"
       `;
-      expect(obligationCount?.count).toBe(0);
+      expect(obligations).toEqual([
+        { memberId: "member-a-2025", periodId: "regular-2026", kind: "renewal", paymentStatus: null },
+        {
+          memberId: "member-b-2026",
+          periodId: "regular-2026",
+          kind: "application",
+          paymentStatus: "pending",
+        },
+        { memberId: "member-c-2026", periodId: "regular-2026", kind: "renewal", paymentStatus: "pending" },
+        { memberId: "member-e-2024", periodId: "regular-2026", kind: "renewal", paymentStatus: null },
+      ]);
 
       const [eventCounts] = await client<{ total: number; confirmed: number; inferred: number }[]>`
         SELECT
@@ -243,6 +262,20 @@ describe("indefinite membership production migration", () => {
       `;
       expect(period).toEqual({ startDate: "2025-08-01", dueDate: "2025-09-30", actionDate: "2025-12-01" });
 
+      const [applicationTarget] = await client<
+        { id: string; publishedAt: Date | null; acceptsApplications: boolean }[]
+      >`
+        SELECT
+          "id", "published_at" AS "publishedAt", "accepts_applications" AS "acceptsApplications"
+        FROM "membership_fee_period"
+        WHERE "membership_type_id" = 'regular' AND "accepts_applications"
+      `;
+      expect(applicationTarget).toMatchObject({
+        id: "regular-2026",
+        publishedAt: expect.any(Date),
+        acceptsApplications: true,
+      });
+
       const [regularType] = await client<
         { requiresPayment: boolean; requiresStudentVerification: boolean; cutoff: string | null }[]
       >`
@@ -263,6 +296,139 @@ describe("indefinite membership production migration", () => {
         SELECT "membership_data_live_at" AS "membershipDataLiveAt" FROM "app_customization"
       `;
       expect(customization?.membershipDataLiveAt).toBeInstanceOf(Date);
+    } finally {
+      await client.end();
+    }
+  }, 60_000);
+
+  it("preserves in-flight applications and type changes as actionable obligations", async () => {
+    const client = await createDatabase("pending_workflows");
+
+    try {
+      await runMigrations(client, legacyMigrations);
+      await client.unsafe(`
+        INSERT INTO "membership_type" ("id", "name", "purchasable") VALUES
+          ('regular', '{"fi":"Varsinainen","en":"Regular"}'::jsonb, true),
+          ('external', '{"fi":"Ulkojäsen","en":"External"}'::jsonb, true),
+          ('free', '{"fi":"Kunniajäsen","en":"Honorary"}'::jsonb, true);
+
+        INSERT INTO "membership" (
+          "id", "membership_type_id", "stripe_price_id", "start_time", "end_time",
+          "requires_student_verification"
+        ) VALUES
+          ('regular-2025', 'regular', 'price_regular_2025', '2025-08-01T00:00:00Z', '2026-07-31T00:00:00Z', false),
+          ('regular-2026', 'regular', 'price_regular_2026', '2026-08-01T00:00:00Z', '2027-07-31T00:00:00Z', false),
+          ('external-2026', 'external', 'price_external_2026', '2026-08-01T00:00:00Z', '2027-07-31T00:00:00Z', false),
+          ('free-2026', 'free', NULL, '2026-08-01T00:00:00Z', '2027-07-31T00:00:00Z', false);
+
+        INSERT INTO "user" ("id", "email") VALUES
+          ('type-change-user', 'type-change@example.com'),
+          ('pending-change-user', 'pending-change@example.com'),
+          ('free-applicant', 'free-applicant@example.com');
+
+        INSERT INTO "member" (
+          "id", "user_id", "membership_id", "status", "stripe_session_id", "created_at", "updated_at"
+        ) VALUES
+          ('type-change-old', 'type-change-user', 'regular-2025', 'active', 'session-type-change-old', '2025-08-02T10:00:00Z', '2025-08-02T10:00:00Z'),
+          ('type-change-new', 'type-change-user', 'external-2026', 'awaiting_approval', 'session-type-change-new', '2026-08-02T10:00:00Z', '2026-08-02T11:00:00Z'),
+          ('pending-change-old', 'pending-change-user', 'regular-2025', 'active', 'session-pending-change-old', '2025-08-03T10:00:00Z', '2025-08-03T10:00:00Z'),
+          ('pending-change-new', 'pending-change-user', 'external-2026', 'awaiting_payment', 'session-pending-change-new', '2026-08-03T10:00:00Z', '2026-08-03T11:00:00Z'),
+          ('free-application', 'free-applicant', 'free-2026', 'awaiting_approval', NULL, '2026-08-04T10:00:00Z', '2026-08-04T11:00:00Z');
+      `);
+
+      await runMigrations(client, [membershipMigration]);
+
+      const snapshots = await client<
+        { userId: string; status: string; membershipTypeId: string | null; pendingMembershipTypeId: string | null }[]
+      >`
+        SELECT
+          "user_id" AS "userId", "status"::text,
+          "membership_type_id" AS "membershipTypeId",
+          "pending_membership_type_id" AS "pendingMembershipTypeId"
+        FROM "member"
+        WHERE "user_id" IN ('type-change-user', 'pending-change-user', 'free-applicant')
+        ORDER BY "user_id"
+      `;
+      expect(snapshots).toEqual([
+        {
+          userId: "free-applicant",
+          status: "awaiting_approval",
+          membershipTypeId: null,
+          pendingMembershipTypeId: "free",
+        },
+        {
+          userId: "pending-change-user",
+          status: "active",
+          membershipTypeId: "regular",
+          pendingMembershipTypeId: null,
+        },
+        {
+          userId: "type-change-user",
+          status: "active",
+          membershipTypeId: "regular",
+          pendingMembershipTypeId: "external",
+        },
+      ]);
+
+      const obligations = await client<
+        { userId: string; periodId: string; kind: string; disposition: string; paymentStatus: string | null }[]
+      >`
+        SELECT
+          member."user_id" AS "userId",
+          obligation."membership_fee_period_id" AS "periodId",
+          obligation."kind"::text,
+          obligation."disposition"::text,
+          payment."status"::text AS "paymentStatus"
+        FROM "membership_obligation" obligation
+        INNER JOIN "member" member ON member."id" = obligation."member_id"
+        LEFT JOIN "payment" payment ON payment."obligation_id" = obligation."id"
+        ORDER BY member."user_id", obligation."membership_fee_period_id"
+      `;
+      expect(obligations).toEqual([
+        {
+          userId: "pending-change-user",
+          periodId: "external-2026",
+          kind: "type_change",
+          disposition: "required",
+          paymentStatus: "pending",
+        },
+        {
+          userId: "pending-change-user",
+          periodId: "regular-2026",
+          kind: "renewal",
+          disposition: "required",
+          paymentStatus: null,
+        },
+        {
+          userId: "type-change-user",
+          periodId: "external-2026",
+          kind: "type_change",
+          disposition: "required",
+          paymentStatus: "succeeded",
+        },
+        {
+          userId: "type-change-user",
+          periodId: "regular-2026",
+          kind: "renewal",
+          disposition: "cancelled",
+          paymentStatus: null,
+        },
+      ]);
+
+      const submissionEvents = await client<{ userId: string; eventType: string; periodId: string }[]>`
+        SELECT
+          member."user_id" AS "userId",
+          event."event_type"::text AS "eventType",
+          event."membership_fee_period_id" AS "periodId"
+        FROM "membership_event" event
+        INNER JOIN "member" member ON member."id" = event."member_id"
+        WHERE event."event_type" IN ('application_submitted', 'type_change_requested')
+        ORDER BY member."user_id"
+      `;
+      expect(submissionEvents).toEqual([
+        { userId: "free-applicant", eventType: "application_submitted", periodId: "free-2026" },
+        { userId: "type-change-user", eventType: "type_change_requested", periodId: "external-2026" },
+      ]);
     } finally {
       await client.end();
     }

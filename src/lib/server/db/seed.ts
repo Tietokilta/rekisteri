@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { seed, reset } from "drizzle-seed";
-import * as table from "./schema";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import * as table from "./schema";
 import { generateUserId } from "../auth/utils";
+
+function date(year: number, monthDay: string) {
+  return `${year}-${monthDay}`;
+}
 
 try {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set");
@@ -18,55 +21,45 @@ try {
   await reset(db, resetSchema);
   console.log("Database reset!");
 
-  console.log("Seeding database...");
-
-  // Seed membership types first
-  const membershipTypesToSeed = [
+  const membershipTypes: (typeof table.membershipType.$inferInsert)[] = [
     {
       id: "varsinainen-jasen",
       name: { fi: "Varsinainen jäsen", en: "Regular member" },
       description: {
-        fi: "Killan toiminnasta kiinnostuneille henkilöille, joilla on tutkintoon johtava opiskeluoikeus tai vaihto-opinto-oikeus Aalto-yliopistossa.",
-        en: "For persons interested in the guild's activities who have a right to study leading to a degree or a right to complete exchange studies at Aalto University.",
+        fi: "Killan toiminnasta kiinnostuneille Aalto-yliopiston opiskelijoille.",
+        en: "For Aalto University students interested in the guild's activities.",
       },
+      requiresPayment: true,
+      requiresStudentVerification: true,
     },
     {
       id: "ulkojasen",
       name: { fi: "Ulkojäsen", en: "External member" },
       description: {
-        fi: "Killan toiminnasta kiinnostuneille henkilöille, jotka ovat suorittaneet toisen asteen tutkinnon tai joilla on tutkintoon johtava opinto-oikeus toisessa korkeakoulussa.",
-        en: "For persons interested in the guild's activities who have completed an upper secondary qualification or have a right to study leading to a degree at another higher education institution.",
+        fi: "Muille killan toiminnasta kiinnostuneille henkilöille.",
+        en: "For other persons interested in the guild's activities.",
       },
+      requiresPayment: true,
     },
     {
       id: "alumnijasen",
       name: { fi: "Alumnijäsen", en: "Alumni member" },
-      description: {
-        fi: "Henkilöille, joilla on aiemmin ollut tutkintoon johtava opiskeluoikeus korkeakoulussa.",
-        en: "For persons who previously had a right to study leading to a degree at a higher education institution.",
-      },
+      purchasable: false,
+      requiresPayment: true,
     },
     {
       id: "kannatusjasen",
       name: { fi: "Kannatusjäsen", en: "Supporting member" },
-      description: {
-        fi: "Killan toimintaa tukeville henkilöille tai oikeushenkilöille.",
-        en: "For persons or legal entities supporting the guild's activities.",
-      },
+      requiresPayment: true,
     },
     {
       id: "yhteisojasen",
       name: { fi: "Yhdistysjäsen", en: "Association member" },
-      description: {
-        fi: "Rekisteröity yhdistys, jonka säännöt ja toimintatarkoitus ovat killan hengen mukaisia, eivätkä miltään osalta riko killan sääntöjä.",
-        en: "A registered association whose rules and purpose are in line with the spirit of the guild, and do not in any part violate the guild's rules.",
-      },
       purchasable: false,
+      requiresPayment: false,
     },
   ];
-
-  await db.insert(table.membershipType).values(membershipTypesToSeed);
-  console.log("Seeded membership types!");
+  await db.insert(table.membershipType).values(membershipTypes);
 
   const rootUserId = generateUserId();
   await db.insert(table.user).values({
@@ -80,148 +73,46 @@ try {
     adminRole: "admin",
   });
 
-  // Calculate current "membership year" (must have stripe products available)
-  const currentYear = new Date().getMonth() >= 7 ? new Date().getFullYear() : new Date().getFullYear() - 1;
+  const now = new Date();
+  const currentYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  const periodDefinitions = [
+    { type: "varsinainen-jasen", year: currentYear - 2, price: null },
+    { type: "ulkojasen", year: currentYear - 2, price: null },
+    { type: "varsinainen-jasen", year: currentYear - 1, price: "price_1R8OQM2a3B4f6jfhOUeOMY74" },
+    { type: "ulkojasen", year: currentYear - 1, price: "price_1R8ORJ2a3B4f6jfheqBz7Pwj" },
+    { type: "kannatusjasen", year: currentYear - 1, price: "price_1R8ORc2a3B4f6jfh4mtYKiXl" },
+    { type: "varsinainen-jasen", year: currentYear, price: "price_1Sqs7c2a3B4f6jfhBiyJfAno" },
+    { type: "ulkojasen", year: currentYear, price: "price_1Sqs7y2a3B4f6jfhHjnWzk9n" },
+    { type: "kannatusjasen", year: currentYear, price: "price_1Sqs8B2a3B4f6jfhB5Ga6AJC" },
+    { type: "varsinainen-jasen", year: currentYear + 1, price: null, draft: true },
+    { type: "ulkojasen", year: currentYear + 1, price: null, draft: true },
+    { type: "alumnijasen", year: currentYear + 1, price: null, draft: true },
+  ] as const;
 
-  const membershipsToSeed = [
-    // 3rd previous period (expired, legacy - no Stripe price)
-    {
-      id: crypto.randomUUID(),
-      membershipTypeId: "varsinainen-jasen",
-      stripePriceId: null,
-      startTime: new Date(`${currentYear - 3}-08-01`),
-      endTime: new Date(`${currentYear - 2}-07-31`),
-      requiresStudentVerification: true,
-    },
-    {
-      id: crypto.randomUUID(),
-      membershipTypeId: "ulkojasen",
-      stripePriceId: null,
-      startTime: new Date(`${currentYear - 3}-08-01`),
-      endTime: new Date(`${currentYear - 2}-07-31`),
-      requiresStudentVerification: false,
-    },
-    // 2nd previous period (expired, legacy - no Stripe price)
-    {
-      id: crypto.randomUUID(),
-      membershipTypeId: "varsinainen-jasen",
-      stripePriceId: null,
-      startTime: new Date(`${currentYear - 2}-08-01`),
-      endTime: new Date(`${currentYear - 1}-07-31`),
-      requiresStudentVerification: true,
-    },
-    {
-      id: crypto.randomUUID(),
-      membershipTypeId: "ulkojasen",
-      stripePriceId: null,
-      startTime: new Date(`${currentYear - 2}-08-01`),
-      endTime: new Date(`${currentYear - 1}-07-31`),
-      requiresStudentVerification: false,
-    },
-    // Previous period (with Stripe prices)
-    {
-      id: crypto.randomUUID(),
-      membershipTypeId: "varsinainen-jasen",
-      stripePriceId: "price_1R8OQM2a3B4f6jfhOUeOMY74",
-      startTime: new Date(`${currentYear - 1}-08-01`),
-      endTime: new Date(`${currentYear}-07-31`),
-      requiresStudentVerification: true,
-    },
-    {
-      id: crypto.randomUUID(),
-      membershipTypeId: "ulkojasen",
-      stripePriceId: "price_1R8ORJ2a3B4f6jfheqBz7Pwj",
-      startTime: new Date(`${currentYear - 1}-08-01`),
-      endTime: new Date(`${currentYear}-07-31`),
-      requiresStudentVerification: false,
-    },
-    {
-      id: crypto.randomUUID(),
-      membershipTypeId: "kannatusjasen",
-      stripePriceId: "price_1R8ORc2a3B4f6jfh4mtYKiXl",
-      startTime: new Date(`${currentYear - 1}-08-01`),
-      endTime: new Date(`${currentYear}-07-31`),
-      requiresStudentVerification: false,
-    },
-    // Current period (with Stripe prices)
-    {
-      id: crypto.randomUUID(),
-      membershipTypeId: "varsinainen-jasen",
-      stripePriceId: "price_1Sqs7c2a3B4f6jfhBiyJfAno",
-      startTime: new Date(`${currentYear}-08-01`),
-      endTime: new Date(`${currentYear + 1}-07-31`),
-      requiresStudentVerification: true,
-    },
-    {
-      id: crypto.randomUUID(),
-      membershipTypeId: "ulkojasen",
-      stripePriceId: "price_1Sqs7y2a3B4f6jfhHjnWzk9n",
-      startTime: new Date(`${currentYear}-08-01`),
-      endTime: new Date(`${currentYear + 1}-07-31`),
-      requiresStudentVerification: false,
-    },
-    {
-      id: crypto.randomUUID(),
-      membershipTypeId: "kannatusjasen",
-      stripePriceId: "price_1Sqs8B2a3B4f6jfhB5Ga6AJC",
-      startTime: new Date(`${currentYear}-08-01`),
-      endTime: new Date(`${currentYear + 1}-07-31`),
-      requiresStudentVerification: false,
-    },
-    // Upcoming period (no Stripe prices yet, no members seeded)
-    // Note: Kannatusjäsen replaced by Alumnijäsen starting this period
-    {
-      id: crypto.randomUUID(),
-      membershipTypeId: "varsinainen-jasen",
-      stripePriceId: null,
-      startTime: new Date(`${currentYear + 1}-08-01`),
-      endTime: new Date(`${currentYear + 2}-07-31`),
-      requiresStudentVerification: true,
-    },
-    {
-      id: crypto.randomUUID(),
-      membershipTypeId: "ulkojasen",
-      stripePriceId: null,
-      startTime: new Date(`${currentYear + 1}-08-01`),
-      endTime: new Date(`${currentYear + 2}-07-31`),
-      requiresStudentVerification: false,
-    },
-    {
-      id: crypto.randomUUID(),
-      membershipTypeId: "alumnijasen",
-      stripePriceId: null,
-      startTime: new Date(`${currentYear + 1}-08-01`),
-      endTime: new Date(`${currentYear + 2}-07-31`),
-      requiresStudentVerification: false,
-    },
-  ];
+  const feePeriods: (typeof table.membershipFeePeriod.$inferInsert)[] = periodDefinitions.map((period) => ({
+    id: crypto.randomUUID(),
+    membershipTypeId: period.type,
+    stripePriceId: period.price,
+    startDate: date(period.year, "08-01"),
+    endDate: date(period.year + 1, "07-31"),
+    dueDate: date(period.year, "09-30"),
+    nonPaymentActionAt: date(period.year, "12-01"),
+    publishedAt: "draft" in period || !period.price ? null : new Date(date(period.year, "08-01")),
+    acceptsApplications: !("draft" in period) && period.year === currentYear,
+  }));
+  const insertedPeriods = await db.insert(table.membershipFeePeriod).values(feePeriods).returning({
+    id: table.membershipFeePeriod.id,
+    membershipTypeId: table.membershipFeePeriod.membershipTypeId,
+    startDate: table.membershipFeePeriod.startDate,
+  });
+  const currentPeriods = new Map(
+    insertedPeriods
+      .filter((period) => period.startDate === date(currentYear, "08-01"))
+      .map((period) => [period.membershipTypeId, period.id]),
+  );
 
-  const insertedMemberships = await db
-    .insert(table.membership)
-    .values(membershipsToSeed)
-    .returning({ id: table.membership.id, endTime: table.membership.endTime });
-
-  // Direct weights for each membership (must sum to 1.0 for memberships that should have members)
-  const weights = [
-    0.045, // 3rd prev varsinainen (5% of users * 90% varsinainen)
-    0.005, // 3rd prev ulkojäsen (5% of users * 10% ulkojäsen)
-    0.135, // 2nd prev varsinainen (15% of users * 90% varsinainen)
-    0.015, // 2nd prev ulkojäsen (15% of users * 10% ulkojäsen)
-    0.27, // Previous varsinainen (30% of users * 90% varsinainen)
-    0.027, // Previous ulkojäsen (30% of users * 9% ulkojäsen)
-    0.003, // Previous kannatusjäsen (30% of users * 1% kannatusjäsen)
-    0.45, // Current varsinainen (50% of users * 90% varsinainen)
-    0.045, // Current ulkojäsen (50% of users * 9% ulkojäsen)
-    0.005, // Current kannatusjäsen (50% of users * 1% kannatusjäsen)
-    // Upcoming memberships - no members seeded (upcoming period)
-    0, // Next varsinainen
-    0, // Next ulkojäsen
-    0, // Next alumnijäsen
-  ];
-
-  // Seed users only first
   console.log("Seeding users...");
-  await seed(db, { user: table.user }, { count: 1000, version: "2" }).refine((f) => ({
+  await seed(db, { user: table.user }, { count: 1000, version: "3" }).refine((f) => ({
     user: {
       columns: {
         homeMunicipality: f.state(),
@@ -232,129 +123,162 @@ try {
     },
   }));
 
-  // Get all seeded users
-  const allUsers = await db.select({ id: table.user.id }).from(table.user);
+  const users = await db.select({ id: table.user.id }).from(table.user);
+  const members: (typeof table.member.$inferInsert)[] = [];
+  const obligations: (typeof table.membershipObligation.$inferInsert)[] = [];
+  const payments: (typeof table.payment.$inferInsert)[] = [];
+  const events: (typeof table.membershipEvent.$inferInsert)[] = [];
+  const payableTypes = ["varsinainen-jasen", "ulkojasen", "kannatusjasen"] as const;
 
-  console.log("Seeding members with unique memberships per user...");
-
-  // Helper to select weighted random membership
-  function selectWeightedMembership(exclude?: string): string {
-    const random = Math.random();
-    let cumulativeWeight = 0;
-
-    for (let i = 0; i < insertedMemberships.length; i++) {
-      // Skip if this is the excluded membership
-      if (exclude && insertedMemberships[i]!.id === exclude) continue;
-
-      cumulativeWeight += weights[i]!;
-      if (random <= cumulativeWeight) {
-        return insertedMemberships[i]!.id;
-      }
-    }
-    return insertedMemberships.at(-1)!.id;
-  }
-
-  // Helper to select status based on membership period
-  function selectStatus(
-    membershipId: string,
-  ): "awaiting_payment" | "awaiting_approval" | "active" | "resigned" | "rejected" {
-    const membership = insertedMemberships.find((m) => m.id === membershipId);
-    if (!membership) return "active";
-
-    const now = new Date();
-    const isPast = membership.endTime < now;
-
-    if (isPast) {
-      // For past memberships, mostly resigned with small chance of rejected
-      const random = Math.random();
-      if (random < 0.05) return "rejected";
-      return "resigned";
-    } else {
-      // For current/future memberships, use normal distribution
-      const random = Math.random();
-      if (random < 0.02) return "awaiting_approval";
-      if (random < 0.03) return "awaiting_payment";
-      if (random < 0.04) return "rejected";
-      return "active";
-    }
-  }
-
-  // Create members for each user
-  const membersToInsert = [];
-  for (const user of allUsers) {
-    // Skip the root admin user
+  for (const user of users) {
     if (user.id === rootUserId) continue;
+    const random = Math.random();
+    const membershipTypeId = payableTypes[Math.floor(Math.random() * payableTypes.length)] ?? "varsinainen-jasen";
+    const feePeriodId = currentPeriods.get(membershipTypeId);
+    if (!feePeriodId) throw new Error(`Current period missing for ${membershipTypeId}`);
+    const memberId = crypto.randomUUID();
+    const startedAt = new Date(date(currentYear - (Math.random() < 0.65 ? 1 : 0), "08-01"));
 
-    // 50% chance of 1 membership, 50% chance of 2 memberships
-    const membershipCount = Math.random() < 0.5 ? 1 : 2;
-
-    // First membership
-    const firstMembershipId = selectWeightedMembership();
-    membersToInsert.push({
-      id: crypto.randomUUID(),
-      userId: user.id,
-      membershipId: firstMembershipId,
-      status: selectStatus(firstMembershipId),
-      stripeSessionId: null,
-    });
-
-    // Second membership (if applicable) - ensure it's different
-    if (membershipCount === 2) {
-      const secondMembershipId = selectWeightedMembership(firstMembershipId);
-      membersToInsert.push({
-        id: crypto.randomUUID(),
+    if (random < 0.78) {
+      members.push({
+        id: memberId,
         userId: user.id,
-        membershipId: secondMembershipId,
-        status: selectStatus(secondMembershipId),
-        stripeSessionId: null,
+        status: "active",
+        membershipTypeId,
+        currentMembershipStartedAt: startedAt,
       });
+      events.push({
+        id: crypto.randomUUID(),
+        memberId,
+        eventType: "application_approved",
+        effectiveAt: startedAt,
+        source: "admin",
+        certainty: "confirmed",
+        actorUserId: rootUserId,
+        membershipFeePeriodId: feePeriodId,
+        data: { membershipTypeId },
+      });
+      const obligationId = crypto.randomUUID();
+      obligations.push({ id: obligationId, memberId, membershipFeePeriodId: feePeriodId, kind: "renewal" });
+      if (Math.random() < 0.72) {
+        payments.push({
+          id: crypto.randomUUID(),
+          memberId,
+          membershipFeePeriodId: feePeriodId,
+          obligationId,
+          source: "imported",
+          status: "succeeded",
+          paidAt: new Date(date(currentYear, "08-15")),
+        });
+      }
+    } else if (random < 0.86) {
+      members.push({
+        id: memberId,
+        userId: user.id,
+        status: "awaiting_payment",
+        pendingMembershipTypeId: membershipTypeId,
+        applicationMotive: "Seeded application",
+      });
+    } else if (random < 0.92) {
+      members.push({
+        id: memberId,
+        userId: user.id,
+        status: "awaiting_approval",
+        pendingMembershipTypeId: membershipTypeId,
+        applicationMotive: "Seeded paid application",
+      });
+      const obligationId = crypto.randomUUID();
+      obligations.push({ id: obligationId, memberId, membershipFeePeriodId: feePeriodId, kind: "application" });
+      payments.push({
+        id: crypto.randomUUID(),
+        memberId,
+        membershipFeePeriodId: feePeriodId,
+        obligationId,
+        source: "imported",
+        status: "succeeded",
+        paidAt: new Date(date(currentYear, "08-15")),
+      });
+      events.push({
+        id: crypto.randomUUID(),
+        memberId,
+        eventType: "application_submitted",
+        effectiveAt: new Date(date(currentYear, "08-15")),
+        source: "system",
+        certainty: "confirmed",
+        membershipFeePeriodId: feePeriodId,
+        data: { membershipTypeId },
+      });
+    } else if (random < 0.97) {
+      const endedStartedAt = new Date(date(currentYear - 1, "08-01"));
+      const endedAt = new Date(date(currentYear, "01-15"));
+      members.push({
+        id: memberId,
+        userId: user.id,
+        status: "ended",
+        membershipTypeId,
+        currentMembershipStartedAt: endedStartedAt,
+        currentMembershipEndedAt: endedAt,
+      });
+      events.push({
+        id: crypto.randomUUID(),
+        memberId,
+        eventType: "resigned_voluntarily",
+        effectiveAt: endedAt,
+        source: "admin",
+        certainty: "confirmed",
+        actorUserId: rootUserId,
+        data: { reason: "Seeded resignation" },
+      });
+    } else {
+      members.push({ id: memberId, userId: user.id, status: "rejected", applicationMotive: "Seeded rejection" });
     }
   }
 
-  // Insert all members in batches
-  const batchSize = 100;
-  for (let i = 0; i < membersToInsert.length; i += batchSize) {
-    const batch = membersToInsert.slice(i, i + batchSize);
-    await db.insert(table.member).values(batch);
+  for (let index = 0; index < members.length; index += 100) {
+    await db.insert(table.member).values(members.slice(index, index + 100));
+  }
+  for (let index = 0; index < obligations.length; index += 100) {
+    await db.insert(table.membershipObligation).values(obligations.slice(index, index + 100));
+  }
+  for (let index = 0; index < payments.length; index += 100) {
+    await db.insert(table.payment).values(payments.slice(index, index + 100));
+  }
+  for (let index = 0; index < events.length; index += 100) {
+    await db.insert(table.membershipEvent).values(events.slice(index, index + 100));
   }
 
-  console.log(`Seeded ${membersToInsert.length} member records for ${allUsers.length - 1} users!`);
-
-  // Seed association (yhteisöjäsen) memberships and members
-  const associationMembershipId = crypto.randomUUID();
-  await db.insert(table.membership).values({
-    id: associationMembershipId,
+  const associationPeriodId = crypto.randomUUID();
+  await db.insert(table.membershipFeePeriod).values({
+    id: associationPeriodId,
     membershipTypeId: "yhteisojasen",
-    stripePriceId: null,
-    startTime: new Date("2025-08-01"),
-    endTime: new Date("2026-07-31"),
-    requiresStudentVerification: false,
+    startDate: date(currentYear, "08-01"),
+    endDate: date(currentYear + 1, "07-31"),
+    dueDate: date(currentYear, "09-30"),
+    nonPaymentActionAt: date(currentYear, "12-01"),
+    publishedAt: new Date(date(currentYear, "08-01")),
   });
-
-  const associationMembers = [
+  await db.insert(table.member).values([
     {
       id: crypto.randomUUID(),
-      userId: null,
       organizationName: "Automaatio- ja systeemitekniikan kilta AS ry",
-      membershipId: associationMembershipId,
-      status: "active" as const,
-      stripeSessionId: null,
+      status: "active",
+      membershipTypeId: "yhteisojasen",
+      currentMembershipStartedAt: new Date(date(currentYear, "08-01")),
     },
     {
       id: crypto.randomUUID(),
-      userId: null,
       organizationName: "Sähköinsinöörikilta ry",
-      membershipId: associationMembershipId,
-      status: "active" as const,
-      stripeSessionId: null,
+      status: "active",
+      membershipTypeId: "yhteisojasen",
+      currentMembershipStartedAt: new Date(date(currentYear, "08-01")),
     },
-  ];
+  ]);
 
-  await db.insert(table.member).values(associationMembers);
-  console.log(`Seeded ${associationMembers.length} association members!`);
-
+  console.log(
+    `Seeded ${members.length + 2} stable members, ${obligations.length} obligations, and ${payments.length} payments.`,
+  );
   await client.end();
-} catch (e) {
-  console.error("Seeding failed:", e);
+} catch (error) {
+  console.error("Seeding failed:", error);
   process.exit(1);
 }

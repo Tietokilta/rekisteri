@@ -4,19 +4,17 @@ import postgres from "postgres";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { relations } from "../../src/lib/server/db/relations";
 
-type Schema = typeof relations;
-
 type DbFixtures = {
   authenticatedPage: Page;
   adminPage: Page;
   adminUser: UserInfo;
-  db: PostgresJsDatabase<Schema>;
+  db: PostgresJsDatabase<typeof relations>;
 };
 
 type WorkerFixtures = {
   dbConnection: {
     client: ReturnType<typeof postgres>;
-    db: PostgresJsDatabase<Schema>;
+    db: PostgresJsDatabase<typeof relations>;
   };
 };
 

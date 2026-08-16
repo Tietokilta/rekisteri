@@ -181,7 +181,6 @@ Terveisin,
 
 Jäsenyystiedot:
 - Jäsenyystyyppi: {membershipName:string}
-- Voimassa: {startDate:string} - {endDate:string}
 
 Voit nyt osallistua organisaation toimintaan ja hyödyntää jäsenetuja.
 
@@ -198,7 +197,6 @@ Jäsenyytesi on uusittu automaattisesti maksun jälkeen.
 
 Jäsenyystiedot:
 - Jäsenyystyyppi: {membershipName:string}
-- Voimassa: {startDate:string} - {endDate:string}
 
 Kiitos, että jatkat jäsenenämme!
 
@@ -340,6 +338,7 @@ Terveisin,
     noAvailableMemberships:
       "Jäsenyyksiä ei ole tällä hetkellä ostettavissa. Sinulla voi jo olla jäsenyys kaikille saatavilla oleville kausille, tai seuraavan kauden jäsenyyksiä ei ole vielä avattu.",
     willAutoApprove: "Hyväksytään automaattisesti maksun jälkeen",
+    renewalNoApproval: "Jäsenmaksun uusinta — ei uutta hallituksen hyväksyntää",
     willRequireApproval: "Vaatii hallituksen hyväksynnän maksun jälkeen",
     autoApprovalAdminNote:
       "Jäsenet, joilla on hyväksytty jäsenyys samaa tyyppiä edellisellä kaudella, hyväksytään automaattisesti uusiessaan jäsenyytensä. Opiskelijajäsenyyksien automaattinen hyväksyntä edellyttää myös voimassa olevaa aalto.fi-sähköpostia.",
@@ -380,6 +379,12 @@ Terveisin,
       priceInactive: "Varoitus: Tämä hinta ei ole aktiivinen Stripessä",
       legacyMembership: "Arkistojäsenyys (ei Stripe-hintaa)",
       failedToLoadPrice: "Hinnan lataus epäonnistui",
+      draft: "Luonnos",
+      published: "Julkaistu",
+      applicationTarget: "Hakemusten kohde",
+      publish: "Julkaise ja luo maksut",
+      saveBeforePublishing: "Tallenna luonnoksen muutokset ennen julkaisemista.",
+      selectApplicationTarget: "Käytä hakemuksille",
     },
 
     membershipTypes: {
@@ -399,6 +404,10 @@ Terveisin,
       descriptionPlaceholder: "Valinnainen kuvaus jäsenyystyypille...",
       purchasable: "Ostettavissa",
       purchasableDescription: "Jäsenyystyyppi näkyy käyttäjien ostosivulla",
+      requiresPayment: "Vaatii vuosittaisen jäsenmaksun",
+      requiresPaymentDescription: "Julkaistut maksukaudet luovat maksuvelvoitteen aktiivisille jäsenille",
+      requiresStudentVerificationDescription: "Ostaminen vaatii voimassa olevan opiskelijatunnistuksen",
+      applicationTargetRequired: "Julkaise ja valitse ensin hakemuksissa käytettävä maksukausi",
       notPurchasable: "Ei ostettavissa",
       cannotDeleteInUse: "Jäsenyystyyppiä ei voi poistaa, koska sillä on jäsenyyksiä",
       idAlreadyExists: "Tämän tunnisteen omaava jäsenyystyyppi on jo olemassa",
@@ -596,6 +605,7 @@ Terveisin,
       membershipTypeChangePriceCheckFailed: "Jäsenyyksien hintoja ei voitu tarkistaa Stripestä",
       membershipTypeChangeConflict: "Jäsenyys muuttui muokkauksen aikana. Yritä uudelleen.",
       notAwaitingApproval: "Jäsentä ei voi hyväksyä tästä tilasta",
+      paymentRequiredBeforeApproval: "Jäsenmaksu on maksettava tai vapautettava erikseen ennen hyväksymistä",
       cannotReject: "Jäsentä ei voi hylätä tästä tilasta",
       cannotDeemResigned: "Jäsentä ei voi katsoa eronneeksi tästä tilasta",
       cannotResign: "Jäsenen eroamista ei voi kirjata tästä tilasta",
@@ -629,7 +639,7 @@ Terveisin,
       recordsToCreate: "Luotavia jäsentietueita:",
       willBeActive: "Merkitään aktiivisiksi:",
       willBeResigned: "Merkitään eronneiksi:",
-      note: "Huom: Olemassa olevien käyttäjien tiedot päivitetään. Päällekkäiset jäsentietueet (sama käyttäjä + jäsenyys) ohitetaan.",
+      note: "Huom: Olemassa olevien käyttäjien profiilitietoja ei ylikirjoiteta. Aiemmin tuodut maksut ohitetaan.",
       dataPreview: "CSV-datan esikatselu",
       firstNames: "Etunimet",
       lastName: "Sukunimi",
@@ -713,6 +723,8 @@ Terveisin,
       secondaryEmailMismatch: "Toissijaisen sähköpostin vahvistus ei täsmää",
       cannotMergeOverlapping:
         'Yhdistäminen epäonnistui: Molemmilla käyttäjillä on jäsenyys "{type:string}" samalle ajanjaksolle ({startDate:string} - {endDate:string})',
+      cannotMergeMembershipRecords:
+        "Käyttäjiä ei voi yhdistää automaattisesti, koska molemmilla on jäsenrekisteritietoja. Yhdistä jäsenhistoriat ensin.",
 
       merge: {
         title: "Yhdistä käyttäjät",
@@ -726,7 +738,9 @@ Terveisin,
         primaryUser: "Ensisijainen käyttäjä (säilyy)",
         secondaryUser: "Toissijainen käyttäjä (poistetaan)",
         willBeMerged: "Seuraavat siirretään ensisijaiselle käyttäjälle:",
-        memberships: "Kaikki jäsenyydet",
+        memberships: "Jäsenyys ja sen historia",
+        bothHaveMembership:
+          "Molemmilla käyttäjätileillä on jäsenrekisteritietoja. Jäsenhistoriat on yhdistettävä ennen käyttäjätilien yhdistämistä.",
         secondaryEmails: "Kaikki toissijaiset sähköpostit",
         passkeys: "Kaikki avainkoodit",
         sessions: "Kaikki aktiiviset istunnot",

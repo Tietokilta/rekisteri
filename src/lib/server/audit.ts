@@ -26,6 +26,8 @@ export type AuditAction =
   | "membership.create"
   | "membership.update"
   | "membership.delete"
+  | "membership.publish"
+  | "membership.application_target_select"
   | "membership_type.create"
   | "membership_type.update"
   | "membership_type.delete"
@@ -44,6 +46,14 @@ export interface AuditLogParams {
   metadata?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
+}
+
+function getClientAddress(event: RequestEvent): string | undefined {
+  try {
+    return event.getClientAddress();
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -90,7 +100,7 @@ export async function auditFromEvent(
     targetType: options?.targetType,
     targetId: options?.targetId,
     metadata: options?.metadata,
-    ipAddress: event.getClientAddress(),
+    ipAddress: getClientAddress(event),
     userAgent: event.request.headers.get("user-agent") || undefined,
   });
 }
@@ -112,7 +122,7 @@ export async function auditLoginFailed(event: RequestEvent, email: string): Prom
   await createAuditLog({
     action: "auth.login_failed",
     metadata: { email },
-    ipAddress: event.getClientAddress(),
+    ipAddress: getClientAddress(event),
     userAgent: event.request.headers.get("user-agent") || undefined,
   });
 }

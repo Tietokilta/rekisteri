@@ -17,8 +17,8 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-import type { LocalizedString } from "./schema";
-import { user } from "./schema";
+import type { LocalizedString } from "./base-schema";
+import { user } from "./base-schema";
 import {
   MEMBERSHIP_EVENT_CERTAINTY_VALUES,
   MEMBERSHIP_EVENT_SOURCE_VALUES,
@@ -40,7 +40,7 @@ const timestamps = {
     .$onUpdateFn(() => new Date()),
 };
 
-export const membershipStatusEnumNext = pgEnum("member_status", MEMBERSHIP_STATUS_VALUES);
+export const membershipStatusEnum = pgEnum("member_status", MEMBERSHIP_STATUS_VALUES);
 export const membershipEventTypeEnum = pgEnum("membership_event_type", MEMBERSHIP_EVENT_TYPE_VALUES);
 export const membershipEventSourceEnum = pgEnum("membership_event_source", MEMBERSHIP_EVENT_SOURCE_VALUES);
 export const membershipEventCertaintyEnum = pgEnum("membership_event_certainty", MEMBERSHIP_EVENT_CERTAINTY_VALUES);
@@ -53,7 +53,7 @@ export const paymentSourceEnum = pgEnum("payment_source", PAYMENT_SOURCE_VALUES)
 export const paymentStatusEnum = pgEnum("payment_status", PAYMENT_STATUS_VALUES);
 export const paymentRefundReasonEnum = pgEnum("payment_refund_reason", PAYMENT_REFUND_REASON_VALUES);
 
-export const membershipTypeNext = snakeCase.table(
+export const membershipType = snakeCase.table(
   "membership_type",
   {
     id: text().primaryKey(),
@@ -62,25 +62,23 @@ export const membershipTypeNext = snakeCase.table(
     purchasable: boolean().notNull().default(true),
     requiresPayment: boolean().notNull().default(true),
     requiresStudentVerification: boolean().notNull().default(false),
-    legacyInferenceThroughPeriodId: text().references((): AnyPgColumn => membershipFeePeriodNext.id),
+    legacyInferenceThroughPeriodId: text().references((): AnyPgColumn => membershipFeePeriod.id),
     ...timestamps,
   },
   (table) => [index("membership_type_legacy_inference_period_idx").on(table.legacyInferenceThroughPeriodId)],
 );
 
-export const membershipFeePeriodNext = snakeCase.table(
+export const membershipFeePeriod = snakeCase.table(
   "membership_fee_period",
   {
     id: text().primaryKey(),
     membershipTypeId: text()
       .notNull()
-      .references(() => membershipTypeNext.id),
+      .references(() => membershipType.id),
     startDate: date().notNull(),
     endDate: date().notNull(),
     dueDate: date().notNull(),
     nonPaymentActionAt: date().notNull(),
-    amount: integer(),
-    currency: text(),
     stripePriceId: text(),
     publishedAt: timestamp({ withTimezone: true }),
     acceptsApplications: boolean().notNull().default(false),
@@ -94,11 +92,6 @@ export const membershipFeePeriodNext = snakeCase.table(
     index("membership_fee_period_type_idx").on(table.membershipTypeId),
     check("membership_fee_period_date_order", sql`${table.endDate} >= ${table.startDate}`),
     check("membership_fee_period_action_after_due", sql`${table.nonPaymentActionAt} > ${table.dueDate}`),
-    check("membership_fee_period_amount_nonnegative", sql`${table.amount} IS NULL OR ${table.amount} >= 0`),
-    check(
-      "membership_fee_period_published_complete",
-      sql`${table.publishedAt} IS NULL OR (${table.amount} IS NOT NULL AND ${table.currency} IS NOT NULL AND (${table.amount} = 0 OR ${table.stripePriceId} IS NOT NULL))`,
-    ),
     check(
       "membership_fee_period_application_target_published",
       sql`NOT ${table.acceptsApplications} OR ${table.publishedAt} IS NOT NULL`,
@@ -106,15 +99,15 @@ export const membershipFeePeriodNext = snakeCase.table(
   ],
 );
 
-export const memberNext = snakeCase.table(
+export const member = snakeCase.table(
   "member",
   {
     id: text().primaryKey(),
     userId: text().references(() => user.id),
     organizationName: text(),
-    status: membershipStatusEnumNext().notNull(),
-    membershipTypeId: text().references(() => membershipTypeNext.id),
-    pendingMembershipTypeId: text().references(() => membershipTypeNext.id),
+    status: membershipStatusEnum().notNull(),
+    membershipTypeId: text().references(() => membershipType.id),
+    pendingMembershipTypeId: text().references(() => membershipType.id),
     currentMembershipStartedAt: timestamp({ withTimezone: true }),
     currentMembershipEndedAt: timestamp({ withTimezone: true }),
     applicationMotive: text(),
@@ -154,7 +147,7 @@ export const membershipEvent = snakeCase.table(
     id: text().primaryKey(),
     memberId: text()
       .notNull()
-      .references(() => memberNext.id),
+      .references(() => member.id),
     eventType: membershipEventTypeEnum().notNull(),
     effectiveAt: timestamp({ withTimezone: true }).notNull(),
     recordedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -162,7 +155,7 @@ export const membershipEvent = snakeCase.table(
     certainty: membershipEventCertaintyEnum().notNull(),
     actorUserId: text().references(() => user.id),
     relatedEventId: text().references((): AnyPgColumn => membershipEvent.id),
-    membershipFeePeriodId: text().references(() => membershipFeePeriodNext.id),
+    membershipFeePeriodId: text().references(() => membershipFeePeriod.id),
     data: jsonb().$type<MembershipEventData>().notNull(),
   },
   (table) => [
@@ -190,10 +183,10 @@ export const membershipObligation = snakeCase.table(
     id: text().primaryKey(),
     memberId: text()
       .notNull()
-      .references(() => memberNext.id),
+      .references(() => member.id),
     membershipFeePeriodId: text()
       .notNull()
-      .references(() => membershipFeePeriodNext.id),
+      .references(() => membershipFeePeriod.id),
     kind: membershipObligationKindEnum().notNull(),
     disposition: membershipObligationDispositionEnum().notNull().default("required"),
     dispositionReason: text(),
@@ -216,10 +209,10 @@ export const payment = snakeCase.table(
     id: text().primaryKey(),
     memberId: text()
       .notNull()
-      .references(() => memberNext.id),
+      .references(() => member.id),
     membershipFeePeriodId: text()
       .notNull()
-      .references(() => membershipFeePeriodNext.id),
+      .references(() => membershipFeePeriod.id),
     obligationId: text(),
     source: paymentSourceEnum().notNull(),
     status: paymentStatusEnum().notNull(),
@@ -273,7 +266,7 @@ export const payment = snakeCase.table(
   ],
 );
 
-export const appCustomizationNext = snakeCase.table(
+export const appCustomization = snakeCase.table(
   "app_customization",
   {
     id: integer().primaryKey(),

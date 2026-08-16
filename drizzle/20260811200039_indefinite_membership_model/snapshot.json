@@ -1446,32 +1446,6 @@
       "table": "membership_fee_period"
     },
     {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "amount",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "membership_fee_period"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "currency",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "membership_fee_period"
-    },
-    {
       "type": "text",
       "typeSchema": null,
       "notNull": false,
@@ -3091,20 +3065,6 @@
     {
       "value": "\"non_payment_action_at\" > \"due_date\"",
       "name": "membership_fee_period_action_after_due",
-      "entityType": "checks",
-      "schema": "public",
-      "table": "membership_fee_period"
-    },
-    {
-      "value": "\"amount\" IS NULL OR \"amount\" >= 0",
-      "name": "membership_fee_period_amount_nonnegative",
-      "entityType": "checks",
-      "schema": "public",
-      "table": "membership_fee_period"
-    },
-    {
-      "value": "\"published_at\" IS NULL OR (\"amount\" IS NOT NULL AND \"currency\" IS NOT NULL AND (\"amount\" = 0 OR \"stripe_price_id\" IS NOT NULL))",
-      "name": "membership_fee_period_published_complete",
       "entityType": "checks",
       "schema": "public",
       "table": "membership_fee_period"

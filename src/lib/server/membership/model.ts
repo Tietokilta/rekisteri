@@ -1,10 +1,6 @@
-export const MEMBERSHIP_STATUS_VALUES = [
-  "awaiting_payment",
-  "awaiting_approval",
-  "active",
-  "ended",
-  "rejected",
-] as const;
+import { MEMBER_STATUS_VALUES } from "$lib/shared/enums";
+
+export const MEMBERSHIP_STATUS_VALUES = MEMBER_STATUS_VALUES;
 
 export const MEMBERSHIP_EVENT_TYPE_VALUES = [
   "application_submitted",

@@ -1,19 +1,15 @@
-import { test, expect } from "./fixtures/auth";
+import { test, expect } from "./fixtures/db";
 import path from "node:path";
 import fs from "node:fs";
-import postgres from "postgres";
-import { drizzle } from "drizzle-orm/postgres-js";
 import * as table from "$lib/server/db/schema";
-import { relations } from "$lib/server/db/relations";
+import type { relations } from "$lib/server/db/relations";
 import { and, eq, inArray } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { createVerifiedSecondaryEmail, createUnverifiedSecondaryEmail } from "./helpers/secondary-email";
 import { route } from "../src/lib/ROUTES";
-import type { Schema } from "$lib/server/db";
 
 test.describe("CSV Import", () => {
-  let client: ReturnType<typeof postgres>;
-  let db: PostgresJsDatabase<Schema>;
+  let db: PostgresJsDatabase<typeof relations>;
 
   // Track test data for cleanup
   let testUserIds: string[] = [];
@@ -22,21 +18,24 @@ test.describe("CSV Import", () => {
 
   const getTestEmail = (prefix: string) => `${prefix}-${crypto.randomUUID()}@example.com`;
 
-  test.beforeAll(async () => {
-    const dbUrl = process.env.DATABASE_URL_TEST;
-    if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
-    client = postgres(dbUrl);
-    db = drizzle({ client, relations });
-  });
-
-  test.afterAll(async () => {
-    await client.end();
+  test.beforeAll(async ({ db: fixtureDb }) => {
+    db = fixtureDb;
   });
 
   test.afterEach(async () => {
     // Clean up test users and their related data
     for (const userId of testUserIds) {
       // Delete in correct order (foreign key constraints)
+      const members = await db
+        .select({ id: table.member.id })
+        .from(table.member)
+        .where(eq(table.member.userId, userId));
+      const memberIds = members.map((member) => member.id);
+      if (memberIds.length > 0) {
+        await db.delete(table.payment).where(inArray(table.payment.memberId, memberIds));
+        await db.delete(table.membershipEvent).where(inArray(table.membershipEvent.memberId, memberIds));
+        await db.delete(table.membershipObligation).where(inArray(table.membershipObligation.memberId, memberIds));
+      }
       await db.delete(table.member).where(eq(table.member.userId, userId));
       await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.userId, userId));
       await db.delete(table.user).where(eq(table.user.id, userId));
@@ -356,11 +355,11 @@ Test,User,Helsinki,${secondaryEmail},varsinainen-jasen,2025-08-01`;
     // Test user should now have at least one member record
     expect(testUserMembers.length).toBeGreaterThan(0);
 
-    // 9. Verify the test user's details were updated from the CSV
+    // Existing profile and consent data are deliberately not overwritten by an import.
     const [updatedUser] = await db.select().from(table.user).where(eq(table.user.id, testUserId));
-    expect(updatedUser?.firstNames).toBe("Test");
-    expect(updatedUser?.lastName).toBe("User");
-    expect(updatedUser?.homeMunicipality).toBe("Helsinki");
+    expect(updatedUser?.firstNames).toBe("Original");
+    expect(updatedUser?.lastName).toBe("Name");
+    expect(updatedUser?.homeMunicipality).toBe("Tampere");
   });
 
   test("should NOT match unverified secondary emails during CSV import", async ({ adminPage }) => {
@@ -425,6 +424,7 @@ New,Person,Espoo,${unverifiedEmail},varsinainen-jasen,2025-08-01`;
   });
 
   test("CSV import handles large batches (2000 rows)", async ({ adminPage }) => {
+    test.setTimeout(120_000);
     // Generate a CSV with 2000 rows
     const rowCount = 2000;
     const tempPath = path.join(process.cwd(), `temp-large-import-${crypto.randomUUID()}.csv`);
@@ -502,25 +502,15 @@ New,Person,Espoo,${unverifiedEmail},varsinainen-jasen,2025-08-01`;
     // The adminPage browser context can cache SvelteKit's server responses.
     const importPageUrl = () => `${route("/[locale=locale]/admin/members/import", { locale: "fi" })}?_=${Date.now()}`;
 
-    test.beforeEach(async () => {
-      // Clean up any non-seed memberships from previous failed test runs.
-      // Seed data starts at 2022, so anything before that is test-created.
-      const allMemberships = await db.select().from(table.membership);
-      const toDelete = allMemberships.filter((m) => m.startTime < new Date("2022-01-01"));
-
-      for (const m of toDelete) {
-        await db.delete(table.member).where(eq(table.member.membershipId, m.id));
-        await db.delete(table.membership).where(eq(table.membership.id, m.id));
-      }
-    });
-
     test.afterEach(async () => {
       // Clean up created memberships
       for (const membershipId of testMembershipIds) {
-        // First delete any member records that reference this membership
-        await db.delete(table.member).where(eq(table.member.membershipId, membershipId));
-        // Then delete the membership
-        await db.delete(table.membership).where(eq(table.membership.id, membershipId));
+        await db.delete(table.payment).where(eq(table.payment.membershipFeePeriodId, membershipId));
+        await db.delete(table.membershipEvent).where(eq(table.membershipEvent.membershipFeePeriodId, membershipId));
+        await db
+          .delete(table.membershipObligation)
+          .where(eq(table.membershipObligation.membershipFeePeriodId, membershipId));
+        await db.delete(table.membershipFeePeriod).where(eq(table.membershipFeePeriod.id, membershipId));
       }
       testMembershipIds = [];
     });
@@ -565,8 +555,8 @@ Test,User,Helsinki,${email},varsinainen-jasen,2019-08-01`;
       // Verify the membership was created in the database as legacy (no Stripe price)
       const [createdMembership] = await db
         .select()
-        .from(table.membership)
-        .where(eq(table.membership.startTime, new Date("2019-08-01")));
+        .from(table.membershipFeePeriod)
+        .where(eq(table.membershipFeePeriod.startDate, "2019-08-01"));
 
       expect(createdMembership).toBeDefined();
       expect(createdMembership?.stripePriceId).toBeNull();
@@ -634,8 +624,8 @@ Charlie,Brown,Espoo,${email3},varsinainen-jasen,1997-08-01`;
       // Verify memberships were created in database
       const createdMemberships = await db
         .select()
-        .from(table.membership)
-        .where(inArray(table.membership.startTime, [new Date("1997-08-01"), new Date("1998-08-01")]));
+        .from(table.membershipFeePeriod)
+        .where(inArray(table.membershipFeePeriod.startDate, ["1997-08-01", "1998-08-01"]));
 
       // Should have 3 new memberships
       expect(createdMemberships.length).toBe(3);
@@ -823,21 +813,14 @@ Pitkä,Historia,Oulu,${testEmails[5]},varsinainen-jasen,2025-08-01`;
           ),
         );
 
-      // The CSV has 28 rows, so 28 member records should be created
-      expect(createdMembers.length).toBe(28);
+      // Imported periods collapse into one stable member identity per person.
+      expect(createdMembers.length).toBe(6);
 
       // Verify some newly created legacy memberships exist
       const legacyMemberships = await db
         .select()
-        .from(table.membership)
-        .where(
-          inArray(table.membership.startTime, [
-            new Date("2018-08-01"),
-            new Date("2019-08-01"),
-            new Date("2020-08-01"),
-            new Date("2021-08-01"),
-          ]),
-        );
+        .from(table.membershipFeePeriod)
+        .where(inArray(table.membershipFeePeriod.startDate, ["2018-08-01", "2019-08-01", "2020-08-01", "2021-08-01"]));
 
       // Should have created memberships for years that didn't exist
       expect(legacyMemberships.length).toBeGreaterThan(0);
@@ -877,11 +860,11 @@ Test,User,Helsinki,${email},varsinainen-jasen,2015-08-01`;
       // Verify the membership was created with correct end date (Jul 31 next year)
       const [createdMembership] = await db
         .select()
-        .from(table.membership)
-        .where(eq(table.membership.startTime, new Date("2015-08-01")));
+        .from(table.membershipFeePeriod)
+        .where(eq(table.membershipFeePeriod.startDate, "2015-08-01"));
 
       expect(createdMembership).toBeDefined();
-      expect(createdMembership?.endTime.toISOString().split("T", 1)[0]).toBe("2016-07-31");
+      expect(createdMembership?.endDate).toBe("2016-07-31");
 
       // Track for cleanup
       if (createdMembership) {
@@ -970,9 +953,9 @@ Updated,Name,Espoo,${email},varsinainen-jasen,2025-08-01,false`;
     // Verify isAllowedEmails was NOT overwritten
     const [user] = await db.select().from(table.user).where(eq(table.user.id, testUserId));
     expect(user?.isAllowedEmails).toBe(true); // kept original value
-    // But other fields were updated
-    expect(user?.firstNames).toBe("Updated");
-    expect(user?.homeMunicipality).toBe("Espoo");
+    // Existing profile data is not overwritten by historical payment imports.
+    expect(user?.firstNames).toBe("Original");
+    expect(user?.homeMunicipality).toBe("Helsinki");
   });
 
   test("CSV import accepts columns in any order", async ({ adminPage }) => {

@@ -2,7 +2,6 @@
   import { onDestroy } from "svelte";
   import QrScanner from "qr-scanner";
   import CircleCheck from "@lucide/svelte/icons/circle-check";
-  import CircleAlert from "@lucide/svelte/icons/circle-alert";
   import CircleX from "@lucide/svelte/icons/circle-x";
   import X from "@lucide/svelte/icons/x";
   import { LL, locale } from "$lib/i18n/i18n-svelte";
@@ -35,14 +34,6 @@
           borderClass: "border-green-500/50",
           bgClass: "bg-green-500/5",
           iconClass: "text-green-500",
-        };
-      case "resigned":
-        return {
-          icon: CircleAlert,
-          badgeVariant: "secondary" as const,
-          borderClass: "border-yellow-500/50",
-          bgClass: "bg-yellow-500/5",
-          iconClass: "text-yellow-500",
         };
       default:
         return {
@@ -111,9 +102,8 @@
     qrScanner = null;
   });
 
-  function getOverallStatus(memberships: VerifyResult["memberships"]): "active" | "resigned" | "none" {
+  function getOverallStatus(memberships: VerifyResult["memberships"]): "active" | "none" {
     if (memberships.some((m) => m.status === "active")) return "active";
-    if (memberships.some((m) => m.status === "resigned")) return "resigned";
     return "none";
   }
 
@@ -199,8 +189,6 @@
       <Badge variant={statusConfig.badgeVariant} class="px-4 py-1 text-base">
         {#if scanStatus === "active"}
           {$LL.membership.status.active()}
-        {:else if scanStatus === "resigned"}
-          {$LL.membership.status.resigned()}
         {:else}
           {$LL.admin.verifyQr.noMemberships()}
         {/if}
@@ -213,9 +201,12 @@
         {#each scannedUser.memberships as membership (membership.id)}
           <div class="rounded-lg border p-3">
             <div class="font-medium">{membership.membershipType.name[$locale]}</div>
-            <div class="text-sm text-muted-foreground">
-              {formatDate(membership.membership.startTime)} – {formatDate(membership.membership.endTime)}
-            </div>
+            {#if membership.startedAt}
+              <div class="text-sm text-muted-foreground">
+                {formatDate(membership.startedAt)}
+                {#if membership.endedAt}– {formatDate(membership.endedAt)}{/if}
+              </div>
+            {/if}
           </div>
         {/each}
       </div>

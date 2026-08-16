@@ -16,8 +16,6 @@ import { eq } from "drizzle-orm";
 let testDb: TestDatabase;
 let membershipTypeId: string;
 let associationMembershipTypeId: string;
-let membershipId: string;
-let associationMembershipId: string;
 
 beforeAll(async () => {
   testDb = await createTestDatabase();
@@ -36,25 +34,6 @@ beforeAll(async () => {
     id: associationMembershipTypeId,
     name: { fi: "Yhdistysjäsen", en: "Association member" },
     purchasable: false,
-  });
-
-  // Create membership periods
-  membershipId = "test-person-membership";
-  await testDb.db.insert(table.membership).values({
-    id: membershipId,
-    membershipTypeId,
-    startTime: new Date("2025-01-01"),
-    endTime: new Date("2025-12-31"),
-    requiresStudentVerification: false,
-  });
-
-  associationMembershipId = "test-association-membership";
-  await testDb.db.insert(table.membership).values({
-    id: associationMembershipId,
-    membershipTypeId: associationMembershipTypeId,
-    startTime: new Date("2025-01-01"),
-    endTime: new Date("2025-12-31"),
-    requiresStudentVerification: false,
   });
 }, 30_000);
 
@@ -77,8 +56,9 @@ describe("member_user_or_org CHECK constraint", () => {
       id: memberId,
       userId,
       organizationName: null,
-      membershipId,
       status: "active",
+      membershipTypeId,
+      currentMembershipStartedAt: new Date("2025-01-01T00:00:00Z"),
     });
 
     const member = await testDb.db.query.member.findFirst({
@@ -96,8 +76,9 @@ describe("member_user_or_org CHECK constraint", () => {
       id: memberId,
       userId: null,
       organizationName: "Test Association ry",
-      membershipId: associationMembershipId,
       status: "active",
+      membershipTypeId: associationMembershipTypeId,
+      currentMembershipStartedAt: new Date("2025-01-01T00:00:00Z"),
     });
 
     const member = await testDb.db.query.member.findFirst({
@@ -123,8 +104,9 @@ describe("member_user_or_org CHECK constraint", () => {
         id: memberId,
         userId,
         organizationName: "Should not be allowed",
-        membershipId,
         status: "active",
+        membershipTypeId,
+        currentMembershipStartedAt: new Date("2025-01-01T00:00:00Z"),
       }),
     ).rejects.toThrow();
   });
@@ -137,8 +119,9 @@ describe("member_user_or_org CHECK constraint", () => {
         id: memberId,
         userId: null,
         organizationName: null,
-        membershipId,
         status: "active",
+        membershipTypeId,
+        currentMembershipStartedAt: new Date("2025-01-01T00:00:00Z"),
       }),
     ).rejects.toThrow();
   });
@@ -182,20 +165,28 @@ describe("association member lifecycle", () => {
       id: memberId,
       userId: null,
       organizationName: "Lifecycle Test ry",
-      membershipId: associationMembershipId,
       status: "active",
+      membershipTypeId: associationMembershipTypeId,
+      currentMembershipStartedAt: new Date("2025-01-01T00:00:00Z"),
     });
 
-    // Transition to resigned
-    await testDb.db.update(table.member).set({ status: "resigned" }).where(eq(table.member.id, memberId));
+    // End the stable membership while preserving its type and start date.
+    const endedAt = new Date("2026-01-15T00:00:00Z");
+    await testDb.db
+      .update(table.member)
+      .set({ status: "ended", currentMembershipEndedAt: endedAt })
+      .where(eq(table.member.id, memberId));
 
     let member = await testDb.db.query.member.findFirst({
       where: { id: memberId },
     });
-    expect(member?.status).toBe("resigned");
+    expect(member).toMatchObject({ status: "ended", currentMembershipEndedAt: endedAt });
 
-    // Reactivate
-    await testDb.db.update(table.member).set({ status: "active" }).where(eq(table.member.id, memberId));
+    // Correcting the ending reactivates the same member identity.
+    await testDb.db
+      .update(table.member)
+      .set({ status: "active", currentMembershipEndedAt: null })
+      .where(eq(table.member.id, memberId));
 
     member = await testDb.db.query.member.findFirst({
       where: { id: memberId },

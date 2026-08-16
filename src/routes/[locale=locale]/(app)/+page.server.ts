@@ -3,59 +3,84 @@ import type { PageServerLoad } from "./$types";
 import { route } from "$lib/ROUTES";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { eq, desc, gt, gte, and, isNotNull, count } from "drizzle-orm";
+import { and, count, eq, gte } from "drizzle-orm";
 import { ensureUserHasQrToken } from "$lib/server/attendance/qr-token";
-import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
+
+type FeeState = "paid" | "overdue" | "not_due" | "no_fee" | "no_obligation";
+
+function todayInHelsinki() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Helsinki",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.user) {
     return redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
   }
 
-  const result = await db
-    .select()
-    .from(table.member)
-    .innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
-    .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
-    .where(eq(table.member.userId, event.locals.user.id))
-    .orderBy(desc(table.membership.startTime));
+  const member = await db.query.member.findFirst({
+    where: { userId: event.locals.user.id },
+    with: {
+      membershipType: true,
+      pendingMembershipType: true,
+      obligations: {
+        with: { feePeriod: true, payments: true },
+      },
+    },
+  });
 
-  const memberships = result.map((m) => ({
-    ...m.membership,
-    membershipType: m.membership_type,
-    status: m.member.status,
-    unique_id: m.member.id,
-  }));
+  const requiredObligations =
+    member?.obligations
+      .filter((obligation) => obligation.disposition === "required")
+      .toSorted((left, right) => right.feePeriod.startDate.localeCompare(left.feePeriod.startDate)) ?? [];
+  const unsettledObligations = requiredObligations.filter((obligation) =>
+    obligation.payments.every(
+      (payment) => payment.status !== "succeeded" || !!payment.refundConfirmedAt || !!payment.invalidatedAt,
+    ),
+  );
+  const overdueObligation = unsettledObligations.find((obligation) => obligation.feePeriod.dueDate < todayInHelsinki());
+  const currentObligation = overdueObligation ?? unsettledObligations[0] ?? requiredObligations[0] ?? null;
+  let feeState: FeeState = "no_obligation";
 
-  // Load QR token if user has active or past membership
-  let qrToken: string | null = null;
-  const hasValidMembership = memberships.some((m) => m.status === "active" || m.status === "resigned");
-
-  if (hasValidMembership) {
-    qrToken = await ensureUserHasQrToken(event.locals.user.id);
+  if (member?.membershipType && !member.membershipType.requiresPayment) {
+    feeState = "no_fee";
+  } else if (currentObligation) {
+    feeState = unsettledObligations.length === 0 ? "paid" : overdueObligation ? "overdue" : "not_due";
   }
 
-  // Compute whether there are available memberships to purchase
-  const blockingMemberships = memberships.filter((m) => BLOCKING_MEMBER_STATUSES.has(m.status));
-  const latestEndTime =
-    blockingMemberships.length > 0
-      ? new Date(Math.max(...blockingMemberships.map((m) => m.endTime.getTime())))
-      : new Date(0);
+  const qrToken = member?.status === "active" ? await ensureUserHasQrToken(event.locals.user.id) : null;
 
   const [availableCount] = await db
     .select({ value: count() })
-    .from(table.membership)
-    .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
+    .from(table.membershipFeePeriod)
+    .innerJoin(table.membershipType, eq(table.membershipFeePeriod.membershipTypeId, table.membershipType.id))
     .where(
       and(
-        gt(table.membership.endTime, new Date()),
-        gte(table.membership.startTime, latestEndTime),
-        isNotNull(table.membership.stripePriceId),
+        eq(table.membershipFeePeriod.acceptsApplications, true),
+        gte(table.membershipFeePeriod.endDate, todayInHelsinki()),
         eq(table.membershipType.purchasable, true),
       ),
     );
 
-  const hasAvailableMemberships = (availableCount?.value ?? 0) > 0;
-
-  return { user: event.locals.user, memberships, qrToken, hasAvailableMemberships };
+  return {
+    user: event.locals.user,
+    member: member
+      ? {
+          id: member.id,
+          status: member.status,
+          membershipType: member.membershipType,
+          pendingMembershipType: member.pendingMembershipType,
+          currentMembershipStartedAt: member.currentMembershipStartedAt,
+          currentMembershipEndedAt: member.currentMembershipEndedAt,
+        }
+      : null,
+    feeState,
+    currentFeePeriod: currentObligation?.feePeriod ?? null,
+    qrToken,
+    hasAvailableMemberships: (availableCount?.value ?? 0) > 0,
+  };
 };

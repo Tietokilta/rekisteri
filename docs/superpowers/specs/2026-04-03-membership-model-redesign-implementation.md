@@ -42,6 +42,51 @@ actions lock the relevant obligation before deciding whether it is settled.
 Using the same member-then-obligation lock order prevents a payment/bulk-action
 race from ending a member who just paid.
 
+## Legacy-to-target concept map
+
+The redesign is not a table-for-table rename. The legacy model combines legal
+membership, annual fees, applications, and Stripe checkout state in two rows.
+The target model separates those concepts so each has one meaning.
+
+### Data concepts
+
+| Legacy concept                                                 | Target concept                                                                                 | Semantic change                                                                                                                                                                            |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `membership_type`                                              | `membershipType`                                                                               | Remains the stable membership category. Payment and student-verification policy move here because they describe the type, not one year.                                                    |
+| `membership`                                                   | `membershipFeePeriod`                                                                          | The old name suggested legal membership. The row is actually a dated fee and application target for one type. It no longer determines when a person is legally a member.                   |
+| One `member` row per user and `membership` period              | One stable `member` aggregate per person or organization                                       | Annual rows are collapsed. The stable row stores only the current legal/application snapshot; history moves to events, obligations, and payments.                                          |
+| `member.membership_id`                                         | No direct replacement                                                                          | Type belongs in `membershipTypeId` or `pendingMembershipTypeId`. A relevant fee period belongs on an obligation, payment, or event.                                                        |
+| `member.status`                                                | `member.status` plus `membershipEvent`                                                         | Status remains a query-friendly current snapshot, but events explain how it was reached. A renewal payment does not change legal status.                                                   |
+| `resigned` status                                              | `ended` status plus a reason-specific event                                                    | Voluntary resignation, non-payment, and expulsion share a neutral current state but remain distinct in history.                                                                            |
+| `member.start_time` and `end_time` inherited from `membership` | `currentMembershipStartedAt` / `currentMembershipEndedAt`, independently from fee-period dates | Legal membership may continue across several fee periods. Period dates remain display and fee metadata.                                                                                    |
+| `member.stripe_session_id`                                     | `payment.stripeSessionId`                                                                      | A member may have multiple attempts. Stripe state belongs to a payment attempt, not to the member.                                                                                         |
+| A paid annual `member` row                                     | `membershipObligation` plus one or more `payment` attempts                                     | The obligation says why and when money is due; payments record attempts and settlement evidence. Missing payment data alone is not debt.                                                   |
+| `member.description`                                           | `member.applicationMotive` plus event data                                                     | The stable row retains the latest application motive. Historical decisions, reasons, and corrections belong in events.                                                                     |
+| `membership.requires_student_verification`                     | `membershipType.requiresStudentVerification`                                                   | Verification is policy for a type rather than a property that can accidentally vary between annual periods.                                                                                |
+| `membership.stripe_price_id`                                   | `membershipFeePeriod.stripePriceId`                                                            | The Stripe Price remains the source of the expected fee; the actual charged amount and currency belong to each payment.                                                                    |
+| Generic audit-log membership entries                           | `membershipEvent` and the audit log                                                            | Events are durable domain history and participate in correctness. The audit log remains operational/security traceability and can provide migration evidence, but is not the domain model. |
+
+### Operation concepts
+
+| Legacy operation                                       | Target operation                                                                                                                                                                                                       |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Buy the first annual membership                        | Create or reuse the stable member, issue an application obligation, record payment attempts, then append application and board-decision events.                                                                        |
+| Buy the next annual membership                         | Issue and settle a renewal obligation. Do not create another member, change legal status, or require another approval when the type is unchanged.                                                                      |
+| Buy a different membership type                        | Keep the approved type, set a pending type, issue the target obligation, and append request and board-decision events. The approved type changes only on approval.                                                     |
+| Correct a membership type by replacing `membership_id` | Correct the stable snapshot and the relevant obligation/payment provenance, and append a correction event. This is not a move to another annual member row.                                                            |
+| Reject, resign, or remove an annual member row         | Append the reason-specific decision event, update the stable snapshot, and cancel unsettled obligations where required.                                                                                                |
+| Create a fee period and make it available              | Create a draft, validate and publish it, then separately select it as the application target. Publication creates renewal obligations; merely saving a draft does not.                                                 |
+| Merge user accounts by moving N `member` rows          | If only one account owns a stable member aggregate, transfer that aggregate and all of its attached history. If both accounts own one, classify and reconcile the histories explicitly; do not guess from a row count. |
+
+### UI vocabulary
+
+The member-facing UI continues to present one membership card and a familiar
+history. Internally, however, it should distinguish the person's membership
+state from fee/payment state. Admin views should use “fee period” for the dated
+products currently called membership periods. A user merge should say whether
+the stable membership and its history will be transferred, not report a
+“moved memberships” count that can only be zero or one.
+
 ## Data model
 
 Names below use application-level camel case. Database migrations continue to
@@ -61,8 +106,8 @@ use the project's snake-case convention.
 | createdAt, updatedAt           | TIMESTAMPTZ                    | Standard timestamps                                          |
 
 `purchasable` and `requiresPayment` are independent. For example, an honorary
-type may be neither purchasable nor payable. A type may also be free for a
-particular period by publishing a zero-fee period.
+type may be neither purchasable nor payable. A payable zero-fee period uses a
+zero-value Stripe Price; a type that never pays has `requiresPayment = false`.
 
 ### `membershipFeePeriod`
 
@@ -77,9 +122,7 @@ application target, not the duration of legal membership.
 | endDate              | DATE                         | Coverage/display end                                |
 | dueDate              | DATE                         | Payment deadline                                    |
 | nonPaymentActionAt   | DATE                         | Earliest allowed bulk non-payment action            |
-| amount               | INTEGER                      | Minor units; nullable for draft/unknown legacy data |
-| currency             | TEXT                         | ISO code; nullable for draft/unknown legacy data    |
-| stripePriceId        | TEXT                         | Required before Stripe checkout, otherwise nullable |
+| stripePriceId        | TEXT                         | Required for a payable period before publication    |
 | publishedAt          | TIMESTAMPTZ                  | Null while draft                                    |
 | acceptsApplications  | BOOLEAN                      | This is the user-facing target for new applications |
 | createdAt, updatedAt | TIMESTAMPTZ                  | Standard timestamps                                 |
@@ -92,7 +135,7 @@ messages. `endDate` must not precede `startDate`, and
 `nonPaymentActionAt` must follow `dueDate`; each association chooses the actual
 grace period required by its rules before publication.
 
-After publication, membership type, every date, amount, and currency are locked.
+After publication, membership type, every date, and the Stripe Price ID are locked.
 Post-publication deadline changes are not supported in this release.
 
 `acceptsApplications` moves atomically between published periods with explicit
@@ -198,11 +241,12 @@ The three useful views are therefore:
 - required and unsettled;
 - waived or cancelled.
 
-Publishing a non-zero fee period for a payable type creates one `renewal`
-obligation for every currently active member of that approved type. The unique
-constraint makes publication idempotent. Free types and zero-fee periods create
-no obligations. A non-zero period cannot be published for a type whose
-`requiresPayment` is false.
+Publishing a fee period for a payable type creates one `renewal` obligation for
+every currently active member of that approved type. The unique constraint
+makes publication idempotent. A zero-value Stripe Price still produces an
+obligation and records the actual zero-value payment. Types whose
+`requiresPayment` is false create no obligations and cannot configure a Stripe
+Price.
 
 An obligation may change from `required` to `cancelled`, or be restored to
 `required` after a rejected pending type change. Every disposition change is
@@ -262,7 +306,10 @@ A success arriving for an already cancelled or waived obligation is likewise
 recorded and queued with `refundReason = obsolete_obligation`.
 
 The first release accepts only full settlement. Stripe checkout uses the fee
-period amount and currency, and manual payments must match them.
+period's Price ID. A pending Stripe payment has unknown amount and currency;
+successful fulfillment records Stripe's actual `amount_total` and `currency`.
+Manual payments record their actual amount and currency and must match the
+configured Stripe Price when the type requires payment.
 
 ## Lifecycle and workflows
 
@@ -311,10 +358,10 @@ of inserting a duplicate.
 ### Application availability
 
 Applications cannot be intentionally closed. Every `purchasable` type must have
-one valid target: a published, unexpired period with complete amount/currency
-configuration and, for a non-zero paid fee, a usable Stripe price. Enabling a
-type or moving its target is transactional, and removing the last target is
-rejected. There is no fallback to the calendar-current or an expired period.
+one valid target: a published, unexpired period with a usable Stripe Price when
+the type requires payment. Enabling a type or moving its target is transactional,
+and removing the last target is rejected. There is no fallback to the
+calendar-current or an expired period.
 
 The admin UI shows a persistent warning starting 30 days before a target ends.
 A daily operational check sends one deduplicated board email for that warning
@@ -531,8 +578,9 @@ remain unpublished and never create obligations. If the import cannot establish
 an expected sequence, it preserves payments but reports that lifecycle
 inference is unavailable.
 
-Historical fee amount and currency may be null when the source data does not
-contain them. Current drafts must have amount and currency before publication.
+Historical periods retain any Stripe Price ID present in the source. Publishing
+a payable draft requires validating its Price against Stripe; the migration and
+historical period reads never require a Stripe connection.
 
 ### Parse and identity rules
 
@@ -662,6 +710,12 @@ The same migration also runs on fresh installations. It sets
 `membershipDataLiveAt` only when legacy member rows actually exist. An empty new
 installation remains in import mode until its admin finalizes onboarding.
 
+For each legacy type with one unexpired selectable period, that period becomes
+the published application target. Multiple candidates abort the migration for
+manual classification. A nominally purchasable type with no candidate becomes
+non-purchasable; this preserves the old UI's effective empty state until an
+admin publishes a target.
+
 ### Evidence classification
 
 Migration must not turn every old row into a paid payment. In particular,
@@ -729,12 +783,15 @@ Within one migration transaction:
    `targetId`/`metadata.memberIds` values before removing duplicate rows.
 6. Create payments and confirmed/inferred membership events according to the
    evidence rules above. Do not create historical obligations.
-7. Replay events to materialize `status`, approved/pending type,
+7. Publish the unambiguous live application targets, issue their renewal
+   obligations to active members, recreate obligations for in-flight legacy
+   checkouts, and attach the migrated payment attempts.
+8. Replay events to materialize `status`, approved/pending type,
    `currentMembershipStartedAt`, and `currentMembershipEndedAt`.
-8. Preserve all existing organization members without attempting CSV-style
+9. Preserve all existing organization members without attempting CSV-style
    inference.
-9. Validate database invariants and expected classifications.
-10. Store the rehearsed last-fully-billed cutoff for each legacy type and set
+10. Validate database invariants and expected classifications.
+11. Store the rehearsed last-fully-billed cutoff for each legacy type and set
     `membershipDataLiveAt` because this installation contained live legacy
     data, then remove obsolete period-shaped columns and rows.
 
@@ -837,8 +894,8 @@ boundaries. Dates must use a fixed clock and the Europe/Helsinki timezone.
 | Non-zero payable period is published                   | One renewal obligation per applicable active member                  |
 | Publication is retried                                 | No duplicate obligations                                             |
 | Free membership type period is published               | No obligations                                                       |
-| Free type has a non-zero draft amount                  | Publication is rejected                                              |
-| Payable type has a zero-fee period                     | No obligations                                                       |
+| Free type has a Stripe Price                           | Publication is rejected                                              |
+| Payable type has a zero-value Stripe Price             | An obligation and its actual zero-value payment are retained         |
 | New applicant joins after publication                  | Application covers its target; published later periods are caught up |
 | Admin directly activates a paid member without payment | Waived obligation is required; no fake payment                       |
 | Active member pays the renewal                         | Obligation settles; membership status and start time do not change   |
@@ -846,7 +903,7 @@ boundaries. Dates must use a fixed clock and the Europe/Helsinki timezone.
 | Member has no issued obligation                        | They do not appear in due/overdue views                              |
 | Required obligation is refunded                        | It becomes unsettled; legal membership remains unchanged             |
 | Admin edits any published date or deadline             | Operation is rejected                                                |
-| Admin edits published type, amount, or currency        | Operation is rejected                                                |
+| Admin edits published type or Stripe Price ID          | Operation is rejected                                                |
 | Partial or incorrectly sized manual payment is entered | Operation is rejected                                                |
 
 ### Student verification

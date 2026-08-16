@@ -2,11 +2,20 @@ import { error } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { count, eq } from "drizzle-orm";
+import { and, count, eq, gte, isNotNull } from "drizzle-orm";
 import { createMembershipTypeSchema, deleteMembershipTypeSchema, updateMembershipTypeSchema } from "./schema";
 import { getLL } from "$lib/server/i18n";
 import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
 import { auditFromEvent } from "$lib/server/audit";
+
+function todayInHelsinki() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Helsinki",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
 
 export const createMembershipType = form(createMembershipTypeSchema, async (data) => {
   const event = getRequestEvent();
@@ -25,6 +34,9 @@ export const createMembershipType = form(createMembershipTypeSchema, async (data
   if (existing) {
     error(400, LL.admin.membershipTypes.idAlreadyExists());
   }
+  if (data.purchasable) {
+    error(400, "Create and publish an application target before making a new type purchasable");
+  }
 
   await db
     .insert(table.membershipType)
@@ -36,13 +48,21 @@ export const createMembershipType = form(createMembershipTypeSchema, async (data
           ? { fi: data.descriptionFi ?? "", en: data.descriptionEn ?? "" }
           : null,
       purchasable: data.purchasable,
+      requiresPayment: data.requiresPayment,
+      requiresStudentVerification: data.requiresStudentVerification,
     })
     .execute();
 
   await auditFromEvent(event, "membership_type.create", {
     targetType: "membership_type",
     targetId: data.id,
-    metadata: { nameFi: data.nameFi, nameEn: data.nameEn, purchasable: data.purchasable },
+    metadata: {
+      nameFi: data.nameFi,
+      nameEn: data.nameEn,
+      purchasable: data.purchasable,
+      requiresPayment: data.requiresPayment,
+      requiresStudentVerification: data.requiresStudentVerification,
+    },
   });
 
   return { success: true };
@@ -57,13 +77,37 @@ export const updateMembershipType = form(updateMembershipTypeSchema, async (data
   }
 
   // Verify membership type exists before updating
-  const [existing] = await db
-    .select({ id: table.membershipType.id })
-    .from(table.membershipType)
-    .where(eq(table.membershipType.id, data.id));
+  const [existing] = await db.select().from(table.membershipType).where(eq(table.membershipType.id, data.id));
 
   if (!existing) {
     error(404, LL.admin.membershipTypes.membershipTypeNotFound());
+  }
+
+  if (existing.requiresPayment !== data.requiresPayment) {
+    const publishedPeriod = await db.query.membershipFeePeriod.findFirst({
+      where: { membershipTypeId: data.id, publishedAt: { isNotNull: true } },
+      columns: { id: true },
+    });
+    if (publishedPeriod) error(400, "Payment requirements cannot change after a fee period is published");
+  }
+
+  if (data.purchasable) {
+    const today = todayInHelsinki();
+    const [target] = await db
+      .select({ id: table.membershipFeePeriod.id, stripePriceId: table.membershipFeePeriod.stripePriceId })
+      .from(table.membershipFeePeriod)
+      .where(
+        and(
+          eq(table.membershipFeePeriod.membershipTypeId, data.id),
+          eq(table.membershipFeePeriod.acceptsApplications, true),
+          isNotNull(table.membershipFeePeriod.publishedAt),
+          gte(table.membershipFeePeriod.endDate, today),
+        ),
+      )
+      .limit(1);
+    if (!target || (data.requiresPayment && !target.stripePriceId)) {
+      error(400, "Select a valid published application target before making this type purchasable");
+    }
   }
 
   await db
@@ -75,6 +119,8 @@ export const updateMembershipType = form(updateMembershipTypeSchema, async (data
           ? { fi: data.descriptionFi ?? "", en: data.descriptionEn ?? "" }
           : null,
       purchasable: data.purchasable,
+      requiresPayment: data.requiresPayment,
+      requiresStudentVerification: data.requiresStudentVerification,
     })
     .where(eq(table.membershipType.id, data.id))
     .execute();
@@ -82,7 +128,13 @@ export const updateMembershipType = form(updateMembershipTypeSchema, async (data
   await auditFromEvent(event, "membership_type.update", {
     targetType: "membership_type",
     targetId: data.id,
-    metadata: { nameFi: data.nameFi, nameEn: data.nameEn, purchasable: data.purchasable },
+    metadata: {
+      nameFi: data.nameFi,
+      nameEn: data.nameEn,
+      purchasable: data.purchasable,
+      requiresPayment: data.requiresPayment,
+      requiresStudentVerification: data.requiresStudentVerification,
+    },
   });
 
   return { success: true };
@@ -99,8 +151,8 @@ export const deleteMembershipType = form(deleteMembershipTypeSchema, async ({ id
   // Check if any memberships use this type
   const [membershipCountResult] = await db
     .select({ count: count() })
-    .from(table.membership)
-    .where(eq(table.membership.membershipTypeId, id));
+    .from(table.membershipFeePeriod)
+    .where(eq(table.membershipFeePeriod.membershipTypeId, id));
   const membershipCount = membershipCountResult?.count ?? 0;
 
   if (membershipCount > 0) {

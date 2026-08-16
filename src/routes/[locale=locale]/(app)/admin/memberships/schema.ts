@@ -13,10 +13,8 @@ export const createMembershipSchema = v.pipeAsync(
     ),
     startTime: v.pipe(v.string(), v.minLength(1)),
     endTime: v.pipe(v.string(), v.minLength(1)),
-    // For checkbox inputs in remote forms, use optional boolean with default
-    // since unchecked checkboxes don't submit values
-    requiresStudentVerification: v.optional(v.boolean(), false),
   }),
+  v.check((input) => input.endTime >= input.startTime, "End date must not precede start date"),
   v.checkAsync(async (input) => {
     // If no stripePriceId provided (legacy membership), skip validation
     if (!input.stripePriceId) {
@@ -46,8 +44,10 @@ export const updateMembershipSchema = v.pipeAsync(
         v.transform((s) => s.trim() || undefined),
       ),
     ),
-    requiresStudentVerification: v.optional(v.boolean(), false),
+    startTime: v.pipe(v.string(), v.minLength(1)),
+    endTime: v.pipe(v.string(), v.minLength(1)),
   }),
+  v.check((input) => input.endTime >= input.startTime, "End date must not precede start date"),
   v.checkAsync(async (input) => {
     // If no stripePriceId provided (legacy membership), skip validation
     if (!input.stripePriceId) {
@@ -61,3 +61,5 @@ export const updateMembershipSchema = v.pipeAsync(
     }
   }, "Invalid Stripe price ID or price not found"),
 );
+
+export const membershipFeePeriodIdSchema = v.object({ id: v.pipe(v.string(), v.uuid()) });

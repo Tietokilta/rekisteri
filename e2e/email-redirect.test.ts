@@ -1,6 +1,6 @@
 import { test, expect } from "./fixtures/isolated-user";
 import * as table from "$lib/server/db/schema";
-import { eq, and, isNotNull, gt } from "drizzle-orm";
+import { and, eq, gte, isNotNull } from "drizzle-orm";
 import { route } from "../src/lib/ROUTES";
 
 test.describe("Aalto email redirect flow", () => {
@@ -11,13 +11,15 @@ test.describe("Aalto email redirect flow", () => {
   }) => {
     // Find an existing membership that requires student verification and has a Stripe price
     const [membership] = await db
-      .select()
-      .from(table.membership)
+      .select({ id: table.membershipFeePeriod.id })
+      .from(table.membershipFeePeriod)
+      .innerJoin(table.membershipType, eq(table.membershipType.id, table.membershipFeePeriod.membershipTypeId))
       .where(
         and(
-          isNotNull(table.membership.stripePriceId),
-          gt(table.membership.endTime, new Date()),
-          eq(table.membership.requiresStudentVerification, true),
+          isNotNull(table.membershipFeePeriod.stripePriceId),
+          gte(table.membershipFeePeriod.endDate, new Date().toISOString().slice(0, 10)),
+          eq(table.membershipFeePeriod.acceptsApplications, true),
+          eq(table.membershipType.requiresStudentVerification, true),
         ),
       )
       .limit(1);

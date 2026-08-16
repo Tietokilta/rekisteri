@@ -3,133 +3,120 @@ import type { PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { asc, desc, eq, sql } from "drizzle-orm";
-import type { NonEmptyArray } from "$lib/utils";
 import { userHasAdminAccess } from "$lib/server/auth/admin";
 
 async function loadMembers() {
-  const subQuery = db
-    .select({
-      id: table.member.id,
-      userId: table.member.userId,
-      organizationName: table.member.organizationName,
-      membershipId: table.member.membershipId,
-      status: table.member.status,
-      stripeSessionId: table.member.stripeSessionId,
-      description: table.member.description,
-      createdAt: table.member.createdAt,
-      updatedAt: table.member.updatedAt,
-      email: table.user.email,
-      firstNames: table.user.firstNames,
-      lastName: table.user.lastName,
-      homeMunicipality: table.user.homeMunicipality,
-      preferredLanguage: table.user.preferredLanguage,
-      isAllowedEmails: table.user.isAllowedEmails,
-      membershipTypeId: table.membership.membershipTypeId,
-      membershipTypeName: table.membershipType.name,
-      membershipStripePriceId: table.membership.stripePriceId,
-      membershipStartTime: table.membership.startTime,
-      membershipEndTime: table.membership.endTime,
-    })
-    .from(table.member)
-    .leftJoin(table.user, eq(table.member.userId, table.user.id))
-    .leftJoin(table.membership, eq(table.member.membershipId, table.membership.id))
-    .leftJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
-    .as("subQuery");
-
-  const allMembers = await db.select().from(subQuery).orderBy(asc(subQuery.firstNames), asc(subQuery.lastName));
-
-  // Group memberships by user (or by member id for association members without a user)
-  const userMembershipsMap = new Map<string, NonEmptyArray<(typeof allMembers)[number]>>();
-  for (const member of allMembers) {
-    const groupKey = member.userId ?? member.organizationName ?? member.id;
-    if (userMembershipsMap.has(groupKey)) {
-      const userMemberships = userMembershipsMap.get(groupKey);
-      if (userMemberships) {
-        userMemberships.push(member);
-      }
-    } else {
-      userMembershipsMap.set(groupKey, [member]);
-    }
-  }
-
-  // Convert to array with primary membership (most recent active/pending, then by date)
-  const members = Array.from(userMembershipsMap.values(), (userMembers) => {
-    // Sort by: active/awaiting first, then by start date desc
-    const sorted = userMembers.toSorted((a, b) => {
-      const aIsActive = a.status === "active" || a.status === "awaiting_approval" || a.status === "awaiting_payment";
-      const bIsActive = b.status === "active" || b.status === "awaiting_approval" || b.status === "awaiting_payment";
-
-      if (aIsActive && !bIsActive) return -1;
-      if (!aIsActive && bIsActive) return 1;
-
-      // Sort by start date descending (most recent first)
-      return (b.membershipStartTime?.getTime() ?? 0) - (a.membershipStartTime?.getTime() ?? 0);
-    }) as NonEmptyArray<(typeof userMembers)[number]>;
-
-    // Return primary membership with all memberships attached
-    const primary = sorted[0];
-    return {
-      ...primary,
-      allMemberships: sorted,
-      membershipCount: sorted.length,
-    };
-  }).toSorted((a, b) => {
-    // Sort by display name: firstNames+lastName for persons, organizationName for associations
-    const aName = a.firstNames ?? a.organizationName ?? "";
-    const bName = b.firstNames ?? b.organizationName ?? "";
-    const nameCompare = aName.toLowerCase().localeCompare(bName.toLowerCase());
-    if (nameCompare !== 0) return nameCompare;
-
-    const aLast = (a.lastName ?? "").toLowerCase();
-    const bLast = (b.lastName ?? "").toLowerCase();
-    return aLast.localeCompare(bLast);
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Helsinki",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const stableMembers = await db.query.member.findMany({
+    with: {
+      user: true,
+      membershipType: true,
+      pendingMembershipType: true,
+      payments: { with: { feePeriod: true }, orderBy: { createdAt: "desc" } },
+      obligations: { with: { feePeriod: true }, orderBy: { createdAt: "desc" } },
+    },
   });
 
-  return members;
+  return stableMembers
+    .map((member) => {
+      const selectedType = member.pendingMembershipType ?? member.membershipType;
+      const latestPayment = member.payments[0];
+      const latestPeriod = latestPayment?.feePeriod ?? member.obligations[0]?.feePeriod ?? null;
+      const canBeDeemedResigned =
+        member.status === "active" &&
+        member.obligations.some(
+          (obligation) =>
+            obligation.disposition === "required" &&
+            obligation.feePeriod.nonPaymentActionAt <= today &&
+            !member.payments.some(
+              (payment) =>
+                payment.membershipFeePeriodId === obligation.membershipFeePeriodId &&
+                payment.status === "succeeded" &&
+                !payment.refundConfirmedAt &&
+                !payment.invalidatedAt,
+            ),
+        );
+      const row = {
+        id: member.id,
+        userId: member.userId,
+        organizationName: member.organizationName,
+        membershipId: latestPeriod?.id ?? "",
+        status: member.status === "ended" ? ("resigned" as const) : member.status,
+        stripeSessionId: latestPayment?.stripeSessionId ?? null,
+        description: member.applicationMotive,
+        createdAt: member.createdAt,
+        updatedAt: member.updatedAt,
+        email: member.user?.email ?? null,
+        firstNames: member.user?.firstNames ?? null,
+        lastName: member.user?.lastName ?? null,
+        homeMunicipality: member.user?.homeMunicipality ?? null,
+        preferredLanguage: member.user?.preferredLanguage ?? null,
+        isAllowedEmails: member.user?.isAllowedEmails ?? null,
+        membershipTypeId: selectedType?.id ?? null,
+        membershipTypeName: selectedType?.name ?? null,
+        membershipStripePriceId: latestPeriod?.stripePriceId ?? null,
+        membershipStartTime: latestPeriod ? new Date(latestPeriod.startDate) : null,
+        membershipEndTime: latestPeriod ? new Date(latestPeriod.endDate) : null,
+        canBeDeemedResigned,
+      };
+      return { ...row, allMemberships: [row], membershipCount: 1 };
+    })
+    .toSorted((left, right) => {
+      const firstNameComparison = (left.firstNames ?? left.organizationName ?? "")
+        .toLowerCase()
+        .localeCompare((right.firstNames ?? right.organizationName ?? "").toLowerCase());
+      return firstNameComparison || (left.lastName ?? "").localeCompare(right.lastName ?? "");
+    });
 }
 
 export const load: PageServerLoad = async (event) => {
-  if (!event.locals.session || !userHasAdminAccess(event.locals.user)) {
-    return error(404, "Not found");
-  }
+  if (!event.locals.session || !userHasAdminAccess(event.locals.user)) return error(404, "Not found");
 
-  // Await filter/dropdown data (fast queries, needed for immediate UI)
   const [membershipTypes, memberships, availableMemberships] = await Promise.all([
     db
       .select()
       .from(table.membershipType)
       .orderBy(asc(sql`${table.membershipType.name}->>'fi'`)),
-
+    db
+      .select({ startDate: table.membershipFeePeriod.startDate, endDate: table.membershipFeePeriod.endDate })
+      .from(table.membershipFeePeriod),
     db
       .select({
-        startTime: table.membership.startTime,
-        endTime: table.membership.endTime,
-      })
-      .from(table.membership),
-
-    db
-      .select({
-        id: table.membership.id,
-        membershipTypeId: table.membership.membershipTypeId,
+        id: table.membershipFeePeriod.id,
+        membershipTypeId: table.membershipFeePeriod.membershipTypeId,
         membershipTypeName: table.membershipType.name,
-        stripePriceId: table.membership.stripePriceId,
-        startTime: table.membership.startTime,
-        endTime: table.membership.endTime,
+        requiresPayment: table.membershipType.requiresPayment,
+        stripePriceId: table.membershipFeePeriod.stripePriceId,
+        startDate: table.membershipFeePeriod.startDate,
+        endDate: table.membershipFeePeriod.endDate,
       })
-      .from(table.membership)
-      .innerJoin(table.membershipType, eq(table.membership.membershipTypeId, table.membershipType.id))
-      .orderBy(desc(table.membership.startTime)),
+      .from(table.membershipFeePeriod)
+      .innerJoin(table.membershipType, eq(table.membershipFeePeriod.membershipTypeId, table.membershipType.id))
+      .orderBy(desc(table.membershipFeePeriod.startDate)),
   ]);
 
   const years = Array.from(
-    new Set(memberships.flatMap((m) => [m.startTime.getFullYear(), m.endTime.getFullYear()])),
-  ).toSorted((a, b) => b - a);
+    new Set(
+      memberships.flatMap((membership) => [
+        Number(membership.startDate.slice(0, 4)),
+        Number(membership.endDate.slice(0, 4)),
+      ]),
+    ),
+  ).toSorted((left, right) => right - left);
 
   return {
-    // Not awaited — streamed to client, triggers svelte:boundary pending state
     members: loadMembers(),
     membershipTypes,
     years,
-    availableMemberships,
+    availableMemberships: availableMemberships.map((membership) => ({
+      ...membership,
+      startTime: new Date(membership.startDate),
+      endTime: new Date(membership.endDate),
+    })),
   };
 };
