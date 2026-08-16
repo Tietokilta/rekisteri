@@ -114,7 +114,10 @@ export function sanitizeRow(table: string, source: JsonRecord, salt: string): Js
   if ("last_name" in row) row.last_name = row.last_name === null ? null : `Member ${token.slice(0, 6)}`;
   if ("home_municipality" in row) row.home_municipality = row.home_municipality === null ? null : "Test municipality";
   if ("organization_name" in row) {
-    row.organization_name = row.organization_name === null ? null : `Test organization ${token.slice(0, 6)}`;
+    row.organization_name =
+      row.organization_name === null
+        ? null
+        : `Test organization ${pseudonym(salt, `organization:${row.organization_name}`)}`;
   }
   if (table === "member" && "description" in row) row.description = row.description === null ? null : "[redacted]";
   if ("application_motive" in row) row.application_motive = row.application_motive === null ? null : "[redacted]";
@@ -275,6 +278,60 @@ async function scalar(client: Queryable, query: string) {
   return Number(row?.value ?? 0);
 }
 
+async function assertNoAmbiguousLegacyMemberships(client: Queryable) {
+  const overlaps = await client<
+    {
+      identity: string;
+      leftMemberId: string;
+      leftStatus: string;
+      leftPeriodId: string;
+      leftTypeId: string;
+      leftStart: Date;
+      leftEnd: Date;
+      rightMemberId: string;
+      rightStatus: string;
+      rightPeriodId: string;
+      rightTypeId: string;
+      rightStart: Date;
+      rightEnd: Date;
+    }[]
+  >`
+    SELECT
+      COALESCE(identity.email, left_member.organization_name) AS identity,
+      left_member.id AS "leftMemberId",
+      left_member.status::text AS "leftStatus",
+      left_period.id AS "leftPeriodId",
+      left_period.membership_type_id AS "leftTypeId",
+      left_period.start_time AS "leftStart",
+      left_period.end_time AS "leftEnd",
+      right_member.id AS "rightMemberId",
+      right_member.status::text AS "rightStatus",
+      right_period.id AS "rightPeriodId",
+      right_period.membership_type_id AS "rightTypeId",
+      right_period.start_time AS "rightStart",
+      right_period.end_time AS "rightEnd"
+    FROM member left_member
+    INNER JOIN membership left_period ON left_period.id = left_member.membership_id
+    INNER JOIN member right_member
+      ON COALESCE('user:' || left_member.user_id, 'organization:' || left_member.organization_name)
+        = COALESCE('user:' || right_member.user_id, 'organization:' || right_member.organization_name)
+      AND left_member.id < right_member.id
+    INNER JOIN membership right_period ON right_period.id = right_member.membership_id
+    LEFT JOIN "user" identity ON identity.id = left_member.user_id
+    WHERE left_period.membership_type_id <> right_period.membership_type_id
+      AND left_member.status IN ('active', 'resigned')
+      AND right_member.status IN ('active', 'resigned')
+      AND left_period.start_time <= right_period.end_time
+      AND right_period.start_time <= left_period.end_time
+    ORDER BY identity, "leftStart", "rightStart", "leftMemberId", "rightMemberId"
+  `;
+
+  if (overlaps.length === 0) return;
+  console.error("\nAmbiguous overlapping approved membership rows:\n");
+  console.error(JSON.stringify(overlaps, null, 2));
+  throw new Error(`Found ${overlaps.length} overlapping membership pair(s) requiring classification`);
+}
+
 async function migrationReport(client: Queryable, copiedRows: Record<string, number>) {
   const eventSources = await client<{ source: string; certainty: string; count: number }[]>`
     SELECT source, certainty, count(*)::integer AS count
@@ -417,6 +474,7 @@ async function main() {
         return copySanitizedDatabase(readOnlySource, localTransaction, randomUUID());
       });
 
+      await assertNoAmbiguousLegacyMemberships(localTransaction);
       console.log("Running current migrations...");
       await runMigrations(localTransaction, migrations.slice(membershipIndex));
 
