@@ -17,6 +17,10 @@ async function loadMembers() {
       user: true,
       membershipType: true,
       pendingMembershipType: true,
+      events: {
+        with: { actor: true, feePeriod: true },
+        orderBy: { effectiveAt: "desc", recordedAt: "desc" },
+      },
       payments: { with: { feePeriod: true }, orderBy: { createdAt: "desc" } },
       obligations: { with: { feePeriod: true }, orderBy: { createdAt: "desc" } },
     },
@@ -25,30 +29,90 @@ async function loadMembers() {
   return stableMembers
     .map((member) => {
       const selectedType = member.pendingMembershipType ?? member.membershipType;
-      const latestPayment = member.payments[0];
-      const latestPeriod = latestPayment?.feePeriod ?? member.obligations[0]?.feePeriod ?? null;
+      const correctionPayment = member.payments.find(
+        (payment) =>
+          payment.feePeriod.membershipTypeId === selectedType?.id &&
+          payment.feePeriod.stripePriceId &&
+          !payment.invalidatedAt &&
+          !payment.refundConfirmedAt &&
+          (payment.status === "pending" || payment.status === "succeeded"),
+      );
+      const feePeriods = new Map(
+        [
+          ...member.obligations.map((obligation) => obligation.feePeriod),
+          ...member.payments.map((payment) => payment.feePeriod),
+        ].map((period) => [period.id, period]),
+      );
+      const feeHistory = [...feePeriods.values()]
+        .toSorted((left, right) => right.startDate.localeCompare(left.startDate))
+        .map((period) => {
+          const obligation = member.obligations.find((candidate) => candidate.membershipFeePeriodId === period.id);
+          return {
+            id: period.id,
+            membershipTypeId: period.membershipTypeId,
+            startTime: new Date(period.startDate),
+            endTime: new Date(period.endDate),
+            stripePriceId: period.stripePriceId,
+            obligation: obligation
+              ? {
+                  kind: obligation.kind,
+                  disposition: obligation.disposition,
+                  dispositionReason: obligation.dispositionReason,
+                }
+              : null,
+            payments: member.payments
+              .filter((payment) => payment.membershipFeePeriodId === period.id)
+              .map((payment) => ({
+                id: payment.id,
+                status: payment.status,
+                source: payment.source,
+                amount: payment.amount,
+                currency: payment.currency,
+                paidAt: payment.paidAt,
+                createdAt: payment.createdAt,
+                stripeSessionId: payment.stripeSessionId,
+                refundRequiredAt: payment.refundRequiredAt,
+                refundConfirmedAt: payment.refundConfirmedAt,
+                invalidatedAt: payment.invalidatedAt,
+              })),
+          };
+        });
       const canBeDeemedResigned =
         member.status === "active" &&
         member.obligations.some(
           (obligation) =>
             obligation.disposition === "required" &&
             obligation.feePeriod.nonPaymentActionAt <= today &&
-            !member.payments.some(
+            member.payments.every(
               (payment) =>
-                payment.membershipFeePeriodId === obligation.membershipFeePeriodId &&
-                payment.status === "succeeded" &&
-                !payment.refundConfirmedAt &&
-                !payment.invalidatedAt,
+                payment.membershipFeePeriodId !== obligation.membershipFeePeriodId ||
+                payment.status !== "succeeded" ||
+                Boolean(payment.refundConfirmedAt) ||
+                Boolean(payment.invalidatedAt),
             ),
         );
+      const membershipEvents = member.events.map((membershipEvent) => ({
+        id: membershipEvent.id,
+        eventType: membershipEvent.eventType,
+        effectiveAt: membershipEvent.effectiveAt,
+        recordedAt: membershipEvent.recordedAt,
+        source: membershipEvent.source,
+        certainty: membershipEvent.certainty,
+        actorName: membershipEvent.actor
+          ? [membershipEvent.actor.firstNames, membershipEvent.actor.lastName].filter(Boolean).join(" ") ||
+            membershipEvent.actor.email
+          : null,
+        membershipFeePeriodId: membershipEvent.membershipFeePeriodId,
+        feePeriodStartTime: membershipEvent.feePeriod ? new Date(membershipEvent.feePeriod.startDate) : null,
+        feePeriodEndTime: membershipEvent.feePeriod ? new Date(membershipEvent.feePeriod.endDate) : null,
+        data: membershipEvent.data,
+      }));
       const row = {
         id: member.id,
         userId: member.userId,
         organizationName: member.organizationName,
-        membershipId: latestPeriod?.id ?? "",
-        status: member.status === "ended" ? ("resigned" as const) : member.status,
-        stripeSessionId: latestPayment?.stripeSessionId ?? null,
-        description: member.applicationMotive,
+        status: member.status,
+        applicationMotive: member.applicationMotive,
         createdAt: member.createdAt,
         updatedAt: member.updatedAt,
         email: member.user?.email ?? null,
@@ -59,12 +123,15 @@ async function loadMembers() {
         isAllowedEmails: member.user?.isAllowedEmails ?? null,
         membershipTypeId: selectedType?.id ?? null,
         membershipTypeName: selectedType?.name ?? null,
-        membershipStripePriceId: latestPeriod?.stripePriceId ?? null,
-        membershipStartTime: latestPeriod ? new Date(latestPeriod.startDate) : null,
-        membershipEndTime: latestPeriod ? new Date(latestPeriod.endDate) : null,
+        currentMembershipStartedAt: member.currentMembershipStartedAt,
+        currentMembershipEndedAt: member.currentMembershipEndedAt,
+        correctionFeePeriodId: correctionPayment?.membershipFeePeriodId ?? null,
+        feePeriodYears: [...new Set(feeHistory.map((item) => item.startTime.getFullYear().toString()))],
+        feeHistory,
+        membershipEvents,
         canBeDeemedResigned,
       };
-      return { ...row, allMemberships: [row], membershipCount: 1 };
+      return row;
     })
     .toSorted((left, right) => {
       const firstNameComparison = (left.firstNames ?? left.organizationName ?? "")
@@ -77,7 +144,7 @@ async function loadMembers() {
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.session || !userHasAdminAccess(event.locals.user)) return error(404, "Not found");
 
-  const [membershipTypes, memberships, availableMemberships] = await Promise.all([
+  const [membershipTypes, feePeriods, availableFeePeriods] = await Promise.all([
     db
       .select()
       .from(table.membershipType)
@@ -102,9 +169,9 @@ export const load: PageServerLoad = async (event) => {
 
   const years = Array.from(
     new Set(
-      memberships.flatMap((membership) => [
-        Number(membership.startDate.slice(0, 4)),
-        Number(membership.endDate.slice(0, 4)),
+      feePeriods.flatMap((feePeriod) => [
+        Number(feePeriod.startDate.slice(0, 4)),
+        Number(feePeriod.endDate.slice(0, 4)),
       ]),
     ),
   ).toSorted((left, right) => right - left);
@@ -113,10 +180,10 @@ export const load: PageServerLoad = async (event) => {
     members: loadMembers(),
     membershipTypes,
     years,
-    availableMemberships: availableMemberships.map((membership) => ({
-      ...membership,
-      startTime: new Date(membership.startDate),
-      endTime: new Date(membership.endDate),
+    availableFeePeriods: availableFeePeriods.map((feePeriod) => ({
+      ...feePeriod,
+      startTime: new Date(feePeriod.startDate),
+      endTime: new Date(feePeriod.endDate),
     })),
   };
 };

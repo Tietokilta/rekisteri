@@ -453,10 +453,10 @@ export async function correctMembershipType(
     if (!relatedEvent) throw new Error("type_event_not_found");
 
     const correction = {
-      previousMembershipId: sourcePayment.membershipFeePeriodId,
+      previousFeePeriodId: sourcePayment.membershipFeePeriodId,
       previousMembershipTypeId: currentTypeId,
       previousStripePriceId: sourceStripePriceId,
-      targetMembershipId: target.id,
+      targetFeePeriodId: target.id,
       targetMembershipTypeId: target.membershipTypeId,
       targetStripePriceId,
       previousStatus: member.status,

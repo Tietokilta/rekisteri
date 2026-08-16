@@ -11,7 +11,7 @@ export const memberIdWithReasonSchema = v.object({
 
 export const changeMemberTypeSchema = v.object({
   memberId: v.pipe(v.string(), v.minLength(1)),
-  targetMembershipId: v.pipe(v.string(), v.minLength(1)),
+  targetFeePeriodId: v.pipe(v.string(), v.minLength(1)),
 });
 
 export const bulkMemberIdsSchema = v.object({
@@ -33,7 +33,7 @@ const createPersonMemberSchema = v.object({
   firstNames: v.optional(v.string()),
   lastName: v.optional(v.string()),
   homeMunicipality: v.optional(v.string()),
-  membershipId: v.pipe(v.string(), v.minLength(1)),
+  feePeriodId: v.pipe(v.string(), v.minLength(1)),
   status: adminCreateStatusSchema,
   description: v.optional(v.string()),
 });
@@ -41,7 +41,7 @@ const createPersonMemberSchema = v.object({
 const createAssociationMemberSchema = v.object({
   type: v.literal("association"),
   organizationName: v.pipe(v.string(), v.trim(), v.minLength(1)),
-  membershipId: v.pipe(v.string(), v.minLength(1)),
+  feePeriodId: v.pipe(v.string(), v.minLength(1)),
   status: adminCreateStatusSchema,
   description: v.optional(v.string()),
 });

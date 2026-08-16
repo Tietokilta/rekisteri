@@ -131,6 +131,58 @@ describe("indefinite membership production migration", () => {
     }
   }, 60_000);
 
+  it("selects only each purchasable type's latest valid fee period as its application target", async () => {
+    const client = await createDatabase("application_targets");
+
+    try {
+      await runMigrations(client, legacyMigrations);
+      await client.unsafe(`
+        INSERT INTO "membership_type" ("id", "name", "purchasable") VALUES
+          ('regular', '{"fi":"Varsinainen","en":"Regular"}'::jsonb, true),
+          ('external', '{"fi":"Ulkojäsen","en":"External"}'::jsonb, true),
+          ('supporting', '{"fi":"Kannatusjäsen","en":"Supporting"}'::jsonb, true),
+          ('free', '{"fi":"Kunniajäsen","en":"Honorary"}'::jsonb, true),
+          ('internal', '{"fi":"Sisäinen","en":"Internal"}'::jsonb, false);
+
+        INSERT INTO "membership" (
+          "id", "membership_type_id", "stripe_price_id", "start_time", "end_time",
+          "requires_student_verification"
+        ) VALUES
+          ('regular-older', 'regular', 'price_regular_old', CURRENT_DATE - INTERVAL '1 month', CURRENT_DATE + INTERVAL '11 months', false),
+          ('regular-latest', 'regular', 'price_regular_new', CURRENT_DATE + INTERVAL '1 month', CURRENT_DATE + INTERVAL '13 months', false),
+          ('external-older', 'external', 'price_external_old', CURRENT_DATE - INTERVAL '2 years', CURRENT_DATE - INTERVAL '13 months', false),
+          ('external-latest-expired', 'external', 'price_external_new', CURRENT_DATE - INTERVAL '1 year', CURRENT_DATE - INTERVAL '1 day', false),
+          ('supporting-older-payable', 'supporting', 'price_supporting', CURRENT_DATE - INTERVAL '1 month', CURRENT_DATE + INTERVAL '11 months', false),
+          ('supporting-latest-unpriced', 'supporting', NULL, CURRENT_DATE + INTERVAL '1 month', CURRENT_DATE + INTERVAL '13 months', false),
+          ('free-latest', 'free', NULL, CURRENT_DATE, CURRENT_DATE + INTERVAL '1 year', false),
+          ('internal-latest', 'internal', NULL, CURRENT_DATE, CURRENT_DATE + INTERVAL '1 year', false);
+      `);
+
+      await runMigrations(client, [membershipMigration]);
+
+      const types = await client<{ id: string; purchasable: boolean; applicationTargetId: string | null }[]>`
+        SELECT
+          type."id",
+          type."purchasable",
+          target."id" AS "applicationTargetId"
+        FROM "membership_type" type
+        LEFT JOIN "membership_fee_period" target
+          ON target."membership_type_id" = type."id" AND target."accepts_applications"
+        WHERE type."id" IN ('regular', 'external', 'supporting', 'free', 'internal')
+        ORDER BY type."id"
+      `;
+      expect(types).toEqual([
+        { id: "external", purchasable: true, applicationTargetId: null },
+        { id: "free", purchasable: true, applicationTargetId: "free-latest" },
+        { id: "internal", purchasable: false, applicationTargetId: null },
+        { id: "regular", purchasable: true, applicationTargetId: "regular-latest" },
+        { id: "supporting", purchasable: true, applicationTargetId: null },
+      ]);
+    } finally {
+      await client.end();
+    }
+  }, 60_000);
+
   it("collapses legacy rows without losing payment, audit, or history evidence", async () => {
     const client = await createDatabase("legacy");
 

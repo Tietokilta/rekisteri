@@ -37,16 +37,16 @@ type CreatePersonMemberData = Extract<CreateMemberData, { type: "person" }>;
 type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type UserProfileUpdates = Partial<{ firstNames: string; lastName: string; homeMunicipality: string }>;
 
-async function assertMembershipExists(membershipId: string, missingMembershipMessage: string) {
-  const membership = await db.query.membershipFeePeriod.findFirst({
-    where: { id: membershipId },
+async function assertFeePeriodExists(feePeriodId: string, missingMembershipMessage: string) {
+  const feePeriod = await db.query.membershipFeePeriod.findFirst({
+    where: { id: feePeriodId },
     with: { membershipType: true },
   });
 
-  if (!membership) {
+  if (!feePeriod) {
     error(400, missingMembershipMessage);
   }
-  return membership;
+  return feePeriod;
 }
 
 async function createAssociationMemberInTransaction(
@@ -351,7 +351,7 @@ export const reactivateMember = command(memberIdWithReasonSchema, async ({ membe
   return { success: true, message: "Membership reactivated successfully" };
 });
 
-export const changeMemberType = command(changeMemberTypeSchema, async ({ memberId, targetMembershipId }) => {
+export const changeMemberType = command(changeMemberTypeSchema, async ({ memberId, targetFeePeriodId }) => {
   const event = getRequestEvent();
   const LL = getLL(event.locals.locale);
 
@@ -363,7 +363,7 @@ export const changeMemberType = command(changeMemberTypeSchema, async ({ memberI
   try {
     correction = await correctMembershipType(
       memberId,
-      targetMembershipId,
+      targetFeePeriodId,
       event.locals.user.id,
       async (sourceStripePriceId, targetStripePriceId) => {
         if (sourceStripePriceId === targetStripePriceId) return;
@@ -429,8 +429,8 @@ export const createMember = command(createMemberSchema, async (data) => {
   }
   const actorUserId = event.locals.user.id;
 
-  const membership = await assertMembershipExists(data.membershipId, LL.admin.members.membershipNotFound());
-  if (membership.membershipType.requiresPayment && !data.description?.trim()) {
+  const feePeriod = await assertFeePeriodExists(data.feePeriodId, LL.admin.members.membershipNotFound());
+  if (feePeriod.membershipType.requiresPayment && !data.description?.trim()) {
     error(400, LL.membership.descriptionRequired());
   }
 
@@ -442,14 +442,14 @@ export const createMember = command(createMemberSchema, async (data) => {
       tx,
       memberId,
       data,
-      membership.membershipTypeId,
+      feePeriod.membershipTypeId,
       LL.admin.members.duplicateMembership(),
     );
-    if (membership.membershipType.requiresPayment) {
+    if (feePeriod.membershipType.requiresPayment) {
       await tx.insert(table.membershipObligation).values({
         id: crypto.randomUUID(),
         memberId,
-        membershipFeePeriodId: membership.id,
+        membershipFeePeriodId: feePeriod.id,
         kind: "application",
         disposition: "waived",
         dispositionReason: data.description?.trim(),
@@ -463,8 +463,8 @@ export const createMember = command(createMemberSchema, async (data) => {
       source: "admin",
       certainty: "confirmed",
       actorUserId,
-      membershipFeePeriodId: membership.id,
-      data: { membershipTypeId: membership.membershipTypeId },
+      membershipFeePeriodId: feePeriod.id,
+      data: { membershipTypeId: feePeriod.membershipTypeId },
     });
   });
 

@@ -45,7 +45,7 @@ test.describe("Membership purchase availability", () => {
 
     await isolatedPage.goto(route("/[locale=locale]/new", { locale: "fi" }));
 
-    await expect(isolatedPage.locator('input[type="radio"][name="membershipId"]')).toHaveCount(0);
+    await expect(isolatedPage.locator('input[type="radio"][name="feePeriodId"]')).toHaveCount(0);
   });
 
   test("shows an unpaid target as a renewal for an active member of the same type", async ({

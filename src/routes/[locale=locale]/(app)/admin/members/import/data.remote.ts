@@ -4,6 +4,7 @@ import * as v from "valibot";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { inArray, sql } from "drizzle-orm";
+import type { PgInsertValue } from "drizzle-orm/pg-core";
 import { generateUserId } from "$lib/server/auth/utils";
 import { getUsersByEmails } from "$lib/server/auth/secondary-email";
 import { getLL } from "$lib/server/i18n";
@@ -275,8 +276,8 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
       paidPeriodsByMemberId.set(payment.memberId, paidPeriods);
     }
 
-    const newMemberValues: (typeof table.member.$inferInsert)[] = [];
-    const timelineValues: (typeof table.membershipEvent.$inferInsert)[] = [];
+    const newMemberValues: PgInsertValue<typeof table.member>[] = [];
+    const timelineValues: PgInsertValue<typeof table.membershipEvent>[] = [];
     const memberIdByUserId = new Map(existingMembersByUserId.entries().map(([userId, member]) => [userId, member.id]));
 
     for (const [userId, memberRows] of importsByUserId) {

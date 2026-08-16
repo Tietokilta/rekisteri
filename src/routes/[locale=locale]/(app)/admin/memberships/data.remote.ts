@@ -40,10 +40,10 @@ export const createMembership = form(createMembershipSchema, async (data) => {
   const endDate = data.endTime.slice(0, 10);
   const periodYear = startDate.slice(0, 4);
 
-  const membershipId = crypto.randomUUID();
+  const feePeriodId = crypto.randomUUID();
 
   await db.insert(table.membershipFeePeriod).values({
-    id: membershipId,
+    id: feePeriodId,
     membershipTypeId: data.membershipTypeId,
     stripePriceId,
     startDate,
@@ -54,7 +54,7 @@ export const createMembership = form(createMembershipSchema, async (data) => {
 
   await auditFromEvent(event, "membership.create", {
     targetType: "membership",
-    targetId: membershipId,
+    targetId: feePeriodId,
     metadata: { membershipTypeId: data.membershipTypeId, startDate, endDate, stripePriceId, published: false },
   });
 

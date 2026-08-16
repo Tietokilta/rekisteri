@@ -21,7 +21,7 @@ export const load: PageServerLoad = async (event) => {
       adminRole: table.user.adminRole,
       createdAt: table.user.createdAt,
       lastActiveAt: table.user.lastActiveAt,
-      membershipId: table.member.id,
+      memberId: table.member.id,
     })
     .from(table.user)
     .leftJoin(table.member, eq(table.member.userId, table.user.id))
@@ -31,9 +31,9 @@ export const load: PageServerLoad = async (event) => {
     );
 
   return {
-    users: users.map(({ membershipId, ...user }) => ({
+    users: users.map(({ memberId, ...user }) => ({
       ...user,
-      hasMembership: membershipId !== null,
+      hasMembership: memberId !== null,
     })),
     currentUserId: event.locals.user?.id ?? null,
   };

@@ -2,20 +2,11 @@ import { error } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { and, count, eq, gte, isNotNull } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { createMembershipTypeSchema, deleteMembershipTypeSchema, updateMembershipTypeSchema } from "./schema";
 import { getLL } from "$lib/server/i18n";
 import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
 import { auditFromEvent } from "$lib/server/audit";
-
-function todayInHelsinki() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Helsinki",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
 
 export const createMembershipType = form(createMembershipTypeSchema, async (data) => {
   const event = getRequestEvent();
@@ -34,10 +25,6 @@ export const createMembershipType = form(createMembershipTypeSchema, async (data
   if (existing) {
     error(400, LL.admin.membershipTypes.idAlreadyExists());
   }
-  if (data.purchasable) {
-    error(400, "Create and publish an application target before making a new type purchasable");
-  }
-
   await db
     .insert(table.membershipType)
     .values({
@@ -89,25 +76,6 @@ export const updateMembershipType = form(updateMembershipTypeSchema, async (data
       columns: { id: true },
     });
     if (publishedPeriod) error(400, "Payment requirements cannot change after a fee period is published");
-  }
-
-  if (data.purchasable) {
-    const today = todayInHelsinki();
-    const [target] = await db
-      .select({ id: table.membershipFeePeriod.id, stripePriceId: table.membershipFeePeriod.stripePriceId })
-      .from(table.membershipFeePeriod)
-      .where(
-        and(
-          eq(table.membershipFeePeriod.membershipTypeId, data.id),
-          eq(table.membershipFeePeriod.acceptsApplications, true),
-          isNotNull(table.membershipFeePeriod.publishedAt),
-          gte(table.membershipFeePeriod.endDate, today),
-        ),
-      )
-      .limit(1);
-    if (!target || (data.requiresPayment && !target.stripePriceId)) {
-      error(400, "Select a valid published application target before making this type purchasable");
-    }
   }
 
   await db

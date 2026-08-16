@@ -136,10 +136,10 @@ test.describe("Admin membership type correction", () => {
     expect(auditLog?.targetType).toBe("member");
     expect(auditLog?.metadata).toMatchObject({
       changeKind: "purchase_correction",
-      previousMembershipId: sourceMembershipId,
+      previousFeePeriodId: sourceMembershipId,
       previousMembershipTypeId: "varsinainen-jasen",
       previousStripePriceId: "price_equal_for_type_correction_test",
-      targetMembershipId,
+      targetFeePeriodId: targetMembershipId,
       targetMembershipTypeId: "ulkojasen",
       targetStripePriceId: "price_equal_for_type_correction_test",
       previousStatus: "awaiting_approval",

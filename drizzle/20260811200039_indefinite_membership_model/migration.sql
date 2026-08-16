@@ -223,41 +223,24 @@ SET
 		WHERE legacy."membership_type_id" = type."id" AND legacy."requires_student_verification"
 	);--> statement-breakpoint
 
--- The migration is deterministic and never consults Stripe. Before production
--- deployment, update this reference date and rehearse against the sanitized
--- production snapshot. A payable candidate must already have a Stripe Price ID.
-CREATE TEMP TABLE "migration_application_target" ON COMMIT DROP AS
-SELECT period."membership_type_id", period."id" AS "membership_fee_period_id"
+-- Preserve the newest legacy offering for each type. Validate that row only:
+-- falling back to an older period would reopen a product the board superseded.
+CREATE TEMP TABLE "migration_latest_fee_period" ON COMMIT DROP AS
+SELECT DISTINCT ON (period."membership_type_id")
+	period."membership_type_id",
+	period."id" AS "membership_fee_period_id",
+	period."end_date",
+	period."stripe_price_id"
 FROM "membership_fee_period" period
-INNER JOIN "membership_type" type ON type."id" = period."membership_type_id"
-WHERE type."purchasable"
-	AND period."end_date" >= DATE '2026-08-11'
-	AND (NOT type."requires_payment" OR period."stripe_price_id" IS NOT NULL);--> statement-breakpoint
+ORDER BY period."membership_type_id", period."start_date" DESC, period."id" DESC;--> statement-breakpoint
 
--- A legacy type with no selectable period was only nominally purchasable: the
--- old application UI already offered no action. Preserve that effective state
--- explicitly until an admin publishes a target.
-UPDATE "membership_type" type
-SET "purchasable" = false, "updated_at" = now()
+CREATE TEMP TABLE "migration_application_target" ON COMMIT DROP AS
+SELECT latest."membership_type_id", latest."membership_fee_period_id"
+FROM "migration_latest_fee_period" latest
+INNER JOIN "membership_type" type ON type."id" = latest."membership_type_id"
 WHERE type."purchasable"
-	AND NOT EXISTS (
-		SELECT 1 FROM "migration_application_target" target
-		WHERE target."membership_type_id" = type."id"
-	);--> statement-breakpoint
-
-DO $$
-BEGIN
-	IF EXISTS (
-		SELECT 1
-		FROM "membership_type" type
-		LEFT JOIN "migration_application_target" target ON target."membership_type_id" = type."id"
-		WHERE type."purchasable"
-		GROUP BY type."id"
-		HAVING COUNT(target."membership_fee_period_id") > 1
-	) THEN
-		RAISE EXCEPTION 'membership migration: a purchasable type has multiple unexpired application targets';
-	END IF;
-END $$;--> statement-breakpoint
+	AND latest."end_date" >= CURRENT_DATE
+	AND (NOT type."requires_payment" OR latest."stripe_price_id" IS NOT NULL);--> statement-breakpoint
 
 UPDATE "membership_fee_period" period
 SET "published_at" = now(), "accepts_applications" = true, "updated_at" = now()
@@ -825,17 +808,6 @@ BEGIN
 		RAISE EXCEPTION 'membership migration: an active payable member has no target-period obligation';
 	END IF;
 
-	IF EXISTS (
-		SELECT 1
-		FROM "membership_type" type
-		LEFT JOIN "membership_fee_period" period
-			ON period."membership_type_id" = type."id" AND period."accepts_applications"
-		WHERE type."purchasable"
-		GROUP BY type."id"
-		HAVING COUNT(period."id") <> 1
-	) THEN
-		RAISE EXCEPTION 'membership migration: a purchasable type has no unique application target';
-	END IF;
 END $$;--> statement-breakpoint
 
 ALTER TABLE "member" DROP COLUMN "membership_id";--> statement-breakpoint

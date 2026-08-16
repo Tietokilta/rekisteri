@@ -6,7 +6,7 @@ import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/
 import { payMembershipSchema } from "./schema";
 import { getLL } from "$lib/server/i18n";
 
-export const payMembership = form(payMembershipSchema, async ({ membershipId, description }) => {
+export const payMembership = form(payMembershipSchema, async ({ feePeriodId, description }) => {
   const event = getRequestEvent();
 
   const LL = getLL(event.locals.locale);
@@ -15,21 +15,21 @@ export const payMembership = form(payMembershipSchema, async ({ membershipId, de
     error(401, LL.error.unauthorized());
   }
 
-  const membership = await db.query.membershipFeePeriod.findFirst({
-    where: { id: membershipId, acceptsApplications: true },
+  const feePeriod = await db.query.membershipFeePeriod.findFirst({
+    where: { id: feePeriodId, acceptsApplications: true },
     with: { membershipType: true },
   });
-  if (!membership?.publishedAt || !membership.membershipType.purchasable) {
+  if (!feePeriod?.publishedAt || !feePeriod.membershipType.purchasable) {
     error(400, LL.membership.noAvailableMemberships());
   }
 
   // Description is required for memberships without student verification
   const trimmedDescription = description?.trim() || null;
-  if (!membership.membershipType.requiresStudentVerification && !trimmedDescription) {
+  if (!feePeriod.membershipType.requiresStudentVerification && !trimmedDescription) {
     error(400, LL.membership.descriptionRequired());
   }
 
-  if (membership.membershipType.requiresStudentVerification) {
+  if (feePeriod.membershipType.requiresStudentVerification) {
     // Check primary email domain
     const primaryEmailDomain = event.locals.user.email.split("@", 2)[1]?.toLowerCase();
     const isPrimaryAalto = primaryEmailDomain === "aalto.fi";
@@ -49,7 +49,7 @@ export const payMembership = form(payMembershipSchema, async ({ membershipId, de
 
   const paymentSession = await createSession(
     event.locals.user.id,
-    membershipId,
+    feePeriodId,
     event.locals.locale,
     trimmedDescription,
   );

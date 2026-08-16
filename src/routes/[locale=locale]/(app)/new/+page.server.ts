@@ -39,7 +39,7 @@ export const load: PageServerLoad = async (event) => {
     );
 
   const blockedByPendingApplication = member?.status === "awaiting_payment" || member?.status === "awaiting_approval";
-  const availableMemberships = blockedByPendingApplication
+  const availableFeePeriods = blockedByPendingApplication
     ? []
     : availableResult
         .filter(({ membership_fee_period: period }) => {
@@ -64,7 +64,7 @@ export const load: PageServerLoad = async (event) => {
   return {
     user,
     member: member ? { id: member.id, status: member.status } : null,
-    availableMemberships,
+    availableFeePeriods,
     hasValidAaltoEmail: isPrimaryAalto || hasValidSecondaryAalto,
     hasExpiredAaltoEmail: !isPrimaryAalto && hasExpiredSecondaryAalto,
     aaltoEmailExpiry: isPrimaryAalto ? null : aaltoSecondaryEmail?.expiresAt,
