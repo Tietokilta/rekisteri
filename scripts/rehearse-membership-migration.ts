@@ -11,7 +11,8 @@ const membershipMigrationName = "20260811200039_indefinite_membership_model";
 const rehearsalSuffix = "_membership_rehearsal";
 const skippedTables = new Set(["email_otp", "passkey", "session"]);
 
-type JsonRecord = Record<string, unknown>;
+type JsonValue = null | string | number | boolean | JsonValue[] | { [key: string]: JsonValue | undefined };
+type JsonRecord = Record<string, JsonValue | undefined>;
 type Queryable = postgres.Sql | postgres.TransactionSql;
 
 function quoteIdentifier(identifier: string) {
@@ -245,7 +246,7 @@ async function copySanitizedDatabase(source: postgres.TransactionSql, target: po
       const sanitized = rows.map((row) => sanitizeRow(table, row.data, salt));
       await target.unsafe(
         `INSERT INTO ${quoteIdentifier(table)} SELECT * FROM json_populate_recordset(NULL::${quoteIdentifier(table)}, $1::json)`,
-        [JSON.stringify(sanitized)],
+        [target.json(sanitized)],
       );
       copied += rows.length;
       offset += rows.length;
