@@ -3,7 +3,7 @@ import path from "node:path";
 import fs from "node:fs";
 import * as table from "$lib/server/db/schema";
 import type { relations } from "$lib/server/db/relations";
-import { and, eq, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { createVerifiedSecondaryEmail, createUnverifiedSecondaryEmail } from "./helpers/secondary-email";
 import { route } from "../src/lib/ROUTES";
@@ -13,7 +13,6 @@ test.describe("CSV Import", () => {
 
   // Track test data for cleanup
   let testUserIds: string[] = [];
-  let boundaryMembershipIds: string[] = [];
   let tempFiles: string[] = [];
 
   const getTestEmail = (prefix: string) => `${prefix}-${crypto.randomUUID()}@example.com`;
@@ -41,11 +40,6 @@ test.describe("CSV Import", () => {
       await db.delete(table.user).where(eq(table.user.id, userId));
     }
     testUserIds = []; // Reset for next test
-
-    for (const membershipId of boundaryMembershipIds) {
-      await db.delete(table.membership).where(eq(table.membership.id, membershipId));
-    }
-    boundaryMembershipIds = [];
 
     // Clean up temporary CSV files
     for (const tempFile of tempFiles) {
@@ -180,44 +174,21 @@ Test,User,Helsinki,${email},ulkojasen,2025-08-01`,
 
     await adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i }).click();
 
-    await expect(adminPage.getByText("Tuotiin 0 / 2 jäsentä")).toBeVisible({ timeout: 10_000 });
-    await adminPage.getByText("Näytä 2 virhettä").click();
-    await expect(adminPage.getByText(/Conflicting approved membership types/).first()).toBeVisible();
+    await expect(adminPage.getByText("Tuonti epäonnistui")).toBeVisible({ timeout: 10_000 });
 
     const importedUsers = await db.select().from(table.user).where(eq(table.user.email, email));
     expect(importedUsers).toHaveLength(0);
   });
 
-  test("allows different membership types in periods that share an exact boundary", async ({ adminPage }) => {
-    const email = getTestEmail("touching-types");
-    const regularMembershipId = crypto.randomUUID();
-    const externalMembershipId = crypto.randomUUID();
-    boundaryMembershipIds.push(regularMembershipId, externalMembershipId);
-
-    await db.insert(table.membership).values([
-      {
-        id: regularMembershipId,
-        membershipTypeId: "varsinainen-jasen",
-        startTime: new Date("2012-01-01"),
-        endTime: new Date("2013-01-01"),
-        requiresStudentVerification: true,
-      },
-      {
-        id: externalMembershipId,
-        membershipTypeId: "ulkojasen",
-        startTime: new Date("2013-01-01"),
-        endTime: new Date("2014-01-01"),
-        requiresStudentVerification: false,
-      },
-    ]);
-
-    const tempPath = path.join(process.cwd(), `temp-touching-types-${crypto.randomUUID()}.csv`);
+  test("allows different membership types in consecutive fee periods", async ({ adminPage }) => {
+    const email = getTestEmail("consecutive-types");
+    const tempPath = path.join(process.cwd(), `temp-consecutive-types-${crypto.randomUUID()}.csv`);
     tempFiles.push(tempPath);
     fs.writeFileSync(
       tempPath,
       `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
-Test,User,Helsinki,${email},varsinainen-jasen,2012-01-01
-Test,User,Helsinki,${email},ulkojasen,2013-01-01`,
+Test,User,Helsinki,${email},varsinainen-jasen,2024-08-01
+Test,User,Helsinki,${email},ulkojasen,2025-08-01`,
     );
 
     await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
@@ -234,8 +205,11 @@ Test,User,Helsinki,${email},ulkojasen,2013-01-01`,
     if (!importedUser) throw new Error("Imported user not found");
     testUserIds.push(importedUser.id);
 
-    const importedMemberships = await db.select().from(table.member).where(eq(table.member.userId, importedUser.id));
-    expect(importedMemberships).toHaveLength(2);
+    const [importedMember] = await db.select().from(table.member).where(eq(table.member.userId, importedUser.id));
+    expect(importedMember).toBeDefined();
+    if (!importedMember) throw new Error("Imported member not found");
+    const importedPayments = await db.select().from(table.payment).where(eq(table.payment.memberId, importedMember.id));
+    expect(importedPayments).toHaveLength(2);
   });
 
   test("rejects an imported membership type that overlaps an existing approved type", async ({ adminPage }) => {
@@ -243,17 +217,11 @@ Test,User,Helsinki,${email},ulkojasen,2013-01-01`,
     const testUserId = crypto.randomUUID();
     testUserIds.push(testUserId);
 
-    const [existingMembership] = await db
-      .select({ id: table.membership.id })
-      .from(table.membership)
-      .where(
-        and(
-          eq(table.membership.membershipTypeId, "varsinainen-jasen"),
-          eq(table.membership.startTime, new Date("2025-08-01")),
-        ),
-      );
-    expect(existingMembership).toBeDefined();
-    if (!existingMembership) throw new Error("Seeded 2025 membership not found");
+    const matchingFeePeriod = await db.query.membershipFeePeriod.findFirst({
+      where: { membershipTypeId: "varsinainen-jasen", startDate: "2025-08-01" },
+    });
+    expect(matchingFeePeriod).toBeDefined();
+    if (!matchingFeePeriod) throw new Error("Seeded 2025 fee period not found");
 
     await db.insert(table.user).values({
       id: testUserId,
@@ -264,11 +232,20 @@ Test,User,Helsinki,${email},ulkojasen,2013-01-01`,
       adminRole: "none",
       isAllowedEmails: false,
     });
+    const memberId = crypto.randomUUID();
     await db.insert(table.member).values({
-      id: crypto.randomUUID(),
+      id: memberId,
       userId: testUserId,
-      membershipId: existingMembership.id,
-      status: "resigned",
+      status: "active",
+      membershipTypeId: "varsinainen-jasen",
+      currentMembershipStartedAt: new Date("2024-08-01T00:00:00Z"),
+    });
+    await db.insert(table.payment).values({
+      id: crypto.randomUUID(),
+      memberId,
+      membershipFeePeriodId: matchingFeePeriod.id,
+      source: "imported",
+      status: "succeeded",
     });
 
     const tempPath = path.join(process.cwd(), `temp-existing-overlap-${crypto.randomUUID()}.csv`);
@@ -287,7 +264,7 @@ Changed,Name,Helsinki,${email},ulkojasen,2025-08-01`,
 
     await adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i }).click();
 
-    await expect(adminPage.getByText("Tuotiin 0 / 1 jäsen")).toBeVisible({ timeout: 10_000 });
+    await expect(adminPage.getByText("Tuonti epäonnistui")).toBeVisible({ timeout: 10_000 });
     const members = await db.select().from(table.member).where(eq(table.member.userId, testUserId));
     expect(members).toHaveLength(1);
 

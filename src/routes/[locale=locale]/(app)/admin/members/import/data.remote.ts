@@ -3,7 +3,7 @@ import { command, form, getRequestEvent } from "$app/server";
 import * as v from "valibot";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { PgInsertValue } from "drizzle-orm/pg-core";
 import { generateUserId } from "$lib/server/auth/utils";
 import { getUsersByEmails } from "$lib/server/auth/secondary-email";
@@ -24,6 +24,7 @@ type FeePeriod = typeof table.membershipFeePeriod.$inferSelect & {
   membershipType: typeof table.membershipType.$inferSelect;
 };
 type PreparedRow = { row: CsvRow; rowNumber: number; period: FeePeriod };
+type ExistingPaidPeriod = Pick<FeePeriod, "membershipTypeId" | "startDate" | "endDate"> & { userId: string };
 
 function parseRows(rowsJson: string, invalidDataFormatMessage: string): CsvRow[] {
   let input: unknown;
@@ -101,8 +102,7 @@ function prepareRows(rows: CsvRow[], periods: FeePeriod[]) {
       existing &&
       (existing.firstNames !== row.firstNames ||
         existing.lastName !== row.lastName ||
-        existing.homeMunicipality !== row.homeMunicipality ||
-        existing.membershipTypeId !== row.membershipTypeId)
+        existing.homeMunicipality !== row.homeMunicipality)
     ) {
       errors.push({ row: index + 1, email: row.email, error: "Conflicting rows for the same member and start date" });
       continue;
@@ -110,6 +110,8 @@ function prepareRows(rows: CsvRow[], periods: FeePeriod[]) {
     exactDateRows.set(exactDateKey, row);
     preparedRows.push({ row, rowNumber: index + 1, period });
   }
+
+  errors.push(...importedPeriodConflictErrors(preparedRows));
 
   return { preparedRows, errors };
 }
@@ -125,6 +127,69 @@ function latestRowsByEmail(rows: PreparedRow[]) {
     group.sort((left, right) => left.period.startDate.localeCompare(right.period.startDate));
   }
   return grouped;
+}
+
+function periodsConflict(left: FeePeriod, right: Pick<FeePeriod, "membershipTypeId" | "startDate" | "endDate">) {
+  return (
+    left.membershipTypeId !== right.membershipTypeId &&
+    left.startDate <= right.endDate &&
+    right.startDate <= left.endDate
+  );
+}
+
+function conflictMessage(left: FeePeriod, right: Pick<FeePeriod, "membershipTypeId" | "startDate" | "endDate">) {
+  return (
+    `Conflicting approved membership types: ${left.membershipTypeId} ${left.startDate}–${left.endDate} overlaps ` +
+    `${right.membershipTypeId} ${right.startDate}–${right.endDate}. Resolve the membership type before importing.`
+  );
+}
+
+function importedPeriodConflictErrors(rows: PreparedRow[]): ImportError[] {
+  const errors: ImportError[] = [];
+  for (const memberRows of latestRowsByEmail(rows).values()) {
+    const conflictsByRow = new Map<number, Set<string>>();
+    for (let leftIndex = 0; leftIndex < memberRows.length; leftIndex++) {
+      const left = memberRows[leftIndex];
+      if (!left) continue;
+      for (let rightIndex = leftIndex + 1; rightIndex < memberRows.length; rightIndex++) {
+        const right = memberRows[rightIndex];
+        if (!right || !periodsConflict(left.period, right.period)) continue;
+        const message = conflictMessage(left.period, right.period);
+        for (const row of [left, right]) {
+          const conflicts = conflictsByRow.get(row.rowNumber) ?? new Set<string>();
+          conflicts.add(message);
+          conflictsByRow.set(row.rowNumber, conflicts);
+        }
+      }
+    }
+    for (const row of memberRows) {
+      const conflicts = conflictsByRow.get(row.rowNumber);
+      if (conflicts) errors.push({ row: row.rowNumber, email: row.row.email, error: [...conflicts].join("; ") });
+    }
+  }
+  return errors;
+}
+
+function existingPeriodConflictErrors(
+  rowsByEmail: Map<string, PreparedRow[]>,
+  existingUsers: Awaited<ReturnType<typeof getUsersByEmails>>,
+  existingPeriods: ExistingPaidPeriod[],
+): ImportError[] {
+  const periodsByUserId = Map.groupBy(existingPeriods, (period) => period.userId);
+  const errors: ImportError[] = [];
+  for (const [email, memberRows] of rowsByEmail) {
+    const userId = existingUsers.get(email)?.id;
+    if (!userId) continue;
+    for (const row of memberRows) {
+      const conflicts = (periodsByUserId.get(userId) ?? [])
+        .filter((period) => periodsConflict(row.period, period))
+        .map((period) => conflictMessage(row.period, period));
+      if (conflicts.length > 0) {
+        errors.push({ row: row.rowNumber, email, error: [...new Set(conflicts)].join("; ") });
+      }
+    }
+  }
+  return errors;
 }
 
 function isAllowedEmail(value: string | undefined) {
@@ -224,6 +289,35 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
 
   const rowsByEmail = latestRowsByEmail(preparedRows);
   const existingUsers = await getUsersByEmails([...rowsByEmail.keys()]);
+  const existingUserIds = [...new Set([...existingUsers.values()].map((user) => user.id))];
+  let existingPaidPeriods: ExistingPaidPeriod[] = [];
+  if (existingUserIds.length > 0) {
+    const paidPeriods = await db
+      .select({
+        userId: table.member.userId,
+        membershipTypeId: table.membershipFeePeriod.membershipTypeId,
+        startDate: table.membershipFeePeriod.startDate,
+        endDate: table.membershipFeePeriod.endDate,
+      })
+      .from(table.member)
+      .innerJoin(table.payment, eq(table.payment.memberId, table.member.id))
+      .innerJoin(table.membershipFeePeriod, eq(table.membershipFeePeriod.id, table.payment.membershipFeePeriodId))
+      .where(
+        and(
+          inArray(table.member.userId, existingUserIds),
+          eq(table.payment.status, "succeeded"),
+          isNull(table.payment.refundConfirmedAt),
+          isNull(table.payment.invalidatedAt),
+        ),
+      );
+    existingPaidPeriods = paidPeriods.flatMap((period) =>
+      period.userId ? [{ ...period, userId: period.userId }] : [],
+    );
+  }
+  const existingConflictErrors = existingPeriodConflictErrors(rowsByEmail, existingUsers, existingPaidPeriods);
+  if (existingConflictErrors.length > 0) {
+    return { success: false, successCount: 0, totalRows: rows.length, errors: existingConflictErrors };
+  }
   let usersCreated = 0;
   let membersCreated = 0;
   let paymentsCreated = 0;
