@@ -27,6 +27,7 @@
     "db:check": "drizzle-kit check",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:rehearse-membership": "tsx --env-file=.env scripts/rehearse-membership-migration.ts",
     "db:studio": "drizzle-kit studio",
     "i18n:generate": "typesafe-i18n --no-watch",
     "i18n:watch": "typesafe-i18n",
