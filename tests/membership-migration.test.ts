@@ -3,6 +3,7 @@ import { readMigrationFiles, type MigrationMeta } from "drizzle-orm/migrator";
 import path from "node:path";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { copySanitizedDatabase } from "../scripts/rehearse-membership-migration";
 
 const migrations = readMigrationFiles({ migrationsFolder: path.join(process.cwd(), "drizzle") });
 const membershipMigrationName = "20260811200039_indefinite_membership_model";
@@ -111,6 +112,48 @@ async function insertLegacyFixture(client: ReturnType<typeof postgres>) {
 }
 
 describe("indefinite membership production migration", () => {
+  it("rehearses an anonymized production snapshot over legacy seed data", async () => {
+    const source = await createDatabase("rehearsal_source");
+    const target = await createDatabase("rehearsal_target");
+
+    try {
+      await Promise.all([runMigrations(source, legacyMigrations), runMigrations(target, legacyMigrations)]);
+      await insertLegacyFixture(source);
+
+      await target.begin(async (targetTransaction) =>
+        source.begin("isolation level repeatable read read only", async (sourceTransaction) =>
+          copySanitizedDatabase(sourceTransaction, targetTransaction, "test-salt"),
+        ),
+      );
+
+      const [user] = await target<{ email: string }[]>`
+        SELECT email FROM "user" WHERE id = 'user-a'
+      `;
+      const [member] = await target<{ stripeSessionId: string }[]>`
+        SELECT stripe_session_id AS "stripeSessionId" FROM member WHERE id = 'member-a-2024'
+      `;
+      const [counts] = await target<{ customizations: number; membershipTypes: number }[]>`
+        SELECT
+          (SELECT count(*)::integer FROM app_customization) AS customizations,
+          (SELECT count(*)::integer FROM membership_type) AS "membershipTypes"
+      `;
+
+      expect(user?.email).toMatch(/^member-[a-f0-9]{16}@example\.invalid$/);
+      expect(member?.stripeSessionId).toMatch(/^cs_test_rehearsal_[a-f0-9]{16}$/);
+      expect(counts).toEqual({ customizations: 1, membershipTypes: 5 });
+
+      await runMigrations(target, [membershipMigration]);
+      const [result] = await target<{ members: number; payments: number }[]>`
+        SELECT
+          (SELECT count(*)::integer FROM member) AS members,
+          (SELECT count(*)::integer FROM payment) AS payments
+      `;
+      expect(result).toEqual({ members: 6, payments: 9 });
+    } finally {
+      await Promise.all([source.end(), target.end()]);
+    }
+  }, 60_000);
+
   it("runs on a fresh installation without leaving import mode", async () => {
     const client = await createDatabase("fresh");
 

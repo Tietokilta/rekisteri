@@ -208,7 +208,11 @@ async function insertionOrder(client: Queryable, tables: string[]) {
   return ordered;
 }
 
-async function copySanitizedDatabase(source: postgres.TransactionSql, target: postgres.TransactionSql, salt: string) {
+export async function copySanitizedDatabase(
+  source: postgres.TransactionSql,
+  target: postgres.TransactionSql,
+  salt: string,
+) {
   const targetTables = await listTables(target);
   const sourceTables = new Set(await listTables(source));
   const missing = targetTables.filter((table) => !sourceTables.has(table));
@@ -218,6 +222,7 @@ async function copySanitizedDatabase(source: postgres.TransactionSql, target: po
   if (unexpected.length > 0) throw new Error(`Production has unexpected legacy tables: ${unexpected.join(", ")}`);
 
   const orderedTables = await insertionOrder(target, targetTables);
+  await target.unsafe(`TRUNCATE TABLE ${targetTables.map(quoteIdentifier).join(", ")} RESTART IDENTITY`);
   const counts: Record<string, number> = {};
   for (const table of orderedTables) {
     const [sourceColumns, targetColumns] = await Promise.all([listColumns(source, table), listColumns(target, table)]);
