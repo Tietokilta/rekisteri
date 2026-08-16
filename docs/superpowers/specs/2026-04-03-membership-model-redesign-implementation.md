@@ -27,8 +27,9 @@ These rules are the correctness boundary for the implementation:
 11. A paid application or type change cannot be approved until its target
     obligation is settled. A direct admin activation is the separate,
     explicitly waived exception.
-12. Every purchasable membership type has exactly one valid application target;
-    there is no intentional closed-applications state.
+12. Each membership type has at most one application target. A purchasable
+    type without a valid target is unavailable until a valid period is selected;
+    the system never falls back to an older or expired period.
 13. A new applicant owes the selected application fee period, not an earlier
     period. Board approval activates membership immediately regardless of that
     fee period's display dates.
@@ -82,10 +83,13 @@ The target model separates those concepts so each has one meaning.
 
 The member-facing UI continues to present one membership card and a familiar
 history. Internally, however, it should distinguish the person's membership
-state from fee/payment state. Admin views should use “fee period” for the dated
-products currently called membership periods. A user merge should say whether
-the stable membership and its history will be transferred, not report a
-“moved memberships” count that can only be zero or one.
+state from fee/payment state. The expanded admin view presents the stable legal
+membership once, a chronological activity history combining membership events
+and payments with provenance, and fee-period obligation state separately.
+Admin views should use “fee period” for the dated products currently called
+membership periods. A user merge should say whether the stable membership and
+its history will be transferred, not report a “moved memberships” count that
+can only be zero or one.
 
 ## Data model
 
@@ -139,12 +143,12 @@ After publication, membership type, every date, and the Stripe Price ID are lock
 Post-publication deadline changes are not supported in this release.
 
 `acceptsApplications` moves atomically between published periods with explicit
-confirmation. It cannot simply be cleared. A type cannot become `purchasable`
-until a published, correctly priced target exists. A target may be current or
-upcoming, but it is invalid after its `endDate`; the application flow never
-falls back to an expired period. These application-level rules strengthen the
-partial index from "at most one" to the required "exactly one" across the type
-and period tables.
+confirmation. `purchasable` describes whether users may choose the type; it
+does not assert that a usable fee period currently exists. A target may be
+current or upcoming, but it is invalid after its `endDate`. A missing, expired,
+or incorrectly priced target makes that type unavailable, and the application
+flow never falls back to an older period. The partial index enforces the actual
+database invariant: at most one target per type.
 
 New periods are pre-filled by shifting the previous period's dates. There is no
 global calendar-settings feature in this scope.
@@ -357,11 +361,12 @@ of inserting a duplicate.
 
 ### Application availability
 
-Applications cannot be intentionally closed. Every `purchasable` type must have
-one valid target: a published, unexpired period with a usable Stripe Price when
-the type requires payment. Enabling a type or moving its target is transactional,
-and removing the last target is rejected. There is no fallback to the
-calendar-current or an expired period.
+A `purchasable` type is available only when it has a published, unexpired
+target with a usable Stripe Price when payment is required. Moving a target is
+transactional. A type may have no valid target without changing its
+`purchasable` setting; the public flow then omits it and explains when no fee
+periods are configured. There is no fallback to an older, calendar-current, or
+expired period.
 
 The admin UI shows a persistent warning starting 30 days before a target ends.
 A daily operational check sends one deduplicated board email for that warning
@@ -710,11 +715,14 @@ The same migration also runs on fresh installations. It sets
 `membershipDataLiveAt` only when legacy member rows actually exist. An empty new
 installation remains in import mode until its admin finalizes onboarding.
 
-For each legacy type with one unexpired selectable period, that period becomes
-the published application target. Multiple candidates abort the migration for
-manual classification. A nominally purchasable type with no candidate becomes
-non-purchasable; this preserves the old UI's effective empty state until an
-admin publishes a target.
+For each legacy membership type, migration considers only its newest fee period,
+ordered by `startDate` and then identifier. That period becomes the published
+application target when the type is purchasable, the period has not expired,
+and a payable type has a Stripe Price ID. This is a local metadata check; the
+migration never contacts Stripe. If the newest period fails validation, the
+type has no target: migration never falls back to an older period and never
+changes `purchasable`. Selection is performed independently for every type and
+also works on an empty database, where there are simply no targets.
 
 ### Evidence classification
 
@@ -876,15 +884,15 @@ boundaries. Dates must use a fixed clock and the Europe/Helsinki timezone.
 
 ### Application availability
 
-| Scenario                                  | Expected result                                                                |
-| ----------------------------------------- | ------------------------------------------------------------------------------ |
-| Purchasable type has no valid target      | Configuration change is rejected, or an existing outage is shown prominently   |
-| Admin tries to clear the only target      | Operation is rejected; replacement must be selected atomically                 |
-| Target ends within 30 days                | Persistent admin warning and one deduplicated board email                      |
-| Target expires without replacement        | No expired fallback; one outage email; public flow shows configuration failure |
-| Upcoming target is selected early         | Applications remain available and payments bind to that upcoming period        |
-| Successor is selected after an incident   | Alert clears and applications recover immediately                              |
-| Daily check or server instance runs twice | Persisted incident key prevents duplicate email                                |
+| Scenario                                  | Expected result                                                                       |
+| ----------------------------------------- | ------------------------------------------------------------------------------------- |
+| Purchasable type has no valid target      | Type remains configured but is unavailable; admin and public empty states explain why |
+| Admin moves an application target         | Replacement is selected atomically; at most one target exists for the type            |
+| Target ends within 30 days                | Persistent admin warning and one deduplicated board email                             |
+| Target expires without replacement        | No expired fallback; one outage email; public flow shows configuration failure        |
+| Upcoming target is selected early         | Applications remain available and payments bind to that upcoming period               |
+| Successor is selected after an incident   | Alert clears and applications recover immediately                                     |
+| Daily check or server instance runs twice | Persisted incident key prevents duplicate email                                       |
 
 ### Fee periods and obligations
 
@@ -1094,7 +1102,7 @@ Do not open renewals until:
 - two independent rehearsal runs converge;
 - Stripe webhook replay and delayed-webhook tests pass;
 - publication retry creates no duplicate obligations;
-- every purchasable type has one valid application target and alert deduplication
-  passes;
+- every intended application target is valid, unavailable types are reported,
+  and alert deduplication passes;
 - the board can obtain the exact active-and-unpaid list; and
 - backup restoration has been exercised or otherwise verified.

@@ -57,6 +57,13 @@ Membership events distinguish when a decision took effect from when it was
 recorded. Confirmed events are immutable; correcting an admin mistake appends a
 correction rather than rewriting history.
 
+The member activity view combines these events with payment attempts in one
+chronological history. Admins can see whether an event was confirmed or
+inferred, whether it came from an admin, the system, imported data, or the
+migration, and which admin recorded a confirmed decision. Whether an admin
+used a bulk or individual command remains operational detail in the audit log;
+it does not change the membership event itself.
+
 The existing audit log remains an operational/security log. It is not the
 authoritative membership history.
 
@@ -95,10 +102,12 @@ alone never changes membership status.
 A member joining late in one fee period still receives the next period's normal
 renewal obligation, even if that later period was published before approval.
 
-Every purchasable type must always have exactly one valid application target.
-Applications cannot be intentionally paused. Admins see a persistent warning
-and receive deduplicated email alerts before a target expires and if availability
-is lost.
+A purchasable type may temporarily have no valid application target. In that
+case it remains part of the configured membership model but is unavailable in
+the purchase flow; the UI must distinguish that situation from a member having
+already bought every available fee. At most one fee period per type accepts
+applications. Admins see a persistent warning and receive deduplicated email
+alerts before a target expires and if availability is lost.
 
 ### Type changes happen during renewal
 
@@ -157,6 +166,13 @@ Before deployment, the exact migration is rehearsed locally against a recent
 production snapshot. The report compares old and new counts, lists ambiguous
 classifications and inferred events, checks invariants, and confirms that two
 runs produce the same result.
+
+For each membership type, migration considers only its newest legacy fee
+period as the possible application target. It opens that period when the type
+is purchasable and the period is unexpired and has the required Stripe Price
+ID. Migration does not contact Stripe. If the newest period is unsuitable, the
+type has no target; migration never falls back to an older period or changes
+the type's `purchasable` setting.
 
 The migration must not manufacture evidence:
 
