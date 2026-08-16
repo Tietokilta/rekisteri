@@ -363,6 +363,10 @@ async function migrationReport(client: Queryable, copiedRows: Record<string, num
         client,
         `SELECT count(*)::integer AS value FROM membership_fee_period WHERE accepts_applications`,
       ),
+      legacyReactivationCorrections: await scalar(
+        client,
+        `SELECT count(*)::integer AS value FROM audit_log WHERE action IN ('member.reactivate', 'member.bulk_reactivate')`,
+      ),
     },
     eventSources,
     paymentSources,

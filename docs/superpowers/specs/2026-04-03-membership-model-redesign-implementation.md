@@ -767,11 +767,13 @@ and only then classifies the actions:
 | `member.create`                                     | Classified from its initial status and payment/waiver evidence                                                                   |
 | `member.bulk_import`                                | Import provenance only; never a confirmed membership decision                                                                    |
 
-`member.reactivate` is a legacy escape hatch, not a new domain event. The
-rehearsal counts any individual or bulk reactivation rows and requires those
-rare rows to be classified manually as either a correction or a genuine
-rejoining approval. If there are none, no mapping exists. Stale action names in
-the TypeScript union do not by themselves create migration evidence.
+`member.reactivate` is a legacy correction escape hatch, not a new domain
+event. Production usage was verified to correct imported alumni data or
+pre-live test state; the normal rejoin path creates a new application instead.
+The migration therefore preserves individual and bulk reactivation audit rows
+but does not fabricate an approval, rejoin, or correction event from them. The
+rehearsal reports their count as audit-only corrections so unexpected new usage
+is visible before deployment.
 
 ### Transaction steps
 
@@ -1017,7 +1019,7 @@ boundaries. Dates must use a fixed clock and the Europe/Helsinki timezone.
 | Bulk audit target contains comma-separated IDs   | Every old ID and metadata entry is remapped to the stable member           |
 | `member.auto_approve` audit exists               | Renewal evidence only; no application approval event is fabricated         |
 | No legacy reactivation audit exists              | No reactivation mapping or event is created                                |
-| Legacy reactivation audit exists                 | Rehearsal requires explicit correction-or-rejoin classification            |
+| Legacy reactivation audit exists                 | Audit is preserved and counted as a correction; no lifecycle event is made |
 | Old local-midnight period timestamp              | Correct Helsinki calendar date, without UTC off-by-one                     |
 | Several period rows for one user                 | One stable member; dependencies are rewired                                |
 | Existing organization member                     | Preserved for manual management                                            |

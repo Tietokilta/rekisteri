@@ -150,12 +150,12 @@ BEGIN
 		RAISE EXCEPTION 'membership migration: duplicate Stripe session IDs require manual classification';
 	END IF;
 
-	IF EXISTS (
-		SELECT 1 FROM "migration_member_audit" WHERE "action" IN ('member.reactivate', 'member.bulk_reactivate')
-	) THEN
-		RAISE EXCEPTION 'membership migration: legacy reactivation actions require manual classification';
-	END IF;
 END $$;--> statement-breakpoint
+
+-- Legacy reactivation was an administrative correction escape hatch. Production
+-- usage was verified to correct imported or pre-live test state, not to record a
+-- new legal admission. Preserve its audit evidence, but do not fabricate a
+-- rejoin, approval, or correction event from it.
 
 DROP INDEX "member_user_id_idx";--> statement-breakpoint
 DROP INDEX "member_membership_id_idx";--> statement-breakpoint

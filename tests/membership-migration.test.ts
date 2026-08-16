@@ -567,4 +567,70 @@ describe("indefinite membership production migration", () => {
       await client.end();
     }
   }, 60_000);
+
+  it("preserves legacy reactivations as audit-only corrections", async () => {
+    const client = await createDatabase("reactivation_corrections");
+
+    try {
+      await runMigrations(client, legacyMigrations);
+      await client.unsafe(`
+        INSERT INTO "membership_type" ("id", "name") VALUES
+          ('alumni', '{"fi":"Alumni","en":"Alumni"}'::jsonb);
+
+        INSERT INTO "membership" (
+          "id", "membership_type_id", "start_time", "end_time", "requires_student_verification"
+        ) VALUES
+          ('alumni-2025', 'alumni', '2025-08-01T00:00:00Z', '2026-07-31T00:00:00Z', false);
+
+        INSERT INTO "user" ("id", "email") VALUES
+          ('corrected-alumni', 'corrected-alumni@example.com'),
+          ('admin', 'admin@example.com');
+
+        INSERT INTO "member" ("id", "user_id", "membership_id", "status") VALUES
+          ('corrected-alumni-2025', 'corrected-alumni', 'alumni-2025', 'active');
+
+        INSERT INTO "audit_log" (
+          "id", "user_id", "action", "target_type", "target_id", "metadata"
+        ) VALUES
+          (
+            'reactivate-one', 'admin', 'member.reactivate', 'member', 'corrected-alumni-2025',
+            '{"previousStatus":"resigned","reason":"Correct imported state"}'::json
+          ),
+          (
+            'reactivate-bulk', 'admin', 'member.bulk_reactivate', 'member', 'corrected-alumni-2025',
+            '{"memberIds":["corrected-alumni-2025"],"count":1}'::json
+          );
+      `);
+
+      await runMigrations(client, [membershipMigration]);
+
+      const reactivationAudits = await client<{ id: string; targetId: string }[]>`
+        SELECT "id", "target_id" AS "targetId"
+        FROM "audit_log"
+        WHERE "action" IN ('member.reactivate', 'member.bulk_reactivate')
+        ORDER BY "id"
+      `;
+      expect(reactivationAudits).toEqual([
+        { id: "reactivate-bulk", targetId: "corrected-alumni-2025" },
+        { id: "reactivate-one", targetId: "corrected-alumni-2025" },
+      ]);
+
+      const events = await client<{ eventType: string; certainty: string }[]>`
+        SELECT "event_type"::text AS "eventType", "certainty"::text
+        FROM "membership_event"
+        WHERE "member_id" = 'corrected-alumni-2025'
+        ORDER BY "effective_at", "id"
+      `;
+      expect(events).toEqual([{ eventType: "legacy_membership_started_inferred", certainty: "inferred" }]);
+
+      const [member] = await client<{ status: string; membershipTypeId: string | null }[]>`
+        SELECT "status"::text, "membership_type_id" AS "membershipTypeId"
+        FROM "member"
+        WHERE "id" = 'corrected-alumni-2025'
+      `;
+      expect(member).toEqual({ status: "active", membershipTypeId: "alumni" });
+    } finally {
+      await client.end();
+    }
+  }, 60_000);
 });
