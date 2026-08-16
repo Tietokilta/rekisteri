@@ -5,7 +5,7 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as table from "$lib/server/db/schema";
 import { relations } from "$lib/server/db/relations";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { createVerifiedSecondaryEmail, createUnverifiedSecondaryEmail } from "./helpers/secondary-email";
 import { route } from "../src/lib/ROUTES";
@@ -17,6 +17,7 @@ test.describe("CSV Import", () => {
 
   // Track test data for cleanup
   let testUserIds: string[] = [];
+  let boundaryMembershipIds: string[] = [];
   let tempFiles: string[] = [];
 
   const getTestEmail = (prefix: string) => `${prefix}-${crypto.randomUUID()}@example.com`;
@@ -41,6 +42,11 @@ test.describe("CSV Import", () => {
       await db.delete(table.user).where(eq(table.user.id, userId));
     }
     testUserIds = []; // Reset for next test
+
+    for (const membershipId of boundaryMembershipIds) {
+      await db.delete(table.membership).where(eq(table.membership.id, membershipId));
+    }
+    boundaryMembershipIds = [];
 
     // Clean up temporary CSV files
     for (const tempFile of tempFiles) {
@@ -154,6 +160,140 @@ Test,User,Helsinki,test@example.com,nonexistent-type,2025-08-01`;
     // Verify membership type IDs are listed in the instructions
     await expect(adminPage.getByText("varsinainen-jasen")).toBeVisible();
     await expect(adminPage.getByText("ulkojasen")).toBeVisible();
+  });
+
+  test("rejects overlapping membership types for the same person in one import", async ({ adminPage }) => {
+    const email = getTestEmail("overlapping-types");
+    const tempPath = path.join(process.cwd(), `temp-overlapping-types-${crypto.randomUUID()}.csv`);
+    tempFiles.push(tempPath);
+    fs.writeFileSync(
+      tempPath,
+      `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
+Test,User,Helsinki,${email},varsinainen-jasen,2025-08-01
+Test,User,Helsinki,${email},ulkojasen,2025-08-01`,
+    );
+
+    await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
+      waitUntil: "networkidle",
+    });
+    await adminPage.locator('input[type="file"]').setInputFiles(tempPath);
+    await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
+
+    await adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i }).click();
+
+    await expect(adminPage.getByText("Tuotiin 0 / 2 jäsentä")).toBeVisible({ timeout: 10_000 });
+    await adminPage.getByText("Näytä 2 virhettä").click();
+    await expect(adminPage.getByText(/Conflicting approved membership types/).first()).toBeVisible();
+
+    const importedUsers = await db.select().from(table.user).where(eq(table.user.email, email));
+    expect(importedUsers).toHaveLength(0);
+  });
+
+  test("allows different membership types in periods that share an exact boundary", async ({ adminPage }) => {
+    const email = getTestEmail("touching-types");
+    const regularMembershipId = crypto.randomUUID();
+    const externalMembershipId = crypto.randomUUID();
+    boundaryMembershipIds.push(regularMembershipId, externalMembershipId);
+
+    await db.insert(table.membership).values([
+      {
+        id: regularMembershipId,
+        membershipTypeId: "varsinainen-jasen",
+        startTime: new Date("2012-01-01"),
+        endTime: new Date("2013-01-01"),
+        requiresStudentVerification: true,
+      },
+      {
+        id: externalMembershipId,
+        membershipTypeId: "ulkojasen",
+        startTime: new Date("2013-01-01"),
+        endTime: new Date("2014-01-01"),
+        requiresStudentVerification: false,
+      },
+    ]);
+
+    const tempPath = path.join(process.cwd(), `temp-touching-types-${crypto.randomUUID()}.csv`);
+    tempFiles.push(tempPath);
+    fs.writeFileSync(
+      tempPath,
+      `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
+Test,User,Helsinki,${email},varsinainen-jasen,2012-01-01
+Test,User,Helsinki,${email},ulkojasen,2013-01-01`,
+    );
+
+    await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
+      waitUntil: "networkidle",
+    });
+    await adminPage.locator('input[type="file"]').setInputFiles(tempPath);
+    await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
+
+    await adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i }).click();
+
+    await expect(adminPage.getByText("Tuotiin 2 / 2 jäsentä")).toBeVisible({ timeout: 10_000 });
+    const [importedUser] = await db.select().from(table.user).where(eq(table.user.email, email));
+    expect(importedUser).toBeDefined();
+    if (!importedUser) throw new Error("Imported user not found");
+    testUserIds.push(importedUser.id);
+
+    const importedMemberships = await db.select().from(table.member).where(eq(table.member.userId, importedUser.id));
+    expect(importedMemberships).toHaveLength(2);
+  });
+
+  test("rejects an imported membership type that overlaps an existing approved type", async ({ adminPage }) => {
+    const email = getTestEmail("existing-overlapping-type");
+    const testUserId = crypto.randomUUID();
+    testUserIds.push(testUserId);
+
+    const [existingMembership] = await db
+      .select({ id: table.membership.id })
+      .from(table.membership)
+      .where(
+        and(
+          eq(table.membership.membershipTypeId, "varsinainen-jasen"),
+          eq(table.membership.startTime, new Date("2025-08-01")),
+        ),
+      );
+    expect(existingMembership).toBeDefined();
+    if (!existingMembership) throw new Error("Seeded 2025 membership not found");
+
+    await db.insert(table.user).values({
+      id: testUserId,
+      email,
+      firstNames: "Existing",
+      lastName: "Member",
+      homeMunicipality: "Espoo",
+      adminRole: "none",
+      isAllowedEmails: false,
+    });
+    await db.insert(table.member).values({
+      id: crypto.randomUUID(),
+      userId: testUserId,
+      membershipId: existingMembership.id,
+      status: "resigned",
+    });
+
+    const tempPath = path.join(process.cwd(), `temp-existing-overlap-${crypto.randomUUID()}.csv`);
+    tempFiles.push(tempPath);
+    fs.writeFileSync(
+      tempPath,
+      `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
+Changed,Name,Helsinki,${email},ulkojasen,2025-08-01`,
+    );
+
+    await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {
+      waitUntil: "networkidle",
+    });
+    await adminPage.locator('input[type="file"]').setInputFiles(tempPath);
+    await expect(adminPage.getByText("Tuonnin esikatselu")).toBeVisible({ timeout: 10_000 });
+
+    await adminPage.getByRole("button", { name: /tuo.*jäsen|import.*member/i }).click();
+
+    await expect(adminPage.getByText("Tuotiin 0 / 1 jäsen")).toBeVisible({ timeout: 10_000 });
+    const members = await db.select().from(table.member).where(eq(table.member.userId, testUserId));
+    expect(members).toHaveLength(1);
+
+    const [unchangedUser] = await db.select().from(table.user).where(eq(table.user.id, testUserId));
+    expect(unchangedUser?.firstNames).toBe("Existing");
   });
 
   test("should attach membership to existing user when CSV email is a verified secondary email", async ({

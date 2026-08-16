@@ -3,7 +3,7 @@ import { form, command, getRequestEvent } from "$app/server";
 import * as v from "valibot";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { generateUserId } from "$lib/server/auth/utils";
 import { getUsersByEmails } from "$lib/server/auth/secondary-email";
 import {
@@ -34,6 +34,7 @@ type ProcessedImportRow = {
   row: CsvRow;
   userId: string;
   membershipId: string;
+  membership: ImportMembership;
   status: "active" | "resigned";
   isNewUser: boolean;
 };
@@ -182,9 +183,105 @@ function prepareImportRow(
     row: rowReference.row,
     userId,
     membershipId: membership.id,
+    membership,
     status: membership.endTime < now ? "resigned" : "active",
     isNewUser,
   };
+}
+
+function membershipPeriod(membership: ImportMembership): string {
+  return `${membership.startTime.toISOString().slice(0, 10)}–${membership.endTime.toISOString().slice(0, 10)}`;
+}
+
+function membershipsConflict(left: ImportMembership, right: ImportMembership): boolean {
+  return (
+    left.membershipTypeId !== right.membershipTypeId && left.startTime < right.endTime && right.startTime < left.endTime
+  );
+}
+
+async function loadExistingApprovedMemberships(
+  processedRows: ProcessedImportRow[],
+): Promise<Map<string, ImportMembership[]>> {
+  const userIds = [...new Set(processedRows.map((row) => row.userId))];
+  const membershipsByUserId = new Map<string, ImportMembership[]>();
+
+  for (let i = 0; i < userIds.length; i += IMPORT_BATCH_SIZE) {
+    const userIdBatch = userIds.slice(i, i + IMPORT_BATCH_SIZE);
+    if (userIdBatch.length === 0) continue;
+
+    const existingRows = await db
+      .select({
+        userId: table.member.userId,
+        id: table.membership.id,
+        membershipTypeId: table.membership.membershipTypeId,
+        startTime: table.membership.startTime,
+        endTime: table.membership.endTime,
+      })
+      .from(table.member)
+      .innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
+      .where(and(inArray(table.member.userId, userIdBatch), inArray(table.member.status, ["active", "resigned"])));
+
+    for (const existingRow of existingRows) {
+      if (!existingRow.userId) continue;
+      const memberships = membershipsByUserId.get(existingRow.userId) ?? [];
+      memberships.push(existingRow);
+      membershipsByUserId.set(existingRow.userId, memberships);
+    }
+  }
+
+  return membershipsByUserId;
+}
+
+async function rejectAmbiguousMembershipTypes(
+  processedRows: ProcessedImportRow[],
+): Promise<{ importableRows: ProcessedImportRow[]; errors: ImportError[] }> {
+  const rowsByUserId = Map.groupBy(processedRows, (row) => row.userId);
+  const existingByUserId = await loadExistingApprovedMemberships(processedRows);
+  const conflictsByUserId = new Map<string, Set<string>>();
+
+  for (const [userId, userRows] of rowsByUserId) {
+    const conflicts = new Set<string>();
+
+    for (let leftIndex = 0; leftIndex < userRows.length; leftIndex++) {
+      const left = userRows[leftIndex];
+      if (!left) continue;
+
+      for (let rightIndex = leftIndex + 1; rightIndex < userRows.length; rightIndex++) {
+        const right = userRows[rightIndex];
+        if (!right || !membershipsConflict(left.membership, right.membership)) continue;
+        conflicts.add(
+          `${left.membership.membershipTypeId} ${membershipPeriod(left.membership)} overlaps ` +
+            `${right.membership.membershipTypeId} ${membershipPeriod(right.membership)} in the import`,
+        );
+      }
+
+      for (const existing of existingByUserId.get(userId) ?? []) {
+        if (!membershipsConflict(left.membership, existing)) continue;
+        conflicts.add(
+          `${left.membership.membershipTypeId} ${membershipPeriod(left.membership)} overlaps existing ` +
+            `${existing.membershipTypeId} ${membershipPeriod(existing)}`,
+        );
+      }
+    }
+
+    if (conflicts.size > 0) conflictsByUserId.set(userId, conflicts);
+  }
+
+  const errors: ImportError[] = [];
+  const importableRows = processedRows.filter((row) => {
+    const conflicts = conflictsByUserId.get(row.userId);
+    if (!conflicts) return true;
+    errors.push(
+      buildImportError(
+        row.row,
+        row.index,
+        `Conflicting approved membership types: ${[...conflicts].join("; ")}. Resolve the membership type before importing.`,
+      ),
+    );
+    return false;
+  });
+
+  return { importableRows, errors };
 }
 
 function prepareImportRows(
@@ -377,12 +474,15 @@ export const importMembers = form(importMembersSchema, async ({ rows: rowsJson }
   const userIdsByEmail = await loadUserIdsByEmail(parsedRows);
   const rows = normalizeImportEmails(parsedRows);
   const { processedRows, errors } = prepareImportRows(rows, membershipLookup, userIdsByEmail);
+  const ambiguityResult = await rejectAmbiguousMembershipTypes(processedRows);
+  errors.push(...ambiguityResult.errors);
+  const importableRows = ambiguityResult.importableRows;
 
-  const uniqueNewUsers = await insertNewUsers(processedRows);
-  await updateExistingUsers(processedRows, errors);
+  const uniqueNewUsers = await insertNewUsers(importableRows);
+  await updateExistingUsers(importableRows, errors);
 
-  const existingMemberKeys = await loadExistingMemberKeys(processedRows);
-  const membersToInsert = getNewMemberRows(processedRows, existingMemberKeys);
+  const existingMemberKeys = await loadExistingMemberKeys(importableRows);
+  const membersToInsert = getNewMemberRows(importableRows, existingMemberKeys);
   await insertNewMembers(membersToInsert, errors);
 
   const errorRowIndices = new Set(errors.map((e) => e.row - 1));
