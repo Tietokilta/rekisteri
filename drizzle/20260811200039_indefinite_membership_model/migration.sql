@@ -214,10 +214,18 @@ ALTER TABLE "membership_fee_period" ALTER COLUMN "updated_at" SET NOT NULL;--> s
 
 UPDATE "membership_type" type
 SET
-	"requires_payment" = EXISTS (
-		SELECT 1 FROM "membership_fee_period" period
-		WHERE period."membership_type_id" = type."id" AND period."stripe_price_id" IS NOT NULL
-	),
+	"requires_payment" = CASE
+		WHEN EXISTS (
+			SELECT 1 FROM "membership_fee_period" period
+			WHERE period."membership_type_id" = type."id"
+		) THEN EXISTS (
+			SELECT 1 FROM "membership_fee_period" period
+			WHERE period."membership_type_id" = type."id" AND period."stripe_price_id" IS NOT NULL
+		)
+		-- A purchasable type with no legacy offerings is dormant, not evidence
+		-- that future offerings should be free.
+		ELSE type."purchasable"
+	END,
 	"requires_student_verification" = EXISTS (
 		SELECT 1 FROM "migration_legacy_member" legacy
 		WHERE legacy."membership_type_id" = type."id" AND legacy."requires_student_verification"

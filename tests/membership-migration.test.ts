@@ -185,7 +185,9 @@ describe("indefinite membership production migration", () => {
           ('external', '{"fi":"Ulkojäsen","en":"External"}'::jsonb, true),
           ('supporting', '{"fi":"Kannatusjäsen","en":"Supporting"}'::jsonb, true),
           ('free', '{"fi":"Kunniajäsen","en":"Honorary"}'::jsonb, true),
-          ('internal', '{"fi":"Sisäinen","en":"Internal"}'::jsonb, false);
+          ('internal', '{"fi":"Sisäinen","en":"Internal"}'::jsonb, false),
+          ('dormant-paid', '{"fi":"Lepäävä maksullinen","en":"Dormant paid"}'::jsonb, true),
+          ('dormant-internal', '{"fi":"Lepäävä sisäinen","en":"Dormant internal"}'::jsonb, false);
 
         INSERT INTO "membership" (
           "id", "membership_type_id", "stripe_price_id", "start_time", "end_time",
@@ -203,23 +205,30 @@ describe("indefinite membership production migration", () => {
 
       await runMigrations(client, [membershipMigration]);
 
-      const types = await client<{ id: string; purchasable: boolean; applicationTargetId: string | null }[]>`
+      const types = await client<
+        { id: string; purchasable: boolean; requiresPayment: boolean; applicationTargetId: string | null }[]
+      >`
         SELECT
           type."id",
           type."purchasable",
+          type."requires_payment" AS "requiresPayment",
           target."id" AS "applicationTargetId"
         FROM "membership_type" type
         LEFT JOIN "membership_fee_period" target
           ON target."membership_type_id" = type."id" AND target."accepts_applications"
-        WHERE type."id" IN ('regular', 'external', 'supporting', 'free', 'internal')
+        WHERE type."id" IN (
+          'regular', 'external', 'supporting', 'free', 'internal', 'dormant-paid', 'dormant-internal'
+        )
         ORDER BY type."id"
       `;
       expect(types).toEqual([
-        { id: "external", purchasable: true, applicationTargetId: null },
-        { id: "free", purchasable: true, applicationTargetId: "free-latest" },
-        { id: "internal", purchasable: false, applicationTargetId: null },
-        { id: "regular", purchasable: true, applicationTargetId: "regular-latest" },
-        { id: "supporting", purchasable: true, applicationTargetId: null },
+        { id: "dormant-internal", purchasable: false, requiresPayment: false, applicationTargetId: null },
+        { id: "dormant-paid", purchasable: true, requiresPayment: true, applicationTargetId: null },
+        { id: "external", purchasable: true, requiresPayment: true, applicationTargetId: null },
+        { id: "free", purchasable: true, requiresPayment: false, applicationTargetId: "free-latest" },
+        { id: "internal", purchasable: false, requiresPayment: false, applicationTargetId: null },
+        { id: "regular", purchasable: true, requiresPayment: true, applicationTargetId: "regular-latest" },
+        { id: "supporting", purchasable: true, requiresPayment: true, applicationTargetId: null },
       ]);
     } finally {
       await client.end();
