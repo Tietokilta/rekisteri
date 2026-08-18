@@ -85,6 +85,37 @@ test.describe("App Customization", () => {
     await expect(adminPage.locator("footer")).toContainText(newContact);
   });
 
+  test("admin can update organization rules URLs and they reflect on membership purchase page", async ({
+    adminPage,
+  }) => {
+    await adminPage.goto("/en/admin/settings");
+
+    await adminPage.getByTestId("tab-resignation").click();
+
+    const rulesUrlFi = "https://example.com/saannot-" + Math.random().toString(36).slice(7);
+    const rulesUrlEn = "https://example.com/rules-" + Math.random().toString(36).slice(7);
+
+    await adminPage.fill('input[name="organizationRulesUrlFi"]', rulesUrlFi);
+    await adminPage.fill('input[name="organizationRulesUrlEn"]', rulesUrlEn);
+
+    await adminPage.getByTestId("save-customizations").click();
+    await expect(
+      adminPage.locator("text=/Settings updated successfully|Asetukset tallennettu onnistuneesti/"),
+    ).toBeVisible();
+
+    // Verify on Finnish /fi/new page
+    await adminPage.goto("/fi/new");
+    const rulesLinkFi = adminPage.locator('a[target="_blank"]', { hasText: /killan säännöissä/i });
+    await expect(rulesLinkFi).toBeVisible();
+    await expect(rulesLinkFi).toHaveAttribute("href", rulesUrlFi);
+
+    // Verify on English /en/new page
+    await adminPage.goto("/en/new");
+    const rulesLinkEn = adminPage.locator('a[target="_blank"]', { hasText: /guild bylaws/i });
+    await expect(rulesLinkEn).toBeVisible();
+    await expect(rulesLinkEn).toHaveAttribute("href", rulesUrlEn);
+  });
+
   test("readonly admin cannot update customizations", async ({ readonlyAdminPage }) => {
     await readonlyAdminPage.goto("/en/admin/settings");
 

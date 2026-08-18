@@ -33,7 +33,8 @@
     "overseerAddress",
     "privacyPolicyFi",
     "privacyPolicyEn",
-    "organizationRulesUrl",
+    "organizationRulesUrlFi",
+    "organizationRulesUrlEn",
     "memberResignRule",
     "memberResignDefaultReasonFi",
     "memberResignDefaultReasonEn",
@@ -86,7 +87,8 @@
     overseerAddress: firstIssue(updateCustomization.fields.overseerAddress.issues()),
     privacyPolicyFi: firstIssue(updateCustomization.fields.privacyPolicyFi.issues()),
     privacyPolicyEn: firstIssue(updateCustomization.fields.privacyPolicyEn.issues()),
-    organizationRulesUrl: firstIssue(updateCustomization.fields.organizationRulesUrl.issues()),
+    organizationRulesUrlFi: firstIssue(updateCustomization.fields.organizationRulesUrlFi.issues()),
+    organizationRulesUrlEn: firstIssue(updateCustomization.fields.organizationRulesUrlEn.issues()),
     memberResignRule: firstIssue(updateCustomization.fields.memberResignRule.issues()),
     memberResignDefaultReasonFi: firstIssue(updateCustomization.fields.memberResignDefaultReasonFi.issues()),
     memberResignDefaultReasonEn: firstIssue(updateCustomization.fields.memberResignDefaultReasonEn.issues()),
@@ -118,13 +120,18 @@
       errors.organizationLegalNameEn ||
       errors.businessId ||
       errors.overseerContact ||
-      errors.overseerAddress ||
-      errors.organizationRulesUrl,
+      errors.overseerAddress,
     ),
   );
 
   let hasResignationErrors = $derived(
-    Boolean(errors.memberResignRule || errors.memberResignDefaultReasonFi || errors.memberResignDefaultReasonEn),
+    Boolean(
+      errors.memberResignRule ||
+      errors.memberResignDefaultReasonFi ||
+      errors.memberResignDefaultReasonEn ||
+      errors.organizationRulesUrlFi ||
+      errors.organizationRulesUrlEn,
+    ),
   );
 
   let hasPrivacyErrors = $derived(Boolean(errors.privacyPolicyFi || errors.privacyPolicyEn));
@@ -552,41 +559,21 @@
               </div>
             </div>
 
-            <!-- Overseer Address & Rules URL -->
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label for="overseerAddress" class="block text-sm font-medium text-foreground">
-                  {$LL.admin.settings.organizationDetails.overseerAddress()}
-                </label>
-                <div class="mt-1.5">
-                  <Input
-                    type="text"
-                    name="overseerAddress"
-                    id="overseerAddress"
-                    bind:value={values.overseerAddress}
-                    class="w-full"
-                  />
-                </div>
-                {#if errors.overseerAddress}<p class="mt-2 text-sm text-red-600">{errors.overseerAddress}</p>{/if}
+            <!-- Overseer Address -->
+            <div>
+              <label for="overseerAddress" class="block text-sm font-medium text-foreground">
+                {$LL.admin.settings.organizationDetails.overseerAddress()}
+              </label>
+              <div class="mt-1.5">
+                <Input
+                  type="text"
+                  name="overseerAddress"
+                  id="overseerAddress"
+                  bind:value={values.overseerAddress}
+                  class="w-full"
+                />
               </div>
-
-              <div>
-                <label for="rulesUrl" class="block text-sm font-medium text-foreground">
-                  {$LL.admin.settings.organizationDetails.organizationRulesUrl()}
-                </label>
-                <div class="mt-1.5">
-                  <Input
-                    type="url"
-                    name="organizationRulesUrl"
-                    id="rulesUrl"
-                    bind:value={values.organizationRulesUrl}
-                    class="w-full"
-                  />
-                </div>
-                {#if errors.organizationRulesUrl}
-                  <p class="mt-2 text-sm text-red-600">{errors.organizationRulesUrl}</p>
-                {/if}
-              </div>
+              {#if errors.overseerAddress}<p class="mt-2 text-sm text-red-600">{errors.overseerAddress}</p>{/if}
             </div>
           </div>
         </div>
@@ -600,6 +587,45 @@
           </h3>
 
           <div class="space-y-4">
+            <!-- Rules URLs (FI & EN) -->
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label for="rulesUrlFi" class="block text-sm font-medium text-foreground">
+                  {$LL.admin.settings.resignation.rulesUrlFi()}
+                </label>
+                <div class="mt-1.5">
+                  <Input
+                    type="url"
+                    name="organizationRulesUrlFi"
+                    id="rulesUrlFi"
+                    bind:value={values.organizationRulesUrlFi}
+                    class="w-full"
+                  />
+                </div>
+                {#if errors.organizationRulesUrlFi}
+                  <p class="mt-2 text-sm text-red-600">{errors.organizationRulesUrlFi}</p>
+                {/if}
+              </div>
+
+              <div>
+                <label for="rulesUrlEn" class="block text-sm font-medium text-foreground">
+                  {$LL.admin.settings.resignation.rulesUrlEn()}
+                </label>
+                <div class="mt-1.5">
+                  <Input
+                    type="url"
+                    name="organizationRulesUrlEn"
+                    id="rulesUrlEn"
+                    bind:value={values.organizationRulesUrlEn}
+                    class="w-full"
+                  />
+                </div>
+                {#if errors.organizationRulesUrlEn}
+                  <p class="mt-2 text-sm text-red-600">{errors.organizationRulesUrlEn}</p>
+                {/if}
+              </div>
+            </div>
+
             <div>
               <label for="memberResignRule" class="block text-sm font-medium text-foreground">
                 {$LL.admin.settings.resignation.rule()}

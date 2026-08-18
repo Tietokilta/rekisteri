@@ -29,7 +29,8 @@ export type CustomizationFormValues = {
   overseerAddress: string;
   privacyPolicyFi: string;
   privacyPolicyEn: string;
-  organizationRulesUrl: string;
+  organizationRulesUrlFi: string;
+  organizationRulesUrlEn: string;
   memberResignRule: string;
   memberResignDefaultReasonFi: string;
   memberResignDefaultReasonEn: string;
@@ -56,7 +57,8 @@ export function flattenCustomization(custom: AppCustomization): CustomizationFor
     overseerAddress: custom.overseerAddress,
     privacyPolicyFi: localizedText(custom.privacyPolicy, "fi"),
     privacyPolicyEn: localizedText(custom.privacyPolicy, "en"),
-    organizationRulesUrl: custom.organizationRulesUrl,
+    organizationRulesUrlFi: localizedText(custom.organizationRulesUrl, "fi"),
+    organizationRulesUrlEn: localizedText(custom.organizationRulesUrl, "en"),
     memberResignRule: custom.memberResignRule,
     memberResignDefaultReasonFi: localizedText(custom.memberResignDefaultReason, "fi"),
     memberResignDefaultReasonEn: localizedText(custom.memberResignDefaultReason, "en"),
