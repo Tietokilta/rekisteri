@@ -15,6 +15,7 @@ const fi = {
     profile: "Profiili",
     passkeys: "Avaimet",
     emails: "Sähköpostit",
+    applications: "Liitetyt sovellukset",
     admin: {
       title: "Hallinta",
       members: "Jäsenrekisteri",
@@ -70,6 +71,15 @@ const fi = {
     emails: {
       title: "Sähköpostit",
       description: "Hallinnoi toissijaisia sähköposteja",
+    },
+    applications: {
+      title: "Liitetyt sovellukset",
+      description: "Hallinnoi sovelluksia, joille olet myöntänyt pääsyn tilitietoihisi.",
+      noGrants: "Et ole myöntänyt pääsyä millekään ulkoiselle sovellukselle.",
+      revoke: "Murra pääsy",
+      revokedSuccess: "Pääsy murrettu onnistuneesti",
+      grantedOn: "Myönnetty",
+      scopes: "Myönnetyt oikeudet",
     },
   },
 
@@ -407,7 +417,7 @@ Terveisin,
 
     settings: {
       title: "Asetukset",
-      description: "Hallitse sovelluksen yleisiä asetuksia, teemoja, organisaation tietoja ja selosteita.",
+      description: "Hallitse sovelluksen asetuksia, ulkonäköä ja yleisiä tietoja.",
       success: "Asetukset tallennettu onnistuneesti",
       error: "Asetusten tallentaminen epäonnistui",
       tabs: {
@@ -415,6 +425,7 @@ Terveisin,
         organization: "Organisaatio",
         resignation: "Erottaminen & säännöt",
         privacyPolicy: "Tietosuojaseloste",
+        oidcClients: "OpenID Connect",
       },
       brandingDefaults: {
         title: "Yleisilme",
@@ -457,6 +468,58 @@ Terveisin,
         current: "Nykyinen:",
       },
       save: "Tallenna",
+
+      oidc: {
+        title: "OIDC-sovellukset",
+        description:
+          "Salli tunnistautuminen kolmannen osapuolen palveluun käyttäen jäsenrekisterin käyttäjätunnuksia ja muita tietoja.",
+        newClient: "Uusi sovellus",
+        emptyState: "Yhtään OIDC-asiakassovellusta ei ole vielä rekisteröity.",
+        clientId: "Asiakastunnus (Client ID)",
+        claims: "Väitteet (Claims)",
+        redirectUris: "Uudelleenohjaus-URIt",
+        allowedOrigins: "Sallitut alkuperät",
+        endpoints: {
+          button: "Päätepisteet",
+          title: "OIDC-päätepisteet",
+          description: "Tämän tunnistautumispalvelun julkiset OIDC-päätepisteet.",
+        },
+        form: {
+          createTitle: "Luo uusi sovellus",
+          editTitle: "Muokkaa: {name}",
+          applicationName: "Sovelluksen nimi",
+          applicationNamePlaceholder: "esim. Killan foorumi",
+          allowedOriginsPlaceholder: "esim. https://app.example.com\nhttp://localhost:3000",
+          redirectUrisPlaceholder: "esim. https://example.com/oauth/callback",
+          openidClaims: "OpenID-väitteet",
+        },
+        secret: {
+          newTitle: "Uusi asiakassalaisuus luotu",
+          newDescription: "Kopioi tämä salaisuus talteen nyt. Sitä ei näytetä enää uudelleen:",
+          regenerate: "Uusi salaisuus",
+          regenerateTitle: "Uusitaanko asiakassalaisuus?",
+          regenerateWarning:
+            "Uuden salaisuuden luominen mitätöi nykyisen asiakassalaisuuden ja peruu kaikki sovelluksen voimassa olevat poletit välittömästi. Tätä toimintoa ei voi peruuttaa.",
+        },
+        delete: {
+          title: "Poistetaanko sovellus?",
+          description:
+            "Oletko varma, että haluat poistaa tämän OIDC-sovelluksen? Kaikki sovelluksen uudelleenohjausosoitteet, luvat ja aktiiviset poletit poistetaan lopullisesti. Tätä toimintoa ei voi peruuttaa.",
+        },
+        toast: {
+          copiedToClipboard: "Kopioitu leikepöydälle!",
+          createSuccess: "OIDC-asiakas luotu!",
+          updateSuccess: "OIDC-asiakas päivitetty!",
+          deleteSuccess: "OIDC-asiakas poistettu!",
+          newSecret: "Uusi asiakassalaisuus luotu!",
+        },
+        error: {
+          clientNotFound: "Asiakassovellusta ei löytynyt.",
+          unauthorized: "Ei valtuuksia",
+          interactionNotFound: "Suostumusistuntoa ei löytynyt tai se on vanhentunut.",
+          interactionExpired: "Suostumusistunto on vanhentunut.",
+        },
+      },
     },
 
     members: {
@@ -766,6 +829,28 @@ Terveisin,
     },
   },
 
+  // OIDC
+  oidc: {
+    consent: {
+      title: "OIDC-suostumus",
+      introduction: "Tämä sovellus pyytää lupaa käyttää tietojasi.",
+      signInPrompt: "Ole hyvä ja kirjaudu sisään jatkaaksesi.",
+      signInAction: "Siirry kirjautumiseen",
+      requestedPermissions: "Pyydetyt oikeudet",
+      readOnly: "Luku",
+      readWrite: "Luku ja kirjoitus",
+      proceedNotice: "Jatkamalla sallit sovelluksen käyttää yllä lueteltuja tietoja.",
+      allowAccess: "Salli pääsy",
+      deny: "Hylkää",
+    },
+    error: {
+      title: "Tunnistautumisvirhe",
+      genericDescription:
+        "Tunnistautumisessa tapahtui virhe. Sovelluksen ylläpitäjät voivat tutkia asiaa virhetunnisteen avulla.",
+      errorCode: "Virhetunniste",
+    },
+  },
+
   // Common
   common: {
     save: "Tallenna",
@@ -777,7 +862,12 @@ Terveisin,
     create: "Luo",
     select: "Valitse",
     loading: "Ladataan...",
-    optional: "valinnainen",
+    onePerLine: "(yksi per rivi)",
+    copyUri: "Kopioi URI",
+    optional: "Valinnainen",
+    required: "Pakollinen",
+    close: "Sulje",
+    done: "Valmis",
   },
 
   // Error page

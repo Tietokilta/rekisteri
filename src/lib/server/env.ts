@@ -107,6 +107,9 @@ const privateEnvSchema = v.pipe(
     RP_NAME: v.pipe(v.string(), v.minLength(1)),
     RP_ID: v.pipe(v.string(), v.minLength(1)),
     RP_ORIGIN: v.pipe(v.string(), v.url(), v.regex(/^https?:\/\/.+/, "RP_ORIGIN must use http or https protocol")),
+
+    // OIDC signing key override (optional)
+    OIDC_SIGNING_KEY_JWK: v.optional(v.string()),
   }),
   // In production, SMTP is required
   v.check((data) => {
@@ -142,6 +145,7 @@ const parsed = v.safeParse(privateEnvSchema, {
   RP_NAME: privateEnv.RP_NAME,
   RP_ID: privateEnv.RP_ID,
   RP_ORIGIN: privateEnv.RP_ORIGIN,
+  OIDC_SIGNING_KEY_JWK: privateEnv.OIDC_SIGNING_KEY_JWK,
 });
 
 if (!parsed.success) {

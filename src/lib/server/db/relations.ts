@@ -40,4 +40,20 @@ export const relations = defineRelations(schema, (r) => ({
   auditLog: {
     user: r.one.user({ from: r.auditLog.userId, to: r.user.id }),
   },
+  oidcClient: {
+    consents: r.many.oidcConsent({ from: r.oidcClient.clientId, to: r.oidcConsent.clientId }),
+    entities: r.many.oidcEntity({ from: r.oidcClient.clientId, to: r.oidcEntity.clientId }),
+  },
+  oidcConsent: {
+    user: r.one.user({ from: r.oidcConsent.userId, to: r.user.id }),
+
+    client: r.one.oidcClient({ from: r.oidcConsent.clientId, to: r.oidcClient.clientId }),
+
+    entities: r.many.oidcEntity({ from: r.oidcConsent.id, to: r.oidcEntity.consentId }),
+  },
+  oidcEntity: {
+    consent: r.one.oidcConsent({ from: r.oidcEntity.consentId, to: r.oidcConsent.id }),
+
+    client: r.one.oidcClient({ from: r.oidcEntity.clientId, to: r.oidcClient.clientId }),
+  },
 }));

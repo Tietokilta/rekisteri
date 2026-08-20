@@ -2,17 +2,24 @@
   import type { PageData } from "./$types";
   import { LL } from "$lib/i18n/i18n-svelte";
   import AdminPageHeader from "$lib/components/admin-page-header.svelte";
-  import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
-  import MarkdownEditor from "$lib/components/markdown-editor.svelte";
   import * as Tabs from "$lib/components/ui/tabs";
   import { toast } from "svelte-sonner";
+
   import { updateCustomization } from "./data.remote";
   import { updateCustomizationSchema } from "./schema";
+
   import Palette from "@lucide/svelte/icons/palette";
   import Building2 from "@lucide/svelte/icons/building-2";
   import UserX from "@lucide/svelte/icons/user-x";
-  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Shield from "@lucide/svelte/icons/shield";
+  import AppWindow from "@lucide/svelte/icons/app-window";
+
+  import BrandingTab from "./tabs/branding-tab.svelte";
+  import OrganizationTab from "./tabs/organization-tab.svelte";
+  import ResignationTab from "./tabs/resignation-tab.svelte";
+  import PrivacyTab from "./tabs/privacy-tab.svelte";
+  import OidcClientsTab from "./tabs/oidc-tab.svelte";
 
   type CustomizationValueKey = keyof PageData["values"];
 
@@ -42,6 +49,21 @@
   let { data }: { data: PageData } = $props();
 
   let activeTab = $state("branding");
+  const oidcAdmin = $derived($LL.admin.settings.oidc);
+
+  // OIDC modal / form state
+  let showCreateOidcModal = $state(false);
+  let editingOidcClient = $state<{
+    id: string;
+    name: string;
+    allowedOrigins?: string;
+    redirectUris: string;
+    scopes: string[];
+    grantTypes: string[];
+    clientSecret?: string | null;
+  } | null>(null);
+
+  let newCreatedSecret = $state<string | null>(null);
 
   function firstIssue(issues: { message: string }[] | undefined) {
     return issues?.[0]?.message;
@@ -63,8 +85,8 @@
 
   // Local values bound to controls
   let values = $state(getCurrentValues());
-  let useCustomAccentColor = $state(Boolean(values.accentColor));
-  let accentColorInputValue = $state(values.accentColor || DEFAULT_ACCENT_COLOR);
+  let useCustomAccentColor = $derived(Boolean(values.accentColor));
+  let accentColorInputValue = $derived(values.accentColor || DEFAULT_ACCENT_COLOR);
 
   $effect(() => {
     const currentValues = { ...data.values };
@@ -158,24 +180,41 @@
     removeImages.favicon = false;
     removeImages.faviconDark = false;
   }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text);
+    toast.success(oidcAdmin.toast.copiedToClipboard());
+  }
+
+  function getGrantTypeBadgeClass(id: string) {
+    if (id === "authorization_code") {
+      return "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300 dark:border-blue-500/40";
+    }
+    if (id === "id_token") {
+      return "gap-1 border-emerald-500/30 bg-emerald-500/10 font-mono text-[10px] text-emerald-600 dark:text-emerald-400";
+    }
+    return "border-border bg-muted/40 text-muted-foreground";
+  }
 </script>
 
 <main class="container mx-auto max-w-[1400px] px-4 py-6">
   <AdminPageHeader title={$LL.admin.settings.title()} description={$LL.admin.settings.description()}>
     {#snippet actions()}
-      <div class="flex items-center gap-3">
-        {#each rootErrors as issue, i (i)}
-          <p class="text-sm text-red-600">{issue.message}</p>
-        {/each}
-        <Button
-          type="submit"
-          form="customization-form"
-          data-testid="save-customizations"
-          disabled={!data.canWrite || !!updateCustomization.pending}
-        >
-          {$LL.admin.settings.save()}
-        </Button>
-      </div>
+      {#if activeTab !== "oidcClients"}
+        <div class="flex items-center gap-3">
+          {#each rootErrors as issue, i (i)}
+            <p class="text-sm text-red-600">{issue.message}</p>
+          {/each}
+          <Button
+            type="submit"
+            form="customization-form"
+            data-testid="save-customizations"
+            disabled={!data.canWrite || !!updateCustomization.pending}
+          >
+            {$LL.common.save()}
+          </Button>
+        </div>
+      {/if}
     {/snippet}
   </AdminPageHeader>
 
@@ -206,11 +245,16 @@
       </Tabs.Trigger>
 
       <Tabs.Trigger value="privacyPolicy" data-testid="tab-privacy-policy" class="relative">
-        <ShieldCheck class="size-4" />
+        <Shield class="size-4" />
         <span>{$LL.admin.settings.tabs.privacyPolicy()}</span>
         {#if hasPrivacyErrors}
           <span class="absolute top-1.5 right-1.5 size-2 rounded-full bg-red-500"></span>
         {/if}
+      </Tabs.Trigger>
+
+      <Tabs.Trigger value="oidcClients" data-testid="tab-oidc-clients" class="relative">
+        <AppWindow class="size-4" />
+        <span>{$LL.admin.settings.tabs.oidcClients()}</span>
       </Tabs.Trigger>
     </Tabs.List>
 
@@ -240,7 +284,7 @@
         toast.success(updateCustomization.result?.message || $LL.admin.settings.success());
       })}
       enctype="multipart/form-data"
-      class="mt-4 space-y-4"
+      class="contents"
     >
       {#if removeImages.logo}<input type="hidden" name="removeLogo" value="true" />{/if}
       {#if removeImages.logoDark}<input type="hidden" name="removeLogoDark" value="true" />{/if}
@@ -248,447 +292,36 @@
       {#if removeImages.faviconDark}<input type="hidden" name="removeFaviconDark" value="true" />{/if}
 
       <!-- TAB 1: Branding & Appearance -->
-      <Tabs.Content value="branding" class="mt-4 space-y-4">
-        <div class="rounded-xl border border-border/60 bg-card p-5 shadow-xs">
-          <h3 class="mb-3 text-base font-semibold text-foreground">
-            {$LL.admin.settings.brandingDefaults.title()}
-          </h3>
-
-          <div class="space-y-4">
-            <!-- Accent Color -->
-            <div>
-              <label for="accentColor" class="block text-sm font-medium text-foreground">
-                {$LL.admin.settings.brandingDefaults.accentColor()}
-              </label>
-              <p class="mt-1 text-sm text-muted-foreground">
-                {$LL.admin.settings.brandingDefaults.accentColorDescription()}
-              </p>
-
-              <label class="mt-3 flex items-center gap-2 text-sm text-foreground">
-                <input
-                  type="checkbox"
-                  bind:checked={useCustomAccentColor}
-                  class="rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                {$LL.admin.settings.brandingDefaults.useAccentColor()}
-              </label>
-
-              {#if useCustomAccentColor}
-                <div class="mt-3 flex items-center gap-4">
-                  <input
-                    type="color"
-                    name="accentColor"
-                    id="accentColor"
-                    bind:value={accentColorInputValue}
-                    class="h-10 w-20 cursor-pointer rounded border-border bg-background shadow-xs focus:border-ring focus:ring-ring sm:text-sm"
-                  />
-                  <code class="rounded bg-muted px-2 py-1 font-mono text-sm">{accentColorInputValue}</code>
-                </div>
-              {:else}
-                <p class="mt-3 text-sm text-muted-foreground">
-                  {$LL.admin.settings.brandingDefaults.defaultAccentColor()}
-                </p>
-              {/if}
-              {#if errors.accentColor}
-                <p class="mt-2 text-sm text-red-600">{errors.accentColor}</p>
-              {/if}
-            </div>
-
-            <!-- App Name (Localized) -->
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label for="appNameFI" class="block text-sm font-medium text-foreground">
-                  {$LL.admin.settings.brandingDefaults.appNameFi()}
-                </label>
-                <div class="mt-1.5">
-                  <Input type="text" name="appNameFi" id="appNameFI" bind:value={values.appNameFi} class="w-full" />
-                </div>
-                {#if errors.appNameFi}<p class="mt-2 text-sm text-red-600">{errors.appNameFi}</p>{/if}
-              </div>
-
-              <div>
-                <label for="appNameEN" class="block text-sm font-medium text-foreground">
-                  {$LL.admin.settings.brandingDefaults.appNameEn()}
-                </label>
-                <div class="mt-1.5">
-                  <Input type="text" name="appNameEn" id="appNameEN" bind:value={values.appNameEn} class="w-full" />
-                </div>
-                {#if errors.appNameEn}<p class="mt-2 text-sm text-red-600">{errors.appNameEn}</p>{/if}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Images / Logos Card -->
-        <div class="rounded-xl border border-border/60 bg-card p-5 shadow-xs">
-          <h3 class="mb-3 text-base font-semibold text-foreground">
-            {$LL.admin.settings.images.title()}
-          </h3>
-
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <!-- Logo -->
-            <div>
-              <label for="logo" class="mb-1 block text-sm font-medium text-foreground">
-                {$LL.admin.settings.images.logoLight()}
-              </label>
-              <input type="file" name="logo" id="logo" accept="image/svg+xml" class={fileInputClass} />
-              {#if data.customImageExists.logo}
-                {#if getImageUrl("logo")}
-                  <div class="mt-2 text-xs text-muted-foreground">
-                    {$LL.admin.settings.images.current()}
-                    <img
-                      src={getImageUrl("logo")}
-                      alt="Current Logo"
-                      class="ml-2 inline-block h-8 rounded bg-gray-100 object-contain p-1"
-                    />
-                  </div>
-                {/if}
-                <button
-                  type="button"
-                  onclick={() => toggleRemove("logo")}
-                  class="mt-2 rounded border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
-                >
-                  {removeImages.logo ? $LL.common.cancel() : $LL.common.delete()}
-                </button>
-              {/if}
-              {#if errors.logo}<p class="mt-2 text-xs text-red-600">{errors.logo}</p>{/if}
-            </div>
-
-            <!-- Logo Dark -->
-            <div>
-              <label for="logoDark" class="mb-1 block text-sm font-medium text-foreground">
-                {$LL.admin.settings.images.logoDark()}
-              </label>
-              <input type="file" name="logoDark" id="logoDark" accept="image/svg+xml" class={fileInputClass} />
-              {#if data.customImageExists.logoDark}
-                {#if getImageUrl("logoDark")}
-                  <div class="mt-2 text-xs text-muted-foreground">
-                    {$LL.admin.settings.images.current()}
-                    <img
-                      src={getImageUrl("logoDark")}
-                      alt="Current Logo Dark"
-                      class="ml-2 inline-block h-8 rounded bg-gray-900 object-contain p-1"
-                    />
-                  </div>
-                {/if}
-                <button
-                  type="button"
-                  onclick={() => toggleRemove("logoDark")}
-                  class="mt-2 rounded border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
-                >
-                  {removeImages.logoDark ? $LL.common.cancel() : $LL.common.delete()}
-                </button>
-              {/if}
-              {#if errors.logoDark}<p class="mt-2 text-xs text-red-600">{errors.logoDark}</p>{/if}
-            </div>
-
-            <!-- Favicon -->
-            <div>
-              <label for="favicon" class="mb-1 block text-sm font-medium text-foreground">
-                {$LL.admin.settings.images.faviconLight()}
-              </label>
-              <input type="file" name="favicon" id="favicon" accept="image/png" class={fileInputClass} />
-              {#if data.customImageExists.favicon}
-                {#if getImageUrl("favicon")}
-                  <div class="mt-2 text-xs text-muted-foreground">
-                    {$LL.admin.settings.images.current()}
-                    <img
-                      src={getImageUrl("favicon")}
-                      alt="Current Favicon"
-                      class="ml-2 inline-block h-8 w-8 rounded bg-gray-100 object-contain p-1"
-                    />
-                  </div>
-                {/if}
-                <button
-                  type="button"
-                  onclick={() => toggleRemove("favicon")}
-                  class="mt-2 rounded border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
-                >
-                  {removeImages.favicon ? $LL.common.cancel() : $LL.common.delete()}
-                </button>
-              {/if}
-              {#if errors.favicon}<p class="mt-2 text-xs text-red-600">{errors.favicon}</p>{/if}
-            </div>
-
-            <!-- Favicon Dark -->
-            <div>
-              <label for="faviconDark" class="mb-1 block text-sm font-medium text-foreground">
-                {$LL.admin.settings.images.faviconDark()}
-              </label>
-              <input type="file" name="faviconDark" id="faviconDark" accept="image/png" class={fileInputClass} />
-              {#if data.customImageExists.faviconDark}
-                {#if getImageUrl("faviconDark")}
-                  <div class="mt-2 text-xs text-muted-foreground">
-                    {$LL.admin.settings.images.current()}
-                    <img
-                      src={getImageUrl("faviconDark")}
-                      alt="Current Favicon Dark"
-                      class="ml-2 inline-block h-8 w-8 rounded bg-gray-900 object-contain p-1"
-                    />
-                  </div>
-                {/if}
-                <button
-                  type="button"
-                  onclick={() => toggleRemove("faviconDark")}
-                  class="mt-2 rounded border border-red-300 px-2 py-1 text-xs text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
-                >
-                  {removeImages.faviconDark ? $LL.common.cancel() : $LL.common.delete()}
-                </button>
-              {/if}
-              {#if errors.faviconDark}<p class="mt-2 text-xs text-red-600">{errors.faviconDark}</p>{/if}
-            </div>
-          </div>
-        </div>
-      </Tabs.Content>
+      <BrandingTab
+        bind:values
+        bind:useCustomAccentColor
+        bind:accentColorInputValue
+        bind:removeImages
+        {errors}
+        {data}
+        {getImageUrl}
+        {toggleRemove}
+        {fileInputClass}
+      />
 
       <!-- TAB 2: Organization Details -->
-      <Tabs.Content value="organization" class="mt-4">
-        <div class="rounded-xl border border-border/60 bg-card p-5 shadow-xs">
-          <h3 class="mb-3 text-base font-semibold text-foreground">
-            {$LL.admin.settings.organizationDetails.title()}
-          </h3>
-
-          <div class="space-y-4">
-            <!-- Organization Names -->
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label for="orgNameFI" class="block text-sm font-medium text-foreground">
-                  {$LL.admin.settings.organizationDetails.nameFi()}
-                </label>
-                <div class="mt-1.5">
-                  <Input
-                    type="text"
-                    name="organizationNameFi"
-                    id="orgNameFI"
-                    bind:value={values.organizationNameFi}
-                    class="w-full"
-                  />
-                </div>
-                {#if errors.organizationNameFi}<p class="mt-2 text-sm text-red-600">{errors.organizationNameFi}</p>{/if}
-              </div>
-
-              <div>
-                <label for="orgNameEN" class="block text-sm font-medium text-foreground">
-                  {$LL.admin.settings.organizationDetails.nameEn()}
-                </label>
-                <div class="mt-1.5">
-                  <Input
-                    type="text"
-                    name="organizationNameEn"
-                    id="orgNameEN"
-                    bind:value={values.organizationNameEn}
-                    class="w-full"
-                  />
-                </div>
-                {#if errors.organizationNameEn}<p class="mt-2 text-sm text-red-600">{errors.organizationNameEn}</p>{/if}
-              </div>
-            </div>
-
-            <!-- Legal Names -->
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label for="orgLegalNameFI" class="block text-sm font-medium text-foreground">
-                  {$LL.admin.settings.organizationDetails.legalNameFi()}
-                </label>
-                <div class="mt-1.5">
-                  <Input
-                    type="text"
-                    name="organizationLegalNameFi"
-                    id="orgLegalNameFI"
-                    bind:value={values.organizationLegalNameFi}
-                    class="w-full"
-                  />
-                </div>
-                {#if errors.organizationLegalNameFi}<p class="mt-2 text-sm text-red-600">
-                    {errors.organizationLegalNameFi}
-                  </p>{/if}
-              </div>
-
-              <div>
-                <label for="orgLegalNameEN" class="block text-sm font-medium text-foreground">
-                  {$LL.admin.settings.organizationDetails.legalNameEn()}
-                </label>
-                <div class="mt-1.5">
-                  <Input
-                    type="text"
-                    name="organizationLegalNameEn"
-                    id="orgLegalNameEN"
-                    bind:value={values.organizationLegalNameEn}
-                    class="w-full"
-                  />
-                </div>
-                {#if errors.organizationLegalNameEn}<p class="mt-2 text-sm text-red-600">
-                    {errors.organizationLegalNameEn}
-                  </p>{/if}
-              </div>
-            </div>
-
-            <!-- Business ID & Contact Email -->
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label for="businessId" class="block text-sm font-medium text-foreground">
-                  {$LL.admin.settings.organizationDetails.businessId()}
-                </label>
-                <div class="mt-1.5">
-                  <Input type="text" name="businessId" id="businessId" bind:value={values.businessId} class="w-full" />
-                </div>
-                {#if errors.businessId}<p class="mt-2 text-sm text-red-600">{errors.businessId}</p>{/if}
-              </div>
-
-              <div>
-                <label for="overseerContact" class="block text-sm font-medium text-foreground">
-                  {$LL.admin.settings.organizationDetails.overseerContact()}
-                </label>
-                <div class="mt-1.5">
-                  <Input
-                    type="email"
-                    name="overseerContact"
-                    id="overseerContact"
-                    bind:value={values.overseerContact}
-                    class="w-full"
-                  />
-                </div>
-                {#if errors.overseerContact}<p class="mt-2 text-sm text-red-600">{errors.overseerContact}</p>{/if}
-              </div>
-            </div>
-
-            <!-- Overseer Address & Rules URL -->
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label for="overseerAddress" class="block text-sm font-medium text-foreground">
-                  {$LL.admin.settings.organizationDetails.overseerAddress()}
-                </label>
-                <div class="mt-1.5">
-                  <Input
-                    type="text"
-                    name="overseerAddress"
-                    id="overseerAddress"
-                    bind:value={values.overseerAddress}
-                    class="w-full"
-                  />
-                </div>
-                {#if errors.overseerAddress}<p class="mt-2 text-sm text-red-600">{errors.overseerAddress}</p>{/if}
-              </div>
-
-              <div>
-                <label for="rulesUrl" class="block text-sm font-medium text-foreground">
-                  {$LL.admin.settings.organizationDetails.organizationRulesUrl()}
-                </label>
-                <div class="mt-1.5">
-                  <Input
-                    type="url"
-                    name="organizationRulesUrl"
-                    id="rulesUrl"
-                    bind:value={values.organizationRulesUrl}
-                    class="w-full"
-                  />
-                </div>
-                {#if errors.organizationRulesUrl}
-                  <p class="mt-2 text-sm text-red-600">{errors.organizationRulesUrl}</p>
-                {/if}
-              </div>
-            </div>
-          </div>
-        </div>
-      </Tabs.Content>
+      <OrganizationTab bind:values {errors} />
 
       <!-- TAB 3: Resignation & Rules -->
-      <Tabs.Content value="resignation" class="mt-4">
-        <div class="rounded-xl border border-border/60 bg-card p-5 shadow-xs">
-          <h3 class="mb-3 text-base font-semibold text-foreground">
-            {$LL.admin.settings.resignation.title()}
-          </h3>
-
-          <div class="space-y-4">
-            <div>
-              <label for="memberResignRule" class="block text-sm font-medium text-foreground">
-                {$LL.admin.settings.resignation.rule()}
-              </label>
-              <div class="mt-1.5">
-                <Input
-                  type="text"
-                  name="memberResignRule"
-                  id="memberResignRule"
-                  bind:value={values.memberResignRule}
-                  class="max-w-md"
-                />
-              </div>
-              {#if errors.memberResignRule}<p class="mt-2 text-sm text-red-600">{errors.memberResignRule}</p>{/if}
-            </div>
-
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label for="memberResignDefaultReasonFi" class="block text-sm font-medium text-foreground">
-                  {$LL.admin.settings.resignation.defaultReasonFi()}
-                </label>
-                <div class="mt-1.5">
-                  <Input
-                    type="text"
-                    name="memberResignDefaultReasonFi"
-                    id="memberResignDefaultReasonFi"
-                    bind:value={values.memberResignDefaultReasonFi}
-                    class="w-full"
-                  />
-                </div>
-                {#if errors.memberResignDefaultReasonFi}<p class="mt-2 text-sm text-red-600">
-                    {errors.memberResignDefaultReasonFi}
-                  </p>{/if}
-              </div>
-
-              <div>
-                <label for="memberResignDefaultReasonEn" class="block text-sm font-medium text-foreground">
-                  {$LL.admin.settings.resignation.defaultReasonEn()}
-                </label>
-                <div class="mt-1.5">
-                  <Input
-                    type="text"
-                    name="memberResignDefaultReasonEn"
-                    id="memberResignDefaultReasonEn"
-                    bind:value={values.memberResignDefaultReasonEn}
-                    class="w-full"
-                  />
-                </div>
-                {#if errors.memberResignDefaultReasonEn}<p class="mt-2 text-sm text-red-600">
-                    {errors.memberResignDefaultReasonEn}
-                  </p>{/if}
-              </div>
-            </div>
-          </div>
-        </div>
-      </Tabs.Content>
+      <ResignationTab bind:values {errors} />
 
       <!-- TAB 4: Privacy Policy -->
-      <Tabs.Content value="privacyPolicy" class="mt-4">
-        <div class="rounded-xl border border-border/60 bg-card p-5 shadow-xs">
-          <h3 class="mb-3 text-base font-semibold text-foreground">
-            {$LL.admin.settings.privacyPolicy.title()}
-          </h3>
-
-          <div class="space-y-4">
-            <div>
-              <label for="privacyPolicyFI" class="mb-2 block text-sm font-medium text-foreground">
-                {$LL.admin.settings.privacyPolicy.fi()}
-              </label>
-              <MarkdownEditor id="privacyPolicyFI" bind:value={values.privacyPolicyFi} />
-              <input type="hidden" name="privacyPolicyFi" bind:value={values.privacyPolicyFi} />
-              {#if errors.privacyPolicyFi}
-                <p class="mt-2 text-sm text-red-600">{errors.privacyPolicyFi}</p>
-              {/if}
-            </div>
-
-            <div>
-              <label for="privacyPolicyEN" class="mb-2 block text-sm font-medium text-foreground">
-                {$LL.admin.settings.privacyPolicy.en()}
-              </label>
-              <MarkdownEditor id="privacyPolicyEN" bind:value={values.privacyPolicyEn} />
-              <input type="hidden" name="privacyPolicyEn" bind:value={values.privacyPolicyEn} />
-              {#if errors.privacyPolicyEn}
-                <p class="mt-2 text-sm text-red-600">{errors.privacyPolicyEn}</p>
-              {/if}
-            </div>
-          </div>
-        </div>
-      </Tabs.Content>
+      <PrivacyTab bind:values {errors} />
     </form>
+
+    <!-- TAB 5: OIDC Applications -->
+    <OidcClientsTab
+      {data}
+      bind:newCreatedSecret
+      bind:showCreateOidcModal
+      bind:editingOidcClient
+      {copyToClipboard}
+      {getGrantTypeBadgeClass}
+    />
   </Tabs.Root>
 </main>

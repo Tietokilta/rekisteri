@@ -39,6 +39,9 @@ const PAGES = {
   "/[locale=locale]/new": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
     return `/${params['locale']}/new`
   },
+  "/[locale=locale]/settings/applications": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/settings/applications`
+  },
   "/[locale=locale]/settings/emails": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
     return `/${params['locale']}/settings/emails`
   },
@@ -53,6 +56,12 @@ const PAGES = {
   },
   "/[locale=locale]/settings/profile": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
     return `/${params['locale']}/settings/profile`
+  },
+  "/[locale=locale]/oidc/error": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/oidc/error`
+  },
+  "/[locale=locale]/oidc/login/[uid]": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>), uid: (string | number) }) => {
+    return `/${params['locale']}/oidc/login/${params['uid']}`
   },
   "/[locale=locale]/privacy-policy": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
     return `/${params['locale']}/privacy-policy`
@@ -76,14 +85,31 @@ const SERVERS = {
   "GET /api/image/[filename]": (params: { filename: (string | number) }) => {
     return `/api/image/${params['filename']}`
   },
-  "POST /api/webhook/stripe": `/api/webhook/stripe`
+  "POST /api/webhook/stripe": `/api/webhook/stripe`,
+  "GET /oidc/[...path]": (params: { path: (string | number)[] }) => {
+    return `/oidc/${params['path']?.join('/')}`
+  },
+  "POST /oidc/[...path]": (params: { path: (string | number)[] }) => {
+    return `/oidc/${params['path']?.join('/')}`
+  },
+  "OPTIONS /oidc/[...path]": (params: { path: (string | number)[] }) => {
+    return `/oidc/${params['path']?.join('/')}`
+  }
 }
 
 /**
  * ACTIONS
  */
 const ACTIONS = {
-  
+  "switchAccount /[locale=locale]/oidc/login/[uid]": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>), uid: (string | number) }) => {
+    return `/${params['locale']}/oidc/login/${params['uid']}?/switchAccount`
+  },
+  "accept /[locale=locale]/oidc/login/[uid]": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>), uid: (string | number) }) => {
+    return `/${params['locale']}/oidc/login/${params['uid']}?/accept`
+  },
+  "deny /[locale=locale]/oidc/login/[uid]": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>), uid: (string | number) }) => {
+    return `/${params['locale']}/oidc/login/${params['uid']}?/deny`
+  }
 }
 
 /**
@@ -202,9 +228,9 @@ type ExtractParamType<T extends (param: any) => any> = ExtractFnPredicate<T> ext
 * ```
 */
 export type KIT_ROUTES = {
-  PAGES: { '/[locale=locale]': 'locale', '/[locale=locale]/admin/members': 'locale', '/[locale=locale]/admin/members/import': 'locale', '/[locale=locale]/admin/membership-types': 'locale', '/[locale=locale]/admin/memberships': 'locale', '/[locale=locale]/admin/settings': 'locale', '/[locale=locale]/admin/users': 'locale', '/[locale=locale]/admin/verify-qr': 'locale', '/[locale=locale]/membership': 'locale', '/[locale=locale]/new': 'locale', '/[locale=locale]/settings/emails': 'locale', '/[locale=locale]/settings/emails/add': 'locale', '/[locale=locale]/settings/emails/verify': 'locale', '/[locale=locale]/settings/passkeys': 'locale', '/[locale=locale]/settings/profile': 'locale', '/[locale=locale]/privacy-policy': 'locale', '/[locale=locale]/sign-in': 'locale', '/[locale=locale]/sign-in/email': 'locale', '/[locale=locale]/sign-in/method': 'locale' }
-  SERVERS: { 'GET /api/health': never, 'GET /api/image/[filename]': 'filename', 'POST /api/webhook/stripe': never }
-  ACTIONS: Record<string, never>
+  PAGES: { '/[locale=locale]': 'locale', '/[locale=locale]/admin/members': 'locale', '/[locale=locale]/admin/members/import': 'locale', '/[locale=locale]/admin/membership-types': 'locale', '/[locale=locale]/admin/memberships': 'locale', '/[locale=locale]/admin/settings': 'locale', '/[locale=locale]/admin/users': 'locale', '/[locale=locale]/admin/verify-qr': 'locale', '/[locale=locale]/membership': 'locale', '/[locale=locale]/new': 'locale', '/[locale=locale]/settings/applications': 'locale', '/[locale=locale]/settings/emails': 'locale', '/[locale=locale]/settings/emails/add': 'locale', '/[locale=locale]/settings/emails/verify': 'locale', '/[locale=locale]/settings/passkeys': 'locale', '/[locale=locale]/settings/profile': 'locale', '/[locale=locale]/oidc/error': 'locale', '/[locale=locale]/oidc/login/[uid]': 'locale' | 'uid', '/[locale=locale]/privacy-policy': 'locale', '/[locale=locale]/sign-in': 'locale', '/[locale=locale]/sign-in/email': 'locale', '/[locale=locale]/sign-in/method': 'locale' }
+  SERVERS: { 'GET /api/health': never, 'GET /api/image/[filename]': 'filename', 'POST /api/webhook/stripe': never, 'GET /oidc/[...path]': 'path', 'POST /oidc/[...path]': 'path', 'OPTIONS /oidc/[...path]': 'path' }
+  ACTIONS: { 'switchAccount /[locale=locale]/oidc/login/[uid]': 'locale' | 'uid', 'accept /[locale=locale]/oidc/login/[uid]': 'locale' | 'uid', 'deny /[locale=locale]/oidc/login/[uid]': 'locale' | 'uid' }
   LINKS: Record<string, never>
-  Params: { 'locale': never, 'filename': never }
+  Params: { 'locale': never, 'uid': never, 'filename': never, 'path': never }
 }
