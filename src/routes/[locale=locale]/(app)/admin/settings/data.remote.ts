@@ -27,7 +27,6 @@ const textAuditFields = [
   "businessId",
   "overseerContact",
   "overseerAddress",
-  "organizationRulesUrl",
   "memberResignRule",
 ] as const;
 const localizedAuditFields = [
@@ -35,6 +34,7 @@ const localizedAuditFields = [
   "organizationLegalName",
   "appName",
   "privacyPolicy",
+  "organizationRulesUrl",
   "memberResignDefaultReason",
 ] as const;
 const imageAuditFields = [
@@ -99,7 +99,10 @@ function getCustomizationUpdateData(
     overseerContact: keepExistingText(values.overseerContact, existing.overseerContact),
     overseerAddress: keepExistingText(values.overseerAddress, existing.overseerAddress),
     privacyPolicy: { fi: values.privacyPolicyFi, en: values.privacyPolicyEn },
-    organizationRulesUrl: keepExistingText(values.organizationRulesUrl, existing.organizationRulesUrl),
+    organizationRulesUrl: {
+      fi: keepExistingLocalizedText(values.organizationRulesUrlFi, existing.organizationRulesUrl, "fi"),
+      en: keepExistingLocalizedText(values.organizationRulesUrlEn, existing.organizationRulesUrl, "en"),
+    },
     memberResignRule: keepExistingText(values.memberResignRule, existing.memberResignRule ?? ""),
     memberResignDefaultReason: {
       fi: keepExistingLocalizedText(values.memberResignDefaultReasonFi, existing.memberResignDefaultReason, "fi"),

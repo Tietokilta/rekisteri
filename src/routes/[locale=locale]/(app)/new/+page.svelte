@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { PageProps } from "./$types";
+  import { page } from "$app/state";
   import { LL, locale } from "$lib/i18n/i18n-svelte";
   import { route } from "$lib/ROUTES";
   import * as Alert from "$lib/components/ui/alert/index.js";
@@ -41,13 +42,6 @@
     ),
   );
 
-  // URL for guild bylaws based on locale
-  const bylawsUrl = $derived(
-    $locale === "fi"
-      ? "https://tietokilta.fi/fi/kilta/saannot#5-jasenet"
-      : "https://tietokilta.fi/en/guild/rules#5-members",
-  );
-
   // Check if profile is complete
   const isProfileComplete = $derived(Boolean(data.user.firstNames && data.user.lastName && data.user.homeMunicipality));
 
@@ -66,6 +60,8 @@
   const emailsUrlWithNext = $derived(
     `${route("/[locale=locale]/settings/emails", { locale: $locale })}?next=${encodeURIComponent(route("/[locale=locale]/new", { locale: $locale }))}`,
   );
+
+  const rulesUrl = $derived(page.data.customizations?.organizationRulesUrl?.[$locale]);
 
   // Auto-save form state to sessionStorage whenever values change.
   // Guard: skip until onMount restore completes to avoid overwriting saved state.
@@ -176,15 +172,17 @@
               </label>
             {/each}
 
-            <a
-              href={bylawsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:underline"
-            >
-              <ExternalLink class="size-4" />
-              {$LL.membership.moreInfoInBylaws()}
-            </a>
+            {#if rulesUrl}
+              <a
+                href={rulesUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:underline"
+              >
+                <ExternalLink class="size-4" />
+                {$LL.membership.moreInfoInBylaws()}
+              </a>
+            {/if}
           </div>
 
           {#if payMembership.fields.membershipId.value()}

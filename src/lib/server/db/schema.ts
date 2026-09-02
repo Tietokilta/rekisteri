@@ -191,7 +191,7 @@ export const appCustomization = snakeCase.table(
     overseerContact: text().notNull(),
     overseerAddress: text().notNull(),
     privacyPolicy: jsonb().$type<LocalizedString>().notNull(),
-    organizationRulesUrl: text().notNull(),
+    organizationRulesUrl: jsonb().$type<LocalizedString>().notNull(),
     memberResignRule: text().notNull(),
     memberResignDefaultReason: jsonb().$type<LocalizedString>().notNull(),
     ...timestamps,
