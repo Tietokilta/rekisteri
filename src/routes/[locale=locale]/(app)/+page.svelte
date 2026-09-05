@@ -41,7 +41,9 @@
   <div class="space-y-4">
     {#if isProfileComplete}
       <MembershipCard
-        memberships={data.memberships}
+        member={data.member}
+        feeState={data.feeState}
+        currentFeePeriod={data.currentFeePeriod}
         userName={fullName}
         qrToken={data.qrToken}
         hasAvailableMemberships={data.hasAvailableMemberships}

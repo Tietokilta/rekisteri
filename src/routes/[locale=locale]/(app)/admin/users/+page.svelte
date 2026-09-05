@@ -325,7 +325,9 @@
               <Alert.Description>
                 <ul class="mt-2 list-inside list-disc space-y-1 text-sm">
                   <li>{$LL.admin.users.merge.primaryEmailWillBecome()}</li>
-                  <li>{$LL.admin.users.merge.memberships()}</li>
+                  {#if secondaryUser.hasMembership && !primaryUser.hasMembership}
+                    <li>{$LL.admin.users.merge.memberships()}</li>
+                  {/if}
                   <li>{$LL.admin.users.merge.secondaryEmails()}</li>
                   <li>{$LL.admin.users.merge.passkeys()}</li>
                   <li>{$LL.admin.users.merge.sessions()}</li>
@@ -333,9 +335,18 @@
               </Alert.Description>
             </Alert.Root>
 
+            {#if primaryUser.hasMembership && secondaryUser.hasMembership}
+              <Alert.Root variant="destructive">
+                <AlertCircle class="size-4" />
+                <Alert.Title>{$LL.admin.users.merge.bothHaveMembership()}</Alert.Title>
+              </Alert.Root>
+            {/if}
+
             <div class="flex gap-2">
               <Button variant="outline" onclick={previousStep}>{$LL.admin.users.merge.previous()}</Button>
-              <Button onclick={nextStep}>{$LL.admin.users.merge.next()}</Button>
+              <Button onclick={nextStep} disabled={primaryUser.hasMembership && secondaryUser.hasMembership}
+                >{$LL.admin.users.merge.next()}</Button
+              >
             </div>
           </div>
         {/if}

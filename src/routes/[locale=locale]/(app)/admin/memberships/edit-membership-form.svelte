@@ -3,10 +3,14 @@
   import { invalidateAll } from "$app/navigation";
   import { toast } from "svelte-sonner";
   import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { updateMembership, deleteMembership } from "./data.remote";
+  import {
+    deleteMembership,
+    publishMembershipFeePeriod,
+    selectApplicationTarget,
+    updateMembership,
+  } from "./data.remote";
   import { updateMembershipSchema, deleteMembershipSchema } from "./schema";
   import { Input } from "$lib/components/ui/input";
-  import { Checkbox } from "$lib/components/ui/checkbox";
   import { Button } from "$lib/components/ui/button";
   import { Label } from "$lib/components/ui/label";
   import { Badge } from "$lib/components/ui/badge";
@@ -15,16 +19,18 @@
   import * as Sheet from "$lib/components/ui/sheet";
   import * as NativeSelect from "$lib/components/ui/native-select";
   import Trash2 from "@lucide/svelte/icons/trash-2";
-  import GraduationCap from "@lucide/svelte/icons/graduation-cap";
   import type { MembershipType } from "$lib/server/db/schema";
 
   interface Membership {
     id: string;
     membershipTypeId: string;
     stripePriceId: string | null;
+    startDate: string;
+    endDate: string;
     startTime: Date;
     endTime: Date;
-    requiresStudentVerification: boolean;
+    publishedAt: Date | null;
+    acceptsApplications: boolean;
     memberCount: number;
   }
 
@@ -40,7 +46,8 @@
   const formId = $derived(`edit-membership-form-${membership.id}`);
   const membershipTypeInputId = $derived(`edit-membershipTypeId-${membership.id}`);
   const stripePriceInputId = $derived(`edit-stripePriceId-${membership.id}`);
-  const studentVerificationInputId = $derived(`edit-requiresStudentVerification-${membership.id}`);
+  const startTimeInputId = $derived(`edit-startTime-${membership.id}`);
+  const endTimeInputId = $derived(`edit-endTime-${membership.id}`);
 
   const editForm = $derived(updateMembership.for(membership.id));
 
@@ -51,22 +58,50 @@
         id: membership.id,
         membershipTypeId: membership.membershipTypeId,
         stripePriceId: membership.stripePriceId ?? "",
-        requiresStudentVerification: membership.requiresStudentVerification,
+        startTime: membership.startDate,
+        endTime: membership.endDate,
       });
     });
   });
 
-  // Determine if the selected membership type is purchasable
-  const isPurchasable = $derived(
-    membershipTypes.find((t) => t.id === editForm.fields.membershipTypeId.value())?.purchasable ?? true,
+  const selectedType = $derived(membershipTypes.find((type) => type.id === editForm.fields.membershipTypeId.value()));
+  const isPayable = $derived(selectedType?.requiresPayment ?? true);
+  const isPublished = $derived(membership.publishedAt !== null);
+  const hasUnsavedChanges = $derived(
+    editForm.fields.membershipTypeId.value() !== membership.membershipTypeId ||
+      (editForm.fields.stripePriceId.value() || null) !== membership.stripePriceId ||
+      editForm.fields.startTime.value() !== membership.startDate ||
+      editForm.fields.endTime.value() !== membership.endDate,
   );
+  let lifecycleActionLoading = $state(false);
 
-  // Clear Stripe/student fields when switching to a non-purchasable type
+  async function publishPeriod() {
+    lifecycleActionLoading = true;
+    try {
+      await publishMembershipFeePeriod({ id: membership.id });
+      onClose();
+      await invalidateAll();
+    } finally {
+      lifecycleActionLoading = false;
+    }
+  }
+
+  async function makeApplicationTarget() {
+    lifecycleActionLoading = true;
+    try {
+      await selectApplicationTarget({ id: membership.id });
+      onClose();
+      await invalidateAll();
+    } finally {
+      lifecycleActionLoading = false;
+    }
+  }
+
+  // A non-paying type must not retain a Stripe Price.
   $effect(() => {
-    if (!isPurchasable) {
+    if (!isPayable && !isPublished) {
       untrack(() => {
         editForm.fields.stripePriceId.set("");
-        editForm.fields.requiresStudentVerification.set(false);
       });
     }
   });
@@ -129,7 +164,11 @@
   <!-- Membership Type -->
   <div class="space-y-2">
     <Label for={membershipTypeInputId}>{$LL.membership.type()}</Label>
-    <NativeSelect.Root {...editForm.fields.membershipTypeId.as("select")} id={membershipTypeInputId}>
+    <NativeSelect.Root
+      {...editForm.fields.membershipTypeId.as("select")}
+      id={membershipTypeInputId}
+      disabled={isPublished}
+    >
       <NativeSelect.Option value="">{$LL.common.select()}</NativeSelect.Option>
       {#each membershipTypes as membershipType (membershipType.id)}
         <NativeSelect.Option value={membershipType.id}>
@@ -143,7 +182,7 @@
     {/each}
   </div>
 
-  {#if isPurchasable}
+  {#if isPayable}
     <!-- Stripe Price ID -->
     <div class="space-y-2">
       <Label for={stripePriceInputId}>{$LL.admin.memberships.stripePriceId()}</Label>
@@ -152,6 +191,7 @@
         id={stripePriceInputId}
         placeholder="price_xxx"
         class="font-mono"
+        disabled={isPublished}
       />
       <p class="text-sm text-muted-foreground">{$LL.admin.memberships.stripePriceIdDescription()}</p>
 
@@ -203,21 +243,18 @@
         <p class="text-sm text-destructive">{issue.message}</p>
       {/each}
     </div>
-
-    <!-- Student verification checkbox -->
-    <label
-      class="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted/50"
-    >
-      <Checkbox {...editForm.fields.requiresStudentVerification.as("checkbox")} id={studentVerificationInputId} />
-      <div class="flex-1">
-        <p class="font-medium">{$LL.membership.requiresStudentVerification()}</p>
-        <p class="text-sm text-muted-foreground">
-          {$LL.membership.isStudent()}
-        </p>
-      </div>
-      <GraduationCap class="size-5 text-muted-foreground" />
-    </label>
   {/if}
+
+  <div class="grid grid-cols-2 gap-4">
+    <div class="space-y-2">
+      <Label for={startTimeInputId}>{$LL.membership.startTime()}</Label>
+      <Input {...editForm.fields.startTime.as("date")} id={startTimeInputId} disabled={isPublished} />
+    </div>
+    <div class="space-y-2">
+      <Label for={endTimeInputId}>{$LL.membership.endTime()}</Label>
+      <Input {...editForm.fields.endTime.as("date")} id={endTimeInputId} disabled={isPublished} />
+    </div>
+  </div>
 </form>
 
 <Sheet.Footer class="flex-col gap-3">
@@ -225,11 +262,30 @@
     <Button type="button" variant="outline" class="flex-1" onclick={onClose}>
       {$LL.common.cancel()}
     </Button>
-    <Button type="submit" form={formId} disabled={!!editForm.pending} class="flex-1">
-      {$LL.common.save()}
-    </Button>
+    {#if !isPublished}
+      <Button type="submit" form={formId} disabled={!!editForm.pending} class="flex-1">
+        {$LL.common.save()}
+      </Button>
+    {:else if !membership.acceptsApplications}
+      <Button type="button" class="flex-1" disabled={lifecycleActionLoading} onclick={makeApplicationTarget}>
+        {$LL.admin.memberships.selectApplicationTarget()}
+      </Button>
+    {/if}
   </div>
-  {#if membership.memberCount === 0}
+  {#if !isPublished}
+    <Button
+      type="button"
+      class="w-full"
+      disabled={lifecycleActionLoading || hasUnsavedChanges || (isPayable && !membership.stripePriceId)}
+      onclick={publishPeriod}
+    >
+      {$LL.admin.memberships.publish()}
+    </Button>
+    {#if hasUnsavedChanges}
+      <p class="text-center text-sm text-muted-foreground">{$LL.admin.memberships.saveBeforePublishing()}</p>
+    {/if}
+  {/if}
+  {#if !isPublished && membership.memberCount === 0}
     {@const deleteForm = deleteMembership.for(membership.id)}
     <form
       {...deleteForm.preflight(deleteMembershipSchema).enhance(async ({ submit }) => {

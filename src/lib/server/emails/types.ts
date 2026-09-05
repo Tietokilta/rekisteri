@@ -32,6 +32,4 @@ export interface PaymentSuccessMetadata {
 export interface MembershipApprovedMetadata {
   firstName: string;
   membershipName: string;
-  startDate: Date;
-  endDate: Date;
 }

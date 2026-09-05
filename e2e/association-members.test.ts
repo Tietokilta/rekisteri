@@ -20,6 +20,9 @@ test.describe("Association members", () => {
   test.afterEach(async ({ db }) => {
     // Clean up members created during tests
     for (const id of createdMemberIds) {
+      await db.delete(table.payment).where(eq(table.payment.memberId, id));
+      await db.delete(table.membershipEvent).where(eq(table.membershipEvent.memberId, id));
+      await db.delete(table.membershipObligation).where(eq(table.membershipObligation.memberId, id));
       await db.delete(table.member).where(eq(table.member.id, id));
     }
     createdMemberIds.length = 0;
@@ -49,6 +52,7 @@ test.describe("Association members", () => {
     // Select a membership (pick the first one available)
     const membershipSelect = adminPage.locator("#create-member-membership");
     await membershipSelect.selectOption({ index: 1 });
+    await adminPage.getByLabel("Perustelut jäsenhakemukselle").fill("E2E admin creation");
 
     // Submit the form
     await adminPage.getByRole("button", { name: "Luo" }).click();
@@ -95,6 +99,7 @@ test.describe("Association members", () => {
     // Select a membership
     const membershipSelect = adminPage.locator("#create-member-membership");
     await membershipSelect.selectOption({ index: 1 });
+    await adminPage.getByLabel("Perustelut jäsenhakemukselle").fill("E2E admin creation");
 
     // Submit
     await adminPage.getByRole("button", { name: "Luo" }).click();
@@ -129,7 +134,7 @@ test.describe("Association members", () => {
 
     // Get any available membership
 
-    const membership = await db.query.membership.findFirst();
+    const membership = await db.query.membershipFeePeriod.findFirst();
     if (!membership) throw new Error("No membership found for test");
 
     // Create association member directly in DB
@@ -138,8 +143,9 @@ test.describe("Association members", () => {
       id: memberId,
       userId: null,
       organizationName: orgName,
-      membershipId: membership.id,
       status: "active",
+      membershipTypeId: membership.membershipTypeId,
+      currentMembershipStartedAt: new Date("2025-08-01T00:00:00Z"),
     });
     createdMemberIds.push(memberId);
 
@@ -158,7 +164,7 @@ test.describe("Association members", () => {
   test("association members can be found via search", async ({ adminPage, db }) => {
     const orgName = `Searchable Guild ${crypto.randomUUID().slice(0, 8)} ry`;
 
-    const membership = await db.query.membership.findFirst();
+    const membership = await db.query.membershipFeePeriod.findFirst();
     if (!membership) throw new Error("No membership found for test");
 
     const memberId = crypto.randomUUID();
@@ -166,8 +172,9 @@ test.describe("Association members", () => {
       id: memberId,
       userId: null,
       organizationName: orgName,
-      membershipId: membership.id,
       status: "active",
+      membershipTypeId: membership.membershipTypeId,
+      currentMembershipStartedAt: new Date("2025-08-01T00:00:00Z"),
     });
     createdMemberIds.push(memberId);
 
@@ -196,17 +203,20 @@ test.describe("Non-purchasable membership types", () => {
     });
 
     // Create a membership period for it
-    await db.insert(table.membership).values({
+    await db.insert(table.membershipFeePeriod).values({
       id: `membership-${testMembershipTypeId}`,
       membershipTypeId: testMembershipTypeId,
-      startTime: new Date("2025-08-01"),
-      endTime: new Date("2026-07-31"),
-      requiresStudentVerification: false,
+      startDate: "2026-08-01",
+      endDate: "2027-07-31",
+      dueDate: "2026-09-30",
+      nonPaymentActionAt: "2026-12-01",
     });
   });
 
   test.afterEach(async ({ db }) => {
-    await db.delete(table.membership).where(eq(table.membership.id, `membership-${testMembershipTypeId}`));
+    await db
+      .delete(table.membershipFeePeriod)
+      .where(eq(table.membershipFeePeriod.id, `membership-${testMembershipTypeId}`));
     await db.delete(table.membershipType).where(eq(table.membershipType.id, testMembershipTypeId));
   });
 

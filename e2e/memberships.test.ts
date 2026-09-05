@@ -1,7 +1,26 @@
 import { test, expect } from "./fixtures/db";
 import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import type { relations } from "../src/lib/server/db/relations";
 import { route } from "../src/lib/ROUTES";
+
+async function createDraftPeriod(
+  db: PostgresJsDatabase<typeof relations>,
+  id: string,
+  membershipTypeId: string,
+  startDate: string,
+  endDate: string,
+) {
+  await db.insert(table.membershipFeePeriod).values({
+    id,
+    membershipTypeId,
+    startDate,
+    endDate,
+    dueDate: `${startDate.slice(0, 4)}-09-30`,
+    nonPaymentActionAt: `${startDate.slice(0, 4)}-12-01`,
+  });
+}
 
 test.describe("Memberships Admin", () => {
   // Track test memberships for cleanup
@@ -14,7 +33,7 @@ test.describe("Memberships Admin", () => {
   test.afterEach(async ({ db }) => {
     // Clean up test memberships
     for (const id of testMembershipIds) {
-      await db.delete(table.membership).where(eq(table.membership.id, id));
+      await db.delete(table.membershipFeePeriod).where(eq(table.membershipFeePeriod.id, id));
     }
     testMembershipIds = [];
   });
@@ -53,14 +72,7 @@ test.describe("Memberships Admin", () => {
     // Create a test membership with a unique date range to identify it
     const testMembershipId = crypto.randomUUID();
 
-    await db.insert(table.membership).values({
-      id: testMembershipId,
-      membershipTypeId,
-      stripePriceId: null,
-      startTime: new Date(2030, 7, 1), // Use a far future date to make it unique
-      endTime: new Date(2031, 6, 31),
-      requiresStudentVerification: false,
-    });
+    await createDraftPeriod(db, testMembershipId, membershipTypeId, "2030-08-01", "2031-07-31");
     testMembershipIds.push(testMembershipId);
 
     await adminPage.goto(route("/[locale=locale]/admin/memberships", { locale: "fi" }), {
@@ -84,14 +96,7 @@ test.describe("Memberships Admin", () => {
     // Create a test membership with known values
     const testMembershipId = crypto.randomUUID();
 
-    await db.insert(table.membership).values({
-      id: testMembershipId,
-      membershipTypeId: alternateMembershipTypeId, // Use ulkojasen to distinguish
-      stripePriceId: null,
-      startTime: new Date(2031, 7, 1),
-      endTime: new Date(2032, 6, 31),
-      requiresStudentVerification: false,
-    });
+    await createDraftPeriod(db, testMembershipId, alternateMembershipTypeId, "2031-08-01", "2032-07-31");
     testMembershipIds.push(testMembershipId);
 
     await adminPage.goto(route("/[locale=locale]/admin/memberships", { locale: "fi" }), {
@@ -115,14 +120,7 @@ test.describe("Memberships Admin", () => {
     // Create a test membership to edit
     const testMembershipId = crypto.randomUUID();
 
-    await db.insert(table.membership).values({
-      id: testMembershipId,
-      membershipTypeId,
-      stripePriceId: null,
-      startTime: new Date(2032, 7, 1),
-      endTime: new Date(2033, 6, 31),
-      requiresStudentVerification: false,
-    });
+    await createDraftPeriod(db, testMembershipId, membershipTypeId, "2032-08-01", "2033-07-31");
     testMembershipIds.push(testMembershipId);
 
     await adminPage.goto(route("/[locale=locale]/admin/memberships", { locale: "fi" }), {
@@ -152,64 +150,11 @@ test.describe("Memberships Admin", () => {
     await expect(adminPage.getByRole("button", { name: /Ulkojäsen.*2033/ }).first()).toBeVisible();
   });
 
-  test("can toggle student verification requirement", async ({ adminPage, db }) => {
-    // Create a test membership
-    const testMembershipId = crypto.randomUUID();
-
-    await db.insert(table.membership).values({
-      id: testMembershipId,
-      membershipTypeId,
-      stripePriceId: null,
-      startTime: new Date(2033, 7, 1),
-      endTime: new Date(2034, 6, 31),
-      requiresStudentVerification: false,
-    });
-    testMembershipIds.push(testMembershipId);
-
-    await adminPage.goto(route("/[locale=locale]/admin/memberships", { locale: "fi" }), {
-      waitUntil: "networkidle",
-    });
-
-    // Find and click our test membership (date display shows end year: 31.7.2034)
-    await adminPage
-      .getByRole("button", { name: /Varsinainen jäsen.*2034/ })
-      .first()
-      .click();
-
-    // Wait for the sheet to open
-    await expect(adminPage.getByRole("heading", { name: "Muokkaa jäsenyyttä" })).toBeVisible();
-
-    // Toggle the student verification checkbox
-    const checkbox = adminPage.getByLabel("Edellyttää opiskelijastatusta");
-    await checkbox.check();
-
-    // Submit the form
-    await adminPage.getByRole("button", { name: "Tallenna" }).click();
-
-    // Wait for the sheet to close
-    await expect(adminPage.getByRole("heading", { name: "Muokkaa jäsenyyttä" })).not.toBeVisible();
-
-    // Verify the update was saved (database check needed since UI indicator may be subtle)
-    const [updatedMembership] = await db
-      .select()
-      .from(table.membership)
-      .where(eq(table.membership.id, testMembershipId));
-
-    expect(updatedMembership?.requiresStudentVerification).toBe(true);
-  });
-
   test("can delete membership with no members", async ({ adminPage, db }) => {
     // Create a test membership with no members using a unique far-future year
     const testMembershipId = crypto.randomUUID();
 
-    await db.insert(table.membership).values({
-      id: testMembershipId,
-      membershipTypeId,
-      stripePriceId: null,
-      startTime: new Date(2040, 7, 1),
-      endTime: new Date(2041, 6, 31),
-      requiresStudentVerification: false,
-    });
+    await createDraftPeriod(db, testMembershipId, membershipTypeId, "2040-08-01", "2041-07-31");
     // Don't add to cleanup array since we're testing delete
 
     await adminPage.goto(route("/[locale=locale]/admin/memberships", { locale: "fi" }), {
@@ -234,8 +179,8 @@ test.describe("Memberships Admin", () => {
     // Verify the membership was deleted from the database
     const [deletedMembership] = await db
       .select()
-      .from(table.membership)
-      .where(eq(table.membership.id, testMembershipId));
+      .from(table.membershipFeePeriod)
+      .where(eq(table.membershipFeePeriod.id, testMembershipId));
 
     expect(deletedMembership).toBeUndefined();
   });
@@ -244,14 +189,7 @@ test.describe("Memberships Admin", () => {
     // Create a test membership
     const testMembershipId = crypto.randomUUID();
 
-    await db.insert(table.membership).values({
-      id: testMembershipId,
-      membershipTypeId,
-      stripePriceId: null,
-      startTime: new Date(2035, 7, 1),
-      endTime: new Date(2036, 6, 31),
-      requiresStudentVerification: false,
-    });
+    await createDraftPeriod(db, testMembershipId, membershipTypeId, "2035-08-01", "2036-07-31");
     testMembershipIds.push(testMembershipId);
 
     await adminPage.goto(route("/[locale=locale]/admin/memberships", { locale: "fi" }), {

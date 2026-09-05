@@ -40,7 +40,7 @@
     <MembersTableAsync
       membersPromise={data.members}
       membershipTypes={data.membershipTypes}
-      availableMemberships={data.availableMemberships}
+      availableFeePeriods={data.availableFeePeriods}
       years={data.years}
       canWrite={data.canWrite}
     />
@@ -67,10 +67,7 @@
       </Sheet.Header>
       {#key createSheetOpen}
         {#if createSheetOpen}
-          <CreateMemberForm
-            availableMemberships={data.availableMemberships}
-            onClose={() => (createSheetOpen = false)}
-          />
+          <CreateMemberForm availableFeePeriods={data.availableFeePeriods} onClose={() => (createSheetOpen = false)} />
         {/if}
       {/key}
     </Sheet.Content>

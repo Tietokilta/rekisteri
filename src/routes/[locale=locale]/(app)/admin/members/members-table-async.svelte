@@ -5,14 +5,14 @@
   type Props = {
     membersPromise: Promise<Parameters<typeof MembersTable>[1]["data"]>;
     membershipTypes: MembershipType[];
-    availableMemberships: Parameters<typeof MembersTable>[1]["availableMemberships"];
+    availableFeePeriods: Parameters<typeof MembersTable>[1]["availableFeePeriods"];
     years: number[];
     canWrite: boolean;
   };
 
-  let { membersPromise, membershipTypes, availableMemberships, years, canWrite }: Props = $props();
+  let { membersPromise, membershipTypes, availableFeePeriods, years, canWrite }: Props = $props();
 
   const members = $derived(await membersPromise);
 </script>
 
-<MembersTable data={members} {membershipTypes} {availableMemberships} {years} {canWrite} />
+<MembersTable data={members} {membershipTypes} {availableFeePeriods} {years} {canWrite} />

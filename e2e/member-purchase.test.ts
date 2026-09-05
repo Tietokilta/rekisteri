@@ -1,7 +1,7 @@
 import { test, expect } from "./fixtures/db";
 import * as table from "$lib/server/db/schema";
 import type { Schema } from "../src/lib/server/db";
-import { eq, isNotNull, and, gt } from "drizzle-orm";
+import { and, eq, gte, isNotNull, inArray } from "drizzle-orm";
 import { route } from "../src/lib/ROUTES";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { Page } from "@playwright/test";
@@ -32,9 +32,11 @@ test.describe("Member Purchase Flow", () => {
   });
 
   test.afterEach(async ({ db }) => {
-    // Clean up test members
-    for (const id of testMemberIds) {
-      await db.delete(table.member).where(eq(table.member.id, id));
+    if (testMemberIds.length > 0) {
+      await db.delete(table.payment).where(inArray(table.payment.memberId, testMemberIds));
+      await db.delete(table.membershipEvent).where(inArray(table.membershipEvent.memberId, testMemberIds));
+      await db.delete(table.membershipObligation).where(inArray(table.membershipObligation.memberId, testMemberIds));
+      await db.delete(table.member).where(inArray(table.member.id, testMemberIds));
     }
     testMemberIds = [];
   });
@@ -43,8 +45,14 @@ test.describe("Member Purchase Flow", () => {
   async function getMembershipWithStripePrice(db: PostgresJsDatabase<Schema>) {
     const [membership] = await db
       .select()
-      .from(table.membership)
-      .where(and(isNotNull(table.membership.stripePriceId), gt(table.membership.endTime, new Date())))
+      .from(table.membershipFeePeriod)
+      .where(
+        and(
+          isNotNull(table.membershipFeePeriod.stripePriceId),
+          eq(table.membershipFeePeriod.acceptsApplications, true),
+          gte(table.membershipFeePeriod.endDate, new Date().toISOString().slice(0, 10)),
+        ),
+      )
       .limit(1);
     if (!membership) throw new Error("No membership with Stripe price found");
     return membership;
@@ -81,9 +89,24 @@ test.describe("Member Purchase Flow", () => {
     await db.insert(table.member).values({
       id: testMemberId,
       userId: adminUser.id,
-      membershipId: membership.id,
       status: "awaiting_payment",
-      stripeSessionId: "test_session_" + testMemberId,
+      pendingMembershipTypeId: membership.membershipTypeId,
+    });
+    const obligationId = crypto.randomUUID();
+    await db.insert(table.membershipObligation).values({
+      id: obligationId,
+      memberId: testMemberId,
+      membershipFeePeriodId: membership.id,
+      kind: "application",
+    });
+    await db.insert(table.payment).values({
+      id: crypto.randomUUID(),
+      memberId: testMemberId,
+      membershipFeePeriodId: membership.id,
+      obligationId,
+      source: "stripe",
+      status: "pending",
+      stripeSessionId: `test_session_${testMemberId}`,
     });
     testMemberIds.push(testMemberId);
 
@@ -100,16 +123,12 @@ test.describe("Member Purchase Flow", () => {
   });
 
   test("allows repurchasing rejected membership", async ({ adminPage, adminUser, db }) => {
-    const membership = await getMembershipWithStripePrice(db);
-
     // Create a rejected member for the test user
     const testMemberId = crypto.randomUUID();
     await db.insert(table.member).values({
       id: testMemberId,
       userId: adminUser.id,
-      membershipId: membership.id,
       status: "rejected",
-      stripeSessionId: null,
     });
     testMemberIds.push(testMemberId);
 
@@ -122,17 +141,18 @@ test.describe("Member Purchase Flow", () => {
     await expect(membershipRadio.first()).toBeVisible();
   });
 
-  test("allows repurchasing resigned membership", async ({ adminPage, adminUser, db }) => {
+  test("allows reapplying after membership has ended", async ({ adminPage, adminUser, db }) => {
     const membership = await getMembershipWithStripePrice(db);
 
-    // Create a resigned member for the test user
+    // The legal membership identity remains, but its active interval has ended.
     const testMemberId = crypto.randomUUID();
     await db.insert(table.member).values({
       id: testMemberId,
       userId: adminUser.id,
-      membershipId: membership.id,
-      status: "resigned",
-      stripeSessionId: null,
+      status: "ended",
+      membershipTypeId: membership.membershipTypeId,
+      currentMembershipStartedAt: new Date("2024-08-01T00:00:00Z"),
+      currentMembershipEndedAt: new Date("2026-01-15T00:00:00Z"),
     });
     testMemberIds.push(testMemberId);
 
@@ -144,30 +164,26 @@ test.describe("Member Purchase Flow", () => {
     await expect(membershipRadio.first()).toBeVisible();
   });
 
-  test("blocks repurchasing active membership", async ({ adminPage, adminUser, db }) => {
+  test("offers the current fee target as a renewal to an active member", async ({ adminPage, adminUser, db }) => {
     const membership = await getMembershipWithStripePrice(db);
-
-    // First, clean up any existing members for this user to ensure test isolation
-    await db.delete(table.member).where(eq(table.member.userId, adminUser.id));
 
     // Create an active member for the test user
     const testMemberId = crypto.randomUUID();
     await db.insert(table.member).values({
       id: testMemberId,
       userId: adminUser.id,
-      membershipId: membership.id,
       status: "active",
-      stripeSessionId: null,
+      membershipTypeId: membership.membershipTypeId,
+      currentMembershipStartedAt: new Date("2024-08-01T00:00:00Z"),
     });
     testMemberIds.push(testMemberId);
 
     // Navigate to new membership page and verify form is visible
     await gotoNewMembershipPage(adminPage);
 
-    // The active membership should be filtered out - verify no radio button exists for it
-    // Radio buttons have the membership ID as their value
+    // Legal membership remains active while the next fee can still be paid.
     const activeRadio = adminPage.locator(`input[type="radio"][value="${membership.id}"]`);
-    await expect(activeRadio).not.toBeVisible();
+    await expect(activeRadio).toBeVisible();
   });
 
   test("shows status badge correctly on home page", async ({ adminPage, adminUser, db }) => {
@@ -178,9 +194,8 @@ test.describe("Member Purchase Flow", () => {
     await db.insert(table.member).values({
       id: testMemberId,
       userId: adminUser.id,
-      membershipId: membership.id,
       status: "awaiting_approval",
-      stripeSessionId: "test_session_" + testMemberId,
+      pendingMembershipTypeId: membership.membershipTypeId,
     });
     testMemberIds.push(testMemberId);
 
@@ -193,17 +208,18 @@ test.describe("Member Purchase Flow", () => {
     await expect(adminPage.getByText("Odottaa hyväksyntää")).toBeVisible();
   });
 
-  test("home page shows 'Renew membership' for resigned membership", async ({ adminPage, adminUser, db }) => {
+  test("home page shows 'Renew membership' after membership has ended", async ({ adminPage, adminUser, db }) => {
     const membership = await getMembershipWithStripePrice(db);
 
-    // Create a resigned member for the test user
+    // Create an ended stable membership for the test user.
     const testMemberId = crypto.randomUUID();
     await db.insert(table.member).values({
       id: testMemberId,
       userId: adminUser.id,
-      membershipId: membership.id,
-      status: "resigned",
-      stripeSessionId: null,
+      status: "ended",
+      membershipTypeId: membership.membershipTypeId,
+      currentMembershipStartedAt: new Date("2024-08-01T00:00:00Z"),
+      currentMembershipEndedAt: new Date("2026-01-15T00:00:00Z"),
     });
     testMemberIds.push(testMemberId);
 

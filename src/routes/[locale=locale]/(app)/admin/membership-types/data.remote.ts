@@ -25,7 +25,6 @@ export const createMembershipType = form(createMembershipTypeSchema, async (data
   if (existing) {
     error(400, LL.admin.membershipTypes.idAlreadyExists());
   }
-
   await db
     .insert(table.membershipType)
     .values({
@@ -36,13 +35,21 @@ export const createMembershipType = form(createMembershipTypeSchema, async (data
           ? { fi: data.descriptionFi ?? "", en: data.descriptionEn ?? "" }
           : null,
       purchasable: data.purchasable,
+      requiresPayment: data.requiresPayment,
+      requiresStudentVerification: data.requiresStudentVerification,
     })
     .execute();
 
   await auditFromEvent(event, "membership_type.create", {
     targetType: "membership_type",
     targetId: data.id,
-    metadata: { nameFi: data.nameFi, nameEn: data.nameEn, purchasable: data.purchasable },
+    metadata: {
+      nameFi: data.nameFi,
+      nameEn: data.nameEn,
+      purchasable: data.purchasable,
+      requiresPayment: data.requiresPayment,
+      requiresStudentVerification: data.requiresStudentVerification,
+    },
   });
 
   return { success: true };
@@ -57,13 +64,18 @@ export const updateMembershipType = form(updateMembershipTypeSchema, async (data
   }
 
   // Verify membership type exists before updating
-  const [existing] = await db
-    .select({ id: table.membershipType.id })
-    .from(table.membershipType)
-    .where(eq(table.membershipType.id, data.id));
+  const [existing] = await db.select().from(table.membershipType).where(eq(table.membershipType.id, data.id));
 
   if (!existing) {
     error(404, LL.admin.membershipTypes.membershipTypeNotFound());
+  }
+
+  if (existing.requiresPayment !== data.requiresPayment) {
+    const publishedPeriod = await db.query.membershipFeePeriod.findFirst({
+      where: { membershipTypeId: data.id, publishedAt: { isNotNull: true } },
+      columns: { id: true },
+    });
+    if (publishedPeriod) error(400, "Payment requirements cannot change after a fee period is published");
   }
 
   await db
@@ -75,6 +87,8 @@ export const updateMembershipType = form(updateMembershipTypeSchema, async (data
           ? { fi: data.descriptionFi ?? "", en: data.descriptionEn ?? "" }
           : null,
       purchasable: data.purchasable,
+      requiresPayment: data.requiresPayment,
+      requiresStudentVerification: data.requiresStudentVerification,
     })
     .where(eq(table.membershipType.id, data.id))
     .execute();
@@ -82,7 +96,13 @@ export const updateMembershipType = form(updateMembershipTypeSchema, async (data
   await auditFromEvent(event, "membership_type.update", {
     targetType: "membership_type",
     targetId: data.id,
-    metadata: { nameFi: data.nameFi, nameEn: data.nameEn, purchasable: data.purchasable },
+    metadata: {
+      nameFi: data.nameFi,
+      nameEn: data.nameEn,
+      purchasable: data.purchasable,
+      requiresPayment: data.requiresPayment,
+      requiresStudentVerification: data.requiresStudentVerification,
+    },
   });
 
   return { success: true };
@@ -99,8 +119,8 @@ export const deleteMembershipType = form(deleteMembershipTypeSchema, async ({ id
   // Check if any memberships use this type
   const [membershipCountResult] = await db
     .select({ count: count() })
-    .from(table.membership)
-    .where(eq(table.membership.membershipTypeId, id));
+    .from(table.membershipFeePeriod)
+    .where(eq(table.membershipFeePeriod.membershipTypeId, id));
   const membershipCount = membershipCountResult?.count ?? 0;
 
   if (membershipCount > 0) {

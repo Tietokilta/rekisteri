@@ -1,7 +1,7 @@
 import { test as dbTest } from "./db";
 import type { Page, BrowserContext } from "@playwright/test";
 import * as table from "$lib/server/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { generateUserId, hashSessionToken } from "../../src/lib/server/auth/utils";
 import { encodeBase64url } from "@oslojs/encoding";
 
@@ -75,7 +75,14 @@ export const test = dbTest.extend<IsolatedUserFixtures>({
 
     await use({ id: userId, email });
 
-    // Cleanup: delete user's data in correct order (foreign key constraints)
+    // Cleanup: delete the stable member's dependent history before its identity row.
+    const members = await db.select({ id: table.member.id }).from(table.member).where(eq(table.member.userId, userId));
+    const memberIds = members.map((member) => member.id);
+    if (memberIds.length > 0) {
+      await db.delete(table.payment).where(inArray(table.payment.memberId, memberIds));
+      await db.delete(table.membershipEvent).where(inArray(table.membershipEvent.memberId, memberIds));
+      await db.delete(table.membershipObligation).where(inArray(table.membershipObligation.memberId, memberIds));
+    }
     await db.delete(table.member).where(eq(table.member.userId, userId));
     await db.delete(table.session).where(eq(table.session.userId, userId));
     await db.delete(table.user).where(eq(table.user.id, userId));

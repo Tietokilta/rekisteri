@@ -181,7 +181,6 @@ Your membership application has been approved. Welcome as a member of {organizat
 
 Membership details:
 - Type: {membershipName}
-- Valid: {startDate} - {endDate}
 
 You can now participate in guild activities and enjoy member benefits.
 
@@ -198,7 +197,6 @@ Your membership has been automatically renewed after payment.
 
 Membership details:
 - Type: {membershipName}
-- Valid: {startDate} - {endDate}
 
 Thank you for continuing as a member!
 
@@ -339,6 +337,7 @@ Best regards,
     noAvailableMemberships:
       "No memberships are currently available for purchase. You may already have a membership for every available period, or the next period may not be open yet.",
     willAutoApprove: "Will be automatically approved after payment",
+    renewalNoApproval: "Renewal — no new board approval required",
     willRequireApproval: "Will require board approval after payment",
     autoApprovalAdminNote:
       "Members who had an approved membership of the same type in the immediately preceding period will be automatically approved upon renewal. For student memberships, a valid aalto.fi email is also required.",
@@ -378,6 +377,12 @@ Best regards,
       priceInactive: "Warning: This price is inactive in Stripe",
       legacyMembership: "Legacy membership (no Stripe price)",
       failedToLoadPrice: "Failed to load price",
+      draft: "Draft",
+      published: "Published",
+      applicationTarget: "Application target",
+      publish: "Publish and issue fees",
+      saveBeforePublishing: "Save the draft changes before publishing.",
+      selectApplicationTarget: "Use for applications",
     },
 
     membershipTypes: {
@@ -397,6 +402,10 @@ Best regards,
       descriptionPlaceholder: "Optional description for the membership type...",
       purchasable: "Purchasable",
       purchasableDescription: "Membership type is visible on the purchase page",
+      requiresPayment: "Requires an annual fee",
+      requiresPaymentDescription: "Published fee periods issue payment obligations to active members",
+      requiresStudentVerificationDescription: "Purchases require a valid configured student identity",
+      applicationTargetRequired: "Publish and select an application fee period first",
       notPurchasable: "Not purchasable",
       cannotDeleteInUse: "Cannot delete membership type that has memberships",
       idAlreadyExists: "A membership type with this ID already exists",
@@ -518,6 +527,53 @@ Best regards,
         createdLabel: "Created:",
         stripeSessionLabel: "Stripe Session:",
         descriptionLabel: "Motivation:",
+        legalMembership: "Legal membership",
+        feeHistory: "Fee history",
+        noFeeHistory: "No fee history for the selected period",
+        membershipStartedLabel: "Membership began:",
+        membershipEndedLabel: "Membership ended:",
+        obligationLabel: "Fee obligation:",
+        paymentsLabel: "Payments",
+        noObligation: "No fee obligation",
+        obligationRenewal: "Renewal",
+        obligationApplication: "Application",
+        obligationTypeChange: "Type change",
+        obligationRequired: "Required",
+        obligationWaived: "Waived",
+        obligationCancelled: "Cancelled",
+        paymentPending: "Pending",
+        paymentSucceeded: "Paid",
+        paymentFailed: "Failed",
+        paymentExpired: "Expired",
+        paymentInvalidated: "Invalidated",
+        paymentRefundRequired: "Refund required",
+        paymentRefunded: "Refunded",
+        activityHistory: "Membership activity",
+        noActivityHistory: "No membership events",
+        eventApplicationSubmitted: "Application submitted",
+        eventApplicationApproved: "Application approved",
+        eventApplicationRejected: "Application rejected",
+        eventTypeChangeRequested: "Type change requested",
+        eventTypeChanged: "Membership type changed",
+        eventTypeChangeRejected: "Type change rejected",
+        eventResignedVoluntarily: "Member resigned",
+        eventDeemedResignedNonpayment: "Deemed resigned for non-payment",
+        eventExpelled: "Member expelled",
+        eventLegacyMembershipStarted: "Membership began",
+        eventLegacyResignation: "Membership ended",
+        eventLegacyRejoin: "Membership began again",
+        eventLegacyTypeChanged: "Membership type changed",
+        eventMembershipDecisionCorrected: "Membership decision corrected",
+        eventSourceAdmin: "Board/admin action",
+        eventSourceSystem: "Automated by the register",
+        eventSourceImported: "Imported source data",
+        eventSourceMigration: "Derived during migration",
+        eventConfirmed: "Confirmed",
+        eventInferred: "Inferred",
+        paymentEvent: "Membership fee payment",
+        paymentSourceStripe: "Stripe",
+        paymentSourceManual: "Recorded manually",
+        paymentSourceImported: "Imported payment evidence",
 
         // Actions
         approve: "Approve",
@@ -595,6 +651,7 @@ Best regards,
       membershipTypeChangePriceCheckFailed: "Could not verify the membership prices from Stripe",
       membershipTypeChangeConflict: "The membership changed while you were editing it. Please try again.",
       notAwaitingApproval: "Cannot approve member from this status",
+      paymentRequiredBeforeApproval: "The applicable membership fee must be paid or explicitly waived first",
       cannotReject: "Cannot reject member from this status",
       cannotDeemResigned: "Cannot deem member resigned from this status",
       cannotResign: "Cannot record resignation from this status",
@@ -628,7 +685,7 @@ Best regards,
       recordsToCreate: "Member records to create:",
       willBeActive: "Will be marked as active:",
       willBeResigned: "Will be marked as resigned:",
-      note: "Note: Existing users will have their info updated. Overlapping member records (same user + membership) will be skipped.",
+      note: "Note: Existing users' profile details are not overwritten. Previously imported payments are skipped.",
       dataPreview: "CSV Data Preview",
       firstNames: "First Names",
       lastName: "Last Name",
@@ -711,6 +768,8 @@ Best regards,
       secondaryEmailMismatch: "Secondary email confirmation does not match",
       cannotMergeOverlapping:
         'Cannot merge: Both users have membership "{type}" for the same period ({startDate} - {endDate})',
+      cannotMergeMembershipRecords:
+        "Cannot merge automatically because both users have membership records. Reconcile their membership histories first.",
 
       merge: {
         title: "Merge users",
@@ -724,7 +783,9 @@ Best regards,
         primaryUser: "Primary user (will be kept)",
         secondaryUser: "Secondary user (will be deleted)",
         willBeMerged: "The following will be transferred to the primary user:",
-        memberships: "All memberships",
+        memberships: "Membership and its history",
+        bothHaveMembership:
+          "Both accounts have membership records. Their histories must be reconciled before the accounts can be merged.",
         secondaryEmails: "All secondary emails",
         passkeys: "All passkeys",
         sessions: "All active sessions",

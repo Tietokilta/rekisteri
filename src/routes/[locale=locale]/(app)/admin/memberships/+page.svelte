@@ -79,8 +79,6 @@
     {/snippet}
   </AdminPageHeader>
 
-  <p class="mb-6 text-sm text-muted-foreground">{$LL.membership.autoApprovalAdminNote()}</p>
-
   {#if data.memberships.length === 0}
     <!-- Empty state -->
     <Empty.Root class="border">
@@ -120,6 +118,13 @@
                   >
                     <Item.Header>
                       <span class="font-medium">{getMembershipTypeName(membership.membershipTypeId, $locale)}</span>
+                      {#if membership.acceptsApplications}
+                        <Badge>{$LL.admin.memberships.applicationTarget()}</Badge>
+                      {:else if membership.publishedAt}
+                        <Badge variant="secondary">{$LL.admin.memberships.published()}</Badge>
+                      {:else}
+                        <Badge variant="outline">{$LL.admin.memberships.draft()}</Badge>
+                      {/if}
                       {#if membership.stripePriceId}
                         <svelte:boundary>
                           {@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}

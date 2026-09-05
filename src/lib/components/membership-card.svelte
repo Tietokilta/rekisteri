@@ -18,76 +18,45 @@
   import Banknote from "@lucide/svelte/icons/banknote";
   import CreditCard from "@lucide/svelte/icons/credit-card";
 
-  // Browsers limit setTimeout delays to a signed 32-bit integer.
-  const MAX_TIMEOUT_DELAY_MS = 2_147_483_647;
-
   interface MembershipType {
     id: string;
     name: LocalizedString;
   }
 
-  interface Membership {
-    membershipType: MembershipType;
-    startTime: Date;
-    endTime: Date;
+  interface Member {
+    id: string;
+    membershipType: MembershipType | null;
+    pendingMembershipType: MembershipType | null;
+    currentMembershipStartedAt: Date | null;
     status: MemberStatus;
-    unique_id: string;
   }
 
   interface Props {
-    memberships: Membership[];
+    member: Member | null;
+    feeState: "paid" | "overdue" | "not_due" | "no_fee" | "no_obligation";
+    currentFeePeriod: { startDate: string; endDate: string } | null;
     userName: string;
     qrToken: string | null;
     hasAvailableMemberships: boolean;
   }
 
-  let { memberships, userName, qrToken, hasAvailableMemberships }: Props = $props();
+  let { member, feeState, currentFeePeriod, userName, qrToken, hasAvailableMemberships }: Props = $props();
 
   // Helper to get localized membership type name
   function getTypeName(membershipType: MembershipType): string {
     return $locale === "fi" ? membershipType.name.fi : membershipType.name.en;
   }
 
-  // Get the most relevant membership (active > awaiting > expired)
-  const currentMembership = $derived.by(() => {
-    const active = memberships.find((m) => m.status === "active");
-    if (active) return active;
-
-    const awaiting = memberships.find((m) => m.status === "awaiting_payment" || m.status === "awaiting_approval");
-    if (awaiting) return awaiting;
-
-    // Return most recent membership
-    return memberships[0] ?? null;
-  });
-
-  const hasActiveMembership = $derived(memberships.some((m) => m.status === "active"));
-  const isAwaitingPayment = $derived(currentMembership?.status === "awaiting_payment");
-  let currentTime = $state(new Date());
-  const isRenewalDue = $derived(
-    currentMembership?.status === "active" && currentMembership.endTime <= currentTime && hasAvailableMemberships,
-  );
-  const showQrButton = $derived(!!qrToken && !isAwaitingPayment && (hasActiveMembership || !!currentMembership));
-
-  $effect(() => {
-    const endTime = currentMembership?.endTime;
-    if (!endTime || endTime <= currentTime) return;
-
-    const remaining = endTime.getTime() - currentTime.getTime();
-    const timeout = setTimeout(
-      () => {
-        currentTime = new Date();
-      },
-      Math.min(remaining, MAX_TIMEOUT_DELAY_MS),
-    );
-    return () => {
-      clearTimeout(timeout);
-    };
-  });
+  const currentMembershipType = $derived(member?.membershipType ?? member?.pendingMembershipType ?? null);
+  const hasActiveMembership = $derived(member?.status === "active");
+  const isAwaitingPayment = $derived(member?.status === "awaiting_payment");
+  const isRenewalDue = $derived(member?.status === "active" && (feeState === "not_due" || feeState === "overdue"));
+  const showQrButton = $derived(!!qrToken && hasActiveMembership);
 
   // Compute purchase/renew button config
   const purchaseAction = $derived.by(() => {
     if (isAwaitingPayment || !hasAvailableMemberships) return null;
-    if (!currentMembership) return { label: $LL.dashboard.getFirstMembership(), variant: "default" as const };
+    if (!member) return { label: $LL.dashboard.getFirstMembership(), variant: "default" as const };
     if (isRenewalDue) return { label: $LL.dashboard.renewMembership(), variant: "default" as const };
     if (hasActiveMembership)
       return {
@@ -102,7 +71,7 @@
 
   // Status badge variant and icon
   const statusConfig = $derived.by(() => {
-    if (!currentMembership) {
+    if (!member) {
       return {
         variant: "outline" as const,
         icon: CircleAlert,
@@ -120,7 +89,7 @@
       };
     }
 
-    switch (currentMembership.status) {
+    switch (member.status) {
       case "active":
         return {
           variant: "default" as const,
@@ -142,7 +111,7 @@
           label: $LL.membership.status.awaitingApproval(),
           cardClass: "border-yellow-500/50 bg-yellow-500/5",
         };
-      case "resigned":
+      case "ended":
         return {
           variant: "destructive" as const,
           icon: CircleAlert,
@@ -179,19 +148,22 @@
     </Card.Action>
   </Card.Header>
   <Card.Content class="space-y-4">
-    {#if currentMembership}
+    {#if member && currentMembershipType}
       <div class="space-y-1">
         <p class="text-lg font-medium">{userName}</p>
-        <p class="text-2xl font-semibold">{getTypeName(currentMembership.membershipType)}</p>
-        <p class="text-sm text-muted-foreground">
-          <time datetime={currentMembership.startTime.toISOString()}>
-            {formatDate(currentMembership.startTime, $locale)}
-          </time>
-          –
-          <time datetime={currentMembership.endTime.toISOString()}>
-            {formatDate(currentMembership.endTime, $locale)}
-          </time>
-        </p>
+        <p class="text-2xl font-semibold">{getTypeName(currentMembershipType)}</p>
+        {#if member.currentMembershipStartedAt}
+          <p class="text-sm text-muted-foreground">
+            <time datetime={member.currentMembershipStartedAt.toISOString()}>
+              {formatDate(member.currentMembershipStartedAt, $locale)}
+            </time>
+          </p>
+        {:else if currentFeePeriod}
+          <p class="text-sm text-muted-foreground">
+            {formatDate(new Date(currentFeePeriod.startDate), $locale)} –
+            {formatDate(new Date(currentFeePeriod.endDate), $locale)}
+          </p>
+        {/if}
       </div>
     {:else}
       <div class="flex flex-col items-center gap-2 py-4 text-center">
@@ -201,9 +173,9 @@
     {/if}
   </Card.Content>
   <Card.Footer class="flex flex-wrap gap-2">
-    {#if isAwaitingPayment && currentMembership}
+    {#if isAwaitingPayment && member}
       <form {...retryPayment.preflight(retryPaymentSchema)} class="flex-1">
-        <input type="hidden" name="memberId" value={currentMembership.unique_id} />
+        <input type="hidden" name="memberId" value={member.id} />
         <Button type="submit" class="w-full" disabled={!!retryPayment.pending}>
           {#if retryPayment.pending}
             {$LL.common.loading()}
@@ -221,7 +193,7 @@
         {purchaseAction.label}
       </Button>
     {/if}
-    {#if memberships.length > 0}
+    {#if member}
       <Button variant="outline" href={route("/[locale=locale]/membership", { locale: $locale })} class="flex-1">
         {$LL.dashboard.viewAll()}
       </Button>

@@ -25,7 +25,9 @@
         nameEn: "",
         descriptionFi: "",
         descriptionEn: "",
-        purchasable: true,
+        purchasable: false,
+        requiresPayment: true,
+        requiresStudentVerification: false,
       });
     });
   });
@@ -127,12 +129,24 @@
     {/each}
   </div>
 
-  <!-- Purchasable -->
   <div class="flex items-center gap-3">
-    <Checkbox {...createMembershipType.fields.purchasable.as("checkbox")} id="purchasable" />
+    <Checkbox {...createMembershipType.fields.requiresPayment.as("checkbox")} id="requiresPayment" />
     <div>
-      <Label for="purchasable">{$LL.admin.membershipTypes.purchasable()}</Label>
-      <p class="text-sm text-muted-foreground">{$LL.admin.membershipTypes.purchasableDescription()}</p>
+      <Label for="requiresPayment">{$LL.admin.membershipTypes.requiresPayment()}</Label>
+      <p class="text-sm text-muted-foreground">{$LL.admin.membershipTypes.requiresPaymentDescription()}</p>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <Checkbox
+      {...createMembershipType.fields.requiresStudentVerification.as("checkbox")}
+      id="requiresStudentVerification"
+    />
+    <div>
+      <Label for="requiresStudentVerification">{$LL.membership.requiresStudentVerification()}</Label>
+      <p class="text-sm text-muted-foreground">
+        {$LL.admin.membershipTypes.requiresStudentVerificationDescription()}
+      </p>
     </div>
   </div>
 

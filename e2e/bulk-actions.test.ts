@@ -1,25 +1,69 @@
-import { test, expect } from "./fixtures/auth";
-import postgres from "postgres";
-import { drizzle } from "drizzle-orm/postgres-js";
+import { test, expect } from "./fixtures/db";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as table from "$lib/server/db/schema";
-import { relations } from "$lib/server/db/relations";
-import { eq } from "drizzle-orm";
+import type { relations } from "$lib/server/db/relations";
+import { and, eq, inArray, isNotNull, lt } from "drizzle-orm";
 import { generateUserId } from "../src/lib/server/auth/utils";
 
 test.describe("Admin Bulk Actions", () => {
-  let db: ReturnType<typeof drizzle>;
-  let client: ReturnType<typeof postgres>;
+  let db: PostgresJsDatabase<typeof relations>;
 
-  test.beforeAll(async () => {
-    const dbUrl = process.env.DATABASE_URL_TEST;
-    if (!dbUrl) throw new Error("DATABASE_URL_TEST not set");
-    client = postgres(dbUrl);
-    db = drizzle({ client, relations });
+  test.beforeAll(async ({ db: fixtureDb }) => {
+    db = fixtureDb;
   });
 
-  test.afterAll(async () => {
-    await client.end();
-  });
+  async function deleteMembers(memberIds: string[]) {
+    if (memberIds.length === 0) return;
+    await db.delete(table.payment).where(inArray(table.payment.memberId, memberIds));
+    await db.delete(table.membershipEvent).where(inArray(table.membershipEvent.memberId, memberIds));
+    await db.delete(table.membershipObligation).where(inArray(table.membershipObligation.memberId, memberIds));
+    await db.delete(table.member).where(inArray(table.member.id, memberIds));
+  }
+
+  async function createAwaitingApprovalMember(
+    memberId: string,
+    userId: string,
+    membershipId: string,
+    membershipTypeId: string,
+    settled = true,
+  ) {
+    const obligationId = crypto.randomUUID();
+    await db.insert(table.member).values({
+      id: memberId,
+      userId,
+      status: "awaiting_approval",
+      pendingMembershipTypeId: membershipTypeId,
+    });
+    await db.insert(table.membershipObligation).values({
+      id: obligationId,
+      memberId,
+      membershipFeePeriodId: membershipId,
+      kind: "application",
+    });
+    if (settled) {
+      await db.insert(table.payment).values({
+        id: crypto.randomUUID(),
+        memberId,
+        membershipFeePeriodId: membershipId,
+        obligationId,
+        source: "stripe",
+        status: "succeeded",
+        amount: 800,
+        currency: "eur",
+        paidAt: new Date(),
+      });
+    }
+    await db.insert(table.membershipEvent).values({
+      id: crypto.randomUUID(),
+      memberId,
+      eventType: "application_submitted",
+      effectiveAt: new Date(),
+      source: "system",
+      certainty: "confirmed",
+      membershipFeePeriodId: membershipId,
+      data: { membershipTypeId },
+    });
+  }
 
   test.describe("Selection and Toolbar", () => {
     test("checkbox column is visible and select all works", async ({ adminPage }) => {
@@ -116,33 +160,29 @@ test.describe("Admin Bulk Actions", () => {
       // Get a membership
       const [membership] = await db
         .select()
-        .from(table.membership)
-        .where(eq(table.membership.membershipTypeId, "varsinainen-jasen"))
+        .from(table.membershipFeePeriod)
+        .where(
+          and(
+            eq(table.membershipFeePeriod.membershipTypeId, "varsinainen-jasen"),
+            isNotNull(table.membershipFeePeriod.stripePriceId),
+          ),
+        )
         .limit(1);
       if (!membership) throw new Error("Membership not found");
       membershipId = membership.id;
 
       // Create members with awaiting_approval status
       memberIds = testUsers.map(() => generateUserId());
-      await db.insert(table.member).values(
-        testUsers.map((u, i) => {
-          const id = memberIds[i];
-          if (!id) throw new Error("Member ID not found");
-          return {
-            id,
-            userId: u.id,
-            membershipId: membershipId,
-            status: "awaiting_approval" as const,
-          };
-        }),
-      );
+      for (const [index, user] of testUsers.entries()) {
+        const id = memberIds[index];
+        if (!id) throw new Error("Member ID not found");
+        await createAwaitingApprovalMember(id, user.id, membershipId, membership.membershipTypeId);
+      }
     });
 
     test.afterAll(async () => {
       // Clean up
-      for (const id of memberIds) {
-        await db.delete(table.member).where(eq(table.member.id, id));
-      }
+      await deleteMembers(memberIds);
       for (const u of testUsers) {
         await db.delete(table.user).where(eq(table.user.id, u.id));
       }
@@ -204,7 +244,6 @@ test.describe("Admin Bulk Actions", () => {
 
   test.describe("Bulk Actions Based on Status", () => {
     let testUser: { id: string; email: string };
-    let membershipId: string;
     let memberId: string;
 
     test.beforeEach(async () => {
@@ -221,20 +260,11 @@ test.describe("Admin Bulk Actions", () => {
         adminRole: "none" as const,
       });
 
-      // Get a membership
-      const [membership] = await db
-        .select()
-        .from(table.membership)
-        .where(eq(table.membership.membershipTypeId, "varsinainen-jasen"))
-        .limit(1);
-      if (!membership) throw new Error("Membership not found");
-      membershipId = membership.id;
-
       memberId = generateUserId();
     });
 
     test.afterEach(async () => {
-      await db.delete(table.member).where(eq(table.member.id, memberId));
+      await deleteMembers([memberId]);
       await db.delete(table.user).where(eq(table.user.id, testUser.id));
     });
 
@@ -243,12 +273,12 @@ test.describe("Admin Bulk Actions", () => {
       await db.insert(table.member).values({
         id: memberId,
         userId: testUser.id,
-        membershipId: membershipId,
         status: "awaiting_approval",
+        pendingMembershipTypeId: "varsinainen-jasen",
       });
 
       await adminPage.goto("/fi/admin/members");
-      await expect(adminPage.getByRole("heading", { name: "Jäsenrekisteri" })).toBeVisible();
+      await expect(adminPage.getByRole("heading", { name: "Jäsenrekisteri" })).toBeVisible({ timeout: 10_000 });
 
       // Filter by awaiting approval
       await adminPage.getByRole("button", { name: "Odottaa hyväksyntää" }).click();
@@ -265,13 +295,24 @@ test.describe("Admin Bulk Actions", () => {
       await expect(adminPage.getByTestId("bulk-deem-resigned-button")).not.toBeVisible();
     });
 
-    test("shows deem resigned button for active members", async ({ adminPage }) => {
+    test("deems an active member resigned for an actionable unpaid obligation", async ({ adminPage }) => {
       // Create member with active status
       await db.insert(table.member).values({
         id: memberId,
         userId: testUser.id,
-        membershipId: membershipId,
         status: "active",
+        membershipTypeId: "varsinainen-jasen",
+        currentMembershipStartedAt: new Date("2024-08-01T00:00:00Z"),
+      });
+      const overduePeriod = await db.query.membershipFeePeriod.findFirst({
+        where: { membershipTypeId: "varsinainen-jasen", nonPaymentActionAt: { lt: "2026-08-16" } },
+      });
+      if (!overduePeriod) throw new Error("Overdue fee period not found");
+      await db.insert(table.membershipObligation).values({
+        id: crypto.randomUUID(),
+        memberId,
+        membershipFeePeriodId: overduePeriod.id,
+        kind: "renewal",
       });
 
       await adminPage.goto("/fi/admin/members");
@@ -290,15 +331,28 @@ test.describe("Admin Bulk Actions", () => {
 
       // Should NOT see approve button
       await expect(adminPage.getByTestId("bulk-approve-button")).not.toBeVisible();
+
+      await adminPage.getByTestId("bulk-deem-resigned-button").click();
+      await adminPage.getByRole("button", { name: "Vahvista" }).click();
+
+      await expect(adminPage.getByTestId("bulk-action-toolbar")).not.toBeVisible();
+      const endedMember = await db.query.member.findFirst({ where: { id: memberId } });
+      expect(endedMember?.status).toBe("ended");
+      const endingEvent = await db.query.membershipEvent.findFirst({
+        where: { memberId, eventType: "deemed_resigned_nonpayment" },
+      });
+      expect(endingEvent).toBeDefined();
     });
 
-    test("no bulk actions for resigned members", async ({ adminPage }) => {
-      // Create member with resigned status
+    test("no bulk actions for ended members", async ({ adminPage }) => {
+      // Create a member whose legal membership has ended.
       await db.insert(table.member).values({
         id: memberId,
         userId: testUser.id,
-        membershipId: membershipId,
-        status: "resigned",
+        status: "ended",
+        membershipTypeId: "varsinainen-jasen",
+        currentMembershipStartedAt: new Date("2024-08-01T00:00:00Z"),
+        currentMembershipEndedAt: new Date("2026-01-15T00:00:00Z"),
       });
 
       await adminPage.goto("/fi/admin/members");
@@ -347,8 +401,13 @@ test.describe("Admin Bulk Actions", () => {
       // Get a membership
       const [membership] = await db
         .select()
-        .from(table.membership)
-        .where(eq(table.membership.membershipTypeId, "varsinainen-jasen"))
+        .from(table.membershipFeePeriod)
+        .where(
+          and(
+            eq(table.membershipFeePeriod.membershipTypeId, "varsinainen-jasen"),
+            lt(table.membershipFeePeriod.nonPaymentActionAt, "2026-08-16"),
+          ),
+        )
         .limit(1);
       if (!membership) throw new Error("Membership not found");
       membershipId = membership.id;
@@ -359,26 +418,24 @@ test.describe("Admin Bulk Actions", () => {
       const [memberId0, memberId1] = memberIds;
       const [user0, user1] = testUsers;
       if (!memberId0 || !memberId1 || !user0 || !user1) throw new Error("Test data not found");
-      await db.insert(table.member).values([
-        {
-          id: memberId0,
-          userId: user0.id,
-          membershipId: membershipId,
-          status: "active",
-        },
-        {
-          id: memberId1,
-          userId: user1.id,
-          membershipId: membershipId,
-          status: "awaiting_approval",
-        },
-      ]);
+      await db.insert(table.member).values({
+        id: memberId0,
+        userId: user0.id,
+        status: "active",
+        membershipTypeId: "varsinainen-jasen",
+        currentMembershipStartedAt: new Date("2024-08-01T00:00:00Z"),
+      });
+      await db.insert(table.membershipObligation).values({
+        id: crypto.randomUUID(),
+        memberId: memberId0,
+        membershipFeePeriodId: membershipId,
+        kind: "renewal",
+      });
+      await createAwaitingApprovalMember(memberId1, user1.id, membershipId, "varsinainen-jasen", false);
     });
 
     test.afterAll(async () => {
-      for (const id of memberIds) {
-        await db.delete(table.member).where(eq(table.member.id, id));
-      }
+      await deleteMembers(memberIds);
       for (const u of testUsers) {
         await db.delete(table.user).where(eq(table.user.id, u.id));
       }

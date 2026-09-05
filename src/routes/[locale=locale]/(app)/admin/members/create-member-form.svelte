@@ -12,24 +12,25 @@
   import * as NativeSelect from "$lib/components/ui/native-select";
   import type { LocalizedString } from "$lib/server/db/schema";
 
-  interface AvailableMembership {
+  interface AvailableFeePeriod {
     id: string;
     membershipTypeId: string;
     membershipTypeName: LocalizedString | null;
     startTime: Date;
     endTime: Date;
+    requiresPayment: boolean;
   }
 
   interface Props {
-    availableMemberships: AvailableMembership[];
+    availableFeePeriods: AvailableFeePeriod[];
     onClose: () => void;
   }
 
-  let { availableMemberships, onClose }: Props = $props();
+  let { availableFeePeriods, onClose }: Props = $props();
 
   // Form state
   let memberType = $state<"person" | "association">("person");
-  let membershipId = $state("");
+  let feePeriodId = $state("");
   let status = $state<"awaiting_approval" | "active">("awaiting_approval");
   let description = $state("");
   let submitting = $state(false);
@@ -42,28 +43,29 @@
 
   // Association fields
   let organizationName = $state("");
+  const selectedFeePeriod = $derived(availableFeePeriods.find((feePeriod) => feePeriod.id === feePeriodId));
 
   function getLocalizedName(name: LocalizedString | null): string {
     if (!name) return "-";
     return $locale === "fi" ? name.fi : name.en;
   }
 
-  function formatDateRange(m: AvailableMembership): string {
-    return formatDateRangeUtil(m.startTime, m.endTime, $locale);
+  function formatDateRange(feePeriod: AvailableFeePeriod): string {
+    return formatDateRangeUtil(feePeriod.startTime, feePeriod.endTime, $locale);
   }
 
   // Group memberships by type for the select dropdown
-  const groupedMemberships = $derived.by(() => {
+  const groupedFeePeriods = $derived.by(() => {
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- rebuilt from scratch each derivation, no reactive mutations
-    const groups = new Map<string, { typeName: string; memberships: AvailableMembership[] }>();
-    for (const m of availableMemberships) {
-      const existing = groups.get(m.membershipTypeId);
+    const groups = new Map<string, { typeName: string; feePeriods: AvailableFeePeriod[] }>();
+    for (const feePeriod of availableFeePeriods) {
+      const existing = groups.get(feePeriod.membershipTypeId);
       if (existing) {
-        existing.memberships.push(m);
+        existing.feePeriods.push(feePeriod);
       } else {
-        groups.set(m.membershipTypeId, {
-          typeName: getLocalizedName(m.membershipTypeName),
-          memberships: [m],
+        groups.set(feePeriod.membershipTypeId, {
+          typeName: getLocalizedName(feePeriod.membershipTypeName),
+          feePeriods: [feePeriod],
         });
       }
     }
@@ -71,7 +73,7 @@
   });
 
   async function handleSubmit() {
-    if (!membershipId) return;
+    if (!feePeriodId) return;
     submitting = true;
 
     try {
@@ -80,7 +82,7 @@
           ? {
               type: "association",
               organizationName,
-              membershipId,
+              feePeriodId,
               status,
               description: description || undefined,
             }
@@ -90,7 +92,7 @@
               firstNames: firstNames || undefined,
               lastName: lastName || undefined,
               homeMunicipality: homeMunicipality || undefined,
-              membershipId,
+              feePeriodId,
               status,
               description: description || undefined,
             },
@@ -182,12 +184,12 @@
   <!-- Membership selection -->
   <div class="space-y-2">
     <Label for="create-member-membership">{$LL.admin.members.selectMembership()}</Label>
-    <NativeSelect.Root id="create-member-membership" bind:value={membershipId} required>
+    <NativeSelect.Root id="create-member-membership" bind:value={feePeriodId} required>
       <NativeSelect.Option value="" disabled>{$LL.admin.members.selectMembership()}</NativeSelect.Option>
-      {#each groupedMemberships as group (group.typeName)}
+      {#each groupedFeePeriods as group (group.typeName)}
         <NativeSelect.OptGroup label={group.typeName}>
-          {#each group.memberships as membership (membership.id)}
-            <NativeSelect.Option value={membership.id}>{formatDateRange(membership)}</NativeSelect.Option>
+          {#each group.feePeriods as feePeriod (feePeriod.id)}
+            <NativeSelect.Option value={feePeriod.id}>{formatDateRange(feePeriod)}</NativeSelect.Option>
           {/each}
         </NativeSelect.OptGroup>
       {/each}
@@ -204,13 +206,20 @@
     <p class="text-sm text-muted-foreground">{$LL.admin.members.initialStatusDescription()}</p>
   </div>
 
-  <!-- Description (optional) -->
+  <!-- Paid memberships are waived when an admin creates them, so the reason is required. -->
   <div class="space-y-2">
     <Label for="create-member-description"
       >{$LL.membership.description()}
-      <span class="font-normal text-muted-foreground">({$LL.common.optional()})</span></Label
+      {#if !selectedFeePeriod?.requiresPayment}
+        <span class="font-normal text-muted-foreground">({$LL.common.optional()})</span>
+      {/if}</Label
     >
-    <Textarea id="create-member-description" bind:value={description} rows={2} />
+    <Textarea
+      id="create-member-description"
+      bind:value={description}
+      rows={2}
+      required={selectedFeePeriod?.requiresPayment ?? false}
+    />
   </div>
 
   <Sheet.Footer>

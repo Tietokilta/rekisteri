@@ -4,21 +4,13 @@ export const membershipApprovedTemplate: EmailTemplate<MembershipApprovedMetadat
   type: "membership_approved",
 
   render(locale, metadata, LL, organizationName) {
-    const { firstName, membershipName, startDate, endDate } = metadata;
-
-    // Use Finnish region for formatting (e.g., 'fi-FI' or 'en-FI')
-    // This ensures locale-appropriate formatting with Finnish regional conventions
-    const dateFormatter = new Intl.DateTimeFormat(`${locale}-FI`, {
-      dateStyle: "long",
-    });
+    const { firstName, membershipName } = metadata;
 
     return {
       subject: LL.emails.membershipApproved.subject({ organizationName }),
       text: LL.emails.membershipApproved.body({
         firstName,
         membershipName,
-        startDate: dateFormatter.format(startDate),
-        endDate: dateFormatter.format(endDate),
         organizationName,
       }),
     };

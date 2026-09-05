@@ -5,7 +5,6 @@
   import { createMembership } from "./data.remote";
   import { createMembershipSchema } from "./schema";
   import { Input } from "$lib/components/ui/input";
-  import { Checkbox } from "$lib/components/ui/checkbox";
   import { Button } from "$lib/components/ui/button";
   import { Label } from "$lib/components/ui/label";
   import { Badge } from "$lib/components/ui/badge";
@@ -13,7 +12,6 @@
   import { formatPrice } from "$lib/utils";
   import * as Sheet from "$lib/components/ui/sheet";
   import * as NativeSelect from "$lib/components/ui/native-select";
-  import GraduationCap from "@lucide/svelte/icons/graduation-cap";
   import type { MembershipType } from "$lib/server/db/schema";
 
   interface DefaultValues {
@@ -21,7 +19,6 @@
     stripePriceId: string;
     startTime: string;
     endTime: string;
-    requiresStudentVerification: boolean;
   }
 
   interface Props {
@@ -39,17 +36,16 @@
     });
   });
 
-  // Determine if the selected membership type is purchasable
-  const isPurchasable = $derived(
-    membershipTypes.find((t) => t.id === createMembership.fields.membershipTypeId.value())?.purchasable ?? true,
+  const selectedType = $derived(
+    membershipTypes.find((type) => type.id === createMembership.fields.membershipTypeId.value()),
   );
+  const isPayable = $derived(selectedType?.requiresPayment ?? true);
 
-  // Clear Stripe/student fields when switching to a non-purchasable type
+  // A non-paying type must not retain a Stripe Price.
   $effect(() => {
-    if (!isPurchasable) {
+    if (!isPayable) {
       untrack(() => {
         createMembership.fields.stripePriceId.set("");
-        createMembership.fields.requiresStudentVerification.set(false);
       });
     }
   });
@@ -123,7 +119,7 @@
     {/each}
   </div>
 
-  {#if isPurchasable}
+  {#if isPayable}
     <!-- Stripe Price ID -->
     <div class="space-y-2">
       <Label for="stripePriceId">{$LL.admin.memberships.stripePriceId()}</Label>
@@ -202,25 +198,6 @@
       {/each}
     </div>
   </div>
-
-  {#if isPurchasable}
-    <!-- Student verification checkbox -->
-    <label
-      class="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted/50"
-    >
-      <Checkbox
-        {...createMembership.fields.requiresStudentVerification.as("checkbox")}
-        id="requiresStudentVerification"
-      />
-      <div class="flex-1">
-        <p class="font-medium">{$LL.membership.requiresStudentVerification()}</p>
-        <p class="text-sm text-muted-foreground">
-          {$LL.membership.isStudent()}
-        </p>
-      </div>
-      <GraduationCap class="size-5 text-muted-foreground" />
-    </label>
-  {/if}
 
   <Sheet.Footer>
     <Button type="button" variant="outline" class="flex-1" onclick={onClose}>

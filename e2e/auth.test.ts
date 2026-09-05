@@ -47,7 +47,7 @@ test.describe("Authentication", () => {
     await saveButton.click();
 
     // Wait for success toast
-    await expect(adminPage.getByText(/Tallennettu/i)).toBeVisible({ timeout: 5000 });
+    await expect(adminPage.getByText(/Tallennettu/i).first()).toBeVisible({ timeout: 5000 });
 
     // Verify form inputs still have the new values
     await expect(firstNamesInput).toHaveValue(newFirstNames);
@@ -59,7 +59,7 @@ test.describe("Authentication", () => {
     await saveButton.click();
 
     // Wait for success toast
-    await expect(adminPage.getByText(/Tallennettu/i)).toBeVisible({ timeout: 5000 });
+    await expect(adminPage.getByText(/Tallennettu/i).first()).toBeVisible({ timeout: 5000 });
 
     // Verify values are restored
     await expect(firstNamesInput).toHaveValue(originalFirstNames);

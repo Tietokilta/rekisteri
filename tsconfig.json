@@ -32,6 +32,7 @@
     "tests/**/*.svelte",
     // Additional files for type checking
     "e2e/**/*.ts",
+    "scripts/**/*.ts",
     "*.config.ts",
     "*.config.js"
   ]

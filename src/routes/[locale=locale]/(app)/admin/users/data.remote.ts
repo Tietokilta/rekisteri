@@ -2,10 +2,9 @@ import { error } from "@sveltejs/kit";
 import { getRequestEvent, command } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { eq, sql } from "drizzle-orm";
-import { isNonEmpty, formatDate } from "$lib/utils";
+import { count, eq, sql } from "drizzle-orm";
+import { isNonEmpty } from "$lib/utils";
 import { updateUserRoleSchema, mergeUsersSchema } from "./schema";
-import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
 import { auditUserAdminAction } from "$lib/server/audit";
 import { getLL } from "$lib/server/i18n";
 import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
@@ -105,38 +104,39 @@ export const mergeUsers = command(
       error(400, LL.admin.users.secondaryEmailMismatch());
     }
 
-    // Check for overlapping memberships
-    const [primaryMembers, secondaryMembers] = await Promise.all([
-      db.query.member.findMany({
-        where: { userId: primaryUserId },
-        with: { membership: true },
-      }),
-
-      db.query.member.findMany({
-        where: { userId: secondaryUserId },
-        with: { membership: true },
-      }),
+    // Two stable membership aggregates cannot be combined without reconciling
+    // their legal histories and current snapshots.
+    const [primaryMember, secondaryMember] = await Promise.all([
+      db.query.member.findFirst({ where: { userId: primaryUserId }, with: { membershipType: true } }),
+      db.query.member.findFirst({ where: { userId: secondaryUserId }, with: { membershipType: true } }),
     ]);
 
-    // Check for overlapping membership periods (only blocking statuses)
-    // Filter out cancelled and expired memberships as they should not block merge
-    const activeSecondaryMembers = secondaryMembers.filter((m) => BLOCKING_MEMBER_STATUSES.has(m.status));
-    const activePrimaryMembers = primaryMembers.filter((m) => BLOCKING_MEMBER_STATUSES.has(m.status));
+    if (primaryMember && secondaryMember) {
+      error(400, LL.admin.users.cannotMergeMembershipRecords());
+    }
 
-    for (const secondaryMember of activeSecondaryMembers) {
-      for (const primaryMember of activePrimaryMembers) {
-        // Check if same membership type and overlapping periods
-        if (secondaryMember.membershipId === primaryMember.membershipId) {
-          error(
-            400,
-            LL.admin.users.cannotMergeOverlapping({
-              type: secondaryMember.membership.membershipTypeId,
-              startDate: formatDate(new Date(secondaryMember.membership.startTime), event.locals.locale),
-              endDate: formatDate(new Date(secondaryMember.membership.endTime), event.locals.locale),
-            }),
-          );
-        }
-      }
+    let membershipTransferContents: {
+      eventCount: number;
+      obligationCount: number;
+      paymentCount: number;
+    } | null = null;
+    if (secondaryMember) {
+      const [events, obligations, payments] = await Promise.all([
+        db
+          .select({ count: count() })
+          .from(table.membershipEvent)
+          .where(eq(table.membershipEvent.memberId, secondaryMember.id)),
+        db
+          .select({ count: count() })
+          .from(table.membershipObligation)
+          .where(eq(table.membershipObligation.memberId, secondaryMember.id)),
+        db.select({ count: count() }).from(table.payment).where(eq(table.payment.memberId, secondaryMember.id)),
+      ]);
+      membershipTransferContents = {
+        eventCount: events[0]?.count ?? 0,
+        obligationCount: obligations[0]?.count ?? 0,
+        paymentCount: payments[0]?.count ?? 0,
+      };
     }
 
     // Perform the merge in a transaction
@@ -151,8 +151,9 @@ export const mergeUsers = command(
         expiresAt: null, // Was the secondary user's primary email, so it doesn't expire
       });
 
-      // 2. Move all members from secondary to primary
-      if (secondaryMembers.length > 0) {
+      // 2. Transfer the secondary user's stable membership aggregate. Events,
+      // obligations, and payments remain attached through the member ID.
+      if (secondaryMember) {
         await tx.update(table.member).set({ userId: primaryUserId }).where(eq(table.member.userId, secondaryUserId));
       }
 
@@ -185,6 +186,12 @@ export const mergeUsers = command(
       // 6. Update audit logs to reference primary user (optional, for history tracking)
       await tx.update(table.auditLog).set({ userId: primaryUserId }).where(eq(table.auditLog.userId, secondaryUserId));
 
+      // Preserve admin/self-service event attribution before deleting the secondary user.
+      await tx
+        .update(table.membershipEvent)
+        .set({ actorUserId: primaryUserId })
+        .where(eq(table.membershipEvent.actorUserId, secondaryUserId));
+
       // 7. Delete the secondary user (cascades will clean up any remaining references)
       await tx.delete(table.user).where(eq(table.user.id, secondaryUserId));
 
@@ -202,7 +209,8 @@ export const mergeUsers = command(
           primaryUserEmail: primaryUser.email,
           secondaryUserEmail: secondaryUser.email,
           secondaryUserId: secondaryUserId,
-          movedMembersCount: secondaryMembers.length,
+          membershipTransferred: secondaryMember !== undefined,
+          membershipTransferContents,
           movedSecondaryEmailsCount: secondaryUserSecondaryEmails.length,
           movedPasskeysCount: secondaryUserPasskeys.length,
         },

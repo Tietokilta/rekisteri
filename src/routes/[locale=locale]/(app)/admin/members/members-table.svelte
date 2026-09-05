@@ -56,24 +56,80 @@
 
   import type { LocalizedString, MembershipType } from "$lib/server/db/schema";
 
-  type MembershipData = {
+  type FeeHistoryItem = {
     id: string;
-    membershipId: string;
-    status: "awaiting_payment" | "awaiting_approval" | "active" | "resigned" | "rejected";
-    stripeSessionId: string | null;
-    description: string | null;
+    membershipTypeId: string;
+    startTime: Date;
+    endTime: Date;
+    stripePriceId: string | null;
+    obligation: {
+      kind: "renewal" | "application" | "type_change";
+      disposition: "required" | "waived" | "cancelled";
+      dispositionReason: string | null;
+    } | null;
+    payments: Array<{
+      id: string;
+      status: "pending" | "succeeded" | "failed" | "expired";
+      source: "stripe" | "manual" | "imported";
+      amount: number | null;
+      currency: string | null;
+      paidAt: Date | null;
+      createdAt: Date;
+      stripeSessionId: string | null;
+      refundRequiredAt: Date | null;
+      refundConfirmedAt: Date | null;
+      invalidatedAt: Date | null;
+    }>;
+  };
+
+  type MembershipEventItem = {
+    id: string;
+    eventType:
+      | "application_submitted"
+      | "application_approved"
+      | "application_rejected"
+      | "type_change_requested"
+      | "type_changed"
+      | "type_change_rejected"
+      | "resigned_voluntarily"
+      | "deemed_resigned_nonpayment"
+      | "expelled"
+      | "legacy_membership_started_inferred"
+      | "legacy_resignation_inferred"
+      | "legacy_rejoin_inferred"
+      | "legacy_type_changed_inferred"
+      | "membership_decision_corrected";
+    effectiveAt: Date;
+    recordedAt: Date;
+    source: "admin" | "system" | "imported" | "migration";
+    certainty: "confirmed" | "inferred";
+    actorName: string | null;
+    membershipFeePeriodId: string | null;
+    feePeriodStartTime: Date | null;
+    feePeriodEndTime: Date | null;
+    data: {
+      reason?: string;
+      membershipTypeId?: string;
+      fromMembershipTypeId?: string;
+      toMembershipTypeId?: string;
+    };
+  };
+
+  type BaseMemberRow = {
+    id: string;
+    status: "awaiting_payment" | "awaiting_approval" | "active" | "ended" | "rejected";
+    applicationMotive: string | null;
     createdAt: Date;
     updatedAt: Date;
     membershipTypeId: string | null;
     membershipTypeName: LocalizedString | null;
-    membershipStripePriceId: string | null;
-    membershipStartTime: Date | null;
-    membershipEndTime: Date | null;
-  };
-
-  type BaseMemberRow = MembershipData & {
-    allMemberships: MembershipData[];
-    membershipCount: number;
+    currentMembershipStartedAt: Date | null;
+    currentMembershipEndedAt: Date | null;
+    correctionFeePeriodId: string | null;
+    feePeriodYears: string[];
+    feeHistory: FeeHistoryItem[];
+    membershipEvents: MembershipEventItem[];
+    canBeDeemedResigned: boolean;
   };
 
   type PersonMemberRow = BaseMemberRow & {
@@ -150,7 +206,7 @@
   type Props = {
     data: RawMemberRow[];
     membershipTypes: MembershipType[];
-    availableMemberships: Array<{
+    availableFeePeriods: Array<{
       id: string;
       membershipTypeId: string;
       membershipTypeName: LocalizedString;
@@ -162,7 +218,7 @@
     canWrite: boolean;
   };
 
-  let { data: rawData, membershipTypes, availableMemberships, years, canWrite }: Props = $props();
+  let { data: rawData, membershipTypes, availableFeePeriods, years, canWrite }: Props = $props();
 
   const data = $derived(rawData.map(narrowMemberRow));
 
@@ -170,6 +226,119 @@
   function getLocalizedTypeName(name: LocalizedString | null): string {
     if (!name) return "-";
     return $locale === "fi" ? name.fi : name.en;
+  }
+
+  function getMembershipTypeName(id: string): string {
+    return getLocalizedTypeName(membershipTypes.find((type) => type.id === id)?.name ?? null);
+  }
+
+  function formatObligationKind(
+    kind: FeeHistoryItem["obligation"] extends infer T ? (T extends { kind: infer K } ? K : never) : never,
+  ) {
+    return {
+      renewal: $LL.admin.members.table.obligationRenewal(),
+      application: $LL.admin.members.table.obligationApplication(),
+      type_change: $LL.admin.members.table.obligationTypeChange(),
+    }[kind];
+  }
+
+  function formatObligationDisposition(disposition: NonNullable<FeeHistoryItem["obligation"]>["disposition"]) {
+    return {
+      required: $LL.admin.members.table.obligationRequired(),
+      waived: $LL.admin.members.table.obligationWaived(),
+      cancelled: $LL.admin.members.table.obligationCancelled(),
+    }[disposition];
+  }
+
+  function formatPaymentStatus(payment: FeeHistoryItem["payments"][number]) {
+    if (payment.invalidatedAt) return $LL.admin.members.table.paymentInvalidated();
+    if (payment.refundConfirmedAt) return $LL.admin.members.table.paymentRefunded();
+    if (payment.refundRequiredAt) return $LL.admin.members.table.paymentRefundRequired();
+    return {
+      pending: $LL.admin.members.table.paymentPending(),
+      succeeded: $LL.admin.members.table.paymentSucceeded(),
+      failed: $LL.admin.members.table.paymentFailed(),
+      expired: $LL.admin.members.table.paymentExpired(),
+    }[payment.status];
+  }
+
+  function formatMembershipEvent(eventType: MembershipEventItem["eventType"]) {
+    return {
+      application_submitted: $LL.admin.members.table.eventApplicationSubmitted(),
+      application_approved: $LL.admin.members.table.eventApplicationApproved(),
+      application_rejected: $LL.admin.members.table.eventApplicationRejected(),
+      type_change_requested: $LL.admin.members.table.eventTypeChangeRequested(),
+      type_changed: $LL.admin.members.table.eventTypeChanged(),
+      type_change_rejected: $LL.admin.members.table.eventTypeChangeRejected(),
+      resigned_voluntarily: $LL.admin.members.table.eventResignedVoluntarily(),
+      deemed_resigned_nonpayment: $LL.admin.members.table.eventDeemedResignedNonpayment(),
+      expelled: $LL.admin.members.table.eventExpelled(),
+      legacy_membership_started_inferred: $LL.admin.members.table.eventLegacyMembershipStarted(),
+      legacy_resignation_inferred: $LL.admin.members.table.eventLegacyResignation(),
+      legacy_rejoin_inferred: $LL.admin.members.table.eventLegacyRejoin(),
+      legacy_type_changed_inferred: $LL.admin.members.table.eventLegacyTypeChanged(),
+      membership_decision_corrected: $LL.admin.members.table.eventMembershipDecisionCorrected(),
+    }[eventType];
+  }
+
+  function formatEventSource(source: MembershipEventItem["source"]) {
+    return {
+      admin: $LL.admin.members.table.eventSourceAdmin(),
+      system: $LL.admin.members.table.eventSourceSystem(),
+      imported: $LL.admin.members.table.eventSourceImported(),
+      migration: $LL.admin.members.table.eventSourceMigration(),
+    }[source];
+  }
+
+  function getEventDetails(event: MembershipEventItem) {
+    const details: string[] = [];
+    if (event.data.fromMembershipTypeId && event.data.toMembershipTypeId) {
+      details.push(
+        `${getMembershipTypeName(event.data.fromMembershipTypeId)} → ${getMembershipTypeName(event.data.toMembershipTypeId)}`,
+      );
+    } else if (event.data.membershipTypeId) {
+      details.push(getMembershipTypeName(event.data.membershipTypeId));
+    }
+    if (event.data.reason) details.push(event.data.reason);
+    return details.join(" · ");
+  }
+
+  type MembershipActivityItem =
+    | { kind: "event"; id: string; occurredAt: Date; event: MembershipEventItem }
+    | {
+        kind: "payment";
+        id: string;
+        occurredAt: Date;
+        payment: FeeHistoryItem["payments"][number];
+        feePeriod: FeeHistoryItem;
+      };
+
+  function getMembershipActivity(member: MemberRow): MembershipActivityItem[] {
+    return [
+      ...member.membershipEvents.map((event): MembershipActivityItem => ({
+        kind: "event",
+        id: `event-${event.id}`,
+        occurredAt: event.effectiveAt,
+        event,
+      })),
+      ...member.feeHistory.flatMap((feePeriod) =>
+        feePeriod.payments.map((payment): MembershipActivityItem => ({
+          kind: "payment",
+          id: `payment-${payment.id}`,
+          occurredAt: payment.paidAt ?? payment.createdAt,
+          payment,
+          feePeriod,
+        })),
+      ),
+    ].toSorted((left, right) => right.occurredAt.getTime() - left.occurredAt.getTime());
+  }
+
+  function formatPaymentSource(source: FeeHistoryItem["payments"][number]["source"]) {
+    return {
+      stripe: $LL.admin.members.table.paymentSourceStripe(),
+      manual: $LL.admin.members.table.paymentSourceManual(),
+      imported: $LL.admin.members.table.paymentSourceImported(),
+    }[source];
   }
 
   // Reactive URL search params
@@ -185,7 +354,7 @@
   let globalFilter = $state(urlParams.get("search") ?? "");
   let expandedRows = $state<Set<string>>(new Set());
   let columnVisibility = $state<Record<string, boolean>>({
-    membershipStartTime: false, // Hide the filter column
+    feePeriodYears: false,
   });
   let pagination = $state({
     pageIndex: Number.parseInt(urlParams.get("page") ?? "0"),
@@ -211,62 +380,63 @@
   let typeChangeAction = $state<{
     memberId: string;
     memberName: string;
-    membership: MembershipData;
+    member: MemberRow;
   } | null>(null);
-  let targetMembershipId = $state("");
+  let targetFeePeriodId = $state("");
   let typeChangeLoading = $state(false);
-  let typeChangeTargets = $state<typeof availableMemberships>([]);
+  let typeChangeTargets = $state<typeof availableFeePeriods>([]);
   let typeChangeTargetsLoading = $state(false);
   let typeChangeTargetsError = $state(false);
   let typeChangeRequestId = 0;
 
-  function getTypeChangeCandidates(membership: MembershipData) {
-    if (!membership.membershipStartTime || !membership.membershipEndTime) return [];
+  function getTypeChangeCandidates(member: MemberRow) {
+    const source = availableFeePeriods.find((candidate) => candidate.id === member.correctionFeePeriodId);
+    if (!source) return [];
 
-    return availableMemberships.filter((candidate) => {
+    return availableFeePeriods.filter((candidate) => {
       return (
-        candidate.id !== membership.membershipId &&
-        candidate.membershipTypeId !== membership.membershipTypeId &&
-        candidate.startTime.getTime() === membership.membershipStartTime?.getTime() &&
-        candidate.endTime.getTime() === membership.membershipEndTime?.getTime() &&
+        candidate.id !== source.id &&
+        candidate.membershipTypeId !== member.membershipTypeId &&
+        candidate.startTime.getTime() === source.startTime.getTime() &&
+        candidate.endTime.getTime() === source.endTime.getTime() &&
         candidate.stripePriceId !== null
       );
     });
   }
 
-  function canChangeMemberType(membership: MembershipData) {
-    const currentMembership = availableMemberships.find((candidate) => candidate.id === membership.membershipId);
-    return Boolean(currentMembership?.stripePriceId && getTypeChangeCandidates(membership).length > 0);
+  function canChangeMemberType(member: MemberRow) {
+    const source = availableFeePeriods.find((candidate) => candidate.id === member.correctionFeePeriodId);
+    return Boolean(source?.stripePriceId && getTypeChangeCandidates(member).length > 0);
   }
 
-  async function openTypeChange(memberId: string, memberName: string, membership: MembershipData) {
+  async function openTypeChange(member: MemberRow, memberName: string) {
     const requestId = ++typeChangeRequestId;
-    typeChangeAction = { memberId, memberName, membership };
-    targetMembershipId = "";
+    typeChangeAction = { memberId: member.id, memberName, member };
+    targetFeePeriodId = "";
     typeChangeTargets = [];
     typeChangeTargetsLoading = false;
     typeChangeTargetsError = false;
 
-    const currentMembership = availableMemberships.find((candidate) => candidate.id === membership.membershipId);
-    if (!currentMembership?.stripePriceId) return;
+    const sourceFeePeriod = availableFeePeriods.find((candidate) => candidate.id === member.correctionFeePeriodId);
+    if (!sourceFeePeriod?.stripePriceId) return;
 
-    const candidates = getTypeChangeCandidates(membership);
+    const candidates = getTypeChangeCandidates(member);
     const exactPriceTargets = candidates.filter(
-      (candidate) => candidate.stripePriceId === currentMembership.stripePriceId,
+      (candidate) => candidate.stripePriceId === sourceFeePeriod.stripePriceId,
     );
     const differingPriceTargets = candidates.filter(
-      (candidate) => candidate.stripePriceId !== currentMembership.stripePriceId,
+      (candidate) => candidate.stripePriceId !== sourceFeePeriod.stripePriceId,
     );
 
     if (differingPriceTargets.length === 0) {
       typeChangeTargets = exactPriceTargets;
-      targetMembershipId = exactPriceTargets[0]?.id ?? "";
+      targetFeePeriodId = exactPriceTargets[0]?.id ?? "";
       return;
     }
 
     typeChangeTargetsLoading = true;
     const priceIds = [
-      currentMembership.stripePriceId,
+      sourceFeePeriod.stripePriceId,
       ...new Set(
         differingPriceTargets.flatMap((candidate) => (candidate.stripePriceId ? [candidate.stripePriceId] : [])),
       ),
@@ -280,7 +450,7 @@
         result.status === "fulfilled" ? ([[priceIds[index], result.value]] as const) : [],
       ),
     );
-    const currentPrice = prices.get(currentMembership.stripePriceId);
+    const currentPrice = prices.get(sourceFeePeriod.stripePriceId);
     const equalPriceTargets = differingPriceTargets.filter((candidate) => {
       if (!candidate.stripePriceId || currentPrice?.unitAmount === null || currentPrice?.unitAmount === undefined) {
         return false;
@@ -294,19 +464,19 @@
     });
 
     typeChangeTargets = [...exactPriceTargets, ...equalPriceTargets];
-    targetMembershipId = typeChangeTargets[0]?.id ?? "";
+    targetFeePeriodId = typeChangeTargets[0]?.id ?? "";
     typeChangeTargetsError = priceResults.some((result) => result.status === "rejected");
     typeChangeTargetsLoading = false;
   }
 
   async function confirmTypeChange() {
-    if (!typeChangeAction || !targetMembershipId) return;
+    if (!typeChangeAction || !targetFeePeriodId) return;
 
     typeChangeLoading = true;
     try {
-      await changeMemberType({ memberId: typeChangeAction.memberId, targetMembershipId });
+      await changeMemberType({ memberId: typeChangeAction.memberId, targetFeePeriodId });
       typeChangeAction = null;
-      targetMembershipId = "";
+      targetFeePeriodId = "";
       toast.success($LL.admin.members.table.membershipTypeChanged());
       await invalidateAll();
     } catch (error) {
@@ -325,7 +495,9 @@
   // Filter state - synced with URL
   let selectedYear = $state<string>(urlParams.get("year") ?? "all");
   let selectedType = $state<string>(urlParams.get("type") ?? "all");
-  let selectedStatus = $state<string>(urlParams.get("status") ?? "all");
+  let selectedStatus = $state<string>(
+    urlParams.get("status") === "resigned" ? "ended" : (urlParams.get("status") ?? "all"),
+  );
 
   // Debounce timer for URL updates
   let updateTimer: ReturnType<typeof setTimeout> | null = null;
@@ -488,23 +660,9 @@
     }
   }
 
-  // Helper to filter memberships based on current filters
-  function getFilteredMemberships(allMemberships: MemberRow["allMemberships"]) {
-    return allMemberships.filter((membership) => {
-      // Year filter
-      if (selectedYear !== "all") {
-        const membershipYear = membership.membershipStartTime?.getFullYear().toString();
-        if (membershipYear !== selectedYear) return false;
-      }
-
-      // Type filter
-      if (selectedType !== "all" && membership.membershipTypeId !== selectedType) return false;
-
-      // Status filter
-      if (selectedStatus !== "all" && membership.status !== selectedStatus) return false;
-
-      return true;
-    });
+  function getVisibleFeeHistory(feeHistory: FeeHistoryItem[]) {
+    if (selectedYear === "all") return feeHistory;
+    return feeHistory.filter((item) => item.startTime.getFullYear().toString() === selectedYear);
   }
 
   // Status color mapping
@@ -516,7 +674,7 @@
         return "secondary";
       case "awaiting_approval":
         return "secondary";
-      case "resigned":
+      case "ended":
         return "destructive";
       case "rejected":
         return "outline";
@@ -529,7 +687,7 @@
   function formatStatus(status: MemberRow["status"]) {
     const statusLabels = {
       active: $LL.admin.members.table.active(),
-      resigned: $LL.admin.members.table.resigned(),
+      ended: $LL.admin.members.table.resigned(),
       rejected: $LL.admin.members.table.rejected(),
       awaiting_approval: $LL.admin.members.table.awaitingApproval(),
       awaiting_payment: $LL.admin.members.table.awaitingPayment(),
@@ -537,12 +695,9 @@
     return statusLabels[status];
   }
 
-  // Custom filter function for year
   const yearFilterFn = (row: TanStackRow<typeof features, MemberRow>, columnId: string, filterValue: string) => {
-    const startTime = row.getValue(columnId) as Date | null;
-    if (!startTime) return false;
-    const year = startTime.getFullYear().toString();
-    return year === filterValue;
+    const feePeriodYears = row.getValue(columnId) as string[];
+    return feePeriodYears.includes(filterValue);
   };
 
   // Column definitions
@@ -592,7 +747,7 @@
     },
     // Hidden column for filtering by year
     {
-      accessorKey: "membershipStartTime",
+      accessorKey: "feePeriodYears",
       header: "",
       enableHiding: true,
       enableSorting: false,
@@ -607,7 +762,7 @@
     // Year filter
     if (selectedYear !== "all") {
       filters.push({
-        id: "membershipStartTime",
+        id: "feePeriodYears",
         value: selectedYear,
       });
     }
@@ -703,23 +858,16 @@
     return Object.keys(rowSelection).filter((id) => rowSelection[id]);
   }
 
-  // Check if a membership period has ended (endTime is in the past)
-  function isMembershipPeriodEnded(endTime: Date | null, now: Date = new Date()): boolean {
-    if (!endTime) return false;
-    return endTime < now;
-  }
-
   // Helper to get the count of selected members by status
   function getSelectedMembersByStatus() {
     const selectedIds = getSelectedMemberIds();
     const selectedRows = table.getRowModel().rows.filter((row) => selectedIds.includes(row.id));
-    const now = new Date();
 
     const counts = {
       awaitingApproval: 0,
       active: 0,
       awaitingPayment: 0,
-      resigned: 0,
+      ended: 0,
       rejected: 0,
       eligibleForDeemResigned: 0,
     };
@@ -731,15 +879,15 @@
           break;
         case "active":
           counts.active++;
-          if (isMembershipPeriodEnded(row.original.membershipEndTime, now)) {
+          if (row.original.canBeDeemedResigned) {
             counts.eligibleForDeemResigned++;
           }
           break;
         case "awaiting_payment":
           counts.awaitingPayment++;
           break;
-        case "resigned":
-          counts.resigned++;
+        case "ended":
+          counts.ended++;
           break;
         case "rejected":
           counts.rejected++;
@@ -760,37 +908,27 @@
     return `${firstName} ${lastName}`.trim() || (row.email ?? row.id);
   }
 
-  // Helper to get selected members eligible for approval
-  // Only awaiting_approval or awaiting_payment members
+  // Payment completion moves an application to awaiting_approval. Unpaid
+  // awaiting_payment applications cannot be approved.
   function getSelectedApprovableMembers(): { ids: string[]; names: string[] } {
     const selectedIds = getSelectedMemberIds();
     const eligible = table
       .getRowModel()
-      .rows.filter(
-        (row) =>
-          selectedIds.includes(row.id) &&
-          (row.original.status === "awaiting_approval" || row.original.status === "awaiting_payment"),
-      );
+      .rows.filter((row) => selectedIds.includes(row.id) && row.original.status === "awaiting_approval");
     return {
       ids: eligible.map((row) => row.id),
       names: eligible.map((row) => formatMemberName(row.original)),
     };
   }
 
-  // Helper to get selected members eligible for bulk deem resigned.
-  // Only active members whose membership period has ended — this is stricter
-  // than individual deem resigned (which works on any active member) because
-  // the bulk action is specifically for the year-end cleanup per §8 p2.
+  // Only active members with an actionable unpaid obligation can be deemed
+  // resigned for non-payment under §8 p2.
   function getSelectedDeemResignedMembers(): { ids: string[]; names: string[] } {
     const selectedIds = getSelectedMemberIds();
-    const now = new Date();
     const eligible = table
       .getRowModel()
       .rows.filter(
-        (row) =>
-          selectedIds.includes(row.id) &&
-          row.original.status === "active" &&
-          isMembershipPeriodEnded(row.original.membershipEndTime, now),
+        (row) => selectedIds.includes(row.id) && row.original.status === "active" && row.original.canBeDeemedResigned,
       );
     return {
       ids: eligible.map((row) => row.id),
@@ -877,7 +1015,7 @@
   // Derived values for bulk action visibility
   const selectedCount = $derived(getSelectedMemberIds().length);
   const statusCounts = $derived(getSelectedMembersByStatus());
-  const canApprove = $derived(statusCounts.awaitingApproval + statusCounts.awaitingPayment > 0);
+  const canApprove = $derived(statusCounts.awaitingApproval > 0);
   const canDeemResigned = $derived(statusCounts.eligibleForDeemResigned > 0);
 </script>
 
@@ -975,9 +1113,9 @@
           {$LL.admin.members.table.active()}
         </Button>
         <Button
-          variant={selectedStatus === "resigned" ? "default" : "outline"}
+          variant={selectedStatus === "ended" ? "default" : "outline"}
           size="sm"
-          onclick={() => (selectedStatus = "resigned")}
+          onclick={() => (selectedStatus = "ended")}
         >
           {$LL.admin.members.table.resigned()}
         </Button>
@@ -1022,7 +1160,7 @@
             data-testid="bulk-approve-button"
           >
             {$LL.admin.members.table.bulkApprove({
-              count: statusCounts.awaitingApproval + statusCounts.awaitingPayment,
+              count: statusCounts.awaitingApproval,
             })}
           </Button>
         {/if}
@@ -1121,15 +1259,7 @@
                     {formatStatus(row.original.status)}
                   </Badge>
                 {:else if cell.column.id === "membershipTypeId"}
-                  {@const filteredMemberships = getFilteredMemberships(row.original.allMemberships)}
-                  <div class="flex items-center gap-2">
-                    <span>{getLocalizedTypeName(row.original.membershipTypeName)}</span>
-                    {#if filteredMemberships.length > 1}
-                      <Badge variant="secondary" class="text-xs">
-                        {$LL.admin.members.table.membershipsCount({ count: filteredMemberships.length })}
-                      </Badge>
-                    {/if}
-                  </div>
+                  <span>{getLocalizedTypeName(row.original.membershipTypeName)}</span>
                 {:else}
                   <FlexRender {cell} />
                 {/if}
@@ -1137,7 +1267,9 @@
             {/each}
           </Table.Row>
           {#if expandedRows.has(row.original.userId ?? row.original.id)}
-            {@const filteredMemberships = getFilteredMemberships(row.original.allMemberships)}
+            {@const visibleFeeHistory = getVisibleFeeHistory(row.original.feeHistory)}
+            {@const membershipActivity = getMembershipActivity(row.original)}
+            {@const memberName = formatMemberName(row.original)}
             <Table.Row class="bg-muted/50">
               <Table.Cell colspan={columns.length}>
                 <div class="p-4">
@@ -1192,163 +1324,222 @@
                     </div>
                   {/if}
 
-                  <!-- Filtered Memberships -->
-                  <div class="space-y-3">
-                    <h4 class="font-semibold">
-                      {#if filteredMemberships.length !== row.original.membershipCount}
-                        {$LL.admin.members.table.memberships()} ({$LL.admin.members.table.membershipsOf({
-                          filtered: filteredMemberships.length,
-                          total: row.original.membershipCount,
-                        })})
-                      {:else}
-                        {$LL.admin.members.table.memberships()} ({filteredMemberships.length})
-                      {/if}
-                    </h4>
-                    <div class="space-y-3">
-                      {#each filteredMemberships as membership (membership.id)}
-                        {@const memberName = formatMemberName(row.original)}
-                        <div class="rounded-md border p-4">
-                          <div class="mb-3 grid gap-2 text-sm md:grid-cols-3">
-                            <div>
-                              <dt class="text-muted-foreground">{$LL.admin.members.table.typeLabel()}</dt>
-                              <dd class="font-medium">{getLocalizedTypeName(membership.membershipTypeName)}</dd>
-                            </div>
-                            <div>
-                              <dt class="text-muted-foreground">{$LL.admin.members.table.periodLabel()}</dt>
-                              <dd>
-                                {membership.membershipStartTime
-                                  ? formatDate(membership.membershipStartTime, $locale)
-                                  : "-"} - {membership.membershipEndTime
-                                  ? formatDate(membership.membershipEndTime, $locale)
-                                  : "-"}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt class="text-muted-foreground">{$LL.admin.members.table.priceLabel()}</dt>
-                              <dd class="font-mono text-xs">
-                                {membership.membershipStripePriceId ?? "-"}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt class="text-muted-foreground">{$LL.admin.members.table.statusLabel()}</dt>
-                              <dd>
-                                <Badge variant={getStatusColor(membership.status)}>
-                                  {formatStatus(membership.status)}
-                                </Badge>
-                              </dd>
-                            </div>
-                            <div>
-                              <dt class="text-muted-foreground">{$LL.admin.members.table.createdLabel()}</dt>
-                              <dd>{formatDate(membership.createdAt, $locale)}</dd>
-                            </div>
-                            {#if membership.stripeSessionId}
-                              <div>
-                                <dt class="text-muted-foreground">{$LL.admin.members.table.stripeSessionLabel()}</dt>
-                                <dd class="font-mono text-xs">{membership.stripeSessionId}</dd>
-                              </div>
-                            {/if}
-                            {#if membership.description}
-                              <div class="md:col-span-3">
-                                <dt class="text-muted-foreground">{$LL.admin.members.table.descriptionLabel()}</dt>
-                                <dd class="whitespace-pre-wrap">{membership.description}</dd>
-                              </div>
-                            {/if}
+                  <div class="mb-4 space-y-3">
+                    <h4 class="font-semibold">{$LL.admin.members.table.legalMembership()}</h4>
+                    <div class="rounded-md border p-4">
+                      <dl class="grid gap-2 text-sm md:grid-cols-4">
+                        <div>
+                          <dt class="text-muted-foreground">{$LL.admin.members.table.typeLabel()}</dt>
+                          <dd class="font-medium">{getLocalizedTypeName(row.original.membershipTypeName)}</dd>
+                        </div>
+                        <div>
+                          <dt class="text-muted-foreground">{$LL.admin.members.table.statusLabel()}</dt>
+                          <dd>
+                            <Badge variant={getStatusColor(row.original.status)}
+                              >{formatStatus(row.original.status)}</Badge
+                            >
+                          </dd>
+                        </div>
+                        <div>
+                          <dt class="text-muted-foreground">{$LL.admin.members.table.membershipStartedLabel()}</dt>
+                          <dd>
+                            {row.original.currentMembershipStartedAt
+                              ? formatDate(row.original.currentMembershipStartedAt, $locale)
+                              : "-"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt class="text-muted-foreground">{$LL.admin.members.table.membershipEndedLabel()}</dt>
+                          <dd>
+                            {row.original.currentMembershipEndedAt
+                              ? formatDate(row.original.currentMembershipEndedAt, $locale)
+                              : "-"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt class="text-muted-foreground">{$LL.admin.members.table.createdLabel()}</dt>
+                          <dd>{formatDate(row.original.createdAt, $locale)}</dd>
+                        </div>
+                        {#if row.original.applicationMotive}
+                          <div class="md:col-span-3">
+                            <dt class="text-muted-foreground">{$LL.admin.members.table.descriptionLabel()}</dt>
+                            <dd class="whitespace-pre-wrap">{row.original.applicationMotive}</dd>
                           </div>
+                        {/if}
+                      </dl>
 
-                          <!-- Admin Actions per membership (only for admins with write access) -->
-                          {#if canWrite}
-                            {#if membership.status === "awaiting_approval"}
-                              <div class="flex gap-2 border-t pt-3">
-                                {#if canChangeMemberType(membership)}
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    data-testid={`change-membership-type-${membership.id}`}
-                                    onclick={() => openTypeChange(membership.id, memberName, membership)}
-                                  >
-                                    {$LL.admin.members.table.changeMembershipType()}
-                                  </Button>
-                                {/if}
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  onclick={() => openIndividualAction("approve", membership.id, memberName)}
-                                >
-                                  {$LL.admin.members.table.approve()}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onclick={() => openIndividualAction("reject", membership.id, memberName)}
-                                >
-                                  {$LL.admin.members.table.reject()}
-                                </Button>
-                              </div>
-                            {:else if membership.status === "resigned" || membership.status === "rejected"}
-                              <div class="flex gap-2 border-t pt-3">
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  onclick={() => openIndividualAction("reactivate", membership.id, memberName)}
-                                >
-                                  {$LL.admin.members.table.reactivate()}
-                                </Button>
-                              </div>
-                            {:else if membership.status === "awaiting_payment"}
-                              <div class="flex gap-2 border-t pt-3">
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  onclick={() => openIndividualAction("approve", membership.id, memberName)}
-                                >
-                                  {$LL.admin.members.table.approve()}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onclick={() => openIndividualAction("reject", membership.id, memberName)}
-                                >
-                                  {$LL.admin.members.table.reject()}
-                                </Button>
-                              </div>
-                            {:else if membership.status === "active"}
-                              <div class="flex gap-2 border-t pt-3">
-                                {#if canChangeMemberType(membership)}
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    data-testid={`change-membership-type-${membership.id}`}
-                                    onclick={() => openTypeChange(membership.id, memberName, membership)}
-                                  >
-                                    {$LL.admin.members.table.changeMembershipType()}
-                                  </Button>
-                                {/if}
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onclick={() => openIndividualAction("deemResigned", membership.id, memberName)}
-                                >
-                                  {$LL.admin.members.table.deemResigned() +
-                                    " (" +
-                                    page.data.customizations.memberResignRule +
-                                    ")"}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onclick={() => openIndividualAction("resign", membership.id, memberName)}
-                                >
-                                  {$LL.admin.members.table.resignMembership() +
-                                    " (" +
-                                    page.data.customizations.memberResignRule +
-                                    ")"}
-                                </Button>
-                              </div>
+                      {#if canWrite}
+                        <div class="mt-3 flex flex-wrap gap-2 border-t pt-3">
+                          {#if (row.original.status === "active" || row.original.status === "awaiting_approval") && canChangeMemberType(row.original)}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              data-testid={`change-membership-type-${row.original.id}`}
+                              onclick={() => openTypeChange(row.original, memberName)}
+                              >{$LL.admin.members.table.changeMembershipType()}</Button
+                            >
+                          {/if}
+                          {#if row.original.status === "awaiting_approval"}
+                            <Button
+                              size="sm"
+                              onclick={() => openIndividualAction("approve", row.original.id, memberName)}
+                              >{$LL.admin.members.table.approve()}</Button
+                            >
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onclick={() => openIndividualAction("reject", row.original.id, memberName)}
+                              >{$LL.admin.members.table.reject()}</Button
+                            >
+                          {:else if row.original.status === "ended"}
+                            <Button
+                              size="sm"
+                              onclick={() => openIndividualAction("reactivate", row.original.id, memberName)}
+                              >{$LL.admin.members.table.reactivate()}</Button
+                            >
+                          {:else if row.original.status === "active"}
+                            {#if row.original.canBeDeemedResigned}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onclick={() => openIndividualAction("deemResigned", row.original.id, memberName)}
+                              >
+                                {$LL.admin.members.table.deemResigned() +
+                                  " (" +
+                                  page.data.customizations.memberResignRule +
+                                  ")"}
+                              </Button>
                             {/if}
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onclick={() => openIndividualAction("resign", row.original.id, memberName)}
+                            >
+                              {$LL.admin.members.table.resignMembership() +
+                                " (" +
+                                page.data.customizations.memberResignRule +
+                                ")"}
+                            </Button>
                           {/if}
                         </div>
-                      {/each}
+                      {/if}
                     </div>
+                  </div>
+
+                  <div class="mb-4 space-y-3">
+                    <h4 class="font-semibold">{$LL.admin.members.table.activityHistory()}</h4>
+                    {#if membershipActivity.length === 0}
+                      <p class="text-sm text-muted-foreground">{$LL.admin.members.table.noActivityHistory()}</p>
+                    {:else}
+                      <ol class="space-y-2">
+                        {#each membershipActivity as activity (activity.id)}
+                          <li class="rounded-md border p-3 text-sm">
+                            {#if activity.kind === "event"}
+                              <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex flex-wrap items-center gap-2">
+                                  <span class="font-medium">{formatMembershipEvent(activity.event.eventType)}</span>
+                                  <Badge variant={activity.event.certainty === "inferred" ? "secondary" : "outline"}>
+                                    {activity.event.certainty === "inferred"
+                                      ? $LL.admin.members.table.eventInferred()
+                                      : $LL.admin.members.table.eventConfirmed()}
+                                  </Badge>
+                                </div>
+                                <time>{formatDate(activity.occurredAt, $locale)}</time>
+                              </div>
+                              <div class="mt-1 text-muted-foreground">
+                                {formatEventSource(activity.event.source)}{activity.event.actorName
+                                  ? ` · ${activity.event.actorName}`
+                                  : ""}
+                                {#if activity.event.feePeriodStartTime && activity.event.feePeriodEndTime}
+                                  · {formatDate(activity.event.feePeriodStartTime, $locale)} – {formatDate(
+                                    activity.event.feePeriodEndTime,
+                                    $locale,
+                                  )}
+                                {/if}
+                              </div>
+                              {@const details = getEventDetails(activity.event)}
+                              {#if details}<div class="mt-1">{details}</div>{/if}
+                            {:else}
+                              <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex flex-wrap items-center gap-2">
+                                  <span class="font-medium">{$LL.admin.members.table.paymentEvent()}</span>
+                                  <Badge variant="outline">{formatPaymentStatus(activity.payment)}</Badge>
+                                </div>
+                                <time>{formatDate(activity.occurredAt, $locale)}</time>
+                              </div>
+                              <div class="mt-1 text-muted-foreground">
+                                {formatPaymentSource(activity.payment.source)} · {getMembershipTypeName(
+                                  activity.feePeriod.membershipTypeId,
+                                )} ·
+                                {formatDate(activity.feePeriod.startTime, $locale)} – {formatDate(
+                                  activity.feePeriod.endTime,
+                                  $locale,
+                                )}
+                              </div>
+                              <div class="mt-1 flex flex-wrap gap-x-3">
+                                {#if activity.payment.amount !== null && activity.payment.currency}
+                                  <span
+                                    >{(activity.payment.amount / 100).toFixed(2)}
+                                    {activity.payment.currency.toUpperCase()}</span
+                                  >
+                                {/if}
+                                <span class="font-mono text-xs"
+                                  >{activity.payment.stripeSessionId ?? activity.payment.id}</span
+                                >
+                              </div>
+                            {/if}
+                          </li>
+                        {/each}
+                      </ol>
+                    {/if}
+                  </div>
+
+                  <div class="space-y-3">
+                    <h4 class="font-semibold">{$LL.admin.members.table.feeHistory()}</h4>
+                    {#if visibleFeeHistory.length === 0}
+                      <p class="text-sm text-muted-foreground">{$LL.admin.members.table.noFeeHistory()}</p>
+                    {:else}
+                      <div class="space-y-3">
+                        {#each visibleFeeHistory as feePeriod (feePeriod.id)}
+                          <div class="rounded-md border p-4">
+                            <dl class="grid gap-2 text-sm md:grid-cols-3">
+                              <div>
+                                <dt class="text-muted-foreground">{$LL.admin.members.table.typeLabel()}</dt>
+                                <dd class="font-medium">{getMembershipTypeName(feePeriod.membershipTypeId)}</dd>
+                              </div>
+                              <div>
+                                <dt class="text-muted-foreground">{$LL.admin.members.table.periodLabel()}</dt>
+                                <dd>
+                                  {formatDate(feePeriod.startTime, $locale)} – {formatDate(feePeriod.endTime, $locale)}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt class="text-muted-foreground">{$LL.admin.members.table.priceLabel()}</dt>
+                                <dd class="font-mono text-xs">{feePeriod.stripePriceId ?? "-"}</dd>
+                              </div>
+                              <div>
+                                <dt class="text-muted-foreground">{$LL.admin.members.table.obligationLabel()}</dt>
+                                <dd>
+                                  {#if feePeriod.obligation}
+                                    {formatObligationKind(feePeriod.obligation.kind)} · {formatObligationDisposition(
+                                      feePeriod.obligation.disposition,
+                                    )}
+                                  {:else}
+                                    {$LL.admin.members.table.noObligation()}
+                                  {/if}
+                                </dd>
+                              </div>
+                              {#if feePeriod.obligation?.dispositionReason}
+                                <div class="md:col-span-2">
+                                  <dt class="text-muted-foreground">{$LL.admin.members.table.reasonLabel()}</dt>
+                                  <dd>{feePeriod.obligation.dispositionReason}</dd>
+                                </div>
+                              {/if}
+                            </dl>
+                          </div>
+                        {/each}
+                      </div>
+                    {/if}
                   </div>
                 </div>
               </Table.Cell>
@@ -1385,7 +1576,7 @@
     <AlertDialog.Header>
       <AlertDialog.Title>
         {$LL.admin.members.table.confirmApproveTitle({
-          count: statusCounts.awaitingApproval + statusCounts.awaitingPayment,
+          count: statusCounts.awaitingApproval,
         })}
       </AlertDialog.Title>
       <AlertDialog.Description>
@@ -1415,7 +1606,7 @@
     if (open) return;
     typeChangeRequestId++;
     typeChangeAction = null;
-    targetMembershipId = "";
+    targetFeePeriodId = "";
     typeChangeTargets = [];
     typeChangeTargetsLoading = false;
     typeChangeTargetsError = false;
@@ -1437,7 +1628,7 @@
           <label for="target-membership-type" class="text-sm font-medium">
             {$LL.admin.members.table.newMembershipType()}
           </label>
-          <NativeSelect.Root id="target-membership-type" bind:value={targetMembershipId}>
+          <NativeSelect.Root id="target-membership-type" bind:value={targetFeePeriodId}>
             {#each typeChangeTargets as target (target.id)}
               <NativeSelect.Option value={target.id}>
                 {getLocalizedTypeName(target.membershipTypeName)}
@@ -1466,7 +1657,7 @@
         <AlertDialog.Action
           data-testid="confirm-membership-type-change"
           onclick={confirmTypeChange}
-          disabled={typeChangeLoading || typeChangeTargetsLoading || !targetMembershipId}
+          disabled={typeChangeLoading || typeChangeTargetsLoading || !targetFeePeriodId}
         >
           {$LL.admin.members.table.confirm()}
         </AlertDialog.Action>

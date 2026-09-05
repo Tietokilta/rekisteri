@@ -11,6 +11,8 @@ export const createMembershipTypeSchema = v.object({
   descriptionFi: v.optional(v.string()),
   descriptionEn: v.optional(v.string()),
   purchasable: v.optional(v.boolean(), false),
+  requiresPayment: v.optional(v.boolean(), true),
+  requiresStudentVerification: v.optional(v.boolean(), false),
 });
 
 export const updateMembershipTypeSchema = v.object({
@@ -20,6 +22,8 @@ export const updateMembershipTypeSchema = v.object({
   descriptionFi: v.optional(v.string()),
   descriptionEn: v.optional(v.string()),
   purchasable: v.optional(v.boolean(), false),
+  requiresPayment: v.optional(v.boolean(), true),
+  requiresStudentVerification: v.optional(v.boolean(), false),
 });
 
 export const deleteMembershipTypeSchema = v.object({

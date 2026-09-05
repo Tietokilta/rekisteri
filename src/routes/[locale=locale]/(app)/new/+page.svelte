@@ -12,15 +12,14 @@
   import ExternalLink from "@lucide/svelte/icons/external-link";
   import { payMembership } from "./data.remote";
   import { payMembershipSchema } from "./schema";
-  import { getStripePriceMetadata } from "$lib/api/stripe.remote";
   import { formatDate, formatPrice } from "$lib/utils";
+  import { getStripePriceMetadata } from "$lib/api/stripe.remote";
   import { Textarea } from "$lib/components/ui/textarea";
-  import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
   import { PersistedState } from "runed";
   import { onMount, tick } from "svelte";
 
   interface PurchaseFormState {
-    membershipId: string;
+    feePeriodId: string;
     description: string;
     isStudent: boolean;
   }
@@ -31,16 +30,7 @@
 
   const { data }: PageProps = $props();
 
-  const memberships = $derived(data.memberships);
-  const availableMemberships = $derived(data.availableMemberships);
-  // Only show memberships that have a Stripe price ID
-  // Only block memberships that are active or pending - allow repurchasing cancelled/expired memberships
-  const filteredMemberships = $derived(
-    availableMemberships.filter(
-      (a): a is typeof a & { stripePriceId: string } =>
-        !!a.stripePriceId && memberships.every((b) => !(a.id === b.id && BLOCKING_MEMBER_STATUSES.has(b.status))),
-    ),
-  );
+  const availableFeePeriods = $derived(data.availableFeePeriods);
 
   // Check if profile is complete
   const isProfileComplete = $derived(Boolean(data.user.firstNames && data.user.lastName && data.user.homeMunicipality));
@@ -48,11 +38,11 @@
   let isStudent = $state(false);
   let restored = $state(false);
   let requireStudentVerification = $derived(
-    availableMemberships.find((e) => e.id === payMembership.fields.membershipId.value())?.requiresStudentVerification ??
-      false,
+    availableFeePeriods.find((feePeriod) => feePeriod.id === payMembership.fields.feePeriodId.value())?.membershipType
+      .requiresStudentVerification ?? false,
   );
   let disableForm = $derived(
-    (requireStudentVerification && (!isStudent || !data.hasValidAaltoEmail)) || filteredMemberships.length === 0,
+    (requireStudentVerification && (!isStudent || !data.hasValidAaltoEmail)) || availableFeePeriods.length === 0,
   );
 
   // Build the URL to the emails page with a ?next= param so the email
@@ -69,7 +59,7 @@
     if (!restored) return;
     const textarea = document.querySelector<HTMLTextAreaElement>('textarea[name="description"]');
     formPersist.current = {
-      membershipId: payMembership.fields.membershipId.value() ?? "",
+      feePeriodId: payMembership.fields.feePeriodId.value() ?? "",
       description: textarea?.value ?? "",
       isStudent,
     };
@@ -90,9 +80,9 @@
     isStudent = saved.isStudent;
     await tick();
 
-    if (saved.membershipId) {
+    if (saved.feePeriodId) {
       const radio = document.querySelector<HTMLInputElement>(
-        `input[type="radio"][name="membershipId"][value="${CSS.escape(saved.membershipId)}"]`,
+        `input[type="radio"][name="feePeriodId"][value="${CSS.escape(saved.feePeriodId)}"]`,
       );
       if (radio) {
         radio.checked = true;
@@ -127,43 +117,43 @@
       <!-- Show membership options when profile is complete -->
       <Card.Content>
         <form {...payMembership.preflight(payMembershipSchema)} class="flex flex-col gap-4">
-          {#if filteredMemberships.length === 0}
+          {#if availableFeePeriods.length === 0}
             <Alert.Root>
               <CircleAlert class="h-4 w-4" />
               <Alert.Description>{$LL.membership.noAvailableMemberships()}</Alert.Description>
             </Alert.Root>
           {/if}
           <div class="space-y-3">
-            {#each filteredMemberships as membership (membership.id)}
-              {@const typeName =
-                $locale === "fi" ? membership.membershipType.name.fi : membership.membershipType.name.en}
-              {@const typeDescription = membership.membershipType.description
+            {#each availableFeePeriods as feePeriod (feePeriod.id)}
+              {@const typeName = $locale === "fi" ? feePeriod.membershipType.name.fi : feePeriod.membershipType.name.en}
+              {@const typeDescription = feePeriod.membershipType.description
                 ? $locale === "fi"
-                  ? membership.membershipType.description.fi
-                  : membership.membershipType.description.en
+                  ? feePeriod.membershipType.description.fi
+                  : feePeriod.membershipType.description.en
                 : null}
               <label
                 class="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors focus-within:border-primary hover:border-primary has-checked:border-primary has-checked:bg-accent"
               >
-                <input {...payMembership.fields.membershipId.as("radio", membership.id)} required class="mt-1" />
+                <input {...payMembership.fields.feePeriodId.as("radio", feePeriod.id)} required class="mt-1" />
                 <div class="flex flex-col gap-1">
-                  <svelte:boundary>
-                    {@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
-                    <span class="font-medium">
-                      {typeName} ({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
-                    </span>
-                    {#snippet failed()}
-                      <span class="font-medium text-destructive">{$LL.admin.memberships.failedToLoadPrice()}</span>
-                    {/snippet}
-                  </svelte:boundary>
-                  <span class="text-sm text-muted-foreground">
-                    {formatDate(new Date(membership.startTime), $locale)}
-                    – {formatDate(new Date(membership.endTime), $locale)}
+                  <span class="font-medium">
+                    {typeName}
+                    {#if feePeriod.stripePriceId}
+                      <svelte:boundary>
+                        {@const price = await getStripePriceMetadata(feePeriod.stripePriceId)}
+                        ({formatPrice(price.priceCents, price.currency, $locale)})
+                        {#snippet failed()}{/snippet}
+                      </svelte:boundary>
+                    {/if}
                   </span>
-                  {#if membership.willAutoApprove}
-                    <span class="text-xs text-green-600 dark:text-green-400">{$LL.membership.willAutoApprove()}</span>
-                  {:else}
+                  <span class="text-sm text-muted-foreground">
+                    {formatDate(new Date(feePeriod.startDate), $locale)}
+                    – {formatDate(new Date(feePeriod.endDate), $locale)}
+                  </span>
+                  {#if feePeriod.requiresBoardApproval}
                     <span class="text-xs text-muted-foreground">{$LL.membership.willRequireApproval()}</span>
+                  {:else}
+                    <span class="text-xs text-green-600 dark:text-green-400">{$LL.membership.renewalNoApproval()}</span>
                   {/if}
                   {#if typeDescription}
                     <span class="text-sm text-muted-foreground">{typeDescription}</span>
@@ -185,7 +175,7 @@
             {/if}
           </div>
 
-          {#if payMembership.fields.membershipId.value()}
+          {#if payMembership.fields.feePeriodId.value()}
             <div class="space-y-2">
               <label for="description" class="text-sm font-medium">
                 {$LL.membership.description()}
@@ -257,17 +247,15 @@
             class={disableForm ? "cursor-not-allowed opacity-50" : ""}
           >
             {$LL.membership.buy()}
-            {#if payMembership.fields.membershipId.value()}
-              {@const selectedMembership = availableMemberships.find(
-                (x) => x.id === payMembership.fields.membershipId.value(),
+            {#if payMembership.fields.feePeriodId.value()}
+              {@const selectedFeePeriod = availableFeePeriods.find(
+                (feePeriod) => feePeriod.id === payMembership.fields.feePeriodId.value(),
               )}
-              {#if selectedMembership?.stripePriceId}
+              {#if selectedFeePeriod?.stripePriceId}
                 <svelte:boundary>
-                  {@const priceMetadata = await getStripePriceMetadata(selectedMembership.stripePriceId)}
-                  ({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
-                  {#snippet failed()}
-                    <span>(-)</span>
-                  {/snippet}
+                  {@const price = await getStripePriceMetadata(selectedFeePeriod.stripePriceId)}
+                  ({formatPrice(price.priceCents, price.currency, $locale)})
+                  {#snippet failed()}{/snippet}
                 </svelte:boundary>
               {/if}
             {/if}
