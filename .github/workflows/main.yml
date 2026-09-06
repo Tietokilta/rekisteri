@@ -31,7 +31,7 @@ jobs:
             keep-env-derivations = true
             keep-outputs = true
       - name: Restore and save Nix store
-        uses: nix-community/cache-nix-action@42506e270a07908a6cb6f5ab7ba9b2e60056d6be
+        uses: nix-community/cache-nix-action@099b5eda36d156fcdd6477de3db9e7fa4caf800f
         with:
           primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
@@ -160,7 +160,7 @@ jobs:
             keep-env-derivations = true
             keep-outputs = true
       - name: Restore and save Nix store
-        uses: nix-community/cache-nix-action@42506e270a07908a6cb6f5ab7ba9b2e60056d6be
+        uses: nix-community/cache-nix-action@099b5eda36d156fcdd6477de3db9e7fa4caf800f
         with:
           primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
