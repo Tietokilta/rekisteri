@@ -37,6 +37,7 @@
   import Copy from "@lucide/svelte/icons/copy";
   import Check from "@lucide/svelte/icons/check";
   import Download from "@lucide/svelte/icons/download";
+  import { untrack } from "svelte";
   import { goto, invalidateAll } from "$app/navigation";
   import { page } from "$app/state";
   import { SvelteURLSearchParams } from "svelte/reactivity";
@@ -631,9 +632,33 @@
     columnFilters = filters;
   });
 
+  // Reset page to 0 when filters or search change (skip initial mount to respect URL params)
+  let initialFiltersApplied = false;
+  $effect(() => {
+    void globalFilter;
+    void selectedYear;
+    void selectedType;
+    void selectedStatus;
+
+    if (!initialFiltersApplied) {
+      initialFiltersApplied = true;
+      return;
+    }
+
+    untrack(() => {
+      if (pagination.pageIndex !== 0) {
+        pagination = {
+          ...pagination,
+          pageIndex: 0,
+        };
+      }
+    });
+  });
+
   // Create table
   const table = createTable({
     features,
+    autoResetPageIndex: false,
     get data() {
       return data;
     },
@@ -1363,7 +1388,7 @@
   <div class="flex items-center justify-between">
     <div class="text-sm text-muted-foreground">
       {$LL.admin.members.table.showing({
-        start: pagination.pageIndex * pagination.pageSize + 1,
+        start: table.getFilteredRowModel().rows.length === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1,
         end: Math.min((pagination.pageIndex + 1) * pagination.pageSize, table.getFilteredRowModel().rows.length),
         total: table.getFilteredRowModel().rows.length,
       })}
