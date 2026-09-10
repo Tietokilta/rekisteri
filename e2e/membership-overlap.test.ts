@@ -1,5 +1,6 @@
 import { test, expect } from "./fixtures/isolated-user";
 import * as table from "$lib/server/db/schema";
+import { eq } from "drizzle-orm";
 import { route } from "../src/lib/ROUTES";
 
 // Use existing membership type from seed data
@@ -10,9 +11,22 @@ const membershipTypeId = "ulkojasen"; // External member - no student verificati
 const realStripePriceId = "price_1Sqs7y2a3B4f6jfhHjnWzk9n";
 
 test.describe("Membership Overlap Blocking", () => {
+  // Track test memberships for cleanup
+  let testMembershipIds: string[] = [];
+
+  test.afterEach(async ({ db }) => {
+    for (const id of testMembershipIds) {
+      await db.delete(table.member).where(eq(table.member.membershipId, id));
+      await db.delete(table.membership).where(eq(table.membership.id, id));
+    }
+    testMembershipIds = [];
+  });
+
   test("shows membership when user has no blocking memberships for that period", async ({ isolatedPage, db }) => {
     // Create a test membership for a far future period
     const testMembershipId = crypto.randomUUID();
+    testMembershipIds.push(testMembershipId);
+
     await db.insert(table.membership).values({
       id: testMembershipId,
       membershipTypeId,
@@ -36,6 +50,8 @@ test.describe("Membership Overlap Blocking", () => {
   }) => {
     // Create a test membership
     const testMembershipId = crypto.randomUUID();
+    testMembershipIds.push(testMembershipId);
+
     await db.insert(table.membership).values({
       id: testMembershipId,
       membershipTypeId,
@@ -67,6 +83,8 @@ test.describe("Membership Overlap Blocking", () => {
   }) => {
     // Create a test membership
     const testMembershipId = crypto.randomUUID();
+    testMembershipIds.push(testMembershipId);
+
     await db.insert(table.membership).values({
       id: testMembershipId,
       membershipTypeId,
@@ -98,6 +116,8 @@ test.describe("Membership Overlap Blocking", () => {
   }) => {
     // Create a test membership
     const testMembershipId = crypto.randomUUID();
+    testMembershipIds.push(testMembershipId);
+
     await db.insert(table.membership).values({
       id: testMembershipId,
       membershipTypeId,
@@ -129,6 +149,8 @@ test.describe("Membership Overlap Blocking", () => {
   }) => {
     // Create a test membership
     const testMembershipId = crypto.randomUUID();
+    testMembershipIds.push(testMembershipId);
+
     await db.insert(table.membership).values({
       id: testMembershipId,
       membershipTypeId,
@@ -160,6 +182,8 @@ test.describe("Membership Overlap Blocking", () => {
   }) => {
     // Create a test membership
     const testMembershipId = crypto.randomUUID();
+    testMembershipIds.push(testMembershipId);
+
     await db.insert(table.membership).values({
       id: testMembershipId,
       membershipTypeId,
@@ -191,6 +215,9 @@ test.describe("Membership Overlap Blocking", () => {
   }) => {
     // Create current membership (2070-2072) - user has this active
     const currentMembershipId = crypto.randomUUID();
+    const futureMembershipId = crypto.randomUUID();
+    testMembershipIds.push(currentMembershipId, futureMembershipId);
+
     await db.insert(table.membership).values({
       id: currentMembershipId,
       membershipTypeId,
@@ -202,7 +229,7 @@ test.describe("Membership Overlap Blocking", () => {
 
     // Future membership (2071-2072) - starts before current ends
     await db.insert(table.membership).values({
-      id: crypto.randomUUID(),
+      id: futureMembershipId,
       membershipTypeId,
       stripePriceId: realStripePriceId,
       startTime: new Date(2071, 7, 1), // Starts August 2071, before July 2072 end
@@ -233,6 +260,9 @@ test.describe("Membership Overlap Blocking", () => {
   }) => {
     // Current membership (2080-2081)
     const currentMembershipId = crypto.randomUUID();
+    const futureMembershipId = crypto.randomUUID();
+    testMembershipIds.push(currentMembershipId, futureMembershipId);
+
     await db.insert(table.membership).values({
       id: currentMembershipId,
       membershipTypeId,
@@ -244,7 +274,7 @@ test.describe("Membership Overlap Blocking", () => {
 
     // Future membership (2081-2082) - starts exactly when current ends
     await db.insert(table.membership).values({
-      id: crypto.randomUUID(),
+      id: futureMembershipId,
       membershipTypeId,
       stripePriceId: realStripePriceId,
       startTime: new Date(2081, 7, 1), // Starts August 2081, after July 2081 end

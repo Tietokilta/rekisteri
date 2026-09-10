@@ -11,8 +11,9 @@ test.describe("Admin membership type correction", () => {
   const email = `type-correction-${crypto.randomUUID()}@example.com`;
 
   test.beforeAll(async ({ db }) => {
-    const startTime = new Date("2080-08-01T09:00:00.000Z");
-    const endTime = new Date("2081-07-31T09:00:00.000Z");
+    // Use a past period (ended before now so /new ignores it, but >= 2022-01-01 so csv-import does not delete it)
+    const startTime = new Date("2022-01-01T09:00:00.000Z");
+    const endTime = new Date("2022-06-30T09:00:00.000Z");
 
     await db.insert(table.membership).values([
       {
