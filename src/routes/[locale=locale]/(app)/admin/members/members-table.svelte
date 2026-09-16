@@ -1203,6 +1203,12 @@
                               : $LL.admin.members.table.no()}
                           </dd>
                         </div>
+                        {#if row.original.secondaryEmails.length > 0}
+                          <div class="col-span-2">
+                            <dt class="text-muted-foreground">{$LL.admin.members.table.secondaryEmailsLabel()}</dt>
+                            <dd class="break-all">{row.original.secondaryEmails.join(", ")}</dd>
+                          </div>
+                        {/if}
                       </dl>
                     </div>
                   {:else}

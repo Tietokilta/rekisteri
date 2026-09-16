@@ -29,6 +29,15 @@ async function loadMembers() {
       membershipStripePriceId: table.membership.stripePriceId,
       membershipStartTime: table.membership.startTime,
       membershipEndTime: table.membership.endTime,
+      secondaryEmails: sql<string[]>`COALESCE(
+        (
+          SELECT array_agg(${table.secondaryEmail.email})
+          FROM ${table.secondaryEmail}
+          WHERE ${table.secondaryEmail.userId} = ${table.user.id}
+            AND ${table.secondaryEmail.verifiedAt} IS NOT NULL
+        ),
+        ARRAY[]::text[]
+      )`.as("secondaryEmails"),
     })
     .from(table.member)
     .leftJoin(table.user, eq(table.member.userId, table.user.id))
