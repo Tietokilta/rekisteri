@@ -25,6 +25,7 @@
   } from "@tanstack/svelte-table";
   import * as Table from "$lib/components/ui/table";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
+  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { Badge } from "$lib/components/ui/badge";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
@@ -37,6 +38,15 @@
   import Copy from "@lucide/svelte/icons/copy";
   import Check from "@lucide/svelte/icons/check";
   import Download from "@lucide/svelte/icons/download";
+  import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal";
+  import ExportDialog from "./export-dialog.svelte";
+  import {
+    generateGoogleGroupsCSV,
+    generateMembersCSV,
+    downloadFile,
+    createExportContext,
+    DEFAULT_EXPORT_COLUMNS,
+  } from "$lib/utils/export";
   import { untrack } from "svelte";
   import { goto, invalidateAll } from "$app/navigation";
   import { page } from "$app/state";
@@ -53,6 +63,7 @@
     bulkApproveMembers,
     bulkMarkMembersResigned,
     changeMemberType,
+    logMemberExport,
   } from "./data.remote";
 
   import type { LocalizedString, MembershipType } from "$lib/server/db/schema";
@@ -73,6 +84,7 @@
   };
 
   type BaseMemberRow = MembershipData & {
+    secondaryEmails: string[];
     allMemberships: MembershipData[];
     membershipCount: number;
   };
@@ -377,22 +389,11 @@
 
   // Copy to clipboard state
   let copySuccess = $state(false);
-  let exportJasenetSuccess = $state(false);
-  let exportAktiivitSuccess = $state(false);
+  let exportSuccess = $state(false);
+  let showExportDialog = $state(false);
 
-  // Helper to strip email aliases (e.g., example+alias@domain.com -> example@domain.com)
-  function stripEmailAlias(email: string): string {
-    const atIndex = email.indexOf("@");
-    if (atIndex === -1) return email;
-
-    const localPart = email.slice(0, atIndex);
-    const domain = email.slice(atIndex);
-
-    const plusIndex = localPart.indexOf("+");
-    if (plusIndex === -1) return email;
-
-    return localPart.slice(0, plusIndex) + domain;
-  }
+  // Canonical export context derived from i18n and current locale
+  const exportContext = $derived(createExportContext($LL, $locale));
 
   // Helper to copy filtered members as text
   async function copyMembersAsText() {
@@ -434,59 +435,65 @@
     }
   }
 
-  // Helper to export filtered members as CSV (Google Groups format)
-  function exportMembersAsCSV(groupEmail: "jasenet@tietokilta.fi" | "aktiivit@tietokilta.fi") {
-    let filteredRows = table.getFilteredRowModel().rows;
+  function triggerExportSuccess() {
+    exportSuccess = true;
+    toast.success($LL.admin.members.table.exported());
+    setTimeout(() => {
+      exportSuccess = false;
+    }, 2000);
+  }
 
-    // For aktiivit@, only include members who have opted in for emails
-    if (groupEmail === "aktiivit@tietokilta.fi") {
-      filteredRows = filteredRows.filter((row) => row.original.isAllowedEmails === true);
-    }
+  // Quick export for all currently filtered rows
+  function exportCurrentViewAsCSV() {
+    const rows = table.getFilteredRowModel().rows.map((r) => r.original);
+    if (rows.length === 0) return;
 
-    // Google Groups CSV format: Group Email [Required],Member Email,Member Type,Member Role
-    const csvRows = ["Group Email [Required],Member Email,Member Type,Member Role"];
+    const csvContent = generateMembersCSV(rows, DEFAULT_EXPORT_COLUMNS, exportContext);
 
-    for (const row of filteredRows) {
-      const rawEmail = row.original.email ?? "";
-      if (!rawEmail) continue; // Skip members without email
-
-      // Strip email aliases (example+alias@domain.com -> example@domain.com)
-      const email = stripEmailAlias(rawEmail).replaceAll('"', '""'); // Also escape quotes
-
-      // Every row has the same format, only email changes
-      csvRows.push(`"${groupEmail}","${email}","User","Member"`);
-    }
-
-    const csvContent = csvRows.join("\n");
-
-    // Create a blob and trigger download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-
-    // Generate filename with timestamp and group name
     const timestamp = new Date().toISOString().split("T", 1)[0];
-    const groupName = groupEmail.split("@", 1)[0]; // Extract 'jasenet' or 'aktiivit'
-    link.setAttribute("href", url);
-    link.setAttribute("download", `${groupName}-export-${timestamp}.csv`);
-    link.style.visibility = "hidden";
+    downloadFile(csvContent, `rekisteri-jasenet-suodatetut-${timestamp}.csv`);
 
-    document.body.append(link);
-    link.click();
-    link.remove();
+    void logMemberExport({
+      count: rows.length,
+      filterSummary: `current_view: year=${selectedYear}, type=${selectedType}, status=${selectedStatus}`,
+    });
 
-    // Show success message
-    if (groupEmail === "jasenet@tietokilta.fi") {
-      exportJasenetSuccess = true;
-      setTimeout(() => {
-        exportJasenetSuccess = false;
-      }, 2000);
-    } else {
-      exportAktiivitSuccess = true;
-      setTimeout(() => {
-        exportAktiivitSuccess = false;
-      }, 2000);
-    }
+    triggerExportSuccess();
+  }
+
+  // Quick export for checked rows
+  function exportSelectedRowsAsCSV() {
+    const rows = table.getSelectedRowModel().rows.map((r) => r.original);
+    if (rows.length === 0) return;
+
+    const csvContent = generateMembersCSV(rows, DEFAULT_EXPORT_COLUMNS, exportContext);
+
+    const timestamp = new Date().toISOString().split("T", 1)[0];
+    downloadFile(csvContent, `rekisteri-jasenet-valitut-${timestamp}.csv`);
+
+    void logMemberExport({
+      count: rows.length,
+      filterSummary: `selected_rows: count=${rows.length}`,
+    });
+
+    triggerExportSuccess();
+  }
+
+  // Export filtered members as CSV (Google Groups format)
+  function exportGoogleGroups(groupEmail: "jasenet@tietokilta.fi" | "aktiivit@tietokilta.fi") {
+    const filteredRows = table.getFilteredRowModel().rows.map((r) => r.original);
+    const csvContent = generateGoogleGroupsCSV(filteredRows, groupEmail);
+
+    const timestamp = new Date().toISOString().split("T", 1)[0];
+    const groupName = groupEmail.split("@", 1)[0];
+    downloadFile(csvContent, `${groupName}-export-${timestamp}.csv`);
+
+    void logMemberExport({
+      count: filteredRows.length,
+      filterSummary: `google_groups: ${groupEmail}`,
+    });
+
+    triggerExportSuccess();
   }
 
   // Helper to filter memberships based on current filters
@@ -920,24 +927,55 @@
           {$LL.admin.members.table.copyAsText()}
         {/if}
       </Button>
-      <Button variant="outline" size="default" onclick={() => exportMembersAsCSV("jasenet@tietokilta.fi")}>
-        {#if exportJasenetSuccess}
-          <Check class="mr-2 size-4" />
-          {$LL.admin.members.table.exported()}
-        {:else}
-          <Download class="mr-2 size-4" />
-          {$LL.admin.members.table.exportJasenet()}
-        {/if}
-      </Button>
-      <Button variant="outline" size="default" onclick={() => exportMembersAsCSV("aktiivit@tietokilta.fi")}>
-        {#if exportAktiivitSuccess}
-          <Check class="mr-2 size-4" />
-          {$LL.admin.members.table.exported()}
-        {:else}
-          <Download class="mr-2 size-4" />
-          {$LL.admin.members.table.exportAktiivit()}
-        {/if}
-      </Button>
+      <!-- Export Dropdown -->
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger>
+          {#snippet child({ props })}
+            <Button {...props} variant="outline" size="default" data-testid="export-dropdown-trigger">
+              {#if exportSuccess}
+                <Check class="mr-2 size-4 text-green-600" />
+                {$LL.admin.members.table.exported()}
+              {:else}
+                <Download class="mr-2 size-4" />
+                {$LL.admin.members.table.export()}
+              {/if}
+              <ChevronDown class="ml-2 size-4 opacity-70" />
+            </Button>
+          {/snippet}
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Content align="start" class="w-64">
+          <DropdownMenu.Item onclick={exportCurrentViewAsCSV} data-testid="export-current-view">
+            <Download class="mr-2 size-4" />
+            <span>{$LL.admin.members.table.exportCurrentView()}</span>
+          </DropdownMenu.Item>
+          <DropdownMenu.Item
+            disabled={table.getSelectedRowModel().rows.length === 0}
+            onclick={exportSelectedRowsAsCSV}
+            data-testid="export-selected-rows"
+          >
+            <Download class="mr-2 size-4" />
+            <span>{$LL.admin.members.table.exportSelectedRows({ count: table.getSelectedRowModel().rows.length })}</span
+            >
+          </DropdownMenu.Item>
+
+          <DropdownMenu.Separator />
+          <DropdownMenu.Label class="text-xs font-semibold text-muted-foreground">
+            {$LL.admin.members.table.googleGroupsSection()}
+          </DropdownMenu.Label>
+          <DropdownMenu.Item onclick={() => exportGoogleGroups("jasenet@tietokilta.fi")} data-testid="export-jasenet">
+            <span>{$LL.admin.members.table.exportJasenet()}</span>
+          </DropdownMenu.Item>
+          <DropdownMenu.Item onclick={() => exportGoogleGroups("aktiivit@tietokilta.fi")} data-testid="export-aktiivit">
+            <span>{$LL.admin.members.table.exportAktiivit()}</span>
+          </DropdownMenu.Item>
+
+          <DropdownMenu.Separator />
+          <DropdownMenu.Item onclick={() => (showExportDialog = true)} data-testid="export-custom">
+            <SlidersHorizontal class="mr-2 size-4" />
+            <span>{$LL.admin.members.table.customExport()}</span>
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Root>
     </div>
     <div class="flex flex-col gap-3">
       <!-- Year Filter -->
@@ -1203,6 +1241,12 @@
                               : $LL.admin.members.table.no()}
                           </dd>
                         </div>
+                        {#if row.original.secondaryEmails.length > 0}
+                          <div class="col-span-2">
+                            <dt class="text-muted-foreground">{$LL.admin.members.table.secondaryEmailsLabel()}</dt>
+                            <dd class="break-all">{row.original.secondaryEmails.join(", ")}</dd>
+                          </div>
+                        {/if}
                       </dl>
                     </div>
                   {:else}
@@ -1591,3 +1635,15 @@
     {/if}
   </AlertDialog.Content>
 </AlertDialog.Root>
+
+<!-- Advanced Export Dialog -->
+<ExportDialog
+  bind:open={showExportDialog}
+  allMembers={data}
+  selectedMembers={table.getSelectedRowModel().rows.map((r) => r.original)}
+  {membershipTypes}
+  {years}
+  currentYearFilter={selectedYear}
+  currentTypeFilter={selectedType}
+  currentStatusFilter={selectedStatus}
+/>
