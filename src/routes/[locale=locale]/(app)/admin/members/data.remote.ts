@@ -11,6 +11,7 @@ import {
   bulkMemberIdsWithReasonSchema,
   changeMemberTypeSchema,
   createMemberSchema,
+  logMemberExportSchema,
 } from "./schema";
 import { getLL } from "$lib/server/i18n";
 import { sendMemberEmail } from "$lib/server/emails";
@@ -19,7 +20,7 @@ import { getUserLocale } from "$lib/server/utils/user";
 import { isValidTransition } from "$lib/server/utils/member";
 import { generateUserId } from "$lib/server/auth/utils";
 import { getDisplayFirstName } from "$lib/utils";
-import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
+import { userHasAdminAccess, userHasAdminWriteAccess } from "$lib/server/auth/admin";
 import type { InferOutput } from "valibot";
 import { stripe } from "$lib/server/payment";
 
@@ -642,4 +643,20 @@ export const bulkMarkMembersResigned = command(bulkMemberIdsWithReasonSchema, as
     message: `${validIds.length} member(s) deemed resigned`,
     processedCount: validIds.length,
   };
+});
+
+export const logMemberExport = command(logMemberExportSchema, async ({ count, filterSummary }) => {
+  const event = getRequestEvent();
+  if (!event.locals.session || !userHasAdminAccess(event.locals.user)) {
+    error(403, "Forbidden");
+  }
+
+  await auditFromEvent(event, "member.export", {
+    metadata: {
+      count,
+      filterSummary,
+    },
+  });
+
+  return { success: true };
 });

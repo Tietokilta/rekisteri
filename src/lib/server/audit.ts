@@ -23,6 +23,7 @@ export type AuditAction =
   | "member.bulk_resign"
   | "member.bulk_reactivate"
   | "member.bulk_import"
+  | "member.export"
   | "membership.create"
   | "membership.update"
   | "membership.delete"
