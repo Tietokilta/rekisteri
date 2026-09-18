@@ -1272,12 +1272,10 @@
                                 <dd class="font-mono text-xs">{membership.stripeSessionId}</dd>
                               </div>
                             {/if}
-                            {#if membership.description}
-                              <div class="md:col-span-3">
-                                <dt class="text-muted-foreground">{$LL.admin.members.table.descriptionLabel()}</dt>
-                                <dd class="whitespace-pre-wrap">{membership.description}</dd>
-                              </div>
-                            {/if}
+                            <div class="md:col-span-3">
+                              <dt class="text-muted-foreground">{$LL.admin.members.table.descriptionLabel()}</dt>
+                              <dd class="whitespace-pre-wrap">{membership.description || $LL.admin.members.table.descriptionFallback()}</dd>
+                            </div>
                           </div>
 
                           <!-- Admin Actions per membership (only for admins with write access) -->
