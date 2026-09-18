@@ -1274,7 +1274,9 @@
                             {/if}
                             <div class="md:col-span-3">
                               <dt class="text-muted-foreground">{$LL.admin.members.table.descriptionLabel()}</dt>
-                              <dd class="whitespace-pre-wrap">{membership.description || $LL.admin.members.table.descriptionFallback()}</dd>
+                              <dd class="whitespace-pre-wrap">
+                                {membership.description || $LL.admin.members.table.descriptionFallback()}
+                              </dd>
                             </div>
                           </div>
 
