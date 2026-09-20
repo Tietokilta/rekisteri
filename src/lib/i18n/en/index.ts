@@ -518,6 +518,7 @@ Best regards,
         createdLabel: "Created:",
         stripeSessionLabel: "Stripe Session:",
         descriptionLabel: "Motivation:",
+        descriptionFallback: "No motivation provided",
 
         // Actions
         approve: "Approve",

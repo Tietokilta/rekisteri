@@ -520,6 +520,7 @@ Terveisin,
         createdLabel: "Luotu:",
         stripeSessionLabel: "Stripe-istunto:",
         descriptionLabel: "Perustelut:",
+        descriptionFallback: "Ei perusteluja",
 
         // Actions
         approve: "Hyväksy",
