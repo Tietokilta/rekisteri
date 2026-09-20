@@ -301,23 +301,22 @@ export async function fulfillSession(sessionId: string) {
 
     await tx.update(table.member).set({ status: newStatus }).where(eq(table.member.id, member.id));
 
-    if (eligible) {
-      const action: AuditAction = "member.auto_approve";
-      await tx.insert(table.auditLog).values({
-        id: encodeBase32LowerCase(crypto.getRandomValues(new Uint8Array(16))),
-        userId: null,
-        action,
-        targetType: "member",
-        targetId: member.id,
-        metadata: {
-          reason: "renewal",
-          membershipTypeId: member.membership.membershipTypeId,
-          userId: member.userId,
-        },
-        ipAddress: null,
-        userAgent: null,
-      });
-    }
+    if (!eligible) return;
+    const action: AuditAction = "member.auto_approve";
+    await tx.insert(table.auditLog).values({
+      id: encodeBase32LowerCase(crypto.getRandomValues(new Uint8Array(16))),
+      userId: null,
+      action,
+      targetType: "member",
+      targetId: member.id,
+      metadata: {
+        reason: "renewal",
+        membershipTypeId: member.membership.membershipTypeId,
+        userId: member.userId,
+      },
+      ipAddress: null,
+      userAgent: null,
+    });
   });
 
   // Send appropriate email based on the status that was set

@@ -20,20 +20,22 @@
   // Handle stripe success redirect
   $effect(() => {
     const stripeStatus = page.url.searchParams.get("stripeStatus");
-    if (stripeStatus === "success") {
-      // Show success toast
-      toast.success($LL.dashboard.paymentSuccess(), {
-        description: $LL.dashboard.paymentSuccessDescription(),
-      });
-
-      // Remove query param from URL
-      goto(route("/[locale=locale]", { locale: $locale }), { replaceState: true });
-
-      // Auto-refresh data after a short delay to allow webhook to process
-      setTimeout(() => {
-        void invalidateAll();
-      }, 2000);
+    if (stripeStatus !== "success") {
+      return;
     }
+
+    // Show success toast
+    toast.success($LL.dashboard.paymentSuccess(), {
+      description: $LL.dashboard.paymentSuccessDescription(),
+    });
+
+    // Remove query param from URL
+    goto(route("/[locale=locale]", { locale: $locale }), { replaceState: true });
+
+    // Auto-refresh data after a short delay to allow webhook to process
+    setTimeout(() => {
+      void invalidateAll();
+    }, 2000);
   });
 </script>
 

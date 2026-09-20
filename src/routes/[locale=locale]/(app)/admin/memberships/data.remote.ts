@@ -23,7 +23,7 @@ export const createMembership = form(createMembershipSchema, async (data) => {
     error(400, "Membership type not found");
   }
   const stripePriceId = membershipType.purchasable ? (data.stripePriceId ?? null) : null;
-  const requiresStudentVerification = membershipType.purchasable ? data.requiresStudentVerification : false;
+  const requiresStudentVerification = membershipType.purchasable && data.requiresStudentVerification;
 
   const membershipId = crypto.randomUUID();
 
@@ -101,7 +101,7 @@ export const updateMembership = form(updateMembershipSchema, async (data) => {
     error(400, "Membership type not found");
   }
   const stripePriceId = membershipType.purchasable ? (data.stripePriceId ?? null) : null;
-  const requiresStudentVerification = membershipType.purchasable ? data.requiresStudentVerification : false;
+  const requiresStudentVerification = membershipType.purchasable && data.requiresStudentVerification;
 
   await db
     .update(table.membership)

@@ -37,10 +37,9 @@ export const load: PageServerLoad = async (event) => {
 
   // Compute whether there are available memberships to purchase
   const blockingMemberships = memberships.filter((m) => BLOCKING_MEMBER_STATUSES.has(m.status));
-  const latestEndTime =
-    blockingMemberships.length > 0
-      ? new Date(Math.max(...blockingMemberships.map((m) => m.endTime.getTime())))
-      : new Date(0);
+  const latestEndTime = new Date(
+    blockingMemberships.length > 0 ? Math.max(...blockingMemberships.map((m) => m.endTime.getTime())) : 0,
+  );
 
   const [availableCount] = await db
     .select({ value: count() })

@@ -114,14 +114,13 @@ test.describe("Association members", () => {
     const user = await db.query.user.findFirst({
       where: { email: email },
     });
-    if (user) {
-      createdUserIds.push(user.id);
+    if (!user) return;
+    createdUserIds.push(user.id);
 
-      const member = await db.query.member.findFirst({
-        where: { userId: user.id },
-      });
-      if (member) createdMemberIds.push(member.id);
-    }
+    const member = await db.query.member.findFirst({
+      where: { userId: user.id },
+    });
+    if (member) createdMemberIds.push(member.id);
   });
 
   test("association members appear in the members table with organization name", async ({ adminPage, db }) => {
