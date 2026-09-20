@@ -1,3 +1,4 @@
+import Papa from "papaparse";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import {
   stripEmailAlias,
@@ -35,26 +36,52 @@ describe("generateGoogleGroupsCSV", () => {
   ];
 
   it("exports all members with valid emails for jasenet@", () => {
-    const csv = generateGoogleGroupsCSV(sampleMembers, "jasenet@tietokilta.fi");
-    const lines = csv.split("\n");
+    const { csv, count } = generateGoogleGroupsCSV(sampleMembers, "jasenet@tietokilta.fi");
+    const lines = csv.split("\r\n");
 
-    expect(lines[0]).toBe("Group Email [Required],Member Email,Member Type,Member Role");
+    expect(lines[0]).toBe('"Group Email [Required]","Member Email","Member Type","Member Role"');
+    expect(count).toBe(2);
     expect(lines).toHaveLength(3); // header + 2 members with emails
     expect(lines[1]).toBe('"jasenet@tietokilta.fi","allowed@tietokilta.fi","User","Member"');
     expect(lines[2]).toBe('"jasenet@tietokilta.fi","notallowed@tietokilta.fi","User","Member"');
   });
 
   it("exports only members who opted in for aktiivit@", () => {
-    const csv = generateGoogleGroupsCSV(sampleMembers, "aktiivit@tietokilta.fi");
-    const lines = csv.split("\n");
+    const { csv, count } = generateGoogleGroupsCSV(sampleMembers, "aktiivit@tietokilta.fi");
+    const lines = csv.split("\r\n");
 
+    expect(count).toBe(1);
     expect(lines).toHaveLength(2); // header + 1 allowed member
     expect(lines[1]).toBe('"aktiivit@tietokilta.fi","allowed@tietokilta.fi","User","Member"');
+  });
+
+  it.each(["jasenet@tietokilta.fi", "aktiivit@tietokilta.fi"] as const)(
+    "reports zero rows for a header-only %s export",
+    (groupEmail) => {
+      const { csv, count } = generateGoogleGroupsCSV(
+        [
+          { email: null, isAllowedEmails: true },
+          { email: "", isAllowedEmails: true },
+        ],
+        groupEmail,
+      );
+      expect(count).toBe(0);
+      expect(Papa.parse(csv, { header: true, skipEmptyLines: true }).data).toEqual([]);
+    },
+  );
+
+  it("reports zero rows when nobody opted in", () => {
+    const { csv, count } = generateGoogleGroupsCSV(
+      [{ email: "member@example.com", isAllowedEmails: false }],
+      "aktiivit@tietokilta.fi",
+    );
+    expect(count).toBe(0);
+    expect(Papa.parse(csv, { header: true, skipEmptyLines: true }).data).toEqual([]);
   });
 });
 
 describe("generateMembersCSV", () => {
-  const sampleMembers: ExportableMember[] = [
+  const sampleMembers: [ExportableMember, ExportableMember] = [
     {
       id: "member-1",
       userId: "user-1",
@@ -124,6 +151,41 @@ describe("generateMembersCSV", () => {
     yes: "Kyllä",
     no: "Ei",
   };
+
+  it("preserves aliases in general email exports", () => {
+    const email = "teemu+primary@tietokilta.fi";
+    const secondaryEmail = "teemu+secondary@aalto.fi";
+    const csv = generateMembersCSV(
+      [{ ...sampleMembers[0], email, secondaryEmails: [secondaryEmail] }],
+      ["email", "secondaryEmails"],
+      { locale: "fi", columnLabels, statusLabels, booleanLabels },
+    );
+    expect(Papa.parse<string[]>(csv.slice(1)).data[1]).toEqual([email, secondaryEmail]);
+  });
+
+  it("round-trips quotes, commas, and newlines through CSV", () => {
+    const firstNames = 'Teemu "Testi", toinen';
+    const homeMunicipality = "Espoo\r\nHelsinki";
+    const csv = generateMembersCSV(
+      [{ ...sampleMembers[0], firstNames, homeMunicipality }],
+      ["firstNames", "municipality"],
+      { locale: "fi", columnLabels, statusLabels, booleanLabels },
+    );
+    expect(csv.slice(1)).toBe('"Etunimet","Kotikunta"\r\n"Teemu ""Testi"", toinen","Espoo\r\nHelsinki"');
+    expect(Papa.parse<string[]>(csv.slice(1)).data[1]).toEqual([firstNames, homeMunicipality]);
+  });
+
+  it.each(["=1+1", "+1+1", "-1+1", "@SUM(1)", "\tformula", "\rformula"])(
+    "escapes spreadsheet formula prefix in %j",
+    (value) => {
+      const csv = generateMembersCSV(
+        [{ ...sampleMembers[0], firstNames: value, lastName: value, homeMunicipality: value }],
+        ["firstNames", "lastName", "municipality"],
+        { locale: "fi", columnLabels, statusLabels, booleanLabels },
+      );
+      expect(Papa.parse<string[]>(csv.slice(1)).data[1]).toEqual(["'" + value, "'" + value, "'" + value]);
+    },
+  );
 
   it("prepends the UTF-8 BOM to ensure Excel compatibility", () => {
     const csv = generateMembersCSV(sampleMembers, DEFAULT_EXPORT_COLUMNS, {

@@ -482,14 +482,14 @@
   // Export filtered members as CSV (Google Groups format)
   function exportGoogleGroups(groupEmail: "jasenet@tietokilta.fi" | "aktiivit@tietokilta.fi") {
     const filteredRows = table.getFilteredRowModel().rows.map((r) => r.original);
-    const csvContent = generateGoogleGroupsCSV(filteredRows, groupEmail);
+    const { csv: csvContent, count } = generateGoogleGroupsCSV(filteredRows, groupEmail);
 
     const timestamp = new Date().toISOString().split("T", 1)[0];
     const groupName = groupEmail.split("@", 1)[0];
     downloadFile(csvContent, `${groupName}-export-${timestamp}.csv`);
 
     void logMemberExport({
-      count: filteredRows.length,
+      count,
       filterSummary: `google_groups: ${groupEmail}`,
     });
 

@@ -169,7 +169,7 @@ export function generateMembersCSV(
   const fields = columns.map((col) => ctx.columnLabels[col]);
   const data = members.map((m) => columns.map((col) => COLUMN_FORMATTERS[col](m, ctx)));
 
-  const csv = Papa.unparse({ fields, data }, { quotes: true });
+  const csv = Papa.unparse({ fields, data }, { quotes: true, escapeFormulae: true });
   // Prepend UTF-8 BOM so Excel on Windows & macOS opens Finnish characters without corruption
   return "\u{FEFF}" + csv;
 }
@@ -180,15 +180,16 @@ export function generateMembersCSV(
 export function generateGoogleGroupsCSV(
   members: Array<{ email: string | null; isAllowedEmails?: boolean | null }>,
   groupEmail: "jasenet@tietokilta.fi" | "aktiivit@tietokilta.fi",
-): string {
+): { csv: string; count: number } {
   const eligibleMembers = (
     groupEmail === "aktiivit@tietokilta.fi" ? members.filter((m) => m.isAllowedEmails === true) : members
   ).filter((m): m is typeof m & { email: string } => Boolean(m.email));
 
-  const rows = eligibleMembers.map((m) => {
-    const email = stripEmailAlias(m.email).replaceAll('"', '""');
-    return `"${groupEmail}","${email}","User","Member"`;
-  });
+  const data = eligibleMembers.map((m) => [groupEmail, stripEmailAlias(m.email), "User", "Member"]);
+  const csv = Papa.unparse(
+    { fields: ["Group Email [Required]", "Member Email", "Member Type", "Member Role"], data },
+    { quotes: true, escapeFormulae: true },
+  );
 
-  return ["Group Email [Required],Member Email,Member Type,Member Role", ...rows].join("\n");
+  return { csv, count: eligibleMembers.length };
 }
