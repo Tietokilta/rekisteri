@@ -47,3 +47,8 @@ const createAssociationMemberSchema = v.object({
 });
 
 export const createMemberSchema = v.variant("type", [createPersonMemberSchema, createAssociationMemberSchema]);
+
+export const logMemberExportSchema = v.object({
+  count: v.pipe(v.number(), v.minValue(0)),
+  filterSummary: v.pipe(v.string(), v.maxLength(500)),
+});
