@@ -163,6 +163,25 @@ describe("generateMembersCSV", () => {
     expect(Papa.parse<string[]>(csv.slice(1)).data[1]).toEqual([email, secondaryEmail]);
   });
 
+  it("optionally strips aliases from primary and secondary emails", () => {
+    const member = {
+      ...sampleMembers[0],
+      email: "teemu+primary@tietokilta.fi",
+      secondaryEmails: ["teemu+secondary@aalto.fi", "teemu+alumni@alumni.aalto.fi"],
+    };
+    const csv = generateMembersCSV(
+      [member],
+      ["email", "secondaryEmails"],
+      { locale: "fi", columnLabels, statusLabels, booleanLabels },
+      true,
+    );
+    expect(Papa.parse<string[]>(csv.slice(1)).data[1]).toEqual([
+      "teemu@tietokilta.fi",
+      "teemu@aalto.fi, teemu@alumni.aalto.fi",
+    ]);
+    expect(member.email).toBe("teemu+primary@tietokilta.fi");
+  });
+
   it("round-trips quotes, commas, and newlines through CSV", () => {
     const firstNames = 'Teemu "Testi", toinen';
     const homeMunicipality = "Espoo\r\nHelsinki";

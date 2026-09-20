@@ -165,9 +165,19 @@ export function generateMembersCSV(
   members: ExportableMember[],
   columns: ExportColumnKey[],
   ctx: ExportContext,
+  stripAliases = false,
 ): string {
   const fields = columns.map((col) => ctx.columnLabels[col]);
-  const data = members.map((m) => columns.map((col) => COLUMN_FORMATTERS[col](m, ctx)));
+  const data = members.map((member) => {
+    const m = stripAliases
+      ? {
+          ...member,
+          email: member.email ? stripEmailAlias(member.email) : member.email,
+          secondaryEmails: member.secondaryEmails?.map(stripEmailAlias),
+        }
+      : member;
+    return columns.map((col) => COLUMN_FORMATTERS[col](m, ctx));
+  });
 
   const csv = Papa.unparse({ fields, data }, { quotes: true, escapeFormulae: true });
   // Prepend UTF-8 BOM so Excel on Windows & macOS opens Finnish characters without corruption

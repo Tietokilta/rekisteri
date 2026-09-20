@@ -51,6 +51,7 @@
   let selectedType = $state(untrack(() => currentTypeFilter));
   let selectedStatus = $state(untrack(() => currentStatusFilter));
   let emailAllowedOnly = $state(false);
+  let stripAliases = $state(false);
   const selectedColumns = new SvelteSet<ExportColumnKey>(DEFAULT_EXPORT_COLUMNS);
   let isExporting = $state(false);
 
@@ -62,6 +63,7 @@
     selectedType = currentTypeFilter;
     selectedStatus = currentStatusFilter;
     emailAllowedOnly = false;
+    stripAliases = false;
   });
 
   // Helper to get localized membership type name
@@ -123,14 +125,14 @@
 
     try {
       const activeColumns = ALL_EXPORT_COLUMNS.filter((col) => selectedColumns.has(col));
-      const csvContent = generateMembersCSV(candidateMembers, activeColumns, exportContext);
+      const csvContent = generateMembersCSV(candidateMembers, activeColumns, exportContext, stripAliases);
 
       const timestamp = new Date().toISOString().split("T", 1)[0];
       const filename = `rekisteri-jasenet-${timestamp}.csv`;
 
       downloadFile(csvContent, filename);
 
-      const filterSummary = `scope=${targetScope}, year=${selectedYear}, type=${selectedType}, status=${selectedStatus}, emailAllowed=${emailAllowedOnly}`;
+      const filterSummary = `scope=${targetScope}, year=${selectedYear}, type=${selectedType}, status=${selectedStatus}, emailAllowed=${emailAllowedOnly}, stripAliases=${stripAliases}`;
       void logMemberExport({
         count: candidateMembers.length,
         filterSummary,
@@ -148,87 +150,98 @@
 </script>
 
 <AlertDialog.Root bind:open>
-  <AlertDialog.Content class="max-h-[90vh] max-w-2xl overflow-y-auto">
-    <AlertDialog.Header>
+  <AlertDialog.Content class="flex max-h-[90dvh] w-[calc(100%-2rem)] flex-col sm:max-w-3xl">
+    <AlertDialog.Header class="shrink-0">
       <AlertDialog.Title>{$LL.admin.members.table.exportDialog.title()}</AlertDialog.Title>
-      <AlertDialog.Description>{$LL.admin.members.table.exportDialog.description()}</AlertDialog.Description>
     </AlertDialog.Header>
 
-    <div class="space-y-4 py-2">
-      <!-- Target Scope (if selected rows exist) -->
-      {#if selectedMembers.length > 0}
-        <div class="space-y-1.5">
-          <Label>{$LL.admin.members.table.exportDialog.targetScope()}</Label>
-          <div class="flex gap-4">
-            <label class="flex cursor-pointer items-center gap-2 text-sm">
-              <input type="radio" bind:group={targetScope} value="filtered" />
-              {$LL.admin.members.table.exportDialog.allFiltered({ count: allMembers.length })}
-            </label>
-            <label class="flex cursor-pointer items-center gap-2 text-sm">
-              <input type="radio" bind:group={targetScope} value="selected" />
-              {$LL.admin.members.table.exportDialog.selectedOnly({ count: selectedMembers.length })}
-            </label>
+    <div class="min-h-0 space-y-6 overflow-y-auto py-2">
+      <section aria-labelledby="export-filters-title" class="space-y-4">
+        <h3 id="export-filters-title" class="text-sm font-semibold">
+          1. {$LL.admin.members.table.exportDialog.filtersTitle()}
+        </h3>
+        <!-- Target Scope (if selected rows exist) -->
+        {#if selectedMembers.length > 0}
+          <div class="space-y-1.5">
+            <Label>{$LL.admin.members.table.exportDialog.targetScope()}</Label>
+            <div class="flex flex-wrap gap-3">
+              <label class="flex cursor-pointer items-center gap-2 text-sm">
+                <input type="radio" bind:group={targetScope} value="filtered" />
+                {$LL.admin.members.table.exportDialog.allFiltered({ count: allMembers.length })}
+              </label>
+              <label class="flex cursor-pointer items-center gap-2 text-sm">
+                <input type="radio" bind:group={targetScope} value="selected" />
+                {$LL.admin.members.table.exportDialog.selectedOnly({ count: selectedMembers.length })}
+              </label>
+            </div>
+          </div>
+        {/if}
+
+        <!-- Filters Grid -->
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <!-- Year -->
+          <div class="space-y-1">
+            <Label for="export-year">{$LL.admin.members.table.filterYear()}</Label>
+            <NativeSelect.Root id="export-year" bind:value={selectedYear}>
+              <NativeSelect.Option value="all">{$LL.admin.members.table.all()}</NativeSelect.Option>
+              {#each years as year (year)}
+                <NativeSelect.Option value={year.toString()}>{year}</NativeSelect.Option>
+              {/each}
+            </NativeSelect.Root>
+          </div>
+
+          <!-- Membership Type -->
+          <div class="space-y-1">
+            <Label for="export-type">{$LL.admin.members.table.filterType()}</Label>
+            <NativeSelect.Root id="export-type" bind:value={selectedType}>
+              <NativeSelect.Option value="all">{$LL.admin.members.table.all()}</NativeSelect.Option>
+              {#each membershipTypes as type (type.id)}
+                <NativeSelect.Option value={type.id}>{getLocalizedTypeName(type.name)}</NativeSelect.Option>
+              {/each}
+            </NativeSelect.Root>
+          </div>
+
+          <!-- Status -->
+          <div class="space-y-1">
+            <Label for="export-status">{$LL.admin.members.table.filterStatus()}</Label>
+            <NativeSelect.Root id="export-status" bind:value={selectedStatus}>
+              <NativeSelect.Option value="all">{$LL.admin.members.table.all()}</NativeSelect.Option>
+              {#each MEMBER_STATUS_VALUES as status (status)}
+                <NativeSelect.Option value={status}>{exportContext.statusLabels[status]}</NativeSelect.Option>
+              {/each}
+            </NativeSelect.Root>
           </div>
         </div>
-      {/if}
 
-      <!-- Filters Grid -->
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <!-- Year -->
-        <div class="space-y-1">
-          <Label for="export-year">{$LL.admin.members.table.filterYear()}</Label>
-          <NativeSelect.Root id="export-year" bind:value={selectedYear}>
-            <NativeSelect.Option value="all">{$LL.admin.members.table.all()}</NativeSelect.Option>
-            {#each years as year (year)}
-              <NativeSelect.Option value={year.toString()}>{year}</NativeSelect.Option>
-            {/each}
-          </NativeSelect.Root>
+        <!-- Email allowed checkbox -->
+        <div class="flex items-center space-x-2 pt-1">
+          <Checkbox id="export-email-allowed" bind:checked={emailAllowedOnly} />
+          <Label for="export-email-allowed" class="cursor-pointer text-sm font-normal">
+            {$LL.admin.members.table.exportDialog.filterEmailAllowed()}
+          </Label>
         </div>
 
-        <!-- Membership Type -->
-        <div class="space-y-1">
-          <Label for="export-type">{$LL.admin.members.table.filterType()}</Label>
-          <NativeSelect.Root id="export-type" bind:value={selectedType}>
-            <NativeSelect.Option value="all">{$LL.admin.members.table.all()}</NativeSelect.Option>
-            {#each membershipTypes as type (type.id)}
-              <NativeSelect.Option value={type.id}>{getLocalizedTypeName(type.name)}</NativeSelect.Option>
-            {/each}
-          </NativeSelect.Root>
+        <div class="text-sm text-muted-foreground">
+          <Badge variant="secondary">
+            {$LL.admin.members.table.exportDialog.exportSummary({ count: candidateMembers.length })}
+          </Badge>
         </div>
 
-        <!-- Status -->
-        <div class="space-y-1">
-          <Label for="export-status">{$LL.admin.members.table.filterStatus()}</Label>
-          <NativeSelect.Root id="export-status" bind:value={selectedStatus}>
-            <NativeSelect.Option value="all">{$LL.admin.members.table.all()}</NativeSelect.Option>
-            {#each MEMBER_STATUS_VALUES as status (status)}
-              <NativeSelect.Option value={status}>{exportContext.statusLabels[status]}</NativeSelect.Option>
-            {/each}
-          </NativeSelect.Root>
-        </div>
-      </div>
+        <!-- Empty state hint when no members match filters -->
+        {#if candidateMembers.length === 0}
+          <div
+            class="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300"
+          >
+            {$LL.admin.members.table.exportDialog.noMatchingMembers()}
+          </div>
+        {/if}
+      </section>
 
-      <!-- Email allowed checkbox -->
-      <div class="flex items-center space-x-2 pt-1">
-        <Checkbox id="export-email-allowed" bind:checked={emailAllowedOnly} />
-        <Label for="export-email-allowed" class="cursor-pointer text-sm font-normal">
-          {$LL.admin.members.table.exportDialog.filterEmailAllowed()}
-        </Label>
-      </div>
-
-      <!-- Empty state hint when no members match filters -->
-      {#if candidateMembers.length === 0}
-        <div
-          class="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300"
-        >
-          {$LL.admin.members.table.exportDialog.noMatchingMembers()}
-        </div>
-      {/if}
-
-      <!-- Column Selector -->
-      <div class="space-y-2 border-t pt-3">
-        <div class="flex items-center justify-between">
-          <Label class="font-medium">{$LL.admin.members.table.exportDialog.columnsTitle()}</Label>
+      <section aria-labelledby="export-columns-title" class="space-y-3 border-t pt-5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h3 id="export-columns-title" class="text-sm font-semibold">
+            2. {$LL.admin.members.table.exportDialog.columnsTitle()}
+          </h3>
           <div class="flex gap-2 text-xs">
             <Button variant="ghost" size="sm" class="h-7 px-2 text-xs" onclick={selectAllColumns}>
               {$LL.admin.members.table.exportDialog.selectAllColumns()}
@@ -239,28 +252,40 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div class="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2 sm:grid-cols-3">
           {#each ALL_EXPORT_COLUMNS as col (col)}
             {@const isChecked = selectedColumns.has(col)}
-            <label class="flex cursor-pointer items-center space-x-2 rounded p-1 hover:bg-muted/50">
+            <label class="flex cursor-pointer items-center gap-2 rounded-md p-2 hover:bg-muted/50">
               <Checkbox
                 checked={isChecked}
                 onCheckedChange={() => toggleColumn(col)}
                 disabled={isChecked && selectedColumns.size === 1}
               />
-              <span class="text-xs">{exportContext.columnLabels[col]}</span>
+              <span class="text-sm">{exportContext.columnLabels[col]}</span>
             </label>
           {/each}
         </div>
-      </div>
+      </section>
+
+      <section aria-labelledby="export-transforms-title" class="space-y-3 border-t pt-5">
+        <h3 id="export-transforms-title" class="text-sm font-semibold">
+          3. {$LL.admin.members.table.exportDialog.transformationsTitle()}
+        </h3>
+        <div class="flex items-start gap-2">
+          <Checkbox id="export-strip-aliases" bind:checked={stripAliases} aria-describedby="export-aliases-help" />
+          <div class="min-w-0 space-y-1">
+            <Label for="export-strip-aliases" class="cursor-pointer text-sm font-normal">
+              {$LL.admin.members.table.stripEmailAliases()}
+            </Label>
+            <p id="export-aliases-help" class="text-sm wrap-break-word text-muted-foreground">
+              {$LL.admin.members.table.exportDialog.stripAliasesHelp()}
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
 
-    <AlertDialog.Footer class="flex items-center sm:justify-between">
-      <div class="text-sm text-muted-foreground">
-        <Badge variant="secondary">
-          {$LL.admin.members.table.exportDialog.exportSummary({ count: candidateMembers.length })}
-        </Badge>
-      </div>
+    <AlertDialog.Footer class="flex shrink-0 items-center border-t pt-4 sm:justify-end">
       <div class="flex gap-2">
         <Button variant="outline" onclick={() => (open = false)}>
           {$LL.admin.members.table.exportDialog.cancel()}
