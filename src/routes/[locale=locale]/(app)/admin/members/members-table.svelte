@@ -443,9 +443,9 @@
     }, 2000);
   }
 
-  // Quick export for all currently filtered rows
+  // Export all matching rows in table sort order, across all pages
   function exportCurrentViewAsCSV() {
-    const rows = table.getFilteredRowModel().rows.map((r) => r.original);
+    const rows = table.getPrePaginatedRowModel().rows.map((r) => r.original);
     if (rows.length === 0) return;
 
     const csvContent = generateMembersCSV(rows, DEFAULT_EXPORT_COLUMNS, exportContext);
