@@ -43,6 +43,9 @@ test.describe("CSV Import", () => {
     }
     testUserIds = []; // Reset for next test
 
+    if (boundaryMembershipIds.length > 0) {
+      await db.delete(table.member).where(inArray(table.member.membershipId, boundaryMembershipIds));
+    }
     for (const membershipId of boundaryMembershipIds) {
       await db.delete(table.membership).where(eq(table.membership.id, membershipId));
     }
