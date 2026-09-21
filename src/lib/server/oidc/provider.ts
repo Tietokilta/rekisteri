@@ -12,7 +12,7 @@
  */
 
 import Provider, { type Configuration } from "oidc-provider";
-import { generateKeyPairSync, randomUUID } from "node:crypto";
+import { generateKeyPairSync, createHash, randomUUID } from "node:crypto";
 import { db } from "$lib/server/db";
 import { user, member, membership, secondaryEmail } from "$lib/server/db/schema";
 import { eq, and, sql } from "drizzle-orm";
@@ -25,9 +25,54 @@ import { createAuditLog } from "$lib/server/audit";
 import type { RequestEvent } from "@sveltejs/kit";
 
 /**
- * Unique Key ID (kid) for RSA signing key.
+ * Calculates RFC 7638 SHA-256 JWK Thumbprint in base64url format.
+ * Used as a deterministic Key ID (kid) when none is explicitly configured.
  */
-const OIDC_KEY_ID = randomUUID();
+export function calculateRfc7638Thumbprint(jwk: Record<string, unknown>): string {
+  let canonicalJson: string;
+  switch (jwk.kty) {
+    case "RSA": {
+      canonicalJson = JSON.stringify({ e: jwk.e, kty: jwk.kty, n: jwk.n });
+      break;
+    }
+    case "EC": {
+      canonicalJson = JSON.stringify({ crv: jwk.crv, kty: jwk.kty, x: jwk.x, y: jwk.y });
+      break;
+    }
+    case "OKP": {
+      canonicalJson = JSON.stringify({ crv: jwk.crv, kty: jwk.kty, x: jwk.x });
+      break;
+    }
+    default: {
+      canonicalJson = JSON.stringify(jwk);
+      break;
+    }
+  }
+  return createHash("sha256").update(canonicalJson).digest("base64url");
+}
+
+/**
+ * Parses a Base64-encoded JSON JWK string.
+ * Strictly requires Base64-encoded JSON; raw JSON or non-base64 input returns null.
+ */
+export function parseBase64Jwk(raw: string): Record<string, unknown> | null {
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.startsWith("{")) return null;
+
+  try {
+    const decoded = Buffer.from(trimmed, "base64").toString("utf8");
+    if (decoded.trimStart().startsWith("{")) {
+      const parsed = JSON.parse(decoded) as Record<string, unknown>;
+      if (parsed && typeof parsed === "object" && parsed.kty) {
+        return parsed;
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return null;
+}
 
 /**
  * Constructs the canonical OIDC issuer URL from environment configuration.
@@ -44,31 +89,50 @@ const globalForOidc = globalThis as unknown as {
   __oidcProvider?: Provider;
 };
 
-function getOrCreateJwk(): Record<string, unknown> {
+export function getOrCreateJwk(): Record<string, unknown> {
   if (globalForOidc.__oidcJwk) {
     return globalForOidc.__oidcJwk;
   }
-  const envJwk = env.OIDC_SIGNING_KEY_JWK;
-  if (envJwk) {
-    try {
-      const parsed = JSON.parse(envJwk) as Record<string, unknown>;
-      if (parsed && typeof parsed === "object" && parsed.kty) {
-        globalForOidc.__oidcJwk = parsed;
-        return parsed;
-      }
-    } catch {
-      console.warn("[OIDC] Failed to parse OIDC_SIGNING_KEY_JWK from environment, falling back to ephemeral key");
+
+  let key: Record<string, unknown> | null = null;
+
+  // 1. Check OIDC_SIGNING_KEY_JWK (Base64-encoded JWK JSON)
+  if (env.OIDC_SIGNING_KEY_JWK) {
+    key = parseBase64Jwk(env.OIDC_SIGNING_KEY_JWK);
+    if (!key) {
+      console.warn(
+        "[OIDC] Failed to parse OIDC_SIGNING_KEY_JWK from environment (expected Base64-encoded JSON JWK with 'kty')",
+      );
     }
   }
+
+  // 2. If persistent key loaded successfully: key's name is its RFC 7638 SHA-256 thumbprint
+  if (key) {
+    key.use = (key.use as string) || "sig";
+    key.alg = (key.alg as string) || (key.kty === "RSA" ? "RS256" : key.kty === "EC" ? "ES256" : "EdDSA");
+    key.kid = calculateRfc7638Thumbprint(key);
+    globalForOidc.__oidcJwk = key;
+    return key;
+  }
+
+  // 3. Fallback: in case there's no key set, use previous method of generating a random key in memory
+  if (env.NODE_ENV === "production" && !env.TEST) {
+    console.warn(
+      "[OIDC] WARNING: No persistent OIDC signing key configured in production! " +
+        "Tokens will become invalid upon server restart. " +
+        "Set OIDC_SIGNING_KEY_JWK (Base64-encoded JSON JWK) in environment. Run `pnpm oidc:generate-key` to create one.",
+    );
+  }
+
   const { privateKey } = generateKeyPairSync("rsa", {
     modulusLength: 2048,
   });
-  const key = privateKey.export({ format: "jwk" }) as Record<string, unknown>;
-  key.use = "sig";
-  key.alg = "RS256";
-  key.kid = OIDC_KEY_ID;
-  globalForOidc.__oidcJwk = key;
-  return key;
+  const ephemeralKey = privateKey.export({ format: "jwk" }) as Record<string, unknown>;
+  ephemeralKey.use = "sig";
+  ephemeralKey.alg = "RS256";
+  ephemeralKey.kid = randomUUID();
+  globalForOidc.__oidcJwk = ephemeralKey;
+  return ephemeralKey;
 }
 
 const jwk = getOrCreateJwk();

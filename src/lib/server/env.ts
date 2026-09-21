@@ -108,7 +108,7 @@ const privateEnvSchema = v.pipe(
     RP_ID: v.pipe(v.string(), v.minLength(1)),
     RP_ORIGIN: v.pipe(v.string(), v.url(), v.regex(/^https?:\/\/.+/, "RP_ORIGIN must use http or https protocol")),
 
-    // OIDC signing key override (optional)
+    // OIDC signing key (Base64-encoded JWK JSON)
     OIDC_SIGNING_KEY_JWK: v.optional(v.string()),
   }),
   // In production, SMTP is required
