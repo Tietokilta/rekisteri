@@ -1,6 +1,6 @@
 import { env as privateEnv } from "$env/dynamic/private";
 import { publicEnv } from "$lib/env";
-import { dev } from "$app/environment";
+import { dev, building } from "$app/environment";
 import * as v from "valibot";
 
 /**
@@ -107,6 +107,9 @@ const privateEnvSchema = v.pipe(
     RP_NAME: v.pipe(v.string(), v.minLength(1)),
     RP_ID: v.pipe(v.string(), v.minLength(1)),
     RP_ORIGIN: v.pipe(v.string(), v.url(), v.regex(/^https?:\/\/.+/, "RP_ORIGIN must use http or https protocol")),
+
+    // OIDC signing key (Base64-encoded JWK JSON)
+    OIDC_SIGNING_KEY_JWK: v.optional(v.string()),
   }),
   // In production, SMTP is required
   v.check((data) => {
@@ -121,6 +124,17 @@ const privateEnvSchema = v.pipe(
     }
     return true;
   }, "SMTP configuration (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM) is required in production"),
+  // In production, PUBLIC_URL must use https protocol (required for OIDC and secure cookies),
+  // except for localhost/127.0.0.1 or during build time.
+  v.check((data) => {
+    if (!dev && !building && !data.TEST && data.NODE_ENV === "production") {
+      const isLocalhost =
+        publicEnv.PUBLIC_URL.startsWith("http://localhost") || publicEnv.PUBLIC_URL.startsWith("http://127.0.0.1");
+      if (isLocalhost) return true;
+      return publicEnv.PUBLIC_URL.startsWith("https://");
+    }
+    return true;
+  }, "PUBLIC_URL must use https protocol in production"),
 );
 
 // Validate private environment variables at module load (fail fast)
@@ -142,6 +156,7 @@ const parsed = v.safeParse(privateEnvSchema, {
   RP_NAME: privateEnv.RP_NAME,
   RP_ID: privateEnv.RP_ID,
   RP_ORIGIN: privateEnv.RP_ORIGIN,
+  OIDC_SIGNING_KEY_JWK: privateEnv.OIDC_SIGNING_KEY_JWK,
 });
 
 if (!parsed.success) {

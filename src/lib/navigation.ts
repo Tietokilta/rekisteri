@@ -15,6 +15,7 @@ import Tag from "@lucide/svelte/icons/tag";
 import UserCog from "@lucide/svelte/icons/user-cog";
 import QrCode from "@lucide/svelte/icons/qr-code";
 import Settings from "@lucide/svelte/icons/settings";
+import AppWindow from "@lucide/svelte/icons/app-window";
 
 export interface NavItem {
   title: string;
@@ -37,8 +38,12 @@ export function getMainNavItems(locale: Locale, LL: TranslationFunctions): NavIt
   ];
 }
 
-export function getSettingsNavItems(locale: Locale, LL: TranslationFunctions): NavItem[] {
-  return [
+export function getSettingsNavItems(
+  locale: Locale,
+  LL: TranslationFunctions,
+  options: { hasOidcClients?: boolean } = {},
+): NavItem[] {
+  const items: NavItem[] = [
     {
       title: LL.nav.profile(),
       href: route("/[locale=locale]/settings/profile", { locale }),
@@ -55,6 +60,16 @@ export function getSettingsNavItems(locale: Locale, LL: TranslationFunctions): N
       icon: Mail,
     },
   ];
+
+  if (options.hasOidcClients !== false) {
+    items.push({
+      title: LL.nav.applications(),
+      href: route("/[locale=locale]/settings/applications", { locale }),
+      icon: AppWindow,
+    });
+  }
+
+  return items;
 }
 
 export function getAdminNavItems(locale: Locale, LL: TranslationFunctions): NavItem[] {
