@@ -110,6 +110,12 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }, issue) => {
   deleteEmailOTP(otp.id);
   deleteEmailOTPCookie(event);
 
+  const returnTo = event.cookies.get("returnTo");
+  if (returnTo) {
+    event.cookies.delete("returnTo", { path: "/" });
+    redirect(302, returnTo);
+  }
+
   redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
 });
 

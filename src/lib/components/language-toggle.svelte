@@ -14,7 +14,7 @@
 
   function languageHref(newLanguage: Locale) {
     const canonicalPath = stripLocaleFromPathname(page.url.pathname);
-    return `/${newLanguage}${canonicalPath}`;
+    return `/${newLanguage}${canonicalPath}${page.url.search}`;
   }
 </script>
 

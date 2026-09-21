@@ -32,7 +32,7 @@
 
   // Navigation items from shared module
   const mainNavItems = $derived(getMainNavItems($locale, $LL));
-  const settingsNavItems = $derived(getSettingsNavItems($locale, $LL));
+  const settingsNavItems = $derived(getSettingsNavItems($locale, $LL, { hasOidcClients: page.data.hasOidcClients }));
   const adminNavItems = $derived(getAdminNavItems($locale, $LL));
 
   function isActive(href: string): boolean {

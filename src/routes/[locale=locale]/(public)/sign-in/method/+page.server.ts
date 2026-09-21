@@ -10,8 +10,13 @@ export const load: PageServerLoad = async (event) => {
     return redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
   }
 
-  // Already logged in? Redirect home
+  // Already logged in? Redirect to returnTo or home
   if (event.locals.user) {
+    const returnTo = event.cookies.get("returnTo");
+    if (returnTo) {
+      event.cookies.delete("returnTo", { path: "/" });
+      return redirect(302, returnTo);
+    }
     return redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
   }
 
