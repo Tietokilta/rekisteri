@@ -95,3 +95,15 @@ export function formatShortDateRange(start: Date, end: Date, locale: string): st
 export function normalizeEmail(email: string): string {
   return email.replaceAll(/\s/g, "").toLowerCase();
 }
+
+/**
+ * Match a search query against a set of fields token by token. Every
+ * whitespace-separated token of the query must appear in at least one field.
+ */
+export function matchesSearchTokens(query: string, fields: (string | null | undefined)[]): boolean {
+  const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return true;
+
+  const haystack = fields.filter(Boolean).join(" ").toLowerCase();
+  return tokens.every((token) => haystack.includes(token));
+}
