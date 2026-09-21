@@ -33,7 +33,6 @@ const clientCache = new Map<string, CachedClient>();
  * If `clientId` is provided, invalidates only that client.
  * Otherwise, clears the entire client cache.
  */
-// fallow-ignore-next-line unused-export
 export function invalidateClientCache(clientId?: string): void {
   if (clientId) {
     clientCache.delete(clientId);

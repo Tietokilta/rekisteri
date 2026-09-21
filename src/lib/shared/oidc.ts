@@ -22,7 +22,6 @@ export interface OidcClaimDefinition {
 }
 
 // Mandatory claims that are part of the openid definition. Same as openid scope.
-// fallow-ignore-next-line unused-export
 export const OPENID_CLAIMS: readonly OidcClaimDefinition[] = [
   {
     key: "sub",
@@ -57,7 +56,6 @@ export const OPENID_CLAIMS: readonly OidcClaimDefinition[] = [
 ] as const;
 
 // Contains all public and private claims supported by rekisteri.
-// fallow-ignore-next-line unused-export
 export const OPTIONAL_CLAIMS: readonly OidcClaimDefinition[] = [
   {
     key: "refresh_token",
@@ -129,13 +127,10 @@ export const OPTIONAL_CLAIMS: readonly OidcClaimDefinition[] = [
   },
 ] as const;
 
-// fallow-ignore-next-line unused-export
 export const ALL_CLAIMS = [...OPENID_CLAIMS, ...OPTIONAL_CLAIMS];
 
-// fallow-ignore-next-line unused-export
 export const OPENID_CLAIM_KEYS = new Set(OPENID_CLAIMS.map((c) => c.key));
 
-// fallow-ignore-next-line unused-export
 export const OIDC_SCOPES: readonly OidcScope[] = [
   {
     key: "openid",

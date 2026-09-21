@@ -2,6 +2,9 @@ import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { flattenCustomization } from "$lib/server/customization/utils";
 import { hasAdminAccess, hasAdminWriteAccess } from "$lib/shared/enums";
+import { db } from "$lib/server/db";
+import { oidcClient } from "$lib/server/db/schema";
+import { asc } from "drizzle-orm";
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.session || !hasAdminAccess(event.locals.user?.adminRole ?? "none")) {
@@ -19,10 +22,13 @@ export const load: PageServerLoad = async (event) => {
     faviconDark: !!customizations.faviconDark,
   };
 
+  const oidcClients = await db.select().from(oidcClient).orderBy(asc(oidcClient.name));
+
   return {
     values,
     customImageExists,
     imageVersion: customizations.updatedAt.getTime().toString(36),
     canWrite: hasAdminWriteAccess(event.locals.user?.adminRole ?? "none"),
+    oidcClients,
   };
 };
