@@ -52,7 +52,7 @@
   import { page } from "$app/state";
   import { SvelteURLSearchParams } from "svelte/reactivity";
   import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { isNonEmpty, formatDate } from "$lib/utils";
+  import { isNonEmpty, formatDate, matchesSearchTokens } from "$lib/utils";
   import { getStripePriceMetadata } from "$lib/api/stripe.remote";
   import {
     approveMember,
@@ -713,20 +713,16 @@
     enableRowSelection: true,
     getRowId: (row) => row.id,
     globalFilterFn: (row, columnId, filterValue) => {
-      const searchValue = filterValue.toLowerCase();
-      const orgName = (row.original.organizationName ?? "").toLowerCase();
-      const firstName = (row.original.firstNames ?? "").toLowerCase();
-      const lastName = (row.original.lastName ?? "").toLowerCase();
-      const email = (row.original.email ?? "").toLowerCase();
-      const municipality = (row.original.homeMunicipality ?? "").toLowerCase();
+      const { organizationName, firstNames, lastName, email, homeMunicipality, secondaryEmails } = row.original;
 
-      return (
-        orgName.includes(searchValue) ||
-        firstName.includes(searchValue) ||
-        lastName.includes(searchValue) ||
-        email.includes(searchValue) ||
-        municipality.includes(searchValue)
-      );
+      return matchesSearchTokens(filterValue, [
+        organizationName,
+        firstNames,
+        lastName,
+        email,
+        homeMunicipality,
+        ...secondaryEmails,
+      ]);
     },
   });
 
