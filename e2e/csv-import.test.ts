@@ -18,6 +18,7 @@ test.describe("CSV Import", () => {
   // Track test data for cleanup
   let testUserIds: string[] = [];
   let boundaryMembershipIds: string[] = [];
+  let boundaryMembershipTypeIds: string[] = [];
   let tempFiles: string[] = [];
 
   const getTestEmail = (prefix: string) => `${prefix}-${crypto.randomUUID()}@example.com`;
@@ -47,6 +48,11 @@ test.describe("CSV Import", () => {
       await db.delete(table.membership).where(eq(table.membership.id, membershipId));
     }
     boundaryMembershipIds = [];
+
+    for (const membershipTypeId of boundaryMembershipTypeIds) {
+      await db.delete(table.membershipType).where(eq(table.membershipType.id, membershipTypeId));
+    }
+    boundaryMembershipTypeIds = [];
 
     // Clean up temporary CSV files
     for (const tempFile of tempFiles) {
@@ -191,6 +197,16 @@ Test,User,Helsinki,${email},ulkojasen,2025-08-01`,
 
   test("allows different membership types in periods that share an exact boundary", async ({ adminPage }) => {
     const email = getTestEmail("touching-types");
+    const regularTypeId = `boundary-regular-${crypto.randomUUID()}`;
+    const externalTypeId = `boundary-external-${crypto.randomUUID()}`;
+    boundaryMembershipTypeIds.push(regularTypeId, externalTypeId);
+
+    // Other suites select memberships by the seeded type IDs; keep these fixtures isolated.
+    await db.insert(table.membershipType).values([
+      { id: regularTypeId, name: { fi: "Rajatestin varsinainen jäsen", en: "Boundary regular member" } },
+      { id: externalTypeId, name: { fi: "Rajatestin ulkojäsen", en: "Boundary external member" } },
+    ]);
+
     const regularMembershipId = crypto.randomUUID();
     const externalMembershipId = crypto.randomUUID();
     boundaryMembershipIds.push(regularMembershipId, externalMembershipId);
@@ -198,14 +214,14 @@ Test,User,Helsinki,${email},ulkojasen,2025-08-01`,
     await db.insert(table.membership).values([
       {
         id: regularMembershipId,
-        membershipTypeId: "varsinainen-jasen",
+        membershipTypeId: regularTypeId,
         startTime: new Date("2012-01-01"),
         endTime: new Date("2013-01-01"),
         requiresStudentVerification: true,
       },
       {
         id: externalMembershipId,
-        membershipTypeId: "ulkojasen",
+        membershipTypeId: externalTypeId,
         startTime: new Date("2013-01-01"),
         endTime: new Date("2014-01-01"),
         requiresStudentVerification: false,
@@ -217,8 +233,8 @@ Test,User,Helsinki,${email},ulkojasen,2025-08-01`,
     fs.writeFileSync(
       tempPath,
       `firstNames,lastName,homeMunicipality,email,membershipTypeId,membershipStartDate
-Test,User,Helsinki,${email},varsinainen-jasen,2012-01-01
-Test,User,Helsinki,${email},ulkojasen,2013-01-01`,
+Test,User,Helsinki,${email},${regularTypeId},2012-01-01
+Test,User,Helsinki,${email},${externalTypeId},2013-01-01`,
     );
 
     await adminPage.goto(route("/[locale=locale]/admin/members/import", { locale: "fi" }), {

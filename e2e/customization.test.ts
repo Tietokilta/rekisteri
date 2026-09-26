@@ -129,12 +129,11 @@ test.describe("App Customization", () => {
 
     const isDisabled = await saveButton.isDisabled();
 
-    if (!isDisabled) {
-      const [response] = await Promise.all([
-        readonlyAdminPage.waitForResponse((res) => res.status() === 404),
-        saveButton.click(),
-      ]);
-      expect(response.status()).toBe(404);
-    }
+    if (isDisabled) return;
+    const [response] = await Promise.all([
+      readonlyAdminPage.waitForResponse((res) => res.status() === 404),
+      saveButton.click(),
+    ]);
+    expect(response.status()).toBe(404);
   });
 });

@@ -189,10 +189,9 @@
                     disabled={!!deleteForm.pending}
                     onclick={(e) => {
                       e.preventDefault();
-                      if (confirm($LL.secondaryEmail.deleteConfirm())) {
-                        const form = e.currentTarget.closest("form");
-                        if (form) form.requestSubmit();
-                      }
+                      if (!confirm($LL.secondaryEmail.deleteConfirm())) return;
+                      const form = e.currentTarget.closest("form");
+                      if (form) form.requestSubmit();
                     }}
                   >
                     <Trash2 class="size-4" />

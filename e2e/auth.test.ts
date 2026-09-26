@@ -53,6 +53,9 @@ test.describe("Authentication", () => {
     await expect(firstNamesInput).toHaveValue(newFirstNames);
     await expect(lastNameInput).toHaveValue(newLastName);
 
+    // Let the first toast disappear so the next assertion observes the second save.
+    await expect(adminPage.getByText(/Tallennettu/i)).toBeHidden({ timeout: 10_000 });
+
     // Restore original values
     await firstNamesInput.fill(originalFirstNames);
     await lastNameInput.fill(originalLastName);

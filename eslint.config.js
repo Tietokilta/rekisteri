@@ -47,6 +47,8 @@ export default ts.config(
   },
   {
     rules: {
+      // Keep readable guard clauses instead of requiring ternary expressions.
+      "unicorn/prefer-ternary": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
