@@ -17,7 +17,7 @@
   import { updateUserRole, mergeUsers } from "./data.remote";
   import { toast } from "svelte-sonner";
   import { invalidateAll } from "$app/navigation";
-  import { formatFullName } from "$lib/utils";
+  import { formatFullName, matchesSearchTokens } from "$lib/utils";
   import { ADMIN_ROLE_VALUES, type AdminRole } from "$lib/shared/enums";
 
   const { data }: PageProps = $props();
@@ -72,12 +72,7 @@
 
   const availableSecondaryUsers = $derived(
     data.users.filter(
-      (u) =>
-        u.id !== primaryUser?.id &&
-        (secondarySearchQuery === "" ||
-          u.email.toLowerCase().includes(secondarySearchQuery.toLowerCase()) ||
-          u.firstNames?.toLowerCase().includes(secondarySearchQuery.toLowerCase()) ||
-          u.lastName?.toLowerCase().includes(secondarySearchQuery.toLowerCase())),
+      (u) => u.id !== primaryUser?.id && matchesSearchTokens(secondarySearchQuery, [u.email, u.firstNames, u.lastName]),
     ),
   );
 
@@ -121,14 +116,7 @@
 
   // Filter function
   function matchesSearch(user: (typeof data.users)[number]) {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      user.email.toLowerCase().includes(query) ||
-      user.firstNames?.toLowerCase().includes(query) ||
-      user.lastName?.toLowerCase().includes(query) ||
-      user.id.toLowerCase().includes(query)
-    );
+    return matchesSearchTokens(searchQuery, [user.email, user.firstNames, user.lastName, user.id]);
   }
 
   const filteredAdmins = $derived(admins.filter(matchesSearch));
