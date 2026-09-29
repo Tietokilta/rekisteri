@@ -35,6 +35,12 @@ export const recordAttendanceSchema = v.object({
   guestName: v.optional(v.pipe(v.string(), v.trim(), v.maxLength(200))),
 });
 
+export const scanAttendanceSchema = v.object({
+  meetingId: id,
+  direction,
+  token: v.pipe(v.string(), v.minLength(1), v.maxLength(256)),
+});
+
 export const addMissedActionSchema = v.object({
   meetingId: id,
   attendeeId: id,
