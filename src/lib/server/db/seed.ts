@@ -4,6 +4,7 @@
 import { seed, reset } from "drizzle-seed";
 import * as table from "./schema";
 import { drizzle } from "drizzle-orm/postgres-js";
+import { and, eq, gte, lte } from "drizzle-orm";
 import postgres from "postgres";
 import { generateUserId } from "../auth/utils";
 
@@ -352,6 +353,193 @@ try {
 
   await db.insert(table.member).values(associationMembers);
   console.log(`Seeded ${associationMembers.length} association members!`);
+
+  // Seed guild meetings: last year's vaalikokous (two parts) and this year's vuosikokous
+  // with realistic attendance, plus this year's upcoming vaalikokous.
+  const minutes = (count: number) => count * 60_000;
+  const localTime = (year: number, month: number, day: number, hour: number, minute = 0) =>
+    new Date(year, month - 1, day, hour, minute);
+  const spread = (from: Date, minMinutes: number, maxMinutes: number) =>
+    new Date(from.getTime() + minutes(minMinutes + Math.random() * (maxMinutes - minMinutes)));
+
+  /** Users whose membership of the given type is valid at the given time, in a stable random order. */
+  async function membersAt(membershipTypeId: string, at: Date, count: number, excludedUserIds = new Set<string>()) {
+    const rows = await db
+      .selectDistinctOn([table.user.id], {
+        userId: table.user.id,
+        firstNames: table.user.firstNames,
+        lastName: table.user.lastName,
+        email: table.user.email,
+      })
+      .from(table.member)
+      .innerJoin(table.user, eq(table.member.userId, table.user.id))
+      .innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
+      .where(
+        and(
+          eq(table.membership.membershipTypeId, membershipTypeId),
+          lte(table.membership.startTime, at),
+          gte(table.membership.endTime, at),
+        ),
+      );
+    return rows
+      .filter((person) => !excludedUserIds.has(person.userId))
+      .toSorted(() => Math.random() - 0.5)
+      .slice(0, count)
+      .map((person) => ({
+        userId: person.userId,
+        membershipTypeId,
+        displayName: [person.firstNames, person.lastName].filter(Boolean).join(" ") || person.email,
+      }));
+  }
+
+  /**
+   * Seeds a meeting with its full attendance record when it is in the past,
+   * or as an upcoming scheduled meeting when it is still ahead of today.
+   */
+  async function seedMeeting(options: {
+    title: string;
+    scheduledStartsAt: Date;
+    startsAt: Date;
+    closedAt: Date;
+    attendance: { varsinainen: number; ulko: number; guests: string[]; earlyLeavers: number; shortRecessAt?: Date };
+  }) {
+    const meetingId = crypto.randomUUID();
+    const past = options.closedAt < new Date();
+    return db.transaction(async (tx) => {
+      await tx.insert(table.meeting).values({
+        id: meetingId,
+        title: options.title,
+        scheduledStartsAt: options.scheduledStartsAt,
+        startsAt: past ? options.startsAt : null,
+        closedAt: past ? options.closedAt : null,
+        createdAt: new Date(options.scheduledStartsAt.getTime() - 14 * 24 * minutes(60)),
+        createdBy: rootUserId,
+      });
+      if (!past) return 0;
+      const { attendance, startsAt, closedAt } = options;
+
+      const regularMembers = await membersAt("varsinainen-jasen", startsAt, attendance.varsinainen);
+      const externalMembers = await membersAt(
+        "ulkojasen",
+        startsAt,
+        attendance.ulko,
+        new Set(regularMembers.map((person) => person.userId)),
+      );
+      const people = [
+        ...regularMembers,
+        ...externalMembers,
+        ...attendance.guests.map((displayName) => ({ userId: null, membershipTypeId: null, displayName })),
+      ].map((person) => ({ id: crypto.randomUUID(), meetingId, ...person }));
+      await tx.insert(table.meetingAttendee).values(people);
+
+      const events: (typeof table.meetingAttendanceEvent.$inferInsert)[] = people.map((person) => ({
+        id: crypto.randomUUID(),
+        meetingId,
+        attendeeId: person.id,
+        actorId: rootUserId,
+        direction: "in",
+        source: "manual",
+        membershipTypeId: person.membershipTypeId,
+        effectiveAt: spread(startsAt, -15, 20),
+      }));
+      for (const person of people.slice(0, attendance.earlyLeavers)) {
+        events.push({
+          id: crypto.randomUUID(),
+          meetingId,
+          attendeeId: person.id,
+          actorId: rootUserId,
+          direction: "out",
+          source: "manual",
+          effectiveAt: spread(startsAt, 60, (closedAt.getTime() - startsAt.getTime()) / minutes(1) - 10),
+        });
+      }
+      if (attendance.shortRecessAt) {
+        const recessId = crypto.randomUUID();
+        const endedAt = new Date(attendance.shortRecessAt.getTime() + minutes(15));
+        await tx.insert(table.meetingRecess).values({
+          id: recessId,
+          meetingId,
+          mode: "track_exits",
+          startedAt: attendance.shortRecessAt,
+          endedAt,
+          startedBy: rootUserId,
+          endedBy: rootUserId,
+        });
+        // A few people step out during the recess and come back after it.
+        for (const person of people.slice(attendance.earlyLeavers, attendance.earlyLeavers + 3)) {
+          events.push(
+            {
+              id: crypto.randomUUID(),
+              meetingId,
+              attendeeId: person.id,
+              actorId: rootUserId,
+              direction: "out",
+              source: "manual",
+              recessId,
+              effectiveAt: spread(attendance.shortRecessAt, 1, 5),
+            },
+            {
+              id: crypto.randomUUID(),
+              meetingId,
+              attendeeId: person.id,
+              actorId: rootUserId,
+              direction: "in",
+              source: "manual",
+              membershipTypeId: person.membershipTypeId,
+              effectiveAt: spread(endedAt, 1, 4),
+            },
+          );
+        }
+      }
+      await tx.insert(table.meetingAttendanceEvent).values(events);
+      return people.length;
+    });
+  }
+
+  // `currentYear` is the start of the current membership year (August). Meetings are
+  // dated relative to it, so the previous year's meetings always carry attendance and
+  // this year's become attended once their date has passed.
+  const vaalikokous = (year: number) => [
+    {
+      title: `Vaalikokous ${year}, 1. osa`,
+      scheduledStartsAt: localTime(year, 10, 7, 17),
+      startsAt: localTime(year, 10, 7, 17, 6),
+      closedAt: localTime(year, 10, 7, 21, 40),
+      attendance: {
+        varsinainen: 98,
+        ulko: 2,
+        guests: ["Kutsuvieras"],
+        earlyLeavers: 9,
+        shortRecessAt: localTime(year, 10, 7, 19, 15),
+      },
+    },
+    {
+      title: `Vaalikokous ${year}, 2. osa`,
+      scheduledStartsAt: localTime(year, 11, 4, 17),
+      startsAt: localTime(year, 11, 4, 17, 4),
+      closedAt: localTime(year, 11, 4, 22, 15),
+      attendance: { varsinainen: 98, ulko: 2, guests: ["Kutsuvieras"], earlyLeavers: 12 },
+    },
+  ];
+  const vuosikokous = (year: number) => ({
+    title: `Vuosikokous ${year}`,
+    scheduledStartsAt: localTime(year, 2, 25, 17),
+    startsAt: localTime(year, 2, 25, 17, 8),
+    closedAt: localTime(year, 2, 25, 19, 30),
+    attendance: { varsinainen: 47, ulko: 3, guests: [], earlyLeavers: 4 },
+  });
+  const seededAttendees = [];
+  for (const meeting of [
+    ...vaalikokous(currentYear - 1),
+    vuosikokous(currentYear),
+    ...vaalikokous(currentYear),
+    vuosikokous(currentYear + 1),
+  ]) {
+    seededAttendees.push(await seedMeeting(meeting));
+  }
+  console.log(
+    `Seeded ${seededAttendees.length} meetings with ${seededAttendees.reduce((a, b) => a + b, 0)} attendees!`,
+  );
 
   await client.end();
 } catch (e) {
