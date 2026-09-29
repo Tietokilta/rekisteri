@@ -69,6 +69,14 @@ export function formatDateTime(date: Date, locale: string): string {
 }
 
 /**
+ * Format a date with time compactly, without year or seconds (e.g., "28.9. klo 20.23").
+ * Always uses locale-FI to ensure Finnish date formatting regardless of UI language.
+ */
+export function formatShortDateTime(date: Date, locale: string): string {
+  return date.toLocaleString(`${locale}-FI`, { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+/**
  * Format a date range to a localized string (e.g., "1.8.2024 – 31.7.2025").
  */
 export function formatDateRange(start: Date, end: Date, locale: string): string {

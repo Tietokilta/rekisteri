@@ -3,7 +3,7 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as table from "$lib/server/db/schema";
 import { relations } from "$lib/server/db/relations";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { generateUserId } from "../src/lib/server/auth/utils";
 
 test.describe("User Merge Feature", () => {
@@ -604,6 +604,97 @@ test.describe("User Merge Feature", () => {
 
       // Should be back on step 1
       await expect(mergeWizard.getByText("Vaihe 1: Valitse yhdistettävä käyttäjä")).toBeVisible();
+    });
+  });
+
+  test.describe("Meeting attendance", () => {
+    let primaryUser: { id: string; email: string };
+    let secondaryUser: { id: string; email: string };
+    let sharedMeetingId: string;
+    let ownMeetingId: string;
+
+    test.beforeEach(async () => {
+      const uniqueId = crypto.randomUUID();
+      primaryUser = { id: generateUserId(), email: `merge-meeting-primary-${uniqueId}@example.com` };
+      secondaryUser = { id: generateUserId(), email: `merge-meeting-secondary-${uniqueId}@example.com` };
+      sharedMeetingId = crypto.randomUUID();
+      ownMeetingId = crypto.randomUUID();
+      await db.insert(table.user).values([
+        { id: primaryUser.id, email: primaryUser.email, firstNames: "Meeting", lastName: "Primary", adminRole: "none" },
+        {
+          id: secondaryUser.id,
+          email: secondaryUser.email,
+          firstNames: "Meeting",
+          lastName: "Secondary",
+          adminRole: "none",
+        },
+      ]);
+      await db.insert(table.meeting).values([
+        { id: sharedMeetingId, title: `Shared meeting ${uniqueId.slice(0, 8)}` },
+        { id: ownMeetingId, title: `Own meeting ${uniqueId.slice(0, 8)}` },
+      ]);
+      const attendees = [
+        { id: crypto.randomUUID(), meetingId: sharedMeetingId, userId: primaryUser.id, displayName: "Primary" },
+        { id: crypto.randomUUID(), meetingId: sharedMeetingId, userId: secondaryUser.id, displayName: "Secondary" },
+        { id: crypto.randomUUID(), meetingId: ownMeetingId, userId: secondaryUser.id, displayName: "Secondary" },
+      ];
+      await db.insert(table.meetingAttendee).values(attendees);
+      await db.insert(table.meetingAttendanceEvent).values(
+        attendees.map((attendee) => ({
+          id: crypto.randomUUID(),
+          meetingId: attendee.meetingId,
+          attendeeId: attendee.id,
+          direction: "in" as const,
+          source: "manual" as const,
+          effectiveAt: new Date(),
+        })),
+      );
+    });
+
+    test.afterEach(async () => {
+      const meetingIds = [sharedMeetingId, ownMeetingId];
+      await db.delete(table.meetingAttendanceEvent).where(inArray(table.meetingAttendanceEvent.meetingId, meetingIds));
+      await db.delete(table.meetingAttendee).where(inArray(table.meetingAttendee.meetingId, meetingIds));
+      await db.delete(table.meeting).where(inArray(table.meeting.id, meetingIds));
+      await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.userId, primaryUser.id));
+      await db.delete(table.user).where(inArray(table.user.id, [primaryUser.id, secondaryUser.id]));
+    });
+
+    test("warns about shared meetings and consolidates attendance into the primary user", async ({ adminPage }) => {
+      await adminPage.goto("/fi/admin/users");
+      await adminPage.getByPlaceholder("Hae käyttäjiä").fill(primaryUser.email);
+      await adminPage
+        .getByRole("row")
+        .filter({ hasText: primaryUser.email })
+        .getByRole("button", { name: "Yhdistä käyttäjät" })
+        .click();
+      const mergeWizard = adminPage.getByTestId("merge-wizard");
+      await mergeWizard.getByPlaceholder("Hae käyttäjiä sähköpostilla").fill(secondaryUser.email);
+      await mergeWizard.getByRole("button", { name: secondaryUser.email }).click();
+
+      await expect(mergeWizard.getByTestId("merge-shared-meetings")).toContainText("Shared meeting");
+      await expect(mergeWizard.getByTestId("merge-shared-meetings")).not.toContainText("Own meeting");
+
+      await mergeWizard.getByRole("button", { name: "Seuraava" }).click();
+      const emailInputs = mergeWizard.locator('input[type="email"]');
+      await emailInputs.first().fill(primaryUser.email);
+      await emailInputs.last().fill(secondaryUser.email);
+      await adminPage.getByTestId("merge-submit-button").click();
+      await expect(mergeWizard).not.toBeVisible();
+
+      const attendees = await db
+        .select()
+        .from(table.meetingAttendee)
+        .where(inArray(table.meetingAttendee.meetingId, [sharedMeetingId, ownMeetingId]));
+      expect(attendees).toHaveLength(2);
+      expect(attendees.every((attendee) => attendee.userId === primaryUser.id)).toBe(true);
+      const sharedAttendee = attendees.find((attendee) => attendee.meetingId === sharedMeetingId);
+      const sharedEvents = await db
+        .select()
+        .from(table.meetingAttendanceEvent)
+        .where(eq(table.meetingAttendanceEvent.meetingId, sharedMeetingId));
+      expect(sharedEvents).toHaveLength(2);
+      expect(sharedEvents.every((event) => event.attendeeId === sharedAttendee?.id)).toBe(true);
     });
   });
 });

@@ -1,10 +1,10 @@
 import { error } from "@sveltejs/kit";
-import { getRequestEvent, command } from "$app/server";
+import { getRequestEvent, command, query } from "$app/server";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { isNonEmpty, formatDate } from "$lib/utils";
-import { updateUserRoleSchema, mergeUsersSchema } from "./schema";
+import { updateUserRoleSchema, mergeUsersSchema, mergeMeetingConflictsSchema } from "./schema";
 import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
 import { auditUserAdminAction } from "$lib/server/audit";
 import { getLL } from "$lib/server/i18n";
@@ -185,10 +185,13 @@ export const mergeUsers = command(
       // 6. Update audit logs to reference primary user (optional, for history tracking)
       await tx.update(table.auditLog).set({ userId: primaryUserId }).where(eq(table.auditLog.userId, secondaryUserId));
 
-      // 7. Delete the secondary user (cascades will clean up any remaining references)
+      // 7. Move meeting attendance, consolidating meetings both accounts attended into the primary attendee
+      const consolidatedMeetingAttendees = await mergeMeetingAttendance(tx, primaryUserId, secondaryUserId);
+
+      // 8. Delete the secondary user (cascades will clean up any remaining references)
       await tx.delete(table.user).where(eq(table.user.id, secondaryUserId));
 
-      // 8. Log the merge action within the transaction
+      // 9. Log the merge action within the transaction
       // We need to use tx.insert directly here since we're inside a transaction
       // and auditUserAdminAction would use the outer db instance
       const auditId = crypto.randomUUID();
@@ -205,6 +208,7 @@ export const mergeUsers = command(
           movedMembersCount: secondaryMembers.length,
           movedSecondaryEmailsCount: secondaryUserSecondaryEmails.length,
           movedPasskeysCount: secondaryUserPasskeys.length,
+          consolidatedMeetingAttendees,
         },
         ipAddress: event.getClientAddress(),
         userAgent: event.request.headers.get("user-agent") ?? undefined,
@@ -219,3 +223,76 @@ export const mergeUsers = command(
     };
   },
 );
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** Returns the IDs of secondary attendee rows that were folded into an existing primary attendee. */
+async function mergeMeetingAttendance(tx: Tx, primaryUserId: string, secondaryUserId: string) {
+  const [secondaryAttendees, primaryAttendees] = await Promise.all([
+    tx.query.meetingAttendee.findMany({ where: { userId: secondaryUserId } }),
+    tx.query.meetingAttendee.findMany({ where: { userId: primaryUserId } }),
+  ]);
+  const primaryByMeeting = new Map(primaryAttendees.map((attendee) => [attendee.meetingId, attendee.id]));
+  const consolidated: string[] = [];
+  for (const attendee of secondaryAttendees) {
+    const primaryAttendeeId = primaryByMeeting.get(attendee.meetingId);
+    if (!primaryAttendeeId) {
+      await tx
+        .update(table.meetingAttendee)
+        .set({ userId: primaryUserId })
+        .where(eq(table.meetingAttendee.id, attendee.id));
+      continue;
+    }
+    await tx
+      .update(table.meetingAttendanceEvent)
+      .set({ attendeeId: primaryAttendeeId })
+      .where(eq(table.meetingAttendanceEvent.attendeeId, attendee.id));
+    await tx
+      .update(table.meetingAttendanceEventCorrection)
+      .set({ attendeeId: primaryAttendeeId })
+      .where(eq(table.meetingAttendanceEventCorrection.attendeeId, attendee.id));
+    await tx.delete(table.meetingAttendee).where(eq(table.meetingAttendee.id, attendee.id));
+    consolidated.push(attendee.id);
+  }
+
+  // Keep operator attribution on actions the secondary account performed as an admin
+  await tx.update(table.meeting).set({ createdBy: primaryUserId }).where(eq(table.meeting.createdBy, secondaryUserId));
+  for (const column of ["startedBy", "endedBy", "cancelledBy"] as const) {
+    await tx
+      .update(table.meetingRecess)
+      .set({ [column]: primaryUserId })
+      .where(eq(table.meetingRecess[column], secondaryUserId));
+  }
+  await tx
+    .update(table.meetingAttendanceEvent)
+    .set({ actorId: primaryUserId })
+    .where(eq(table.meetingAttendanceEvent.actorId, secondaryUserId));
+  await tx
+    .update(table.meetingAttendanceEventCorrection)
+    .set({ actorId: primaryUserId })
+    .where(eq(table.meetingAttendanceEventCorrection.actorId, secondaryUserId));
+  return consolidated;
+}
+
+/** Meetings both accounts attended; merging them is allowed but usually means the accounts were used wrongly. */
+export const mergeMeetingConflicts = query(mergeMeetingConflictsSchema, async ({ primaryUserId, secondaryUserId }) => {
+  const event = getRequestEvent();
+  if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
+    error(404, getLL(event.locals.locale).error.resourceNotFound());
+  }
+  const attendees = await db
+    .select({ meetingId: table.meetingAttendee.meetingId, userId: table.meetingAttendee.userId })
+    .from(table.meetingAttendee)
+    .where(inArray(table.meetingAttendee.userId, [primaryUserId, secondaryUserId]));
+  const primaryMeetings = new Set(attendees.filter((a) => a.userId === primaryUserId).map((a) => a.meetingId));
+  const shared = [
+    ...new Set(
+      attendees.filter((a) => a.userId === secondaryUserId && primaryMeetings.has(a.meetingId)).map((a) => a.meetingId),
+    ),
+  ];
+  if (!shared.length) return [];
+  return db
+    .select({ id: table.meeting.id, title: table.meeting.title })
+    .from(table.meeting)
+    .where(inArray(table.meeting.id, shared));
+});

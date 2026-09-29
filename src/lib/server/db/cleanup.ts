@@ -162,6 +162,9 @@ export async function cleanupInactiveUsers(retentionYears: number = 7): Promise<
       await tx.delete(table.member).where(inArray(table.member.userId, userIds));
       await tx.delete(table.auditLog).where(inArray(table.auditLog.userId, userIds));
 
+      // Meeting attendee rows keep their display name (user_id is set null): attendance lists are
+      // kept as meeting records until a retention period for them is decided
+
       // Delete the users (this will cascade delete passkeys and secondary emails)
       await tx.delete(table.user).where(inArray(table.user.id, userIds));
     });

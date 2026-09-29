@@ -14,7 +14,7 @@
   import X from "@lucide/svelte/icons/x";
   import AlertCircle from "@lucide/svelte/icons/alert-circle";
   import CheckCircle from "@lucide/svelte/icons/check-circle-2";
-  import { updateUserRole, mergeUsers } from "./data.remote";
+  import { updateUserRole, mergeUsers, mergeMeetingConflicts } from "./data.remote";
   import { toast } from "svelte-sonner";
   import { invalidateAll } from "$app/navigation";
   import { formatFullName, matchesSearchTokens } from "$lib/utils";
@@ -317,9 +317,24 @@
                   <li>{$LL.admin.users.merge.secondaryEmails()}</li>
                   <li>{$LL.admin.users.merge.passkeys()}</li>
                   <li>{$LL.admin.users.merge.sessions()}</li>
+                  <li>{$LL.admin.users.merge.meetingAttendance()}</li>
                 </ul>
               </Alert.Description>
             </Alert.Root>
+
+            {#await mergeMeetingConflicts( { primaryUserId: primaryUser.id, secondaryUserId: secondaryUser.id } ) then meetings}
+              {#if meetings.length > 0}
+                <Alert.Root variant="destructive" data-testid="merge-shared-meetings">
+                  <AlertCircle class="size-4" />
+                  <Alert.Title>{$LL.admin.users.merge.sharedMeetingsTitle()}</Alert.Title>
+                  <Alert.Description>
+                    {$LL.admin.users.merge.sharedMeetingsDescription({
+                      meetings: meetings.map((meeting) => meeting.title).join(", "),
+                    })}
+                  </Alert.Description>
+                </Alert.Root>
+              {/if}
+            {/await}
 
             <div class="flex gap-2">
               <Button variant="outline" onclick={previousStep}>{$LL.admin.users.merge.previous()}</Button>
