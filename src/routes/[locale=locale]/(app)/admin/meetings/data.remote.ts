@@ -13,6 +13,8 @@ import {
   type AttendanceTarget,
 } from "$lib/server/attendance/meeting";
 import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
+import { verifyQrToken } from "$lib/server/attendance/qr-token";
+import { getLL } from "$lib/server/i18n";
 import {
   addMissedActionSchema,
   correctEventSchema,
@@ -21,6 +23,7 @@ import {
   meetingIdSchema,
   quickCorrectEventSchema,
   recordAttendanceSchema,
+  scanAttendanceSchema,
   startRecessSchema,
   updateAttendeeSchema,
   updateMeetingTimesSchema,
@@ -208,6 +211,34 @@ export const recordAttendance = command(recordAttendanceSchema, async (data) => 
     return { eventId: recorded.id };
   } catch (cause) {
     error(400, message(cause, "Could not record attendance"));
+  }
+});
+
+export const scanAttendance = command(scanAttendanceSchema, async (data) => {
+  const actorId = requireActor();
+  const LL = getLL(getRequestEvent().locals.locale);
+  const userId = await verifyQrToken(data.token);
+  if (!userId) error(422, LL.admin.verifyQr.invalidQr());
+
+  try {
+    const recorded = await recordMeetingEvent({
+      id: data.eventId,
+      meetingId: data.meetingId,
+      actorId,
+      direction: data.direction,
+      source: "scan",
+      target: { userId },
+    });
+    const attendee = await db.query.meetingAttendee.findFirst({ where: { id: recorded.attendeeId } });
+    if (!attendee) throw new Error("Recorded attendee not found");
+    return { eventId: recorded.id, displayName: attendee.displayName, membershipTypeId: recorded.membershipTypeId };
+  } catch (cause) {
+    if (cause instanceof Error) {
+      if (cause.message === "Already present") error(409, LL.admin.meetings.scanAlreadyIn());
+      if (cause.message === "Already absent") error(409, LL.admin.meetings.scanAlreadyOut());
+      if (cause.message === "Meeting is closed") error(409, LL.admin.meetings.scanClosed());
+    }
+    error(400, message(cause, "Could not record QR attendance"));
   }
 });
 

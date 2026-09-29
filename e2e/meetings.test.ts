@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as table from "$lib/server/db/schema";
 import { eq, inArray } from "drizzle-orm";
+import QRCode from "qrcode";
 import { route } from "../src/lib/ROUTES";
 import type { relations } from "../src/lib/server/db/relations";
 
@@ -85,15 +86,54 @@ function logRow(page: Page, text: string) {
   return page.getByTestId("log-row").filter({ hasText: text });
 }
 
+async function installQrCamera(page: Page, token: string) {
+  const qrImage = await QRCode.toDataURL(token, { width: 280, margin: 4 });
+  await page.addInitScript((imageUrl) => {
+    let visible = true;
+    Object.assign(globalThis, { setTestQrVisible: (value: boolean) => (visible = value) });
+    Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
+      configurable: true,
+      value: async () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 640;
+        canvas.height = 480;
+        const context = canvas.getContext("2d");
+        const image = new Image();
+        image.src = imageUrl;
+        await image.decode();
+        const draw = () => {
+          if (!context) return;
+          context.fillStyle = "white";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          if (visible) context.drawImage(image, 180, 100, 280, 280);
+        };
+        draw();
+        setInterval(draw, 100);
+        return canvas.captureStream(30);
+      },
+    });
+  }, qrImage);
+}
+
+async function showQrAgain(page: Page) {
+  await page.evaluate(() => (Reflect.get(globalThis, "setTestQrVisible") as (value: boolean) => void)(false));
+  await page.waitForTimeout(1800);
+  await page.evaluate(() => (Reflect.get(globalThis, "setTestQrVisible") as (value: boolean) => void)(true));
+}
+
 test.describe("Meeting attendance", () => {
   let meetingIds: string[] = [];
   let userIds: string[] = [];
+  let membershipIds: string[] = [];
 
   test.afterEach(async ({ db }) => {
     await deleteMeetings(db, meetingIds);
+    if (userIds.length) await db.delete(table.member).where(inArray(table.member.userId, userIds));
+    if (membershipIds.length) await db.delete(table.membership).where(inArray(table.membership.id, membershipIds));
     if (userIds.length) await db.delete(table.user).where(inArray(table.user.id, userIds));
     meetingIds = [];
     userIds = [];
+    membershipIds = [];
   });
 
   test("creates a meeting from the list and opens it", async ({ adminPage, db }) => {
@@ -196,6 +236,163 @@ test.describe("Meeting attendance", () => {
     await expect(logRow(adminPage, user.displayName)).toContainText("Kumottu");
     await expect(attendeeRow(adminPage, user.displayName)).toContainText("Poissa");
     await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 0 vierasta");
+  });
+
+  test("scans a QR in and out without repeated frames reversing attendance", async ({ adminPage, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const user = await createUser(db);
+    userIds.push(user.id);
+    const token = crypto.randomUUID();
+    await db.update(table.user).set({ qrToken: token }).where(eq(table.user.id, user.id));
+    await installQrCamera(adminPage, token);
+    await adminPage.goto(meetingUrl(id));
+
+    await adminPage.getByRole("button", { name: "Skannaa QR-koodi" }).click();
+    const scanner = adminPage.getByRole("dialog", { name: "Skannaa QR-koodi" });
+    await expect(scanner).toContainText(`Sisään: ${user.displayName}`);
+    await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla");
+    await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 1 vierasta");
+
+    await showQrAgain(adminPage);
+    await expect(scanner).toContainText("On jo merkitty saapuneeksi");
+    await scanner.getByRole("button", { name: "Ulos" }).click();
+    const firstEvents = await db
+      .select()
+      .from(table.meetingAttendanceEvent)
+      .where(eq(table.meetingAttendanceEvent.meetingId, id));
+    expect(firstEvents).toHaveLength(1);
+    expect(firstEvents[0]).toMatchObject({ direction: "in", source: "scan", membershipTypeId: null });
+
+    await showQrAgain(adminPage);
+    await expect(scanner).toContainText(`Ulos: ${user.displayName}`);
+    await expect(attendeeRow(adminPage, user.displayName)).toContainText("Poissa");
+    const events = await db
+      .select()
+      .from(table.meetingAttendanceEvent)
+      .where(eq(table.meetingAttendanceEvent.meetingId, id));
+    expect(events.map((event) => [event.direction, event.source])).toEqual([
+      ["in", "scan"],
+      ["out", "scan"],
+    ]);
+  });
+
+  test("rejects an unrecognized QR without recording an action", async ({ adminPage, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    await installQrCamera(adminPage, crypto.randomUUID());
+    await adminPage.goto(meetingUrl(id));
+    await adminPage.getByRole("button", { name: "Skannaa QR-koodi" }).click();
+
+    const scanner = adminPage.getByRole("dialog", { name: "Skannaa QR-koodi" });
+    await expect(scanner).toContainText("Virheellinen QR-koodi");
+    const events = await db
+      .select()
+      .from(table.meetingAttendanceEvent)
+      .where(eq(table.meetingAttendanceEvent.meetingId, id));
+    expect(events).toHaveLength(0);
+    await scanner.getByRole("button", { name: "Sulje skanneri" }).click();
+    await expect(adminPage.getByTestId("meeting-search")).toBeVisible();
+  });
+
+  test("counts an active member scanned by QR under their membership type", async ({ adminPage, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const user = await createUser(db);
+    userIds.push(user.id);
+    const token = crypto.randomUUID();
+    await db.update(table.user).set({ qrToken: token }).where(eq(table.user.id, user.id));
+    const membershipId = crypto.randomUUID();
+    membershipIds.push(membershipId);
+    await db.insert(table.membership).values({
+      id: membershipId,
+      membershipTypeId: "varsinainen-jasen",
+      startTime: new Date(Date.now() - 24 * 60 * 60_000),
+      endTime: new Date(Date.now() + 24 * 60 * 60_000),
+    });
+    await db.insert(table.member).values({ id: crypto.randomUUID(), userId: user.id, membershipId, status: "active" });
+    await installQrCamera(adminPage, token);
+    await adminPage.goto(meetingUrl(id));
+    await adminPage.getByRole("button", { name: "Skannaa QR-koodi" }).click();
+
+    const scanner = adminPage.getByRole("dialog", { name: "Skannaa QR-koodi" });
+    await expect(scanner).toContainText(`Sisään: ${user.displayName}`);
+    await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 1 jäsentä, 0 vierasta");
+    const [event] = await db
+      .select()
+      .from(table.meetingAttendanceEvent)
+      .where(eq(table.meetingAttendanceEvent.meetingId, id));
+    expect(event).toMatchObject({ source: "scan", membershipTypeId: "varsinainen-jasen" });
+  });
+
+  test("holds a QR check-in until the meeting starts", async ({ adminPage, db }) => {
+    const id = await createMeeting(db);
+    meetingIds.push(id);
+    const user = await createUser(db);
+    userIds.push(user.id);
+    const token = crypto.randomUUID();
+    await db.update(table.user).set({ qrToken: token }).where(eq(table.user.id, user.id));
+    await installQrCamera(adminPage, token);
+    await adminPage.goto(meetingUrl(id));
+    await adminPage.getByRole("button", { name: "Skannaa QR-koodi" }).click();
+
+    const scanner = adminPage.getByRole("dialog", { name: "Skannaa QR-koodi" });
+    await expect(scanner).toContainText(`Sisään: ${user.displayName}`);
+    await scanner.getByRole("button", { name: "Sulje skanneri" }).click();
+    await expect(attendeeRow(adminPage, user.displayName)).toContainText("Saapui ennen kokouksen alkua");
+    await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 0 vierasta");
+
+    await adminPage.getByRole("button", { name: "Aloita kokous" }).click();
+    await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla");
+    await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 1 vierasta");
+  });
+
+  test("holds a QR check-in during a recess until the meeting resumes", async ({ adminPage, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    await db.insert(table.meetingRecess).values({
+      id: crypto.randomUUID(),
+      meetingId: id,
+      mode: "track_exits",
+      startedAt: new Date(Date.now() - 60_000),
+    });
+    const user = await createUser(db);
+    userIds.push(user.id);
+    const token = crypto.randomUUID();
+    await db.update(table.user).set({ qrToken: token }).where(eq(table.user.id, user.id));
+    await installQrCamera(adminPage, token);
+    await adminPage.goto(meetingUrl(id));
+    await adminPage.getByRole("button", { name: "Skannaa QR-koodi" }).click();
+
+    const scanner = adminPage.getByRole("dialog", { name: "Skannaa QR-koodi" });
+    await expect(scanner).toContainText(`Sisään: ${user.displayName}`);
+    await scanner.getByRole("button", { name: "Sulje skanneri" }).click();
+    await expect(attendeeRow(adminPage, user.displayName)).toContainText("Saapui tauolla");
+    await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 0 vierasta");
+
+    await adminPage.getByRole("button", { name: "Jatka kokousta" }).click();
+    await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla");
+    await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 1 vierasta");
+  });
+
+  test("keeps manual check-in available when the camera fails", async ({ adminPage, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    await adminPage.addInitScript(() => {
+      Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
+        configurable: true,
+        value: async () => {
+          throw new Error("Camera denied");
+        },
+      });
+    });
+    await adminPage.goto(meetingUrl(id));
+    await adminPage.getByRole("button", { name: "Skannaa QR-koodi" }).click();
+
+    const scanner = adminPage.getByRole("dialog", { name: "Skannaa QR-koodi" });
+    await expect(scanner).toContainText("Kameraan ei saatu yhteyttä");
+    await scanner.getByRole("button", { name: "Sulje skanneri" }).click();
+    await expect(adminPage.getByTestId("meeting-search")).toBeVisible();
   });
 
   test("shows a corrected no-membership entry in the page and attendance export", async ({ adminPage, db }) => {
@@ -391,6 +588,7 @@ test.describe("Meeting attendance", () => {
     await expect(adminPage.getByTestId("present-count")).toHaveText("Osallistui: 0 jäsentä, 1 vierasta");
     await expect(adminPage.getByTestId("time-present")).toHaveText(/min/);
     await expect(adminPage.getByTestId("meeting-search")).toBeHidden();
+    await expect(adminPage.getByRole("button", { name: "Skannaa QR-koodi" })).toHaveCount(0);
     await expect(adminPage.getByRole("button", { name: "Merkitse poistuneeksi" })).toHaveCount(0);
     // Reasoned corrections remain available after closing.
     await logRow(adminPage, "saapui").first().getByRole("button", { name: "Lisää toimintoja" }).click();
@@ -620,6 +818,7 @@ test.describe("Meeting attendance as read-only admin", () => {
     await expect(readonlyAdminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 1 vierasta");
     await expect(readonlyAdminPage.getByTestId("attendee-row")).toHaveCount(1);
     await expect(readonlyAdminPage.getByTestId("meeting-search")).toHaveCount(0);
+    await expect(readonlyAdminPage.getByRole("button", { name: "Skannaa QR-koodi" })).toHaveCount(0);
     await expect(readonlyAdminPage.getByRole("button", { name: "Aloita tauko" })).toHaveCount(0);
     await expect(readonlyAdminPage.getByRole("button", { name: "Toiminnot" })).toHaveCount(0);
     await expect(readonlyAdminPage.getByRole("button", { name: "Korjaa merkintä" })).toHaveCount(0);
