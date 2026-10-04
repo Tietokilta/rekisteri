@@ -115,6 +115,42 @@ export function meetingPresence(events: MeetingEvent[], at?: Date) {
   return { present: [...present], everPresent: [...everPresent], membershipTypeByAttendee };
 }
 
+type MeetingAttendanceSummary = {
+  firstIn: Date;
+  /** Null when the attendee was still present at `until`. */
+  lastOut: Date | null;
+  presentMs: number;
+};
+
+/** Per-attendee arrival, departure and total time present, from attendance-effect events up to `until`. */
+export function meetingAttendanceSummary(events: MeetingEvent[], until: Date) {
+  const summary: Record<string, MeetingAttendanceSummary> = {};
+  const enteredAt = new Map<string, Date>();
+  for (const event of events.toSorted(compareMeetingEventOrder)) {
+    if (event.effectiveAt > until) break;
+    const entered = enteredAt.get(event.attendeeId);
+    if (event.direction === "in") {
+      if (entered) continue;
+      enteredAt.set(event.attendeeId, event.effectiveAt);
+      const current = summary[event.attendeeId];
+      if (current) current.lastOut = null;
+      else summary[event.attendeeId] = { firstIn: event.effectiveAt, lastOut: null, presentMs: 0 };
+    } else if (entered) {
+      enteredAt.delete(event.attendeeId);
+      const current = summary[event.attendeeId];
+      if (current) {
+        current.presentMs += event.effectiveAt.getTime() - entered.getTime();
+        current.lastOut = event.effectiveAt;
+      }
+    }
+  }
+  for (const [attendeeId, entered] of enteredAt) {
+    const current = summary[attendeeId];
+    if (current) current.presentMs += until.getTime() - entered.getTime();
+  }
+  return summary;
+}
+
 /** Keep observed events unchanged; project only their effect on attendance. */
 export function projectMeetingEvents(events: MeetingEvent[], recesses: MeetingRecess[], startsAt?: Date | null) {
   let meetingEvents = events;

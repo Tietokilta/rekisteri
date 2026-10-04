@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   bindEventsToRecess,
   meetingActionWarnings,
+  meetingAttendanceSummary,
   meetingPhysicalPresence,
   meetingPresence,
   projectMeetingEvents,
@@ -155,6 +156,33 @@ describe("recess attendance", () => {
     expect(events[1]?.recessId).toBe("break");
     expect(corrected[1]?.recessId).toBeNull();
     expect(meetingPresence(projectMeetingEvents(corrected, [recess]), time(30)).present).toEqual(["member"]);
+  });
+});
+
+describe("meeting attendance summary", () => {
+  it("sums time present across exits and counts open stays until the end", () => {
+    const summary = meetingAttendanceSummary(
+      [
+        event("a-in", "a", "in", 0),
+        event("a-out", "a", "out", 10),
+        event("a-back", "a", "in", 20),
+        event("b-in", "b", "in", 5),
+        event("b-out", "b", "out", 15),
+        event("c-in", "c", "in", 50),
+      ],
+      time(30),
+    );
+    expect(summary.a).toEqual({ firstIn: time(0), lastOut: null, presentMs: 20 * 60_000 });
+    expect(summary.b).toEqual({ firstIn: time(5), lastOut: time(15), presentMs: 10 * 60_000 });
+    expect(summary.c).toBeUndefined();
+  });
+
+  it("ignores a repeated entry while already present", () => {
+    const summary = meetingAttendanceSummary(
+      [event("in", "a", "in", 0), event("again", "a", "in", 5), event("out", "a", "out", 10)],
+      time(30),
+    );
+    expect(summary.a?.presentMs).toBe(10 * 60_000);
   });
 });
 

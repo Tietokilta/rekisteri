@@ -388,6 +388,8 @@ test.describe("Meeting attendance", () => {
     await expect(dialog).toBeHidden();
     await expect(adminPage.getByTestId("meeting-status")).toContainText("Suljettu");
     await expect(logRow(adminPage, "Kokous suljettiin")).toBeVisible();
+    await expect(adminPage.getByTestId("present-count")).toHaveText("Osallistui: 0 jäsentä, 1 vierasta");
+    await expect(adminPage.getByTestId("time-present")).toHaveText(/min/);
     await expect(adminPage.getByTestId("meeting-search")).toBeHidden();
     await expect(adminPage.getByRole("button", { name: "Merkitse poistuneeksi" })).toHaveCount(0);
     // Reasoned corrections remain available after closing.

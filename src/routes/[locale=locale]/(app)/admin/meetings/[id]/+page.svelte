@@ -32,6 +32,7 @@
     updateMeetingTimes,
   } from "../data.remote";
   import { updateMeetingTimesSchema } from "../schema";
+  import { meetingAttendanceSummary } from "$lib/shared/meeting-attendance";
   import { onMount } from "svelte";
   import { Registry } from "./registry.svelte";
   import { remoteErrorMessage, type AttendeeRow, type CorrectionTarget, type RecordTarget } from "./types";
@@ -100,16 +101,30 @@
           a.displayName.localeCompare(b.displayName),
       ),
   );
+  // A closed meeting lists who attended at all, longest stay first, instead of who is in the room now
+  const closedAt = $derived(data.meeting.closedAt ? new Date(data.meeting.closedAt) : null);
+  const summary = $derived(closedAt ? meetingAttendanceSummary(data.projectedEvents, closedAt) : {});
+  const attendedRows = $derived(
+    rows
+      .filter((row) => Object.hasOwn(summary, row.id))
+      .toSorted(
+        (a, b) =>
+          (summary[b.id]?.presentMs ?? 0) - (summary[a.id]?.presentMs ?? 0) ||
+          a.displayName.localeCompare(b.displayName),
+      ),
+  );
   const filteredRows = $derived(
-    rows.filter((row) =>
-      filter === "present"
-        ? row.status === "present"
-        : filter === "away"
-          ? row.status !== "present"
-          : filter !== "guests" || !row.typeId,
+    (closedAt ? attendedRows : rows).filter((row) =>
+      closedAt
+        ? filter !== "guests" || !row.typeId
+        : filter === "present"
+          ? row.status === "present"
+          : filter === "away"
+            ? row.status !== "present"
+            : filter !== "guests" || !row.typeId,
     ),
   );
-  const presentRows = $derived(rows.filter((row) => row.status === "present"));
+  const presentRows = $derived(closedAt ? attendedRows : rows.filter((row) => row.status === "present"));
   const memberCount = $derived(presentRows.filter((row) => row.typeId).length);
   const guestCount = $derived(presentRows.length - memberCount);
 
@@ -125,12 +140,25 @@
       .find((correction) => data.resolvedEvents.some((event) => event.id === correction.eventId && event.voided)),
   );
 
-  const filters = $derived([
-    ["all", $LL.admin.meetings.filterAll()],
-    ["present", $LL.admin.meetings.filterPresent()],
-    ["away", $LL.admin.meetings.filterAway()],
-    ["guests", $LL.admin.meetings.filterGuests()],
-  ] as const);
+  const filters = $derived(
+    closedAt
+      ? ([
+          ["all", $LL.admin.meetings.filterAll()],
+          ["guests", $LL.admin.meetings.filterGuests()],
+        ] as const)
+      : ([
+          ["all", $LL.admin.meetings.filterAll()],
+          ["present", $LL.admin.meetings.filterPresent()],
+          ["away", $LL.admin.meetings.filterAway()],
+          ["guests", $LL.admin.meetings.filterGuests()],
+        ] as const),
+  );
+
+  function formatDuration(ms: number) {
+    const minutes = Math.round(ms / 60_000);
+    const hours = Math.floor(minutes / 60);
+    return hours ? `${hours} h ${minutes % 60} min` : `${minutes} min`;
+  }
 
   function typeName(id: string | null) {
     if (!id) return $LL.admin.meetings.noMembership();
@@ -326,7 +354,9 @@
     </div>
     <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
       <p class="text-lg font-semibold" data-testid="present-count">
-        {$LL.admin.meetings.presentNow({ members: String(memberCount), guests: String(guestCount) })}
+        {closedAt
+          ? $LL.admin.meetings.attendedTotal({ members: String(memberCount), guests: String(guestCount) })
+          : $LL.admin.meetings.presentNow({ members: String(memberCount), guests: String(guestCount) })}
       </p>
       <ul class="hidden flex-wrap gap-1.5 sm:flex">
         {#each data.types as type (type.id)}
@@ -412,7 +442,7 @@
         {/each}
       </div>
     </div>
-    {#if rows.length === 0}
+    {#if (closedAt ? attendedRows : rows).length === 0}
       <p class="rounded-lg border p-6 text-center text-sm text-muted-foreground">{$LL.admin.meetings.noAttendees()}</p>
     {:else}
       <div class="rounded-lg border contain-inline-size">
@@ -421,8 +451,14 @@
             <Table.Row>
               <Table.Head>{$LL.admin.meetings.person()}</Table.Head>
               <Table.Head class="hidden lg:table-cell">{$LL.admin.meetings.membership()}</Table.Head>
-              <Table.Head>{$LL.admin.meetings.status()}</Table.Head>
-              <Table.Head class="hidden lg:table-cell">{$LL.admin.meetings.lastAction()}</Table.Head>
+              {#if closedAt}
+                <Table.Head>{$LL.admin.meetings.timePresent()}</Table.Head>
+                <Table.Head class="hidden sm:table-cell">{$LL.admin.meetings.firstArrival()}</Table.Head>
+                <Table.Head class="hidden sm:table-cell">{$LL.admin.meetings.lastDeparture()}</Table.Head>
+              {:else}
+                <Table.Head>{$LL.admin.meetings.status()}</Table.Head>
+                <Table.Head class="hidden lg:table-cell">{$LL.admin.meetings.lastAction()}</Table.Head>
+              {/if}
               <Table.Head class="text-right"></Table.Head>
             </Table.Row>
           </Table.Header>
@@ -438,25 +474,45 @@
                 <Table.Cell class="hidden lg:table-cell">
                   {row.isGuest ? $LL.admin.meetings.guest() : typeName(row.typeId)}
                 </Table.Cell>
-                <Table.Cell>
-                  <div class="flex flex-wrap items-center gap-1">
-                    <Badge variant={row.status === "present" ? "default" : "outline"}>
-                      {row.status === "present"
-                        ? $LL.admin.meetings.present()
-                        : row.status === "pending"
-                          ? data.meeting.startsAt
-                            ? $LL.admin.meetings.pendingReentry()
-                            : $LL.admin.meetings.pendingStart()
-                          : $LL.admin.meetings.away()}
-                    </Badge>
-                    {#if row.conflicts}
-                      <Badge variant="destructive">{row.conflicts}</Badge>
-                    {/if}
-                  </div>
-                </Table.Cell>
-                <Table.Cell class="hidden text-muted-foreground lg:table-cell">
-                  {row.lastActionAt ? formatShortDateTime(new Date(row.lastActionAt), $locale) : ""}
-                </Table.Cell>
+                {#if closedAt}
+                  {@const stay = summary[row.id]}
+                  <Table.Cell>
+                    <div class="flex flex-wrap items-center gap-1">
+                      <span data-testid="time-present">{stay ? formatDuration(stay.presentMs) : ""}</span>
+                      {#if row.conflicts}
+                        <Badge variant="destructive">{row.conflicts}</Badge>
+                      {/if}
+                    </div>
+                  </Table.Cell>
+                  <Table.Cell class="hidden text-muted-foreground sm:table-cell">
+                    {stay ? formatShortDateTime(new Date(stay.firstIn), $locale) : ""}
+                  </Table.Cell>
+                  <Table.Cell class="hidden text-muted-foreground sm:table-cell">
+                    {stay?.lastOut
+                      ? formatShortDateTime(new Date(stay.lastOut), $locale)
+                      : $LL.admin.meetings.untilEnd()}
+                  </Table.Cell>
+                {:else}
+                  <Table.Cell>
+                    <div class="flex flex-wrap items-center gap-1">
+                      <Badge variant={row.status === "present" ? "default" : "outline"}>
+                        {row.status === "present"
+                          ? $LL.admin.meetings.present()
+                          : row.status === "pending"
+                            ? data.meeting.startsAt
+                              ? $LL.admin.meetings.pendingReentry()
+                              : $LL.admin.meetings.pendingStart()
+                            : $LL.admin.meetings.away()}
+                      </Badge>
+                      {#if row.conflicts}
+                        <Badge variant="destructive">{row.conflicts}</Badge>
+                      {/if}
+                    </div>
+                  </Table.Cell>
+                  <Table.Cell class="hidden text-muted-foreground lg:table-cell">
+                    {row.lastActionAt ? formatShortDateTime(new Date(row.lastActionAt), $locale) : ""}
+                  </Table.Cell>
+                {/if}
                 <Table.Cell class="text-right">
                   {#if data.canWrite}
                     <div class="flex justify-end gap-1">
