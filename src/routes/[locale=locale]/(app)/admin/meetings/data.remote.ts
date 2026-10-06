@@ -229,10 +229,12 @@ export const scanAttendance = command(scanAttendanceSchema, async (data) => {
       source: "scan",
       target: { userId },
     });
-    const attendee = await db.query.meetingAttendee.findFirst({ where: { id: recorded.attendeeId } });
-    if (!attendee) throw new Error("Recorded attendee not found");
     // The attendee keeps the type from their latest entry, so a check-out shows it too
-    return { eventId: recorded.id, displayName: attendee.displayName, membershipTypeId: attendee.membershipTypeId };
+    return {
+      eventId: recorded.id,
+      displayName: recorded.attendee.displayName,
+      membershipTypeId: recorded.attendee.membershipTypeId,
+    };
   } catch (cause) {
     if (cause instanceof Error) {
       if (cause.message === "Already present") error(409, LL.admin.meetings.scanAlreadyIn());

@@ -926,6 +926,63 @@ test.describe("Meeting attendance", () => {
     expect(byAttendeeTime.map((event) => event.membershipTypeId)).toEqual(["varsinainen-jasen", null]);
     await db.delete(table.member).where(eq(table.member.id, memberId));
   });
+
+  test("takes the merged attendee's type from entries that are still in effect", async ({ adminPage, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const user = await createUser(db);
+    userIds.push(user.id);
+    const memberRowId = crypto.randomUUID();
+    const guest = await createPresentGuest(db, id);
+    await db
+      .insert(table.meetingAttendee)
+      .values({ id: memberRowId, meetingId: id, userId: user.id, displayName: user.displayName });
+    const voidedId = crypto.randomUUID();
+    await db.insert(table.meetingAttendanceEvent).values([
+      {
+        id: crypto.randomUUID(),
+        meetingId: id,
+        attendeeId: memberRowId,
+        direction: "in",
+        source: "manual",
+        membershipTypeId: "varsinainen-jasen",
+        // After the guest's entry (10 min ago), before the undone one
+        effectiveAt: new Date(Date.now() - 8 * 60_000),
+      },
+      {
+        id: voidedId,
+        meetingId: id,
+        attendeeId: memberRowId,
+        direction: "in",
+        source: "manual",
+        membershipTypeId: "ulkojasen",
+        effectiveAt: new Date(Date.now() - 5 * 60_000),
+      },
+    ]);
+    // The later entry was undone
+    await db.insert(table.meetingAttendanceEventCorrection).values({
+      id: crypto.randomUUID(),
+      eventId: voidedId,
+      revision: 1,
+      attendeeId: memberRowId,
+      direction: "in",
+      effectiveAt: new Date(Date.now() - 5 * 60_000),
+      membershipTypeId: "ulkojasen",
+      voided: true,
+      reason: "Undo",
+    });
+    await adminPage.goto(meetingUrl(id));
+
+    const sheet = await editAttendee(adminPage, guest.displayName);
+    await sheet.getByLabel("Vieraan nimi tai jäsenen haku").fill(user.lastName);
+    await sheet.getByTestId("attendee-member-option").filter({ hasText: user.displayName }).click();
+    await sheet.getByLabel("Korjauksen syy").fill("Member was added as a guest");
+    await sheet.getByRole("button", { name: "Tallenna korjaus" }).click();
+    await expect(sheet).toBeHidden();
+
+    const [attendee] = await db.select().from(table.meetingAttendee).where(eq(table.meetingAttendee.id, memberRowId));
+    expect(attendee?.membershipTypeId).toBe("varsinainen-jasen");
+  });
 });
 
 test.describe("Meeting attendance as read-only admin", () => {

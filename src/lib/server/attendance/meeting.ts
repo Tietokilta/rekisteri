@@ -89,7 +89,9 @@ export async function recordMeetingEvent(input: NewAttendanceEvent) {
       ) {
         throw new Error("Event ID already used for a different action");
       }
-      return existing;
+      const existingAttendee = await tx.query.meetingAttendee.findFirst({ where: { id: existing.attendeeId } });
+      if (!existingAttendee) throw new Error("Attendee not found in meeting");
+      return { ...existing, attendee: existingAttendee };
     }
 
     // Live actions are timed after the lock, so they order correctly against a recess started meanwhile
@@ -190,7 +192,12 @@ export async function recordMeetingEvent(input: NewAttendanceEvent) {
       })
       .returning();
     if (!recorded) throw new Error("Could not record attendance");
-    return recorded;
+    // Read within the transaction, so callers can show who was recorded even if the row is merged right after
+    const attendeeAfter =
+      input.direction === "in" && attendee.userId && input.source !== "correction"
+        ? { ...attendee, membershipTypeId }
+        : attendee;
+    return { ...recorded, attendee: attendeeAfter };
   });
 }
 
@@ -351,14 +358,8 @@ export async function updateMeetingAttendee(input: {
     const corrections = await tx.query.meetingAttendanceEventCorrection.findMany({
       where: { attendeeId: keptAttendeeId },
     });
-    let latestEntry: { at: Date; membershipTypeId: string | null } | null = null;
     for (const row of [...events, ...corrections]) {
-      if (!changingRowIds.has(row.id)) {
-        if (row.direction === "in" && (!latestEntry || row.effectiveAt > latestEntry.at)) {
-          latestEntry = { at: row.effectiveAt, membershipTypeId: row.membershipTypeId };
-        }
-        continue;
-      }
+      if (!changingRowIds.has(row.id)) continue;
       const membershipTypeId =
         row.direction === "in" && userId ? await membershipTypeAt(tx, userId, row.effectiveAt) : null;
       if ("source" in row) {
@@ -372,10 +373,24 @@ export async function updateMeetingAttendee(input: {
           .set({ membershipTypeId })
           .where(eq(table.meetingAttendanceEventCorrection.id, row.id));
       }
-      if (row.direction === "in" && (!latestEntry || row.effectiveAt > latestEntry.at)) {
-        latestEntry = { at: row.effectiveAt, membershipTypeId };
-      }
     }
+    // The attendee's type is the snapshot of their latest entry as it currently stands (not undone,
+    // not moved to someone else by a correction)
+    const meetingEvents = await tx.query.meetingAttendanceEvent.findMany({ where: { meetingId: input.meetingId } });
+    const meetingCorrections = meetingEvents.length
+      ? await tx
+          .select()
+          .from(table.meetingAttendanceEventCorrection)
+          .where(
+            inArray(
+              table.meetingAttendanceEventCorrection.eventId,
+              meetingEvents.map((event) => event.id),
+            ),
+          )
+      : [];
+    const latestEntry = resolveMeetingEvents(meetingEvents, meetingCorrections)
+      .filter((entry) => entry.attendeeId === keptAttendeeId && !entry.voided && entry.direction === "in")
+      .toSorted((a, b) => b.effectiveAt.getTime() - a.effectiveAt.getTime())[0];
     await tx
       .update(table.meetingAttendee)
       .set({ userId, displayName, membershipTypeId: latestEntry?.membershipTypeId ?? null })
