@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, gte, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import {
@@ -45,11 +45,7 @@ function earliestEventTime(meeting: typeof table.meeting.$inferSelect) {
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-/**
- * The membership type a user held at the given time, or null when they had none. A resigned membership
- * still counts for times before it was deemed resigned (its last update), which matters when
- * correcting past meetings; live actions happen after any resignation, so it doesn't count for them.
- */
+/** The membership type a user held at the given time, or null when they had no active membership. */
 async function membershipTypeAt(tx: Tx, userId: string, at: Date) {
   const [activeMember] = await tx
     .select({ membershipTypeId: table.membership.membershipTypeId })
@@ -58,7 +54,7 @@ async function membershipTypeAt(tx: Tx, userId: string, at: Date) {
     .where(
       and(
         eq(table.member.userId, userId),
-        or(eq(table.member.status, "active"), and(eq(table.member.status, "resigned"), gt(table.member.updatedAt, at))),
+        eq(table.member.status, "active"),
         lte(table.membership.startTime, at),
         gte(table.membership.endTime, at),
       ),
@@ -310,6 +306,13 @@ export async function updateMeetingAttendee(input: {
     let userId: string | null = null;
     let displayName: string;
     let keptAttendeeId = attendee.id;
+    // Only this attendee's own entries change person; rows already on a merge target keep their snapshots
+    const [ownEvents, ownCorrections] = await Promise.all([
+      tx.query.meetingAttendanceEvent.findMany({ where: { attendeeId: attendee.id }, columns: { id: true } }),
+      tx.query.meetingAttendanceEventCorrection.findMany({ where: { attendeeId: attendee.id }, columns: { id: true } }),
+    ]);
+    const changingRowIds = new Set([...ownEvents, ...ownCorrections].map((row) => row.id));
+
     if ("userId" in input.target) {
       const person = await tx.query.user.findFirst({ where: { id: input.target.userId } });
       if (!person) throw new Error("User not found");
@@ -343,13 +346,19 @@ export async function updateMeetingAttendee(input: {
       return { attendeeId: attendee.id };
     }
 
-    // Entries keep a membership snapshot taken at their own time; recalculate them for the new identity
+    // Entries keep a membership snapshot taken at their own time; recalculate the ones changing person
     const events = await tx.query.meetingAttendanceEvent.findMany({ where: { attendeeId: keptAttendeeId } });
     const corrections = await tx.query.meetingAttendanceEventCorrection.findMany({
       where: { attendeeId: keptAttendeeId },
     });
     let latestEntry: { at: Date; membershipTypeId: string | null } | null = null;
     for (const row of [...events, ...corrections]) {
+      if (!changingRowIds.has(row.id)) {
+        if (row.direction === "in" && (!latestEntry || row.effectiveAt > latestEntry.at)) {
+          latestEntry = { at: row.effectiveAt, membershipTypeId: row.membershipTypeId };
+        }
+        continue;
+      }
       const membershipTypeId =
         row.direction === "in" && userId ? await membershipTypeAt(tx, userId, row.effectiveAt) : null;
       if ("source" in row) {

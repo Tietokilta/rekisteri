@@ -211,7 +211,8 @@
         : $LL.admin.meetings.checkedOut({ name: result.displayName }),
       { action: { label: $LL.admin.meetings.undo(), onClick: () => correct(result.eventId, "void", "Undo") } },
     );
-    void invalidateAll().catch(() => toast.error($LL.admin.meetings.scanFailed()));
+    // The scan is already recorded; a failed refresh only delays the list, so don't report it as a failed scan
+    void invalidateAll().catch(() => {});
     return result;
   }
 

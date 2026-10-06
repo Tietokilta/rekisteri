@@ -854,7 +854,7 @@ test.describe("Meeting attendance", () => {
     await expect(sheet).toBeVisible();
   });
 
-  test("keeps a past membership when merging a guest into a member who later resigned", async ({ adminPage, db }) => {
+  test("keeps a resigned member's own entries when merging a guest into them", async ({ adminPage, db }) => {
     const [membership] = await db
       .select()
       .from(table.membership)
@@ -921,7 +921,9 @@ test.describe("Meeting attendance", () => {
       .select()
       .from(table.meetingAttendanceEvent)
       .where(eq(table.meetingAttendanceEvent.meetingId, id));
-    expect(events.map((event) => event.membershipTypeId)).toEqual(["varsinainen-jasen", "varsinainen-jasen"]);
+    // The member's own entry keeps its snapshot; the moved guest entry is recalculated (no active membership now)
+    const byAttendeeTime = events.toSorted((a, b) => a.effectiveAt.getTime() - b.effectiveAt.getTime());
+    expect(byAttendeeTime.map((event) => event.membershipTypeId)).toEqual(["varsinainen-jasen", null]);
     await db.delete(table.member).where(eq(table.member.id, memberId));
   });
 });
