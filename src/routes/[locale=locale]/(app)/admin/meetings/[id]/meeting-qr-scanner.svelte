@@ -21,7 +21,8 @@
   let processing = $state(false);
   let direction = $state<"in" | "out">("in");
   let videoEl = $state<HTMLVideoElement | null>(null);
-  let feedback = $state<{ kind: "success" | "error"; text: string } | null>(null);
+  /** `mismatch`: the person is already in (or out), so the other direction was probably meant. */
+  let feedback = $state<{ kind: "success" | "error" | "mismatch"; text: string } | null>(null);
   let scanner: QrScanner | null = null;
   let lastToken = "";
   let clearTokenTimer: ReturnType<typeof setTimeout> | undefined;
@@ -48,7 +49,15 @@
         };
       })
       .catch((cause) => {
-        feedback = { kind: "error", text: remoteErrorMessage(cause, $LL.admin.meetings.scanFailed()) };
+        const text = remoteErrorMessage(cause, $LL.admin.meetings.scanFailed());
+        // Suggest the other direction, but leave switching to the operator
+        if (text === $LL.admin.meetings.scanAlreadyIn()) {
+          feedback = { kind: "mismatch", text: `${text}. ${$LL.admin.meetings.suggestScanOut()}` };
+        } else if (text === $LL.admin.meetings.scanAlreadyOut()) {
+          feedback = { kind: "mismatch", text: `${text}. ${$LL.admin.meetings.suggestScanIn()}` };
+        } else {
+          feedback = { kind: "error", text };
+        }
       })
       .finally(() => {
         processing = false;
@@ -97,28 +106,23 @@
     aria-label={$LL.admin.meetings.scanQr()}
   >
     <div class="flex items-center justify-between border-b p-4">
-      <h2 class="text-lg font-semibold">{$LL.admin.meetings.scanQr()}</h2>
+      <h2 class="text-lg font-semibold" data-testid="scan-mode">
+        {direction === "in" ? $LL.admin.meetings.scanningIn() : $LL.admin.meetings.scanningOut()}
+      </h2>
       <Button variant="ghost" size="icon" onclick={close} aria-label={$LL.admin.verifyQr.closeScanner()}><X /></Button>
     </div>
     <div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-4">
-      <div class="flex gap-2" role="group" aria-label={$LL.admin.meetings.scanDirection()}>
-        <Button
-          class="flex-1"
-          variant={direction === "in" ? "default" : "outline"}
-          disabled={processing}
-          aria-pressed={direction === "in"}
-          onclick={() => (direction = "in")}>{$LL.admin.meetings.scanIn()}</Button
-        >
-        <Button
-          class="flex-1"
-          variant={direction === "out" ? "default" : "outline"}
-          disabled={processing}
-          aria-pressed={direction === "out"}
-          onclick={() => (direction = "out")}>{$LL.admin.meetings.scanOut()}</Button
-        >
-      </div>
       <div class="relative min-h-48 flex-1 overflow-hidden rounded-lg bg-black">
         <video bind:this={videoEl} class="absolute inset-0 h-full w-full object-cover" playsinline></video>
+        <span
+          class={[
+            "absolute top-3 left-3 rounded-full px-3 py-1 text-sm font-semibold",
+            direction === "in" ? "bg-primary text-primary-foreground" : "bg-amber-500 text-black",
+          ]}
+          aria-hidden="true"
+        >
+          {direction === "in" ? $LL.admin.meetings.scanIn() : $LL.admin.meetings.scanOut()}
+        </span>
       </div>
       <div class="min-h-16" aria-live="polite">
         {#if processing}
@@ -135,6 +139,19 @@
           <p class="text-center text-muted-foreground">{$LL.admin.verifyQr.scanInstructions()}</p>
         {/if}
       </div>
+      <!-- At the bottom, within thumb reach on a phone -->
+      <Button
+        size="lg"
+        class="h-14 w-full text-base"
+        variant={feedback?.kind === "mismatch" ? "default" : "outline"}
+        disabled={processing}
+        onclick={() => {
+          direction = direction === "in" ? "out" : "in";
+          feedback = null;
+        }}
+      >
+        {direction === "in" ? $LL.admin.meetings.switchToScanOut() : $LL.admin.meetings.switchToScanIn()}
+      </Button>
     </div>
   </div>
 {/if}

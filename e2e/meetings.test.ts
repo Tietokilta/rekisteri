@@ -256,7 +256,10 @@ test.describe("Meeting attendance", () => {
 
     await showQrAgain(adminPage);
     await expect(scanner).toContainText("On jo merkitty saapuneeksi");
-    await scanner.getByRole("button", { name: "Ulos" }).click();
+    await expect(scanner).toContainText("Vaihda skannaamaan ulos");
+    await expect(scanner.getByTestId("scan-mode")).toHaveText("Skannataan sisään");
+    await scanner.getByRole("button", { name: "Vaihda: skannaa ulos" }).click();
+    await expect(scanner.getByTestId("scan-mode")).toHaveText("Skannataan ulos");
     const firstEvents = await db
       .select()
       .from(table.meetingAttendanceEvent)
