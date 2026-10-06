@@ -11,6 +11,7 @@ import Key from "@lucide/svelte/icons/key";
 import Mail from "@lucide/svelte/icons/mail";
 import BookUser from "@lucide/svelte/icons/book-user";
 import Calendar from "@lucide/svelte/icons/calendar";
+import ClipboardList from "@lucide/svelte/icons/clipboard-list";
 import Tag from "@lucide/svelte/icons/tag";
 import UserCog from "@lucide/svelte/icons/user-cog";
 import QrCode from "@lucide/svelte/icons/qr-code";
@@ -68,6 +69,11 @@ export function getAdminNavItems(locale: Locale, LL: TranslationFunctions): NavI
       title: LL.nav.admin.memberships(),
       href: route("/[locale=locale]/admin/memberships", { locale }),
       icon: Calendar,
+    },
+    {
+      title: LL.nav.admin.meetings(),
+      href: route("/[locale=locale]/admin/meetings", { locale }),
+      icon: ClipboardList,
     },
     {
       title: LL.nav.admin.membershipTypes(),

@@ -12,3 +12,8 @@ export const mergeUsersSchema = v.object({
   confirmPrimaryEmail: v.pipe(v.string(), v.email()),
   confirmSecondaryEmail: v.pipe(v.string(), v.email()),
 });
+
+export const mergeMeetingConflictsSchema = v.object({
+  primaryUserId: v.pipe(v.string(), v.minLength(1)),
+  secondaryUserId: v.pipe(v.string(), v.minLength(1)),
+});

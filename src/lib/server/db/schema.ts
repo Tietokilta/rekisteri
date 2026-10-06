@@ -175,6 +175,113 @@ export const auditLog = snakeCase.table("audit_log", {
   ...timestamps,
 });
 
+export const meeting = snakeCase.table("meeting", {
+  id: text().primaryKey(),
+  title: text().notNull(),
+  scheduledStartsAt: timestamp({ withTimezone: true }),
+  startsAt: timestamp({ withTimezone: true }),
+  closedAt: timestamp({ withTimezone: true }),
+  createdBy: text().references(() => user.id, { onDelete: "set null" }),
+  ...timestamps,
+});
+
+export const meetingRecess = snakeCase.table(
+  "meeting_recess",
+  {
+    id: text().primaryKey(),
+    meetingId: text()
+      .notNull()
+      .references(() => meeting.id),
+    mode: text().$type<"track_exits" | "reset_all">().notNull(),
+    startedAt: timestamp({ withTimezone: true }).notNull(),
+    endedAt: timestamp({ withTimezone: true }),
+    cancelledAt: timestamp({ withTimezone: true }),
+    startedBy: text().references(() => user.id, { onDelete: "set null" }),
+    endedBy: text().references(() => user.id, { onDelete: "set null" }),
+    cancelledBy: text().references(() => user.id, { onDelete: "set null" }),
+  },
+  (table) => [
+    uniqueIndex("meeting_recess_one_open")
+      .on(table.meetingId)
+      .where(sql`${table.endedAt} IS NULL AND ${table.cancelledAt} IS NULL`),
+    index("meeting_recess_meeting_idx").on(table.meetingId, table.startedAt),
+    check("meeting_recess_mode_check", sql`${table.mode} IN ('track_exits', 'reset_all')`),
+    check("meeting_recess_end_check", sql`${table.endedAt} IS NULL OR ${table.endedAt} >= ${table.startedAt}`),
+  ],
+);
+
+export const meetingAttendee = snakeCase.table(
+  "meeting_attendee",
+  {
+    id: text().primaryKey(),
+    meetingId: text()
+      .notNull()
+      .references(() => meeting.id),
+    userId: text().references(() => user.id, { onDelete: "set null" }),
+    displayName: text().notNull(),
+    membershipTypeId: text(), // Latest checked-in type; each entry has its own snapshot
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("meeting_attendee_user_unique")
+      .on(table.meetingId, table.userId)
+      .where(sql`${table.userId} IS NOT NULL`),
+    index("meeting_attendee_meeting_idx").on(table.meetingId),
+  ],
+);
+
+export const meetingAttendanceEvent = snakeCase.table(
+  "meeting_attendance_event",
+  {
+    id: text().primaryKey(), // Client-generated UUID so retries record the action once
+    meetingId: text()
+      .notNull()
+      .references(() => meeting.id),
+    attendeeId: text()
+      .notNull()
+      .references(() => meetingAttendee.id),
+    actorId: text().references(() => user.id, { onDelete: "set null" }),
+    direction: text().$type<"in" | "out">().notNull(),
+    source: text().$type<"manual" | "scan" | "correction">().notNull(),
+    membershipTypeId: text(), // Snapshot at entry
+    note: text(),
+    effectiveAt: timestamp({ withTimezone: true }).notNull(),
+    recordedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("meeting_event_meeting_time_idx").on(table.meetingId, table.effectiveAt),
+    index("meeting_event_attendee_time_idx").on(table.attendeeId, table.effectiveAt),
+    check("meeting_event_direction_check", sql`${table.direction} IN ('in', 'out')`),
+    check("meeting_event_source_check", sql`${table.source} IN ('manual', 'scan', 'correction')`),
+  ],
+);
+
+export const meetingAttendanceEventCorrection = snakeCase.table(
+  "meeting_attendance_event_correction",
+  {
+    id: text().primaryKey(),
+    eventId: text()
+      .notNull()
+      .references(() => meetingAttendanceEvent.id),
+    revision: integer().notNull(),
+    actorId: text().references(() => user.id, { onDelete: "set null" }),
+    attendeeId: text()
+      .notNull()
+      .references(() => meetingAttendee.id),
+    direction: text().$type<"in" | "out">().notNull(),
+    effectiveAt: timestamp({ withTimezone: true }).notNull(),
+    membershipTypeId: text(),
+    voided: boolean().notNull(),
+    reason: text().notNull(),
+    recordedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("meeting_event_correction_revision_unique").on(table.eventId, table.revision),
+    check("meeting_event_correction_direction_check", sql`${table.direction} IN ('in', 'out')`),
+    check("meeting_event_correction_reason_check", sql`length(trim(${table.reason})) > 0`),
+  ],
+);
+
 export const appCustomization = snakeCase.table(
   "app_customization",
   {
