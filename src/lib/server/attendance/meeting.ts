@@ -1,5 +1,6 @@
-import { and, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "$lib/server/db";
+import { membershipTypeAt } from "./membership";
 import * as table from "$lib/server/db/schema";
 import {
   bindEventsToRecess,
@@ -44,25 +45,6 @@ function earliestEventTime(meeting: typeof table.meeting.$inferSelect) {
 }
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-/** The membership type a user held at the given time, or null when they had no active membership. */
-async function membershipTypeAt(tx: Tx, userId: string, at: Date) {
-  const [activeMember] = await tx
-    .select({ membershipTypeId: table.membership.membershipTypeId })
-    .from(table.member)
-    .innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
-    .where(
-      and(
-        eq(table.member.userId, userId),
-        eq(table.member.status, "active"),
-        lte(table.membership.startTime, at),
-        gte(table.membership.endTime, at),
-      ),
-    )
-    .orderBy(desc(table.membership.startTime))
-    .limit(1);
-  return activeMember?.membershipTypeId ?? null;
-}
 
 async function sameTarget(tx: Tx, attendeeId: string, target: AttendanceTarget) {
   if ("attendeeId" in target) return attendeeId === target.attendeeId;
