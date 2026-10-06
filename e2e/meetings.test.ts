@@ -799,6 +799,131 @@ test.describe("Meeting attendance", () => {
       .where(eq(table.meetingAttendanceEvent.meetingId, id));
     expect(events.every((event) => event.attendeeId === memberRowId)).toBe(true);
   });
+
+  async function editRecessTimes(page: Page, start: number, end: number | null) {
+    const local = (time: number) =>
+      page.evaluate((value) => {
+        const date = new Date(value);
+        return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+      }, time);
+    await page.getByRole("button", { name: "Muokkaa taukoa" }).first().click();
+    const sheet = page.getByRole("dialog", { name: "Muokkaa taukoa" });
+    await sheet.getByLabel("Tauon alku").fill(await local(start));
+    if (end !== null) await sheet.getByLabel("Tauon loppu").fill(await local(end));
+    await sheet.getByLabel("Korjauksen syy").fill("Fix recess time");
+    await sheet.getByRole("button", { name: "Tallenna tauko" }).click();
+    return sheet;
+  }
+
+  test("snaps a recess start in the meeting's start minute to the exact start", async ({ adminPage, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const startsAt = new Date(Math.floor((Date.now() - 20 * 60_000) / 60_000) * 60_000 + 40_000);
+    await db.update(table.meeting).set({ startsAt }).where(eq(table.meeting.id, id));
+    const recessId = crypto.randomUUID();
+    await db.insert(table.meetingRecess).values({
+      id: recessId,
+      meetingId: id,
+      mode: "track_exits",
+      startedAt: new Date(startsAt.getTime() + 5 * 60_000),
+      endedAt: new Date(startsAt.getTime() + 10 * 60_000),
+    });
+    await adminPage.goto(meetingUrl(id));
+
+    const sheet = await editRecessTimes(adminPage, startsAt.getTime(), startsAt.getTime() + 10 * 60_000);
+    await expect(sheet).toBeHidden();
+    const [recess] = await db.select().from(table.meetingRecess).where(eq(table.meetingRecess.id, recessId));
+    expect(recess?.startedAt.getTime()).toBe(startsAt.getTime());
+  });
+
+  test("rejects a recess that ends when it starts", async ({ adminPage, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const startedAt = new Date(Math.floor((Date.now() - 10 * 60_000) / 60_000) * 60_000);
+    await db.insert(table.meetingRecess).values({
+      id: crypto.randomUUID(),
+      meetingId: id,
+      mode: "reset_all",
+      startedAt,
+      endedAt: new Date(startedAt.getTime() + 5 * 60_000),
+    });
+    await adminPage.goto(meetingUrl(id));
+
+    const sheet = await editRecessTimes(adminPage, startedAt.getTime(), startedAt.getTime());
+    await expect(adminPage.getByText("Invalid recess times")).toBeVisible();
+    await expect(sheet).toBeVisible();
+  });
+
+  test("keeps a past membership when merging a guest into a member who later resigned", async ({ adminPage, db }) => {
+    const [membership] = await db
+      .select()
+      .from(table.membership)
+      .where(eq(table.membership.membershipTypeId, "varsinainen-jasen"))
+      .orderBy(table.membership.startTime)
+      .limit(1);
+    if (!membership) throw new Error("Membership not found");
+    const user = await createUser(db);
+    userIds.push(user.id);
+    const memberId = crypto.randomUUID();
+    // Resigned now, after the meeting below
+    await db
+      .insert(table.member)
+      .values({ id: memberId, userId: user.id, membershipId: membership.id, status: "resigned" });
+    const startsAt = new Date(membership.startTime.getTime() + 7 * 86_400_000);
+    const id = crypto.randomUUID();
+    meetingIds.push(id);
+    await db.insert(table.meeting).values({
+      id,
+      title: `Mennyt kokous ${suffix()}`,
+      createdAt: new Date(startsAt.getTime() - 86_400_000),
+      scheduledStartsAt: startsAt,
+      startsAt,
+      closedAt: new Date(startsAt.getTime() + 2 * 3_600_000),
+    });
+    const memberRowId = crypto.randomUUID();
+    const guestRowId = crypto.randomUUID();
+    await db.insert(table.meetingAttendee).values([
+      { id: memberRowId, meetingId: id, userId: user.id, displayName: user.displayName },
+      { id: guestRowId, meetingId: id, displayName: `Vieras ${suffix()}` },
+    ]);
+    await db.insert(table.meetingAttendanceEvent).values([
+      {
+        id: crypto.randomUUID(),
+        meetingId: id,
+        attendeeId: memberRowId,
+        direction: "in",
+        source: "manual",
+        membershipTypeId: "varsinainen-jasen",
+        effectiveAt: startsAt,
+      },
+      {
+        id: crypto.randomUUID(),
+        meetingId: id,
+        attendeeId: guestRowId,
+        direction: "in",
+        source: "manual",
+        effectiveAt: new Date(startsAt.getTime() + 30 * 60_000),
+      },
+    ]);
+    await adminPage.goto(meetingUrl(id));
+    const guestName = (await db.select().from(table.meetingAttendee).where(eq(table.meetingAttendee.id, guestRowId)))[0]
+      ?.displayName;
+    if (!guestName) throw new Error("Guest not found");
+
+    const sheet = await editAttendee(adminPage, guestName);
+    await sheet.getByLabel("Vieraan nimi tai jäsenen haku").fill(user.lastName);
+    await sheet.getByTestId("attendee-member-option").filter({ hasText: user.displayName }).click();
+    await sheet.getByLabel("Korjauksen syy").fill("Member was added as a guest");
+    await sheet.getByRole("button", { name: "Tallenna korjaus" }).click();
+    await expect(sheet).toBeHidden();
+
+    const events = await db
+      .select()
+      .from(table.meetingAttendanceEvent)
+      .where(eq(table.meetingAttendanceEvent.meetingId, id));
+    expect(events.map((event) => event.membershipTypeId)).toEqual(["varsinainen-jasen", "varsinainen-jasen"]);
+    await db.delete(table.member).where(eq(table.member.id, memberId));
+  });
 });
 
 test.describe("Meeting attendance as read-only admin", () => {

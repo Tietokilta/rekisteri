@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNull, lte, or } from "drizzle-orm";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import {
@@ -45,7 +45,11 @@ function earliestEventTime(meeting: typeof table.meeting.$inferSelect) {
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-/** The membership type a user held at the given time, or null when they had no active membership. */
+/**
+ * The membership type a user held at the given time, or null when they had none. A resigned membership
+ * still counts for times before it was deemed resigned (its last update), which matters when
+ * correcting past meetings; live actions happen after any resignation, so it doesn't count for them.
+ */
 async function membershipTypeAt(tx: Tx, userId: string, at: Date) {
   const [activeMember] = await tx
     .select({ membershipTypeId: table.membership.membershipTypeId })
@@ -54,7 +58,7 @@ async function membershipTypeAt(tx: Tx, userId: string, at: Date) {
     .where(
       and(
         eq(table.member.userId, userId),
-        eq(table.member.status, "active"),
+        or(eq(table.member.status, "active"), and(eq(table.member.status, "resigned"), gt(table.member.updatedAt, at))),
         lte(table.membership.startTime, at),
         gte(table.membership.endTime, at),
       ),
@@ -266,6 +270,28 @@ export async function correctMeetingEvent(input: {
  * or turns a member into a named guest. Applies to all of the attendee's entries, recalculating their
  * membership snapshots. Linking to a member who already has a row in the meeting merges the two rows.
  */
+async function auditAttendeeUpdate(
+  tx: Tx,
+  input: { meetingId: string; actorId: string },
+  attendee: typeof table.meetingAttendee.$inferSelect,
+  after: { userId: string | null; displayName: string; mergedInto: string | null; reason: string },
+) {
+  await tx.insert(table.auditLog).values({
+    id: crypto.randomUUID(),
+    userId: input.actorId,
+    action: "meeting.attendee_update",
+    targetType: "meeting_attendee",
+    targetId: attendee.id,
+    metadata: {
+      meetingId: input.meetingId,
+      before: { userId: attendee.userId, displayName: attendee.displayName },
+      after: { userId: after.userId, displayName: after.displayName },
+      mergedInto: after.mergedInto,
+      reason: after.reason,
+    },
+  });
+}
+
 export async function updateMeetingAttendee(input: {
   meetingId: string;
   attendeeId: string;
@@ -310,6 +336,13 @@ export async function updateMeetingAttendee(input: {
       if (!displayName || displayName.length > 200) throw new Error("Guest name required (up to 200 characters)");
     }
 
+    if (userId === attendee.userId && keptAttendeeId === attendee.id) {
+      // Same person (e.g. a guest renamed): their entries' membership snapshots stay as recorded
+      await tx.update(table.meetingAttendee).set({ displayName }).where(eq(table.meetingAttendee.id, attendee.id));
+      await auditAttendeeUpdate(tx, input, attendee, { userId, displayName, mergedInto: null, reason });
+      return { attendeeId: attendee.id };
+    }
+
     // Entries keep a membership snapshot taken at their own time; recalculate them for the new identity
     const events = await tx.query.meetingAttendanceEvent.findMany({ where: { attendeeId: keptAttendeeId } });
     const corrections = await tx.query.meetingAttendanceEventCorrection.findMany({
@@ -339,19 +372,11 @@ export async function updateMeetingAttendee(input: {
       .set({ userId, displayName, membershipTypeId: latestEntry?.membershipTypeId ?? null })
       .where(eq(table.meetingAttendee.id, keptAttendeeId));
 
-    await tx.insert(table.auditLog).values({
-      id: crypto.randomUUID(),
-      userId: input.actorId,
-      action: "meeting.attendee_update",
-      targetType: "meeting_attendee",
-      targetId: attendee.id,
-      metadata: {
-        meetingId: input.meetingId,
-        before: { userId: attendee.userId, displayName: attendee.displayName },
-        after: { userId, displayName },
-        mergedInto: keptAttendeeId === attendee.id ? null : keptAttendeeId,
-        reason,
-      },
+    await auditAttendeeUpdate(tx, input, attendee, {
+      userId,
+      displayName,
+      mergedInto: keptAttendeeId === attendee.id ? null : keptAttendeeId,
+      reason,
     });
     return { attendeeId: keptAttendeeId };
   });
@@ -480,12 +505,18 @@ export async function editMeetingRecess(input: {
     const [meeting] = await tx.select().from(table.meeting).where(eq(table.meeting.id, input.meetingId)).for("update");
     const recess = await tx.query.meetingRecess.findFirst({ where: { id: input.recessId } });
     if (!meeting || !recess || recess.meetingId !== input.meetingId) throw new Error("Recess not found");
+    // Inputs are minute-precision: a start in the meeting's start minute means the meeting start itself,
+    // since a recess can't begin before the meeting does
+    const startedAt =
+      meeting.startsAt && input.startedAt < meeting.startsAt && input.startedAt >= floorToMinute(meeting.startsAt)
+        ? meeting.startsAt
+        : input.startedAt;
     if (
-      Number.isNaN(input.startedAt.getTime()) ||
-      input.startedAt < floorToMinute(meeting.startsAt ?? meeting.createdAt) ||
-      input.startedAt > new Date() ||
+      Number.isNaN(startedAt.getTime()) ||
+      startedAt < (meeting.startsAt ?? floorToMinute(meeting.createdAt)) ||
+      startedAt > new Date() ||
       (input.endedAt &&
-        (Number.isNaN(input.endedAt.getTime()) || input.endedAt < input.startedAt || input.endedAt > new Date()))
+        (Number.isNaN(input.endedAt.getTime()) || input.endedAt <= startedAt || input.endedAt > new Date()))
     )
       throw new Error("Invalid recess times");
     if (meeting.closedAt && !input.cancelled && (!input.endedAt || input.endedAt > meeting.closedAt))
@@ -497,14 +528,14 @@ export async function editMeetingRecess(input: {
         (other) =>
           other.id !== recess.id &&
           !other.cancelledAt &&
-          input.startedAt < (other.endedAt ?? new Date(8_640_000_000_000_000)) &&
+          startedAt < (other.endedAt ?? new Date(8_640_000_000_000_000)) &&
           other.startedAt < (input.endedAt ?? new Date(8_640_000_000_000_000)),
       )
     )
       throw new Error("Recesses cannot overlap");
     const changes = {
       mode: input.mode,
-      startedAt: input.startedAt,
+      startedAt,
       endedAt: input.endedAt,
       cancelledAt: input.cancelled ? (recess.cancelledAt ?? new Date()) : null,
       cancelledBy: input.cancelled ? (recess.cancelledBy ?? input.actorId) : null,
@@ -525,7 +556,7 @@ export async function editMeetingRecess(input: {
         },
         after: {
           mode: input.mode,
-          startedAt: input.startedAt.toISOString(),
+          startedAt: startedAt.toISOString(),
           endedAt: input.endedAt?.toISOString() ?? null,
           cancelled: input.cancelled,
         },
