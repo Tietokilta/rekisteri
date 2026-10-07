@@ -1,6 +1,18 @@
-export type QueuedScan = { eventId: string; token: string; direction: "in" | "out" };
+export type QueuedScan = { meetingId: string; eventId: string; token: string; direction: "in" | "out" };
 
 const RETRY_MS = 5000;
+const STORAGE_KEY = "meeting-scan-queue";
+
+function isQueuedScan(value: unknown): value is QueuedScan {
+  if (!value || typeof value !== "object") return false;
+  const scan = value as Record<string, unknown>;
+  return (
+    typeof scan.meetingId === "string" &&
+    typeof scan.eventId === "string" &&
+    typeof scan.token === "string" &&
+    (scan.direction === "in" || scan.direction === "out")
+  );
+}
 
 /** No response at all, or a gateway error while the server restarts: worth sending again. */
 export function isTransientError(cause: unknown) {
@@ -11,6 +23,7 @@ export function isTransientError(cause: unknown) {
 /**
  * Scans that couldn't reach the server, resent in order with their original event IDs,
  * so a scan that did land the first time is still recorded only once.
+ * Kept in this browser's storage until sent, so a reload or a closed tab doesn't lose them.
  */
 export class ScanQueue {
   pending = $state<QueuedScan[]>([]);
@@ -24,8 +37,20 @@ export class ScanQueue {
     this.#onFailed = onFailed;
   }
 
+  /** Loads scans left over from an earlier visit and starts sending them. Call in the browser only. */
+  restore() {
+    try {
+      const stored: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+      if (Array.isArray(stored)) this.pending = stored.filter(isQueuedScan);
+    } catch {
+      // Storage blocked or corrupted: start with an empty queue
+    }
+    if (this.pending.length > 0) void this.flush();
+  }
+
   add(scan: QueuedScan) {
     this.pending.push(scan);
+    this.#save();
     this.#retryLater();
   }
 
@@ -46,6 +71,7 @@ export class ScanQueue {
           this.#onFailed(scan, cause);
         }
         this.pending.shift();
+        this.#save();
       }
     } finally {
       this.#flushing = false;
@@ -54,6 +80,15 @@ export class ScanQueue {
 
   dispose() {
     clearTimeout(this.#timer);
+  }
+
+  #save() {
+    try {
+      if (this.pending.length > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(this.pending));
+      else localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Without storage the queue still works for as long as the page stays open
+    }
   }
 
   #retryLater() {

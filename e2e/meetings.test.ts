@@ -301,7 +301,10 @@ test.describe("Meeting attendance", () => {
     await phone.close();
   });
 
-  test("queues a scan while the server is unreachable and sends it once", async ({ adminPage, db }) => {
+  test("queues a scan while the server is unreachable and sends it once, even after a reload", async ({
+    adminPage,
+    db,
+  }) => {
     const id = await createMeeting(db, { started: true });
     meetingIds.push(id);
     const user = await createUser(db);
@@ -317,9 +320,13 @@ test.describe("Meeting attendance", () => {
     await expect(scanner).toContainText("Skannaus on jonossa");
     await expect(scanner.getByTestId("scan-queued")).toHaveText("1 jonossa");
 
+    await adminPage.reload();
+    const stored = await adminPage.evaluate(() => JSON.parse(localStorage.getItem("meeting-scan-queue") ?? "[]"));
+    expect(stored).toEqual([expect.objectContaining({ meetingId: id, direction: "in", token })]);
+
     await adminPage.unroute("**/_app/remote/**");
-    await expect(scanner.getByTestId("scan-queued")).toBeHidden({ timeout: 10_000 });
-    await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla");
+    await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla", { timeout: 10_000 });
+    await expect.poll(() => adminPage.evaluate(() => localStorage.getItem("meeting-scan-queue"))).toBeNull();
     const events = await db
       .select()
       .from(table.meetingAttendanceEvent)

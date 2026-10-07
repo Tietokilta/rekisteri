@@ -232,13 +232,16 @@
   }
 
   /** Sends one scan; queued retries reuse its event ID, so it is recorded once however often it is sent. */
-  async function sendScan({ eventId, token, direction }: QueuedScan) {
-    const result = await scanAttendance({ meetingId: data.meeting.id, eventId, token, direction });
+  async function sendScan(scan: QueuedScan) {
+    const result = await scanAttendance(scan);
     toast.success(
-      direction === "in"
+      scan.direction === "in"
         ? $LL.admin.meetings.checkedIn({ name: result.displayName })
         : $LL.admin.meetings.checkedOut({ name: result.displayName }),
-      { action: { label: $LL.admin.meetings.undo(), onClick: () => correct(result.eventId, "void", "Undo") } },
+      // A scan queued on another meeting's page can't be undone from this one
+      scan.meetingId === data.meeting.id
+        ? { action: { label: $LL.admin.meetings.undo(), onClick: () => correct(result.eventId, "void", "Undo") } }
+        : undefined,
     );
     // The scan is already recorded; a failed refresh only delays the list, so don't report it as a failed scan
     void invalidateAll().catch(() => {});
@@ -248,11 +251,14 @@
   const scanQueue = new ScanQueue(sendScan, (_scan, cause) =>
     toast.error($LL.admin.meetings.queuedScanFailed({ reason: remoteErrorMessage(cause, $LL.error.updateFailed()) })),
   );
-  onMount(() => () => scanQueue.dispose());
+  onMount(() => {
+    scanQueue.restore();
+    return () => scanQueue.dispose();
+  });
 
   /** Resolves to null when the scan was queued to be sent once the connection is back. */
   async function scan(token: string, direction: "in" | "out") {
-    const item = { eventId: crypto.randomUUID(), token, direction };
+    const item = { meetingId: data.meeting.id, eventId: crypto.randomUUID(), token, direction };
     // Keep the order: an exit must not overtake the entry still waiting in the queue
     if (scanQueue.pending.length > 0) {
       scanQueue.add(item);
@@ -320,9 +326,6 @@
   onkeydown={handleUndoKey}
   onfocus={() => data.canWrite && registry.load()}
   ononline={() => void scanQueue.flush()}
-  onbeforeunload={(event) => {
-    if (scanQueue.pending.length > 0) event.preventDefault();
-  }}
 />
 
 <main class="container mx-auto max-w-5xl space-y-6 px-4 pb-8" data-testid="admin-meeting-page">
