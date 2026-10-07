@@ -1,5 +1,6 @@
-import { and, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "$lib/server/db";
+import { membershipTypeAt } from "./membership";
 import * as table from "$lib/server/db/schema";
 import {
   bindEventsToRecess,
@@ -45,25 +46,6 @@ function earliestEventTime(meeting: typeof table.meeting.$inferSelect) {
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-/** The membership type a user held at the given time, or null when they had no active membership. */
-async function membershipTypeAt(tx: Tx, userId: string, at: Date) {
-  const [activeMember] = await tx
-    .select({ membershipTypeId: table.membership.membershipTypeId })
-    .from(table.member)
-    .innerJoin(table.membership, eq(table.member.membershipId, table.membership.id))
-    .where(
-      and(
-        eq(table.member.userId, userId),
-        eq(table.member.status, "active"),
-        lte(table.membership.startTime, at),
-        gte(table.membership.endTime, at),
-      ),
-    )
-    .orderBy(desc(table.membership.startTime))
-    .limit(1);
-  return activeMember?.membershipTypeId ?? null;
-}
-
 async function sameTarget(tx: Tx, attendeeId: string, target: AttendanceTarget) {
   if ("attendeeId" in target) return attendeeId === target.attendeeId;
   const attendee = await tx.query.meetingAttendee.findFirst({ where: { id: attendeeId } });
@@ -89,7 +71,9 @@ export async function recordMeetingEvent(input: NewAttendanceEvent) {
       ) {
         throw new Error("Event ID already used for a different action");
       }
-      return existing;
+      const existingAttendee = await tx.query.meetingAttendee.findFirst({ where: { id: existing.attendeeId } });
+      if (!existingAttendee) throw new Error("Attendee not found in meeting");
+      return { ...existing, attendee: existingAttendee };
     }
 
     // Live actions are timed after the lock, so they order correctly against a recess started meanwhile
@@ -190,7 +174,12 @@ export async function recordMeetingEvent(input: NewAttendanceEvent) {
       })
       .returning();
     if (!recorded) throw new Error("Could not record attendance");
-    return recorded;
+    // Read within the transaction, so callers can show who was recorded even if the row is merged right after
+    const attendeeAfter =
+      input.direction === "in" && attendee.userId && input.source !== "correction"
+        ? { ...attendee, membershipTypeId }
+        : attendee;
+    return { ...recorded, attendee: attendeeAfter };
   });
 }
 
@@ -266,6 +255,28 @@ export async function correctMeetingEvent(input: {
  * or turns a member into a named guest. Applies to all of the attendee's entries, recalculating their
  * membership snapshots. Linking to a member who already has a row in the meeting merges the two rows.
  */
+async function auditAttendeeUpdate(
+  tx: Tx,
+  input: { meetingId: string; actorId: string },
+  attendee: typeof table.meetingAttendee.$inferSelect,
+  after: { userId: string | null; displayName: string; mergedInto: string | null; reason: string },
+) {
+  await tx.insert(table.auditLog).values({
+    id: crypto.randomUUID(),
+    userId: input.actorId,
+    action: "meeting.attendee_update",
+    targetType: "meeting_attendee",
+    targetId: attendee.id,
+    metadata: {
+      meetingId: input.meetingId,
+      before: { userId: attendee.userId, displayName: attendee.displayName },
+      after: { userId: after.userId, displayName: after.displayName },
+      mergedInto: after.mergedInto,
+      reason: after.reason,
+    },
+  });
+}
+
 export async function updateMeetingAttendee(input: {
   meetingId: string;
   attendeeId: string;
@@ -284,6 +295,13 @@ export async function updateMeetingAttendee(input: {
     let userId: string | null = null;
     let displayName: string;
     let keptAttendeeId = attendee.id;
+    // Only this attendee's own entries change person; rows already on a merge target keep their snapshots
+    const [ownEvents, ownCorrections] = await Promise.all([
+      tx.query.meetingAttendanceEvent.findMany({ where: { attendeeId: attendee.id }, columns: { id: true } }),
+      tx.query.meetingAttendanceEventCorrection.findMany({ where: { attendeeId: attendee.id }, columns: { id: true } }),
+    ]);
+    const changingRowIds = new Set([...ownEvents, ...ownCorrections].map((row) => row.id));
+
     if ("userId" in input.target) {
       const person = await tx.query.user.findFirst({ where: { id: input.target.userId } });
       if (!person) throw new Error("User not found");
@@ -310,13 +328,20 @@ export async function updateMeetingAttendee(input: {
       if (!displayName || displayName.length > 200) throw new Error("Guest name required (up to 200 characters)");
     }
 
-    // Entries keep a membership snapshot taken at their own time; recalculate them for the new identity
+    if (userId === attendee.userId && keptAttendeeId === attendee.id) {
+      // Same person (e.g. a guest renamed): their entries' membership snapshots stay as recorded
+      await tx.update(table.meetingAttendee).set({ displayName }).where(eq(table.meetingAttendee.id, attendee.id));
+      await auditAttendeeUpdate(tx, input, attendee, { userId, displayName, mergedInto: null, reason });
+      return { attendeeId: attendee.id };
+    }
+
+    // Entries keep a membership snapshot taken at their own time; recalculate the ones changing person
     const events = await tx.query.meetingAttendanceEvent.findMany({ where: { attendeeId: keptAttendeeId } });
     const corrections = await tx.query.meetingAttendanceEventCorrection.findMany({
       where: { attendeeId: keptAttendeeId },
     });
-    let latestEntry: { at: Date; membershipTypeId: string | null } | null = null;
     for (const row of [...events, ...corrections]) {
+      if (!changingRowIds.has(row.id)) continue;
       const membershipTypeId =
         row.direction === "in" && userId ? await membershipTypeAt(tx, userId, row.effectiveAt) : null;
       if ("source" in row) {
@@ -330,28 +355,34 @@ export async function updateMeetingAttendee(input: {
           .set({ membershipTypeId })
           .where(eq(table.meetingAttendanceEventCorrection.id, row.id));
       }
-      if (row.direction === "in" && (!latestEntry || row.effectiveAt > latestEntry.at)) {
-        latestEntry = { at: row.effectiveAt, membershipTypeId };
-      }
     }
+    // The attendee's type is the snapshot of their latest entry as it currently stands (not undone,
+    // not moved to someone else by a correction)
+    const meetingEvents = await tx.query.meetingAttendanceEvent.findMany({ where: { meetingId: input.meetingId } });
+    const meetingCorrections = meetingEvents.length
+      ? await tx
+          .select()
+          .from(table.meetingAttendanceEventCorrection)
+          .where(
+            inArray(
+              table.meetingAttendanceEventCorrection.eventId,
+              meetingEvents.map((event) => event.id),
+            ),
+          )
+      : [];
+    const latestEntry = resolveMeetingEvents(meetingEvents, meetingCorrections)
+      .filter((entry) => entry.attendeeId === keptAttendeeId && !entry.voided && entry.direction === "in")
+      .toSorted((a, b) => b.effectiveAt.getTime() - a.effectiveAt.getTime())[0];
     await tx
       .update(table.meetingAttendee)
       .set({ userId, displayName, membershipTypeId: latestEntry?.membershipTypeId ?? null })
       .where(eq(table.meetingAttendee.id, keptAttendeeId));
 
-    await tx.insert(table.auditLog).values({
-      id: crypto.randomUUID(),
-      userId: input.actorId,
-      action: "meeting.attendee_update",
-      targetType: "meeting_attendee",
-      targetId: attendee.id,
-      metadata: {
-        meetingId: input.meetingId,
-        before: { userId: attendee.userId, displayName: attendee.displayName },
-        after: { userId, displayName },
-        mergedInto: keptAttendeeId === attendee.id ? null : keptAttendeeId,
-        reason,
-      },
+    await auditAttendeeUpdate(tx, input, attendee, {
+      userId,
+      displayName,
+      mergedInto: keptAttendeeId === attendee.id ? null : keptAttendeeId,
+      reason,
     });
     return { attendeeId: keptAttendeeId };
   });
@@ -480,12 +511,18 @@ export async function editMeetingRecess(input: {
     const [meeting] = await tx.select().from(table.meeting).where(eq(table.meeting.id, input.meetingId)).for("update");
     const recess = await tx.query.meetingRecess.findFirst({ where: { id: input.recessId } });
     if (!meeting || !recess || recess.meetingId !== input.meetingId) throw new Error("Recess not found");
+    // Inputs are minute-precision: a start in the meeting's start minute means the meeting start itself,
+    // since a recess can't begin before the meeting does
+    const startedAt =
+      meeting.startsAt && input.startedAt < meeting.startsAt && input.startedAt >= floorToMinute(meeting.startsAt)
+        ? meeting.startsAt
+        : input.startedAt;
     if (
-      Number.isNaN(input.startedAt.getTime()) ||
-      input.startedAt < floorToMinute(meeting.startsAt ?? meeting.createdAt) ||
-      input.startedAt > new Date() ||
+      Number.isNaN(startedAt.getTime()) ||
+      startedAt < (meeting.startsAt ?? floorToMinute(meeting.createdAt)) ||
+      startedAt > new Date() ||
       (input.endedAt &&
-        (Number.isNaN(input.endedAt.getTime()) || input.endedAt < input.startedAt || input.endedAt > new Date()))
+        (Number.isNaN(input.endedAt.getTime()) || input.endedAt <= startedAt || input.endedAt > new Date()))
     )
       throw new Error("Invalid recess times");
     if (meeting.closedAt && !input.cancelled && (!input.endedAt || input.endedAt > meeting.closedAt))
@@ -497,14 +534,14 @@ export async function editMeetingRecess(input: {
         (other) =>
           other.id !== recess.id &&
           !other.cancelledAt &&
-          input.startedAt < (other.endedAt ?? new Date(8_640_000_000_000_000)) &&
+          startedAt < (other.endedAt ?? new Date(8_640_000_000_000_000)) &&
           other.startedAt < (input.endedAt ?? new Date(8_640_000_000_000_000)),
       )
     )
       throw new Error("Recesses cannot overlap");
     const changes = {
       mode: input.mode,
-      startedAt: input.startedAt,
+      startedAt,
       endedAt: input.endedAt,
       cancelledAt: input.cancelled ? (recess.cancelledAt ?? new Date()) : null,
       cancelledBy: input.cancelled ? (recess.cancelledBy ?? input.actorId) : null,
@@ -525,7 +562,7 @@ export async function editMeetingRecess(input: {
         },
         after: {
           mode: input.mode,
-          startedAt: input.startedAt.toISOString(),
+          startedAt: startedAt.toISOString(),
           endedAt: input.endedAt?.toISOString() ?? null,
           cancelled: input.cancelled,
         },

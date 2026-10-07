@@ -19,6 +19,7 @@
   import CorrectionSheet from "./correction-sheet.svelte";
   import AttendeeSheet from "./attendee-sheet.svelte";
   import MeetingHistory from "./meeting-history.svelte";
+  import MeetingQrScanner from "./meeting-qr-scanner.svelte";
   import RecessSheet from "./recess-sheet.svelte";
   import LocalDatetimeInput from "../local-datetime-input.svelte";
   import {
@@ -27,6 +28,7 @@
     quickCorrectEvent,
     recordAttendance,
     reopenMeeting,
+    scanAttendance,
     startMeeting,
     startRecess,
     updateMeetingTimes,
@@ -199,6 +201,19 @@
       direction === "in" ? $LL.admin.meetings.checkedIn({ name }) : $LL.admin.meetings.checkedOut({ name }),
       { action: { label: $LL.admin.meetings.undo(), onClick: () => correct(result.eventId, "void", "Undo") } },
     );
+  }
+
+  async function scan(token: string, direction: "in" | "out") {
+    const result = await scanAttendance({ meetingId: data.meeting.id, eventId: crypto.randomUUID(), token, direction });
+    toast.success(
+      direction === "in"
+        ? $LL.admin.meetings.checkedIn({ name: result.displayName })
+        : $LL.admin.meetings.checkedOut({ name: result.displayName }),
+      { action: { label: $LL.admin.meetings.undo(), onClick: () => correct(result.eventId, "void", "Undo") } },
+    );
+    // The scan is already recorded; a failed refresh only delays the list, so don't report it as a failed scan
+    void invalidateAll().catch(() => {});
+    return result;
   }
 
   // Populate the times form each time its sheet opens.
@@ -384,6 +399,7 @@
 
   {#if canAct}
     <section class="space-y-2">
+      <MeetingQrScanner onScan={scan} {typeName} />
       <CheckInSearch
         attendees={rows}
         {registry}
