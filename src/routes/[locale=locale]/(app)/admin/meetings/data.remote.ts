@@ -12,6 +12,7 @@ import {
   updateMeetingAttendee,
   type AttendanceTarget,
 } from "$lib/server/attendance/meeting";
+import { notifyMeetingChanged } from "$lib/server/attendance/live";
 import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
 import { verifyQrToken } from "$lib/server/attendance/qr-token";
 import { getLL } from "$lib/server/i18n";
@@ -63,6 +64,7 @@ export const updateMeetingTimes = form(updateMeetingTimesSchema, async (data): P
     await db.transaction(async (tx) => {
       const [meeting] = await tx.select().from(table.meeting).where(eq(table.meeting.id, data.meetingId)).for("update");
       if (!meeting) throw new Error("Meeting not found");
+      await notifyMeetingChanged(tx, meeting.id);
       if (meeting.closedAt && (!startsAt || startsAt > meeting.closedAt)) {
         throw new Error("Actual start must be before meeting closure");
       }
@@ -107,16 +109,16 @@ export const startMeeting = command(meetingIdSchema, async ({ meetingId }) => {
       .set({ startsAt: now })
       .where(and(eq(table.meeting.id, meetingId), isNull(table.meeting.startsAt), isNull(table.meeting.closedAt)))
       .returning({ id: table.meeting.id });
-    if (started) {
-      await tx.insert(table.auditLog).values({
-        id: crypto.randomUUID(),
-        userId: actorId,
-        action: "meeting.times_update",
-        targetType: "meeting",
-        targetId: started.id,
-        metadata: { previousStartsAt: null, startsAt: now.toISOString() },
-      });
-    }
+    if (!started) return;
+    await notifyMeetingChanged(tx, started.id);
+    await tx.insert(table.auditLog).values({
+      id: crypto.randomUUID(),
+      userId: actorId,
+      action: "meeting.times_update",
+      targetType: "meeting",
+      targetId: started.id,
+      metadata: { previousStartsAt: null, startsAt: now.toISOString() },
+    });
   });
 });
 
@@ -126,6 +128,7 @@ export const closeMeeting = command(meetingIdSchema, async ({ meetingId }) => {
     await db.transaction(async (tx) => {
       const [meeting] = await tx.select().from(table.meeting).where(eq(table.meeting.id, meetingId)).for("update");
       if (!meeting?.startsAt || meeting.closedAt) throw new Error("Meeting must be open and started");
+      await notifyMeetingChanged(tx, meeting.id);
       const [active] = await tx
         .select({ id: table.meetingRecess.id })
         .from(table.meetingRecess)
@@ -159,6 +162,7 @@ export const reopenMeeting = command(meetingIdSchema, async ({ meetingId }) => {
     await db.transaction(async (tx) => {
       const [meeting] = await tx.select().from(table.meeting).where(eq(table.meeting.id, meetingId)).for("update");
       if (!meeting?.closedAt) throw new Error("Meeting is not closed");
+      await notifyMeetingChanged(tx, meeting.id);
       await tx.update(table.meeting).set({ closedAt: null }).where(eq(table.meeting.id, meeting.id));
       await tx.insert(table.auditLog).values({
         id: crypto.randomUUID(),

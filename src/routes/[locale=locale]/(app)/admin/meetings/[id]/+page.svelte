@@ -37,9 +37,37 @@
   import { meetingAttendanceSummary } from "$lib/shared/meeting-attendance";
   import { onMount } from "svelte";
   import { Registry } from "./registry.svelte";
+  import { isTransientError, ScanQueue, type QueuedScan } from "./scan-queue.svelte";
   import { remoteErrorMessage, type AttendeeRow, type CorrectionTarget, type RecordTarget } from "./types";
 
   let { data }: { data: PageData } = $props();
+
+  const SCAN_TIMEOUT_MS = 8000;
+
+  // A primitive, so refreshed page data doesn't reconnect the stream below
+  const meetingId = $derived(data.meeting.id);
+
+  // Other operators' changes, such as scans from a phone, arrive as signals to reload
+  $effect(() => {
+    const source = new EventSource(`${untrack(() => page.url.pathname.replace(/\/[^/]+$/, ""))}/${meetingId}/live`);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let dropped = false;
+    const refresh = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => void invalidateAll().catch(() => {}), 300);
+    };
+    source.addEventListener("changed", refresh);
+    source.addEventListener("error", () => (dropped = true));
+    // Catch up on anything missed while disconnected
+    source.addEventListener("open", () => {
+      if (dropped) refresh();
+      dropped = false;
+    });
+    return () => {
+      clearTimeout(timer);
+      source.close();
+    };
+  });
 
   // Write access only: the endpoint is for operators, and read-only admins can't act on attendees
   const registry = new Registry(`${page.url.pathname.replace(/\/[^/]+$/, "")}/users`);
@@ -203,8 +231,9 @@
     );
   }
 
-  async function scan(token: string, direction: "in" | "out") {
-    const result = await scanAttendance({ meetingId: data.meeting.id, eventId: crypto.randomUUID(), token, direction });
+  /** Sends one scan; queued retries reuse its event ID, so it is recorded once however often it is sent. */
+  async function sendScan({ eventId, token, direction }: QueuedScan) {
+    const result = await scanAttendance({ meetingId: data.meeting.id, eventId, token, direction });
     toast.success(
       direction === "in"
         ? $LL.admin.meetings.checkedIn({ name: result.displayName })
@@ -214,6 +243,38 @@
     // The scan is already recorded; a failed refresh only delays the list, so don't report it as a failed scan
     void invalidateAll().catch(() => {});
     return result;
+  }
+
+  const scanQueue = new ScanQueue(sendScan, (_scan, cause) =>
+    toast.error($LL.admin.meetings.queuedScanFailed({ reason: remoteErrorMessage(cause, $LL.error.updateFailed()) })),
+  );
+  onMount(() => () => scanQueue.dispose());
+
+  /** Resolves to null when the scan was queued to be sent once the connection is back. */
+  async function scan(token: string, direction: "in" | "out") {
+    const item = { eventId: crypto.randomUUID(), token, direction };
+    // Keep the order: an exit must not overtake the entry still waiting in the queue
+    if (scanQueue.pending.length > 0) {
+      scanQueue.add(item);
+      void scanQueue.flush();
+      return null;
+    }
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      // A stalled connection queues the scan instead of blocking the scanner; a late reply is a harmless duplicate
+      return await Promise.race([
+        sendScan(item),
+        new Promise<never>(
+          (_, reject) => (timeout = setTimeout(() => reject(new Error("Timed out")), SCAN_TIMEOUT_MS)),
+        ),
+      ]);
+    } catch (cause) {
+      if (!isTransientError(cause)) throw cause;
+      scanQueue.add(item);
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   // Populate the times form each time its sheet opens.
@@ -255,7 +316,14 @@
   }
 </script>
 
-<svelte:window onkeydown={handleUndoKey} onfocus={() => data.canWrite && registry.load()} />
+<svelte:window
+  onkeydown={handleUndoKey}
+  onfocus={() => data.canWrite && registry.load()}
+  ononline={() => void scanQueue.flush()}
+  onbeforeunload={(event) => {
+    if (scanQueue.pending.length > 0) event.preventDefault();
+  }}
+/>
 
 <main class="container mx-auto max-w-5xl space-y-6 px-4 pb-8" data-testid="admin-meeting-page">
   <header class="sticky top-0 z-10 -mx-4 space-y-2 border-b bg-background/95 px-4 py-3 backdrop-blur">
@@ -399,7 +467,7 @@
 
   {#if canAct}
     <section class="space-y-2">
-      <MeetingQrScanner onScan={scan} {typeName} />
+      <MeetingQrScanner onScan={scan} queued={scanQueue.pending.length} {typeName} />
       <CheckInSearch
         attendees={rows}
         {registry}

@@ -11,9 +11,13 @@
 
   let {
     onScan,
+    queued,
     typeName,
   }: {
-    onScan: (token: string, direction: "in" | "out") => Promise<ScanResult>;
+    /** Resolves to null when the scan was queued until the connection is back. */
+    onScan: (token: string, direction: "in" | "out") => Promise<ScanResult | null>;
+    /** Scans still waiting to reach the server. */
+    queued: number;
     typeName: (id: string | null) => string;
   } = $props();
 
@@ -22,7 +26,7 @@
   let direction = $state<"in" | "out">("in");
   let videoEl = $state<HTMLVideoElement | null>(null);
   /** `mismatch`: the person is already in (or out), so the other direction was probably meant. */
-  let feedback = $state<{ kind: "success" | "error" | "mismatch"; text: string } | null>(null);
+  let feedback = $state<{ kind: "success" | "queued" | "error" | "mismatch"; text: string } | null>(null);
   let scanner: QrScanner | null = null;
   let lastToken = "";
   let clearTokenTimer: ReturnType<typeof setTimeout> | undefined;
@@ -43,6 +47,10 @@
     const action = direction;
     void onScan(token, action)
       .then((result) => {
+        if (!result) {
+          feedback = { kind: "queued", text: $LL.admin.meetings.scanQueued() };
+          return;
+        }
         feedback = {
           kind: "success",
           text: `${action === "in" ? $LL.admin.meetings.scanIn() : $LL.admin.meetings.scanOut()}: ${result.displayName} · ${typeName(result.membershipTypeId)}`,
@@ -106,9 +114,19 @@
     aria-label={$LL.admin.meetings.scanQr()}
   >
     <div class="flex items-center justify-between border-b p-4">
-      <h2 class="text-lg font-semibold" data-testid="scan-mode">
-        {direction === "in" ? $LL.admin.meetings.scanningIn() : $LL.admin.meetings.scanningOut()}
-      </h2>
+      <div class="flex min-w-0 items-center gap-3">
+        <h2 class="text-lg font-semibold" data-testid="scan-mode">
+          {direction === "in" ? $LL.admin.meetings.scanningIn() : $LL.admin.meetings.scanningOut()}
+        </h2>
+        {#if queued > 0}
+          <span
+            class="rounded-full bg-amber-500/15 px-2 py-0.5 text-sm font-medium text-amber-700 dark:text-amber-400"
+            data-testid="scan-queued"
+          >
+            {$LL.admin.meetings.scansQueued({ count: queued })}
+          </span>
+        {/if}
+      </div>
       <Button variant="ghost" size="icon" onclick={close} aria-label={$LL.admin.verifyQr.closeScanner()}><X /></Button>
     </div>
     <div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-4">
@@ -129,9 +147,13 @@
           <p class="text-center">{$LL.admin.meetings.scanRecording()}</p>
         {:else if feedback}
           <p
-            class={feedback.kind === "success"
-              ? "rounded-md border border-green-500/50 bg-green-500/10 p-3 text-center font-semibold"
-              : "rounded-md border border-destructive bg-destructive/10 p-3 text-center font-semibold text-destructive"}
+            class={[
+              "rounded-md border p-3 text-center font-semibold",
+              feedback.kind === "success" && "border-green-500/50 bg-green-500/10",
+              feedback.kind === "queued" && "border-amber-500/50 bg-amber-500/10",
+              (feedback.kind === "error" || feedback.kind === "mismatch") &&
+                "border-destructive bg-destructive/10 text-destructive",
+            ]}
           >
             {feedback.text}
           </p>
