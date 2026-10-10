@@ -220,6 +220,7 @@ export const recordAttendance = command(recordAttendanceSchema, async (data) => 
 
 export const scanAttendance = command(scanAttendanceSchema, async (data) => {
   const actorId = requireActor();
+  if (data.operatorId !== actorId) error(403, "Scan belongs to another operator");
   const LL = getLL(getRequestEvent().locals.locale);
   const userId = await verifyQrToken(data.token);
   if (!userId) error(422, LL.admin.verifyQr.invalidQr());

@@ -35,6 +35,8 @@ export const GET: RequestHandler = async (event) => {
         return;
       }
       send("retry: 3000\n\n");
+      // The initial page load may precede the subscription becoming ready.
+      send("event: changed\ndata:\n\n");
     },
     cancel() {
       cleanup();

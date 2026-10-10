@@ -42,27 +42,23 @@
 
   let { data }: { data: PageData } = $props();
 
-  const SCAN_TIMEOUT_MS = 8000;
-
   // A primitive, so refreshed page data doesn't reconnect the stream below
   const meetingId = $derived(data.meeting.id);
+  const operatorId = $derived(data.user.id);
+  const canWrite = $derived(data.canWrite);
 
   // Other operators' changes, such as scans from a phone, arrive as signals to reload
   $effect(() => {
     const source = new EventSource(`${untrack(() => page.url.pathname.replace(/\/[^/]+$/, ""))}/${meetingId}/live`);
     let timer: ReturnType<typeof setTimeout> | undefined;
-    let dropped = false;
     const refresh = () => {
       clearTimeout(timer);
       timer = setTimeout(() => void invalidateAll().catch(() => {}), 300);
     };
     source.addEventListener("changed", refresh);
-    source.addEventListener("error", () => (dropped = true));
-    // Catch up on anything missed while disconnected
-    source.addEventListener("open", () => {
-      if (dropped) refresh();
-      dropped = false;
-    });
+    // Catch up on changes between the page load and initial subscription, and
+    // anything missed while disconnected.
+    source.addEventListener("open", refresh);
     return () => {
       clearTimeout(timer);
       source.close();
@@ -232,8 +228,8 @@
   }
 
   /** Sends one scan; queued retries reuse its event ID, so it is recorded once however often it is sent. */
-  async function sendScan(scan: QueuedScan) {
-    const result = await scanAttendance(scan);
+  async function sendScan(scan: QueuedScan, expectedOperatorId: string) {
+    const result = await scanAttendance({ ...scan, operatorId: expectedOperatorId });
     toast.success(
       scan.direction === "in"
         ? $LL.admin.meetings.checkedIn({ name: result.displayName })
@@ -248,38 +244,50 @@
     return result;
   }
 
-  const scanQueue = new ScanQueue(sendScan, (_scan, cause) =>
-    toast.error($LL.admin.meetings.queuedScanFailed({ reason: remoteErrorMessage(cause, $LL.error.updateFailed()) })),
-  );
-  onMount(() => {
-    scanQueue.restore();
-    return () => scanQueue.dispose();
+  let scanQueue = $state<ScanQueue<Awaited<ReturnType<typeof scanAttendance>>> | null>(null);
+  $effect(() => {
+    if (!canWrite) return;
+    const ownerId = operatorId;
+    const queue = new ScanQueue(
+      (scan) => {
+        if (!canWrite || operatorId !== ownerId) return Promise.reject({ status: 403 });
+        return sendScan(scan, ownerId);
+      },
+      (_scan, cause) =>
+        toast.error(
+          $LL.admin.meetings.queuedScanFailed({ reason: remoteErrorMessage(cause, $LL.error.updateFailed()) }),
+        ),
+      ownerId,
+    );
+    scanQueue = queue;
+    untrack(() => queue.restore());
+    return () => {
+      queue.dispose();
+      scanQueue = null;
+    };
   });
 
   /** Resolves to null when the scan was queued to be sent once the connection is back. */
   async function scan(token: string, direction: "in" | "out") {
+    const queue = scanQueue;
+    if (!queue) throw new Error("Scan queue unavailable");
     const item = { meetingId: data.meeting.id, eventId: crypto.randomUUID(), token, direction };
-    // Keep the order: an exit must not overtake the entry still waiting in the queue
-    if (scanQueue.pending.length > 0) {
-      scanQueue.add(item);
-      void scanQueue.flush();
+    // Persist and check the queue under the same cross-tab lock: an exit must
+    // not overtake an entry that another tab is still recording.
+    const wasEmpty = await queue.add(item, false);
+    if (!wasEmpty) {
+      void queue.flush();
       return null;
     }
-    let timeout: ReturnType<typeof setTimeout> | undefined;
     try {
-      // A stalled connection queues the scan instead of blocking the scanner; a late reply is a harmless duplicate
-      return await Promise.race([
-        sendScan(item),
-        new Promise<never>(
-          (_, reject) => (timeout = setTimeout(() => reject(new Error("Timed out")), SCAN_TIMEOUT_MS)),
-        ),
-      ]);
+      return await queue.send(item);
     } catch (cause) {
-      if (!isTransientError(cause)) throw cause;
-      scanQueue.add(item);
+      const status = cause && typeof cause === "object" && "status" in cause ? cause.status : undefined;
+      if (!isTransientError(cause) && status !== 401 && status !== 403 && status !== 404) {
+        throw cause;
+      }
+      queue.retry();
       return null;
-    } finally {
-      clearTimeout(timeout);
     }
   }
 
@@ -325,7 +333,7 @@
 <svelte:window
   onkeydown={handleUndoKey}
   onfocus={() => data.canWrite && registry.load()}
-  ononline={() => void scanQueue.flush()}
+  ononline={() => void scanQueue?.flush()}
 />
 
 <main class="container mx-auto max-w-5xl space-y-6 px-4 pb-8" data-testid="admin-meeting-page">
@@ -470,7 +478,7 @@
 
   {#if canAct}
     <section class="space-y-2">
-      <MeetingQrScanner onScan={scan} queued={scanQueue.pending.length} {typeName} />
+      <MeetingQrScanner onScan={scan} queued={scanQueue?.pending.length ?? 0} {typeName} />
       <CheckInSearch
         attendees={rows}
         {registry}
