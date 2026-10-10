@@ -39,6 +39,7 @@ export const recordAttendanceSchema = v.object({
 });
 
 export const scanAttendanceSchema = v.object({
+  operatorId: id,
   meetingId: id,
   eventId,
   direction,

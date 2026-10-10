@@ -30,9 +30,9 @@
   const editForm = $derived(editRecess.for(recessId ?? "none"));
 
   $effect(() => {
-    if (!open) return;
-    const current = recess;
+    if (!open || !recessId) return;
     untrack(() => {
+      const current = recess;
       if (!current) return;
       editForm.fields.set({
         meetingId: data.meeting.id,

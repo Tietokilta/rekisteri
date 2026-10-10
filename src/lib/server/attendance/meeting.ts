@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "$lib/server/db";
+import { notifyMeetingChanged } from "./live";
 import { membershipTypeAt } from "./membership";
 import * as table from "$lib/server/db/schema";
 import {
@@ -58,6 +59,7 @@ export async function recordMeetingEvent(input: NewAttendanceEvent) {
     // Lock first so a concurrent retry with the same ID waits and then sees the stored event
     const [meeting] = await tx.select().from(table.meeting).where(eq(table.meeting.id, input.meetingId)).for("update");
     if (!meeting) throw new Error("Meeting not found");
+    await notifyMeetingChanged(tx, meeting.id);
     const existing = await tx.query.meetingAttendanceEvent.findFirst({ where: { id: input.id } });
     if (existing) {
       if (
@@ -198,6 +200,7 @@ export async function correctMeetingEvent(input: {
   return db.transaction(async (tx) => {
     const [meeting] = await tx.select().from(table.meeting).where(eq(table.meeting.id, input.meetingId)).for("update");
     if (!meeting) throw new Error("Meeting not found");
+    await notifyMeetingChanged(tx, meeting.id);
     const event = await tx.query.meetingAttendanceEvent.findFirst({ where: { id: input.eventId } });
     if (!event || event.meetingId !== input.meetingId) throw new Error("Action not found in meeting");
     const latest = await tx.query.meetingAttendanceEventCorrection.findFirst({
@@ -289,6 +292,7 @@ export async function updateMeetingAttendee(input: {
   return db.transaction(async (tx) => {
     const [meeting] = await tx.select().from(table.meeting).where(eq(table.meeting.id, input.meetingId)).for("update");
     if (!meeting) throw new Error("Meeting not found");
+    await notifyMeetingChanged(tx, meeting.id);
     const attendee = await tx.query.meetingAttendee.findFirst({ where: { id: input.attendeeId } });
     if (attendee?.meetingId !== input.meetingId) throw new Error("Attendee not found in meeting");
 
@@ -453,6 +457,7 @@ export async function startMeetingRecess(meetingId: string, actorId: string, mod
   return db.transaction(async (tx) => {
     const [meeting] = await tx.select().from(table.meeting).where(eq(table.meeting.id, meetingId)).for("update");
     if (!meeting?.startsAt || meeting.closedAt) throw new Error("Meeting must be open and started");
+    await notifyMeetingChanged(tx, meeting.id);
     const [active] = await tx
       .select()
       .from(table.meetingRecess)
@@ -476,6 +481,7 @@ export async function endMeetingRecess(meetingId: string, actorId: string) {
   return db.transaction(async (tx) => {
     const [meeting] = await tx.select().from(table.meeting).where(eq(table.meeting.id, meetingId)).for("update");
     if (!meeting || meeting.closedAt) throw new Error("Meeting is closed or missing");
+    await notifyMeetingChanged(tx, meeting.id);
     const [active] = await tx
       .select()
       .from(table.meetingRecess)
@@ -511,6 +517,7 @@ export async function editMeetingRecess(input: {
     const [meeting] = await tx.select().from(table.meeting).where(eq(table.meeting.id, input.meetingId)).for("update");
     const recess = await tx.query.meetingRecess.findFirst({ where: { id: input.recessId } });
     if (!meeting || !recess || recess.meetingId !== input.meetingId) throw new Error("Recess not found");
+    await notifyMeetingChanged(tx, meeting.id);
     // Inputs are minute-precision: a start in the meeting's start minute means the meeting start itself,
     // since a recess can't begin before the meeting does
     const startedAt =
