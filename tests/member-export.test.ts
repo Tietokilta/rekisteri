@@ -91,7 +91,7 @@ describe("generateGoogleGroupsCSV", () => {
 
     const parse = (csv: string) => Papa.parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true }).data;
     const emailsOf = (list: MailingList) =>
-      parse(generateGoogleGroupsCSV(languageMembers, list).csv).map((r) => r["Member Email"]);
+      parse(generateGoogleGroupsCSV(languageMembers, list).csv).map((r) => r["Member Email"] || "");
 
     it("puts Finnish and unspecified members in jasenet-fi@", () => {
       const { count } = generateGoogleGroupsCSV(languageMembers, MAILING_LISTS["jasenet-fi"]);
@@ -132,7 +132,9 @@ describe("generateGoogleGroupsCSV", () => {
       for (const name of ["jasenet", "aktiivit"] as const) {
         const split = [...emailsOf(MAILING_LISTS[`${name}-fi`]), ...emailsOf(MAILING_LISTS[`${name}-en`])];
 
-        expect(split.toSorted()).toEqual(emailsOf(MAILING_LISTS[name]).toSorted());
+        expect(split.toSorted((a, b) => a.localeCompare(b))).toEqual(
+          emailsOf(MAILING_LISTS[name]).toSorted((a, b) => a.localeCompare(b)),
+        );
       }
     });
 
