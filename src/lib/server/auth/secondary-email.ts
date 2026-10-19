@@ -188,9 +188,13 @@ export async function getSecondaryEmailById(emailId: string, userId: string): Pr
  * Validates:
  * - Email format
  * - Not already owned by this user (returns existing record if so)
- * - Not already a primary email (any user)
- * - Not already a verified secondary email (any user)
+ * - Not this user's own primary email
  * - User hasn't exceeded limit (10 emails)
+ *
+ * SECURITY: Whether another account already uses the address is deliberately NOT
+ * checked here, so this step can't be used to find out which emails are registered.
+ * Ownership is checked in markSecondaryEmailVerified, after the user has proven
+ * they control the address with a code.
  *
  * Uses upsert (onConflictDoUpdate) for race condition safety on the
  * unique (userId, email) index.
@@ -223,25 +227,9 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
     return existingEmail;
   }
 
-  // Check if email already exists as primary email
-  // SECURITY: Use generic error message to prevent email enumeration
-  const existingPrimaryUser = await db.select().from(table.user).where(eq(table.user.email, normalizedEmail)).limit(1);
-
-  if (existingPrimaryUser.length > 0) {
-    throw new Error("Could not add this email. Please try a different email address.");
-  }
-
-  // Check if email already exists as VERIFIED secondary email for another user
-  // Unverified emails from other users don't block - prevents email squatting
-  // SECURITY: Use generic error message to prevent email enumeration
-  const existingVerifiedSecondaryEmail = await db
-    .select()
-    .from(table.secondaryEmail)
-    .where(and(eq(table.secondaryEmail.email, normalizedEmail), isNotNull(table.secondaryEmail.verifiedAt)))
-    .limit(1);
-
-  if (existingVerifiedSecondaryEmail.length > 0) {
-    throw new Error("Could not add this email. Please try a different email address.");
+  const [owner] = await db.select({ email: table.user.email }).from(table.user).where(eq(table.user.id, userId));
+  if (owner?.email === normalizedEmail) {
+    throw new Error("This is already your primary email");
   }
 
   // Check user hasn't exceeded limit
@@ -285,21 +273,59 @@ export async function createSecondaryEmail(userId: string, email: string): Promi
   return upserted;
 }
 
+export type MarkVerifiedResult =
+  | { status: "verified"; email: SecondaryEmail }
+  | { status: "conflict"; email: SecondaryEmail; owner: User }
+  | { status: "not_found" };
+
 /**
- * Mark a secondary email as verified and calculate expiry
+ * Mark a secondary email as verified and calculate expiry.
+ *
+ * Call only after the user has proven they control the address (correct code).
+ * If the address already belongs to another account (as its primary email or a
+ * verified secondary email), it is not verified and the owner is returned, so the
+ * caller can offer to sign in to that account instead.
  */
-export async function markSecondaryEmailVerified(emailId: string, userId: string): Promise<boolean> {
+export async function markSecondaryEmailVerified(emailId: string, userId: string): Promise<MarkVerifiedResult> {
   const email = await getSecondaryEmailById(emailId, userId);
   if (!email) {
-    return false;
+    return { status: "not_found" };
+  }
+
+  const owner = await getUserByEmail(email.email);
+  if (owner && owner.id !== userId) {
+    return { status: "conflict", email, owner };
   }
 
   const verifiedAt = new Date();
   const expiresAt = calculateExpiry(email.domain, verifiedAt);
 
-  await db.update(table.secondaryEmail).set({ verifiedAt, expiresAt }).where(eq(table.secondaryEmail.id, emailId));
+  try {
+    const [updated] = await db
+      .update(table.secondaryEmail)
+      .set({ verifiedAt, expiresAt })
+      .where(eq(table.secondaryEmail.id, emailId))
+      .returning();
+    return updated ? { status: "verified", email: updated } : { status: "not_found" };
+  } catch (err) {
+    // Another account verified the same address between the check above and this update;
+    // the unique index on verified addresses rejects the second one
+    if (isUniqueViolation(err)) {
+      const racedOwner = await getUserByEmail(email.email);
+      if (racedOwner && racedOwner.id !== userId) {
+        return { status: "conflict", email, owner: racedOwner };
+      }
+    }
+    throw err;
+  }
+}
 
-  return true;
+function isUniqueViolation(err: unknown): boolean {
+  // Drizzle wraps driver errors; the Postgres error code is on the cause
+  const code =
+    (err as { code?: string; cause?: { code?: string } } | null)?.cause?.code ??
+    (err as { code?: string } | null)?.code;
+  return code === "23505";
 }
 
 /**
@@ -396,4 +422,19 @@ export async function changePrimaryEmail(emailId: string, userId: string, event:
   await auditEmailChange(event, userId, oldPrimaryEmail, newPrimaryEmail);
 
   return true;
+}
+
+/**
+ * Whether the user should be nudged to add a personal email: their primary email is
+ * on a domain that stops working (e.g. aalto.fi after graduation) and they have no
+ * verified address on any other domain to sign in with.
+ */
+export async function needsPersonalEmail(user: Pick<User, "id" | "email">): Promise<boolean> {
+  const primaryDomain = user.email.split("@", 2)[1]?.toLowerCase();
+  if (!primaryDomain || !EXPIRING_DOMAINS[primaryDomain]) {
+    return false;
+  }
+
+  const emails = await getUserSecondaryEmails(user.id);
+  return emails.every((e) => !e.verifiedAt || EXPIRING_DOMAINS[e.domain]);
 }

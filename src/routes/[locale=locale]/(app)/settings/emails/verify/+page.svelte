@@ -3,23 +3,35 @@
   import { Label } from "$lib/components/ui/label/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import { page } from "$app/stores";
-  import { LL } from "$lib/i18n/i18n-svelte";
+  import { LL, locale } from "$lib/i18n/i18n-svelte";
   import * as InputOTP from "$lib/components/ui/input-otp/index.js";
   import { REGEXP_ONLY_DIGITS_AND_CHARS } from "bits-ui";
   import * as Card from "$lib/components/ui/card/index.js";
   import type { PageData } from "./$types";
   import { verifyCode, resendEmail, cancelVerification } from "./data.remote";
   import { verifyCodeSchema } from "./schema";
+  import EmailAccountConflict from "$lib/components/email-account-conflict.svelte";
+  import { goto } from "$app/navigation";
+  import { route } from "$lib/ROUTES";
+  import { withNext } from "$lib/utils/next";
 
   let { data }: { data: PageData } = $props();
 
   const next = $derived($page.url.searchParams.get("next") ?? "");
 
-  let verifyFormEl: HTMLFormElement;
+  // Set when the address turned out to have its own account
+  const conflict = $derived(verifyCode.result && "conflict" in verifyCode.result ? verifyCode.result.conflict : null);
+
+  function useAnotherEmail() {
+    const addHref = route("/[locale=locale]/settings/emails/add", { locale: $locale });
+    void goto(next ? withNext(addHref, next) : addHref);
+  }
+
+  let verifyFormEl = $state<HTMLFormElement>();
 
   async function handleComplete() {
     await tick();
-    verifyFormEl.requestSubmit();
+    verifyFormEl?.requestSubmit();
   }
 </script>
 
@@ -31,47 +43,56 @@
     >
   </Card.Header>
   <Card.Content>
-    <div class="flex w-full flex-col gap-4">
-      <form bind:this={verifyFormEl} {...verifyCode.preflight(verifyCodeSchema)} class="contents">
-        {#if next}<input type="hidden" name="next" value={next} />{/if}
-        <div class="flex flex-col gap-2">
-          <Label for="code">{$LL.secondaryEmail.code()}</Label>
-          <InputOTP.Root
-            id="code"
-            maxlength={8}
-            pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
-            inputmode="text"
-            name={verifyCode.fields.code.as("text").name}
-            required
-            class="justify-center capitalize"
-            data-testid="otp-input"
-            onComplete={handleComplete}
+    {#if conflict}
+      <EmailAccountConflict
+        code={verifyCode.fields.code.value() ?? ""}
+        next={next || undefined}
+        useAnotherLabel={$LL.emailVerification.conflict.useAnother()}
+        onUseAnother={useAnotherEmail}
+      />
+    {:else}
+      <div class="flex w-full flex-col gap-4">
+        <form bind:this={verifyFormEl} {...verifyCode.preflight(verifyCodeSchema)} class="contents">
+          {#if next}<input type="hidden" name="next" value={next} />{/if}
+          <div class="flex flex-col gap-2">
+            <Label for="code">{$LL.secondaryEmail.code()}</Label>
+            <InputOTP.Root
+              id="code"
+              maxlength={8}
+              pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+              inputmode="text"
+              name={verifyCode.fields.code.as("text").name}
+              required
+              class="justify-center capitalize"
+              data-testid="otp-input"
+              onComplete={handleComplete}
+            >
+              {#snippet children({ cells })}
+                <InputOTP.Group>
+                  {#each cells as cell, i (i)}
+                    <InputOTP.Slot {cell} />
+                  {/each}
+                </InputOTP.Group>
+              {/snippet}
+            </InputOTP.Root>
+          </div>
+          {#each verifyCode.fields.allIssues() as issue, i (i)}
+            <p class="text-red-500" data-testid="otp-error">{issue.message}</p>
+          {/each}
+          <Button type="submit" data-testid="verify-otp" disabled={!!verifyCode.pending}>{$LL.auth.verify()}</Button>
+        </form>
+        <form {...resendEmail} class="contents">
+          <Button type="submit" variant="outline" disabled={!!resendEmail.pending}>{$LL.auth.resendCode()}</Button>
+          {#if resendEmail.result?.message}
+            <p>{resendEmail.result.message}</p>
+          {/if}
+        </form>
+        <form {...cancelVerification} class="contents">
+          <Button type="submit" variant="outline" disabled={!!cancelVerification.pending}
+            >{$LL.auth.passkey.cancel()}</Button
           >
-            {#snippet children({ cells })}
-              <InputOTP.Group>
-                {#each cells as cell, i (i)}
-                  <InputOTP.Slot {cell} />
-                {/each}
-              </InputOTP.Group>
-            {/snippet}
-          </InputOTP.Root>
-        </div>
-        {#each verifyCode.fields.allIssues() as issue, i (i)}
-          <p class="text-red-500" data-testid="otp-error">{issue.message}</p>
-        {/each}
-        <Button type="submit" data-testid="verify-otp" disabled={!!verifyCode.pending}>{$LL.auth.verify()}</Button>
-      </form>
-      <form {...resendEmail} class="contents">
-        <Button type="submit" variant="outline" disabled={!!resendEmail.pending}>{$LL.auth.resendCode()}</Button>
-        {#if resendEmail.result?.message}
-          <p>{resendEmail.result.message}</p>
-        {/if}
-      </form>
-      <form {...cancelVerification} class="contents">
-        <Button type="submit" variant="outline" disabled={!!cancelVerification.pending}
-          >{$LL.auth.passkey.cancel()}</Button
-        >
-      </form>
-    </div>
+        </form>
+      </div>
+    {/if}
   </Card.Content>
 </Card.Root>

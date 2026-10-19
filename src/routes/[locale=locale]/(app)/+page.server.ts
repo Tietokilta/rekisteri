@@ -6,6 +6,7 @@ import * as table from "$lib/server/db/schema";
 import { eq, desc, gt, gte, and, isNotNull, count } from "drizzle-orm";
 import { ensureUserHasQrToken } from "$lib/server/attendance/qr-token";
 import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
+import { needsPersonalEmail } from "$lib/server/auth/secondary-email";
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.user) {
@@ -56,5 +57,11 @@ export const load: PageServerLoad = async (event) => {
 
   const hasAvailableMemberships = (availableCount?.value ?? 0) > 0;
 
-  return { user: event.locals.user, memberships, qrToken, hasAvailableMemberships };
+  return {
+    user: event.locals.user,
+    memberships,
+    qrToken,
+    hasAvailableMemberships,
+    needsPersonalEmail: await needsPersonalEmail(event.locals.user),
+  };
 };

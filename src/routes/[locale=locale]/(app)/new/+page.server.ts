@@ -4,7 +4,7 @@ import { route } from "$lib/ROUTES";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
 import { eq, desc, gt, gte, and, isNotNull } from "drizzle-orm";
-import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
+import { getUserSecondaryEmails, isSecondaryEmailValid, needsPersonalEmail } from "$lib/server/auth/secondary-email";
 import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
 import { checkAutoApprovalEligibility } from "$lib/server/payment/auto-approval";
 
@@ -86,5 +86,8 @@ export const load: PageServerLoad = async (event) => {
     hasValidAaltoEmail,
     hasExpiredAaltoEmail,
     aaltoEmailExpiry: isPrimaryAalto ? null : aaltoSecondaryEmail?.expiresAt,
+    validAaltoEmail: isPrimaryAalto ? user.email : hasValidSecondaryAalto ? (aaltoSecondaryEmail?.email ?? null) : null,
+    expiredAaltoEmail: hasExpiredAaltoEmail ? (aaltoSecondaryEmail?.email ?? null) : null,
+    needsPersonalEmail: await needsPersonalEmail(user),
   };
 };
