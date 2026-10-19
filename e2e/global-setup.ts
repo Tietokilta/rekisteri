@@ -6,46 +6,27 @@ import { relations } from "$lib/server/db/relations";
 import { hashSessionToken } from "$lib/server/auth/utils";
 import { encodeBase64url } from "@oslojs/encoding";
 import { eq } from "drizzle-orm";
-import { execSync } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
+import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { loadEnvFile } from "./utils";
-
-function quoteIdentifier(identifier: string) {
-  return `"${identifier.replaceAll('"', '""')}"`;
-}
 
 async function globalSetup(_config: FullConfig) {
   loadEnvFile();
 
-  const dbUrl = process.env.DATABASE_URL_TEST;
-  if (!dbUrl) {
-    throw new Error("DATABASE_URL_TEST not set. Make sure .env file exists with DATABASE_URL_TEST.");
+  const port = process.env.E2E_PORT;
+  if (!port) {
+    throw new Error("E2E_PORT not set. It is chosen in playwright.config.ts.");
   }
+  const baseURL = `http://localhost:${port}`;
 
-  const url = new URL(dbUrl);
-  const testDbName = url.pathname.slice(1);
-
-  const baseDbUrl = new URL(dbUrl);
-  baseDbUrl.pathname = "/postgres";
-  const adminClient = postgres(baseDbUrl.href);
-
-  try {
-    const result = await adminClient`SELECT 1 FROM pg_database WHERE datname = ${testDbName}`;
-    if (result.length > 0) {
-      await adminClient`
-        SELECT pg_terminate_backend(pid)
-        FROM pg_stat_activity
-        WHERE datname = ${testDbName}
-          AND pid <> pg_backend_pid()
-      `;
-      await adminClient.unsafe(`DROP DATABASE ${quoteIdentifier(testDbName)}`);
-      console.log(`✓ Dropped test database: ${testDbName}`);
-    }
-
-    await adminClient.unsafe(`CREATE DATABASE ${quoteIdentifier(testDbName)}`);
-    console.log(`✓ Created test database: ${testDbName}`);
-  } finally {
-    await adminClient.end();
-  }
+  console.log("✓ Starting test database container and building app...");
+  const [container] = await Promise.all([
+    new PostgreSqlContainer("postgres:17-alpine").start(),
+    run("pnpm", ["build"]),
+  ]);
+  const dbUrl = container.getConnectionUri();
+  // Inherited by test workers (fixtures read it to access the database directly)
+  process.env.DATABASE_URL_TEST = dbUrl;
 
   console.log("✓ Running migrations on test database...");
   execSync(`DATABASE_URL="${dbUrl}" pnpm db:migrate`, { stdio: "inherit" });
@@ -178,6 +159,68 @@ async function globalSetup(_config: FullConfig) {
   await client.end();
 
   console.log("✓ Created authenticated admin and readonly admin sessions for tests");
+
+  console.log(`✓ Starting app server on ${baseURL}...`);
+  const server = spawn("pnpm", ["preview", "--port", port, "--strictPort"], {
+    // Own process group, so teardown can kill pnpm and vite together
+    detached: true,
+    stdio: ["ignore", "ignore", "inherit"],
+    env: {
+      ...process.env,
+      DATABASE_URL: dbUrl,
+      UNSAFE_DISABLE_RATE_LIMITS: "true",
+      TEST: "true",
+      // WebAuthn/Passkey configuration for test environment
+      RP_ORIGIN: baseURL,
+      RP_ID: "localhost",
+      RP_NAME: "Tietokilta Rekisteri",
+    },
+  });
+  const stopServer = () => {
+    if (server.pid && server.exitCode === null) process.kill(-server.pid, "SIGTERM");
+  };
+
+  try {
+    await waitForServer(baseURL, server);
+  } catch (error) {
+    stopServer();
+    await container.stop();
+    throw error;
+  }
+  console.log("✓ App server ready");
+
+  return async () => {
+    stopServer();
+    await container.stop();
+  };
+}
+
+function run(command: string, args: string[]) {
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn(command, args, { stdio: "inherit" });
+    child.on("error", reject);
+    child.on("exit", (code) =>
+      code === 0 ? resolve() : reject(new Error(`${command} ${args.join(" ")} exited with code ${code}`)),
+    );
+  });
+}
+
+// Polls the root URL rather than /api/health, which also checks SMTP and can
+// hang on the placeholder SMTP host from .env.example
+async function waitForServer(url: string, server: ReturnType<typeof spawn>, timeoutMs = 60_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (server.exitCode !== null) {
+      throw new Error(`App server exited with code ${server.exitCode}`);
+    }
+    try {
+      await fetch(url, { redirect: "manual" });
+      return;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+  throw new Error(`App server did not respond at ${url} within ${timeoutMs / 1000}s`);
 }
 
 function generateSessionToken() {
