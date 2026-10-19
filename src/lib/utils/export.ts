@@ -189,12 +189,18 @@ export function generateMembersCSV(
  * Generates Google Groups CSV for member distribution lists.
  */
 export function generateGoogleGroupsCSV(
-  members: Array<{ email: string | null; isAllowedEmails?: boolean | null }>,
+  members: Array<{
+    email: string | null;
+    isAllowedEmails?: boolean | null;
+    preferredLanguage?: PreferredLanguage | null;
+  }>,
   list: MailingList,
 ): { csv: string; count: number } {
   const eligibleMembers = members.filter(
     (m): m is typeof m & { email: string } =>
-      Boolean(m.email) && (!list.requiresEmailConsent || m.isAllowedEmails === true),
+      Boolean(m.email) &&
+      (!list.requiresEmailConsent || m.isAllowedEmails === true) &&
+      (!list.language || (m.preferredLanguage === "english" ? "english" : "finnish") === list.language),
   );
 
   const data = eligibleMembers.map((m) => [list.address, stripEmailAlias(m.email), "User", "Member"]);

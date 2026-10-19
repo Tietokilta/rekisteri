@@ -9,7 +9,7 @@ import {
   type ExportColumnKey,
 } from "$lib/utils/export";
 import type { MemberStatus, PreferredLanguage } from "$lib/shared/enums";
-import { MAILING_LISTS } from "$lib/shared/mailing-lists";
+import { MAILING_LISTS, type MailingList } from "$lib/shared/mailing-lists";
 import { createTestDatabase, stopTestDatabase, type TestDatabase } from "./utils/db";
 import * as table from "$lib/server/db/schema";
 import { eq, sql } from "drizzle-orm";
@@ -77,6 +77,74 @@ describe("generateGoogleGroupsCSV", () => {
     expect(Papa.parse(csv, { header: true, skipEmptyLines: true }).data).toEqual([]);
   });
 
+  describe("language lists", () => {
+    const languageMembers = [
+      { email: "fi-allowed+test@tietokilta.fi", isAllowedEmails: true, preferredLanguage: "finnish" as const },
+      { email: "fi-notallowed@tietokilta.fi", isAllowedEmails: false, preferredLanguage: "finnish" as const },
+      { email: "en-allowed@tietokilta.fi", isAllowedEmails: true, preferredLanguage: "english" as const },
+      { email: "en-notallowed@tietokilta.fi", isAllowedEmails: false, preferredLanguage: "english" as const },
+      { email: "unspecified-allowed@tietokilta.fi", isAllowedEmails: true, preferredLanguage: "unspecified" as const },
+      { email: "null-allowed@tietokilta.fi", isAllowedEmails: true, preferredLanguage: null },
+      { email: "missing-notallowed@tietokilta.fi", isAllowedEmails: false },
+      { email: null, isAllowedEmails: true, preferredLanguage: "finnish" as const },
+    ];
+
+    const parse = (csv: string) => Papa.parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true }).data;
+    const emailsOf = (list: MailingList) =>
+      parse(generateGoogleGroupsCSV(languageMembers, list).csv).map((r) => r["Member Email"]);
+
+    it("puts Finnish and unspecified members in jasenet-fi@", () => {
+      const { count } = generateGoogleGroupsCSV(languageMembers, MAILING_LISTS["jasenet-fi"]);
+
+      expect(count).toBe(5);
+      expect(emailsOf(MAILING_LISTS["jasenet-fi"])).toEqual([
+        "fi-allowed@tietokilta.fi",
+        "fi-notallowed@tietokilta.fi",
+        "unspecified-allowed@tietokilta.fi",
+        "null-allowed@tietokilta.fi",
+        "missing-notallowed@tietokilta.fi",
+      ]);
+    });
+
+    it("puts only English speakers in jasenet-en@", () => {
+      expect(emailsOf(MAILING_LISTS["jasenet-en"])).toEqual([
+        "en-allowed@tietokilta.fi",
+        "en-notallowed@tietokilta.fi",
+      ]);
+    });
+
+    it("combines the language filter with the opt-in requirement for aktiivit", () => {
+      expect(emailsOf(MAILING_LISTS["aktiivit-fi"])).toEqual([
+        "fi-allowed@tietokilta.fi",
+        "unspecified-allowed@tietokilta.fi",
+        "null-allowed@tietokilta.fi",
+      ]);
+      expect(emailsOf(MAILING_LISTS["aktiivit-en"])).toEqual(["en-allowed@tietokilta.fi"]);
+    });
+
+    it.each(Object.entries(MAILING_LISTS))("targets the list address in the %s export", (_id, list) => {
+      const { csv } = generateGoogleGroupsCSV(languageMembers, list);
+
+      expect(new Set(parse(csv).map((r) => r["Group Email [Required]"]))).toEqual(new Set([list.address]));
+    });
+
+    it("splits each combined list exactly between its language lists", () => {
+      for (const name of ["jasenet", "aktiivit"] as const) {
+        const split = [...emailsOf(MAILING_LISTS[`${name}-fi`]), ...emailsOf(MAILING_LISTS[`${name}-en`])];
+
+        expect(split.toSorted()).toEqual(emailsOf(MAILING_LISTS[name]).toSorted());
+      }
+    });
+
+    it("reports zero rows when nobody speaks the requested language", () => {
+      const { csv, count } = generateGoogleGroupsCSV(
+        [{ email: "member@example.com", isAllowedEmails: true, preferredLanguage: "finnish" }],
+        MAILING_LISTS["aktiivit-en"],
+      );
+      expect(count).toBe(0);
+      expect(parse(csv)).toEqual([]);
+    });
+  });
 });
 
 describe("generateMembersCSV", () => {
