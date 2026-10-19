@@ -315,7 +315,11 @@ test.describe("Meeting attendance", () => {
     await installQrCamera(adminPage, token);
     await adminPage.goto(meetingUrl(id));
 
-    await adminPage.route("**/_app/remote/**", (request) => request.abort("internetdisconnected"));
+    // Toggled rather than unrouted: unrouting while the reloaded page loads can lose its requests
+    let offline = true;
+    await adminPage.route("**/_app/remote/**", (request) =>
+      offline ? request.abort("internetdisconnected") : request.continue(),
+    );
     await adminPage.getByRole("button", { name: "Skannaa QR-koodi" }).click();
     const scanner = adminPage.getByRole("dialog", { name: "Skannaa QR-koodi" });
     await expect(scanner).toContainText("Skannaus on jonossa");
@@ -328,7 +332,7 @@ test.describe("Meeting attendance", () => {
     );
     expect(stored).toEqual([expect.objectContaining({ meetingId: id, direction: "in", token })]);
 
-    await adminPage.unroute("**/_app/remote/**");
+    offline = false;
     await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla", { timeout: 10_000 });
     await expect
       .poll(() => adminPage.evaluate((key) => localStorage.getItem(key), `meeting-scan-queue:${adminUser.id}`))
@@ -393,6 +397,8 @@ test.describe("Meeting attendance", () => {
       await db.update(table.user).set({ qrToken: tokens[index] }).where(eq(table.user.id, user.id));
     }
     const other = await adminPage.context().newPage();
+    // Toggled rather than unrouted: unrouting while the reloaded page loads can lose its requests
+    let offline = true;
     try {
       const pages = [adminPage, other];
       await Promise.all(
@@ -401,7 +407,9 @@ test.describe("Meeting attendance", () => {
           if (!token) throw new Error("Missing test QR token");
           await installQrCamera(page, token);
           await page.goto(meetingUrl(id));
-          await page.route("**/_app/remote/**", (request) => request.abort("internetdisconnected"));
+          await page.route("**/_app/remote/**", (request) =>
+            offline ? request.abort("internetdisconnected") : request.continue(),
+          );
         }),
       );
       await Promise.all(pages.map((page) => page.getByRole("button", { name: "Skannaa QR-koodi" }).click()));
@@ -413,7 +421,7 @@ test.describe("Meeting attendance", () => {
         .poll(() => adminPage.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "[]").length, key))
         .toBe(2);
       await adminPage.reload();
-      await Promise.all(pages.map((page) => page.unroute("**/_app/remote/**")));
+      offline = false;
       for (const user of users) {
         await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla", { timeout: 10_000 });
       }
@@ -466,9 +474,17 @@ test.describe("Meeting attendance", () => {
     await adminPage.goto(meetingUrl(id));
     let release = () => {};
     const waiting = new Promise<void>((resolve) => (release = resolve));
+    let attempts = 0;
+    // Stall only the first request. Unrouting instead would race with the
+    // reloaded page's first data request, which Playwright can then lose.
     await adminPage.route("**/_app/remote/**", async (request) => {
-      await waiting;
-      await request.abort("timedout");
+      attempts++;
+      if (attempts === 1) {
+        await waiting;
+        await request.abort("timedout");
+      } else {
+        await request.continue();
+      }
     });
     try {
       await adminPage.getByRole("button", { name: "Skannaa QR-koodi" }).click();
@@ -478,8 +494,6 @@ test.describe("Meeting attendance", () => {
         .toBe(1);
       await adminPage.reload();
       release();
-      await adminPage.unrouteAll({ behavior: "wait" });
-      await adminPage.evaluate(() => dispatchEvent(new Event("online")));
       await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla", { timeout: 10_000 });
       const events = await db
         .select()
