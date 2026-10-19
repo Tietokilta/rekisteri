@@ -958,18 +958,11 @@
           <DropdownMenu.Label class="text-xs font-semibold text-muted-foreground">
             {$LL.admin.members.table.googleGroupsSection()}
           </DropdownMenu.Label>
-          <DropdownMenu.Item
-            onclick={() => exportGoogleGroups("jasenet", MAILING_LISTS.jasenet)}
-            data-testid="export-jasenet"
-          >
-            <span>{$LL.admin.members.table.exportJasenet()}</span>
-          </DropdownMenu.Item>
-          <DropdownMenu.Item
-            onclick={() => exportGoogleGroups("aktiivit", MAILING_LISTS.aktiivit)}
-            data-testid="export-aktiivit"
-          >
-            <span>{$LL.admin.members.table.exportAktiivit()}</span>
-          </DropdownMenu.Item>
+          {#each Object.entries(MAILING_LISTS) as [id, list] (id)}
+            <DropdownMenu.Item onclick={() => exportGoogleGroups(id, list)} data-testid={`export-${id}`}>
+              <span>{$LL.admin.members.table.exportGoogleGroup({ groupEmail: list.address })}</span>
+            </DropdownMenu.Item>
+          {/each}
 
           <DropdownMenu.Separator />
           <DropdownMenu.Item onclick={() => (showExportDialog = true)} data-testid="export-custom">
