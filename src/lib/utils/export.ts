@@ -2,6 +2,7 @@ import Papa from "papaparse";
 import { formatDate, formatDateRange } from "$lib/utils";
 import type { LocalizedString } from "$lib/server/db/schema";
 import type { MemberStatus, PreferredLanguage } from "$lib/shared/enums";
+import type { MailingList } from "$lib/shared/mailing-lists";
 import type { TranslationFunctions } from "$lib/i18n/i18n-types";
 
 export type ExportColumnKey =
@@ -189,13 +190,14 @@ export function generateMembersCSV(
  */
 export function generateGoogleGroupsCSV(
   members: Array<{ email: string | null; isAllowedEmails?: boolean | null }>,
-  groupEmail: "jasenet@tietokilta.fi" | "aktiivit@tietokilta.fi",
+  list: MailingList,
 ): { csv: string; count: number } {
-  const eligibleMembers = (
-    groupEmail === "aktiivit@tietokilta.fi" ? members.filter((m) => m.isAllowedEmails === true) : members
-  ).filter((m): m is typeof m & { email: string } => Boolean(m.email));
+  const eligibleMembers = members.filter(
+    (m): m is typeof m & { email: string } =>
+      Boolean(m.email) && (!list.requiresEmailConsent || m.isAllowedEmails === true),
+  );
 
-  const data = eligibleMembers.map((m) => [groupEmail, stripEmailAlias(m.email), "User", "Member"]);
+  const data = eligibleMembers.map((m) => [list.address, stripEmailAlias(m.email), "User", "Member"]);
   const csv = Papa.unparse(
     { fields: ["Group Email [Required]", "Member Email", "Member Type", "Member Role"], data },
     { quotes: true, escapeFormulae: true },

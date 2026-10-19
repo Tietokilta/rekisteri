@@ -47,6 +47,7 @@
     createExportContext,
     DEFAULT_EXPORT_COLUMNS,
   } from "$lib/utils/export";
+  import { MAILING_LISTS, type MailingList } from "$lib/shared/mailing-lists";
   import { untrack } from "svelte";
   import { goto, invalidateAll } from "$app/navigation";
   import { page } from "$app/state";
@@ -480,17 +481,16 @@
   }
 
   // Export filtered members as CSV (Google Groups format)
-  function exportGoogleGroups(groupEmail: "jasenet@tietokilta.fi" | "aktiivit@tietokilta.fi") {
+  function exportGoogleGroups(id: string, list: MailingList) {
     const filteredRows = table.getFilteredRowModel().rows.map((r) => r.original);
-    const { csv: csvContent, count } = generateGoogleGroupsCSV(filteredRows, groupEmail);
+    const { csv: csvContent, count } = generateGoogleGroupsCSV(filteredRows, list);
 
     const timestamp = new Date().toISOString().split("T", 1)[0];
-    const groupName = groupEmail.split("@", 1)[0];
-    downloadFile(csvContent, `${groupName}-export-${timestamp}.csv`);
+    downloadFile(csvContent, `${id}-export-${timestamp}.csv`);
 
     void logMemberExport({
       count,
-      filterSummary: `google_groups: ${groupEmail}`,
+      filterSummary: `google_groups: ${list.address}`,
     });
 
     triggerExportSuccess();
@@ -958,10 +958,16 @@
           <DropdownMenu.Label class="text-xs font-semibold text-muted-foreground">
             {$LL.admin.members.table.googleGroupsSection()}
           </DropdownMenu.Label>
-          <DropdownMenu.Item onclick={() => exportGoogleGroups("jasenet@tietokilta.fi")} data-testid="export-jasenet">
+          <DropdownMenu.Item
+            onclick={() => exportGoogleGroups("jasenet", MAILING_LISTS.jasenet)}
+            data-testid="export-jasenet"
+          >
             <span>{$LL.admin.members.table.exportJasenet()}</span>
           </DropdownMenu.Item>
-          <DropdownMenu.Item onclick={() => exportGoogleGroups("aktiivit@tietokilta.fi")} data-testid="export-aktiivit">
+          <DropdownMenu.Item
+            onclick={() => exportGoogleGroups("aktiivit", MAILING_LISTS.aktiivit)}
+            data-testid="export-aktiivit"
+          >
             <span>{$LL.admin.members.table.exportAktiivit()}</span>
           </DropdownMenu.Item>
 

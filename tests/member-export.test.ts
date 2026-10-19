@@ -9,6 +9,7 @@ import {
   type ExportColumnKey,
 } from "$lib/utils/export";
 import type { MemberStatus, PreferredLanguage } from "$lib/shared/enums";
+import { MAILING_LISTS } from "$lib/shared/mailing-lists";
 import { createTestDatabase, stopTestDatabase, type TestDatabase } from "./utils/db";
 import * as table from "$lib/server/db/schema";
 import { eq, sql } from "drizzle-orm";
@@ -36,7 +37,7 @@ describe("generateGoogleGroupsCSV", () => {
   ];
 
   it("exports all members with valid emails for jasenet@", () => {
-    const { csv, count } = generateGoogleGroupsCSV(sampleMembers, "jasenet@tietokilta.fi");
+    const { csv, count } = generateGoogleGroupsCSV(sampleMembers, MAILING_LISTS.jasenet);
     const lines = csv.split("\r\n");
 
     expect(lines[0]).toBe('"Group Email [Required]","Member Email","Member Type","Member Role"');
@@ -47,7 +48,7 @@ describe("generateGoogleGroupsCSV", () => {
   });
 
   it("exports only members who opted in for aktiivit@", () => {
-    const { csv, count } = generateGoogleGroupsCSV(sampleMembers, "aktiivit@tietokilta.fi");
+    const { csv, count } = generateGoogleGroupsCSV(sampleMembers, MAILING_LISTS.aktiivit);
     const lines = csv.split("\r\n");
 
     expect(count).toBe(1);
@@ -55,29 +56,27 @@ describe("generateGoogleGroupsCSV", () => {
     expect(lines[1]).toBe('"aktiivit@tietokilta.fi","allowed@tietokilta.fi","User","Member"');
   });
 
-  it.each(["jasenet@tietokilta.fi", "aktiivit@tietokilta.fi"] as const)(
-    "reports zero rows for a header-only %s export",
-    (groupEmail) => {
-      const { csv, count } = generateGoogleGroupsCSV(
-        [
-          { email: null, isAllowedEmails: true },
-          { email: "", isAllowedEmails: true },
-        ],
-        groupEmail,
-      );
-      expect(count).toBe(0);
-      expect(Papa.parse(csv, { header: true, skipEmptyLines: true }).data).toEqual([]);
-    },
-  );
-
-  it("reports zero rows when nobody opted in", () => {
+  it.each(Object.entries(MAILING_LISTS))("reports zero rows for a header-only %s export", (_id, list) => {
     const { csv, count } = generateGoogleGroupsCSV(
-      [{ email: "member@example.com", isAllowedEmails: false }],
-      "aktiivit@tietokilta.fi",
+      [
+        { email: null, isAllowedEmails: true },
+        { email: "", isAllowedEmails: true },
+      ],
+      list,
     );
     expect(count).toBe(0);
     expect(Papa.parse(csv, { header: true, skipEmptyLines: true }).data).toEqual([]);
   });
+
+  it("reports zero rows when nobody opted in", () => {
+    const { csv, count } = generateGoogleGroupsCSV(
+      [{ email: "member@example.com", isAllowedEmails: false }],
+      MAILING_LISTS.aktiivit,
+    );
+    expect(count).toBe(0);
+    expect(Papa.parse(csv, { header: true, skipEmptyLines: true }).data).toEqual([]);
+  });
+
 });
 
 describe("generateMembersCSV", () => {
