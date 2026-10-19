@@ -15,6 +15,7 @@ const fi = {
     profile: "Profiili",
     passkeys: "Avaimet",
     emails: "Sähköpostit",
+    applications: "Liitetyt sovellukset",
     admin: {
       title: "Hallinta",
       members: "Jäsenrekisteri",
@@ -71,6 +72,15 @@ const fi = {
     emails: {
       title: "Sähköpostit",
       description: "Hallinnoi toissijaisia sähköposteja",
+    },
+    applications: {
+      title: "Liitetyt sovellukset",
+      description: "Hallinnoi sovelluksia, joille olet myöntänyt pääsyn tilitietoihisi.",
+      noGrants: "Et ole myöntänyt pääsyä millekään ulkoiselle sovellukselle.",
+      revoke: "Murra pääsy",
+      revokedSuccess: "Pääsy murrettu onnistuneesti",
+      grantedOn: "Myönnetty",
+      scopes: "Myönnetyt oikeudet",
     },
   },
 

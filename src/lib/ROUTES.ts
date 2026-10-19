@@ -45,6 +45,9 @@ const PAGES = {
   "/[locale=locale]/new": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
     return `/${params['locale']}/new`
   },
+  "/[locale=locale]/settings/applications": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/settings/applications`
+  },
   "/[locale=locale]/settings/emails": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
     return `/${params['locale']}/settings/emails`
   },
