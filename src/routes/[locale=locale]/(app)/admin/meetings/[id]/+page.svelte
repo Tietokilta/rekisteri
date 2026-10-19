@@ -37,9 +37,33 @@
   import { meetingAttendanceSummary } from "$lib/shared/meeting-attendance";
   import { onMount } from "svelte";
   import { Registry } from "./registry.svelte";
+  import { isTransientError, ScanQueue, type QueuedScan } from "./scan-queue.svelte";
   import { remoteErrorMessage, type AttendeeRow, type CorrectionTarget, type RecordTarget } from "./types";
 
   let { data }: { data: PageData } = $props();
+
+  // A primitive, so refreshed page data doesn't reconnect the stream below
+  const meetingId = $derived(data.meeting.id);
+  const operatorId = $derived(data.user.id);
+  const canWrite = $derived(data.canWrite);
+
+  // Other operators' changes, such as scans from a phone, arrive as signals to reload
+  $effect(() => {
+    const source = new EventSource(`${untrack(() => page.url.pathname.replace(/\/[^/]+$/, ""))}/${meetingId}/live`);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const refresh = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => void invalidateAll().catch(() => {}), 300);
+    };
+    source.addEventListener("changed", refresh);
+    // Catch up on changes between the page load and initial subscription, and
+    // anything missed while disconnected.
+    source.addEventListener("open", refresh);
+    return () => {
+      clearTimeout(timer);
+      source.close();
+    };
+  });
 
   // Write access only: the endpoint is for operators, and read-only admins can't act on attendees
   const registry = new Registry(`${page.url.pathname.replace(/\/[^/]+$/, "")}/users`);
@@ -203,17 +227,68 @@
     );
   }
 
-  async function scan(token: string, direction: "in" | "out") {
-    const result = await scanAttendance({ meetingId: data.meeting.id, eventId: crypto.randomUUID(), token, direction });
+  /** Sends one scan; queued retries reuse its event ID, so it is recorded once however often it is sent. */
+  async function sendScan(scan: QueuedScan, expectedOperatorId: string) {
+    const result = await scanAttendance({ ...scan, operatorId: expectedOperatorId });
     toast.success(
-      direction === "in"
+      scan.direction === "in"
         ? $LL.admin.meetings.checkedIn({ name: result.displayName })
         : $LL.admin.meetings.checkedOut({ name: result.displayName }),
-      { action: { label: $LL.admin.meetings.undo(), onClick: () => correct(result.eventId, "void", "Undo") } },
+      // A scan queued on another meeting's page can't be undone from this one
+      scan.meetingId === data.meeting.id
+        ? { action: { label: $LL.admin.meetings.undo(), onClick: () => correct(result.eventId, "void", "Undo") } }
+        : undefined,
     );
     // The scan is already recorded; a failed refresh only delays the list, so don't report it as a failed scan
     void invalidateAll().catch(() => {});
     return result;
+  }
+
+  let scanQueue = $state<ScanQueue<Awaited<ReturnType<typeof scanAttendance>>> | null>(null);
+  $effect(() => {
+    if (!canWrite) return;
+    const ownerId = operatorId;
+    const queue = new ScanQueue(
+      (scan) => {
+        if (!canWrite || operatorId !== ownerId) return Promise.reject({ status: 403 });
+        return sendScan(scan, ownerId);
+      },
+      (_scan, cause) =>
+        toast.error(
+          $LL.admin.meetings.queuedScanFailed({ reason: remoteErrorMessage(cause, $LL.error.updateFailed()) }),
+        ),
+      ownerId,
+    );
+    scanQueue = queue;
+    untrack(() => queue.restore());
+    return () => {
+      queue.dispose();
+      scanQueue = null;
+    };
+  });
+
+  /** Resolves to null when the scan was queued to be sent once the connection is back. */
+  async function scan(token: string, direction: "in" | "out") {
+    const queue = scanQueue;
+    if (!queue) throw new Error("Scan queue unavailable");
+    const item = { meetingId: data.meeting.id, eventId: crypto.randomUUID(), token, direction };
+    // Persist and check the queue under the same cross-tab lock: an exit must
+    // not overtake an entry that another tab is still recording.
+    const wasEmpty = await queue.add(item, false);
+    if (!wasEmpty) {
+      void queue.flush();
+      return null;
+    }
+    try {
+      return await queue.send(item);
+    } catch (cause) {
+      const status = cause && typeof cause === "object" && "status" in cause ? cause.status : undefined;
+      if (!isTransientError(cause) && status !== 401 && status !== 403 && status !== 404) {
+        throw cause;
+      }
+      queue.retry();
+      return null;
+    }
   }
 
   // Populate the times form each time its sheet opens.
@@ -255,7 +330,11 @@
   }
 </script>
 
-<svelte:window onkeydown={handleUndoKey} onfocus={() => data.canWrite && registry.load()} />
+<svelte:window
+  onkeydown={handleUndoKey}
+  onfocus={() => data.canWrite && registry.load()}
+  ononline={() => void scanQueue?.flush()}
+/>
 
 <main class="container mx-auto max-w-5xl space-y-6 px-4 pb-8" data-testid="admin-meeting-page">
   <header class="sticky top-0 z-10 -mx-4 space-y-2 border-b bg-background/95 px-4 py-3 backdrop-blur">
@@ -399,7 +478,7 @@
 
   {#if canAct}
     <section class="space-y-2">
-      <MeetingQrScanner onScan={scan} {typeName} />
+      <MeetingQrScanner onScan={scan} queued={scanQueue?.pending.length ?? 0} {typeName} />
       <CheckInSearch
         attendees={rows}
         {registry}

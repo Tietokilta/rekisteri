@@ -280,6 +280,250 @@ test.describe("Meeting attendance", () => {
     ]);
   });
 
+  test("shows a scan from another device without reloading", async ({ adminPage, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const user = await createUser(db);
+    userIds.push(user.id);
+    const token = crypto.randomUUID();
+    await db.update(table.user).set({ qrToken: token }).where(eq(table.user.id, user.id));
+    await adminPage.goto(meetingUrl(id));
+    await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 0 vierasta");
+
+    const phone = await adminPage.context().newPage();
+    await installQrCamera(phone, token);
+    await phone.goto(meetingUrl(id));
+    await phone.getByRole("button", { name: "Skannaa QR-koodi" }).click();
+    await expect(phone.getByRole("dialog", { name: "Skannaa QR-koodi" })).toContainText(`Sisään: ${user.displayName}`);
+
+    await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla");
+    await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 1 vierasta");
+    await phone.close();
+  });
+
+  test("queues a scan while the server is unreachable and sends it once, even after a reload", async ({
+    adminPage,
+    adminUser,
+    db,
+  }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const user = await createUser(db);
+    userIds.push(user.id);
+    const token = crypto.randomUUID();
+    await db.update(table.user).set({ qrToken: token }).where(eq(table.user.id, user.id));
+    await installQrCamera(adminPage, token);
+    await adminPage.goto(meetingUrl(id));
+
+    await adminPage.route("**/_app/remote/**", (request) => request.abort("internetdisconnected"));
+    await adminPage.getByRole("button", { name: "Skannaa QR-koodi" }).click();
+    const scanner = adminPage.getByRole("dialog", { name: "Skannaa QR-koodi" });
+    await expect(scanner).toContainText("Skannaus on jonossa");
+    await expect(scanner.getByTestId("scan-queued")).toHaveText("1 jonossa");
+
+    await adminPage.reload();
+    const stored = await adminPage.evaluate(
+      (key) => JSON.parse(localStorage.getItem(key) ?? "[]"),
+      `meeting-scan-queue:${adminUser.id}`,
+    );
+    expect(stored).toEqual([expect.objectContaining({ meetingId: id, direction: "in", token })]);
+
+    await adminPage.unroute("**/_app/remote/**");
+    await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla", { timeout: 10_000 });
+    await expect
+      .poll(() => adminPage.evaluate((key) => localStorage.getItem(key), `meeting-scan-queue:${adminUser.id}`))
+      .toBeNull();
+    const events = await db
+      .select()
+      .from(table.meetingAttendanceEvent)
+      .where(eq(table.meetingAttendanceEvent.meetingId, id));
+    expect(events.map((event) => [event.direction, event.source])).toEqual([["in", "scan"]]);
+  });
+
+  test("retries a stalled queued scan and records it once", async ({ adminPage, adminUser, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const user = await createUser(db);
+    userIds.push(user.id);
+    const token = crypto.randomUUID();
+    await db.update(table.user).set({ qrToken: token }).where(eq(table.user.id, user.id));
+    await adminPage.goto(meetingUrl(id));
+    await adminPage.evaluate(({ key, scan }) => localStorage.setItem(key, JSON.stringify([scan])), {
+      key: `meeting-scan-queue:${adminUser.id}`,
+      scan: { meetingId: id, eventId: crypto.randomUUID(), token, direction: "in" },
+    });
+
+    let attempts = 0;
+    let releaseFirstAttempt = () => {};
+    const stalled = new Promise<void>((resolve) => (releaseFirstAttempt = resolve));
+    await adminPage.route("**/_app/remote/**", async (request) => {
+      attempts++;
+      if (attempts === 1) {
+        await stalled;
+        await request.abort("timedout");
+      } else {
+        await request.continue();
+      }
+    });
+    try {
+      await adminPage.reload();
+      await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla", { timeout: 20_000 });
+      await expect
+        .poll(() => adminPage.evaluate((key) => localStorage.getItem(key), `meeting-scan-queue:${adminUser.id}`))
+        .toBeNull();
+      expect(attempts).toBeGreaterThanOrEqual(2);
+      const events = await db
+        .select()
+        .from(table.meetingAttendanceEvent)
+        .where(eq(table.meetingAttendanceEvent.meetingId, id));
+      expect(events.map((event) => [event.direction, event.source])).toEqual([["in", "scan"]]);
+    } finally {
+      releaseFirstAttempt();
+      await adminPage.unrouteAll({ behavior: "wait" });
+    }
+  });
+
+  test("preserves offline scans queued by two tabs", async ({ adminPage, adminUser, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const users = await Promise.all([createUser(db), createUser(db)]);
+    userIds.push(...users.map((user) => user.id));
+    const tokens = users.map(() => crypto.randomUUID());
+    for (const [index, user] of users.entries()) {
+      await db.update(table.user).set({ qrToken: tokens[index] }).where(eq(table.user.id, user.id));
+    }
+    const other = await adminPage.context().newPage();
+    try {
+      const pages = [adminPage, other];
+      await Promise.all(
+        pages.map(async (page, index) => {
+          const token = tokens[index];
+          if (!token) throw new Error("Missing test QR token");
+          await installQrCamera(page, token);
+          await page.goto(meetingUrl(id));
+          await page.route("**/_app/remote/**", (request) => request.abort("internetdisconnected"));
+        }),
+      );
+      await Promise.all(pages.map((page) => page.getByRole("button", { name: "Skannaa QR-koodi" }).click()));
+      for (const page of pages) {
+        await expect(page.getByRole("dialog", { name: "Skannaa QR-koodi" })).toContainText("Skannaus on jonossa");
+      }
+      const key = `meeting-scan-queue:${adminUser.id}`;
+      await expect
+        .poll(() => adminPage.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "[]").length, key))
+        .toBe(2);
+      await adminPage.reload();
+      await Promise.all(pages.map((page) => page.unroute("**/_app/remote/**")));
+      for (const user of users) {
+        await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla", { timeout: 10_000 });
+      }
+      await expect.poll(() => adminPage.evaluate((key) => localStorage.getItem(key), key)).toBeNull();
+      const events = await db
+        .select()
+        .from(table.meetingAttendanceEvent)
+        .where(eq(table.meetingAttendanceEvent.meetingId, id));
+      expect(events).toHaveLength(2);
+    } finally {
+      await other.close();
+    }
+  });
+
+  test("keeps queued scans in memory when storage writes fail", async ({ adminPage, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const user = await createUser(db);
+    userIds.push(user.id);
+    const token = crypto.randomUUID();
+    await db.update(table.user).set({ qrToken: token }).where(eq(table.user.id, user.id));
+    await installQrCamera(adminPage, token);
+    await adminPage.goto(meetingUrl(id));
+    await adminPage.evaluate(() => {
+      const setItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) {
+        if (key.startsWith("meeting-scan-queue:")) throw new DOMException("Storage full", "QuotaExceededError");
+        setItem.call(this, key, value);
+      };
+    });
+    await adminPage.route("**/_app/remote/**", (request) => request.abort("internetdisconnected"));
+    await adminPage.getByRole("button", { name: "Skannaa QR-koodi" }).click();
+    const scanner = adminPage.getByRole("dialog", { name: "Skannaa QR-koodi" });
+    await expect(scanner).toContainText("Skannaus on jonossa");
+    await expect(scanner.getByTestId("scan-queued")).toHaveText("1 jonossa");
+    await adminPage.unroute("**/_app/remote/**");
+    await adminPage.evaluate(() => dispatchEvent(new Event("online")));
+    await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla");
+    await expect(scanner.getByTestId("scan-queued")).toHaveCount(0);
+  });
+
+  test("preserves a scan when reloading during its first stalled request", async ({ adminPage, adminUser, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const user = await createUser(db);
+    userIds.push(user.id);
+    const token = crypto.randomUUID();
+    await db.update(table.user).set({ qrToken: token }).where(eq(table.user.id, user.id));
+    await installQrCamera(adminPage, token);
+    await adminPage.goto(meetingUrl(id));
+    let release = () => {};
+    const waiting = new Promise<void>((resolve) => (release = resolve));
+    await adminPage.route("**/_app/remote/**", async (request) => {
+      await waiting;
+      await request.abort("timedout");
+    });
+    try {
+      await adminPage.getByRole("button", { name: "Skannaa QR-koodi" }).click();
+      const key = `meeting-scan-queue:${adminUser.id}`;
+      await expect
+        .poll(() => adminPage.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "[]").length, key))
+        .toBe(1);
+      await adminPage.reload();
+      release();
+      await adminPage.unrouteAll({ behavior: "wait" });
+      await adminPage.evaluate(() => dispatchEvent(new Event("online")));
+      await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla", { timeout: 10_000 });
+      const events = await db
+        .select()
+        .from(table.meetingAttendanceEvent)
+        .where(eq(table.meetingAttendanceEvent.meetingId, id));
+      expect(events).toHaveLength(1);
+    } finally {
+      release();
+      await adminPage.unrouteAll({ behavior: "wait" });
+    }
+  });
+
+  test("catches a scan between page load and the live subscription", async ({ adminPage, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const user = await createUser(db);
+    userIds.push(user.id);
+    const token = crypto.randomUUID();
+    await db.update(table.user).set({ qrToken: token }).where(eq(table.user.id, user.id));
+    let release = () => {};
+    const waiting = new Promise<void>((resolve) => (release = resolve));
+    await adminPage.route("**/live", async (request) => {
+      await waiting;
+      await request.continue();
+    });
+    const phone = await adminPage.context().newPage();
+    try {
+      await adminPage.goto(meetingUrl(id));
+      await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 0 vierasta");
+      await installQrCamera(phone, token);
+      await phone.goto(meetingUrl(id));
+      await phone.getByRole("button", { name: "Skannaa QR-koodi" }).click();
+      await expect(phone.getByRole("dialog", { name: "Skannaa QR-koodi" })).toContainText(
+        `Sisään: ${user.displayName}`,
+      );
+      release();
+      await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla");
+    } finally {
+      release();
+      await phone.close();
+      await adminPage.unrouteAll({ behavior: "wait" });
+    }
+  });
+
   test("rejects an unrecognized QR without recording an action", async ({ adminPage, db }) => {
     const id = await createMeeting(db, { started: true });
     meetingIds.push(id);
@@ -1009,5 +1253,36 @@ test.describe("Meeting attendance as read-only admin", () => {
     await expect(readonlyAdminPage.getByRole("button", { name: "Aloita tauko" })).toHaveCount(0);
     await expect(readonlyAdminPage.getByRole("button", { name: "Toiminnot" })).toHaveCount(0);
     await expect(readonlyAdminPage.getByRole("button", { name: "Korjaa merkintä" })).toHaveCount(0);
+  });
+
+  test("leaves pending scans untouched without write access", async ({
+    readonlyAdminPage,
+    readonlyAdminUser,
+    adminUser,
+    db,
+  }) => {
+    meetingId = await createMeeting(db, { started: true });
+    await readonlyAdminPage.goto(meetingUrl(meetingId));
+    const scan = { meetingId, eventId: crypto.randomUUID(), token: crypto.randomUUID(), direction: "in" };
+    const keys = [`meeting-scan-queue:${readonlyAdminUser.id}`, `meeting-scan-queue:${adminUser.id}`];
+    await readonlyAdminPage.evaluate(
+      ({ keys, scan }) => {
+        for (const key of keys) localStorage.setItem(key, JSON.stringify([scan]));
+      },
+      { keys, scan },
+    );
+    let requests = 0;
+    readonlyAdminPage.on("request", (request) => {
+      if (request.url().includes("/_app/remote/")) requests++;
+    });
+    await readonlyAdminPage.reload();
+    await expect(readonlyAdminPage.getByTestId("admin-meeting-page")).toBeVisible();
+    await readonlyAdminPage.evaluate(() => dispatchEvent(new Event("online")));
+    await expect
+      .poll(() =>
+        readonlyAdminPage.evaluate((keys) => keys.map((key) => JSON.parse(localStorage.getItem(key) ?? "[]")), keys),
+      )
+      .toEqual([[scan], [scan]]);
+    expect(requests).toBe(0);
   });
 });
