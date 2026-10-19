@@ -4,14 +4,19 @@
   import { Button } from "#lib/components/ui/button/index.js";
   import { LL, locale } from "#lib/i18n/i18n-svelte.js";
   import { route } from "#lib/ROUTES.js";
+  import { withNext } from "#lib/utils/next.js";
   import User from "@lucide/svelte/icons/user";
 
   interface Props {
     title?: string;
     description?: string;
+    // Where to continue after saving the profile
+    next?: string;
   }
 
-  let { title, description }: Props = $props();
+  let { title, description, next }: Props = $props();
+
+  const profileHref = $derived(route("/[locale=locale]/settings/profile", { locale: $locale }));
 </script>
 
 <Card.Root>
@@ -27,7 +32,7 @@
     </Empty.Root>
   </Card.Content>
   <Card.Footer>
-    <Button href={route("/[locale=locale]/settings/profile", { locale: $locale })} class="w-full">
+    <Button href={next ? withNext(profileHref, next) : profileHref} class="w-full">
       {$LL.dashboard.completeProfile()}
     </Button>
   </Card.Footer>

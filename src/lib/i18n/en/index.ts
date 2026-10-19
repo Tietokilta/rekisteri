@@ -11,6 +11,7 @@ const en = {
     title: "Navigation",
     dashboard: "Member card",
     membership: "Membership history",
+    buyMembership: "Buy membership",
     settings: "Settings",
     profile: "Profile",
     passkeys: "Passkeys",
@@ -44,6 +45,20 @@ const en = {
     completeProfile: "Go to profile",
     paymentSuccess: "Payment successful!",
     paymentSuccessDescription: "Your membership will be updated shortly.",
+    onboarding: {
+      title: "Apply for membership",
+      done: "Done",
+      detailsTitle: "Your details",
+      detailsDescription: "Name and home municipality",
+      detailsAction: "Fill in your details",
+      detailsEdit: "Edit",
+      membershipTitle: "Choose a membership type",
+      membershipDescription: "If you study at Aalto, also verify your aalto.fi email address.",
+      membershipAction: "Choose membership",
+      paymentTitle: "Pay the membership fee",
+      decisionTitle: "Board approval",
+      decisionDescription: "You'll get an email once your membership is approved.",
+    },
   },
 
   // Member Card

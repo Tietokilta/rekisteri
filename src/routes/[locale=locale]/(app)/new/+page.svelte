@@ -117,7 +117,7 @@
 
 <div class="container mx-auto max-w-2xl px-4 py-8">
   {#if !isProfileComplete}
-    <ProfileIncompleteCard />
+    <ProfileIncompleteCard next={route("/[locale=locale]/new", { locale: $locale })} />
   {:else}
     <Card.Root>
       <Card.Header>

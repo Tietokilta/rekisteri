@@ -1,5 +1,7 @@
 <script lang="ts">
   import { untrack } from "svelte";
+  import { goto } from "$app/navigation";
+  import { page } from "$app/state";
   import { Input } from "#lib/components/ui/input/index.js";
   import type { PageServerData } from "./$types";
   import { LL, locale } from "#lib/i18n/i18n-svelte.js";
@@ -13,8 +15,12 @@
   import { toast } from "svelte-sonner";
   import { route } from "#lib/ROUTES.js";
   import WrapTranslation from "#lib/components/wrap-translation.svelte";
+  import { resolveNext } from "#lib/utils/next.js";
 
   let { data }: { data: PageServerData } = $props();
+
+  // Set when the user came here from another task, e.g. buying a membership
+  const next = $derived(resolveNext(page.url.searchParams.get("next"), $locale));
 
   // Initialize form fields once when component mounts
   // Using untrack to prevent re-running when form fields change
@@ -58,6 +64,9 @@
         try {
           await submit();
           toast.success($LL.user.saveSuccess());
+          if (next) {
+            await goto(next);
+          }
         } catch {
           toast.error($LL.user.saveError());
         }

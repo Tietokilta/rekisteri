@@ -14,6 +14,7 @@ import {
 } from "#lib/server/auth/email.js";
 import { ExpiringTokenBucket } from "#lib/server/auth/rate-limit.js";
 import { route } from "#lib/ROUTES.js";
+import { resolveNext } from "#lib/utils/next.js";
 import { getUserSecondaryEmails, markSecondaryEmailVerified } from "#lib/server/auth/secondary-email.js";
 import { verifyCodeSchema } from "./schema";
 import { getLL } from "#lib/server/i18n.js";
@@ -80,13 +81,11 @@ export const verifyCode = form(verifyCodeSchema, async ({ code, next }, issue) =
 
   // If the user was redirected here from another page (e.g. purchase flow),
   // redirect back there instead of the default emails management page.
-  if (next) {
-    // Resolve against our origin to guarantee a same-origin path redirect
-    const safePath = new URL(next, event.url.origin).pathname;
-    redirect(302, safePath);
-  }
-
-  redirect(302, route("/[locale=locale]/settings/emails", { locale: event.locals.locale }));
+  redirect(
+    302,
+    resolveNext(next, event.locals.locale) ??
+      route("/[locale=locale]/settings/emails", { locale: event.locals.locale }),
+  );
 });
 
 export const resendEmail = form(async () => {

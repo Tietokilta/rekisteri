@@ -2,13 +2,14 @@ import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { emailCookieName } from "#lib/server/auth/email.js";
 import { route } from "#lib/ROUTES.js";
+import { signInRestartHref } from "#lib/server/auth/sign-in-next.js";
 import { takeReturnTo } from "#lib/server/oidc/return-to.js";
 
 export const load: PageServerLoad = async (event) => {
   // Require email cookie
   const email = event.cookies.get(emailCookieName);
   if (typeof email !== "string") {
-    return redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
+    return redirect(302, signInRestartHref(event));
   }
 
   // Already logged in? Redirect to returnTo or home

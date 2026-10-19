@@ -1,14 +1,14 @@
 import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { emailCookieName } from "#lib/server/auth/email.js";
+import { consumeSignInNext, setSignInNextCookie } from "#lib/server/auth/sign-in-next.js";
 import { route } from "#lib/ROUTES.js";
-import { takeReturnTo } from "#lib/server/oidc/return-to.js";
 
 export const load: PageServerLoad = async (event) => {
+  setSignInNextCookie(event, event.url.searchParams.get("next"));
+
   if (event.locals.user) {
-    const returnTo = takeReturnTo(event.cookies);
-    if (returnTo) redirect(302, returnTo);
-    redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
+    redirect(302, consumeSignInNext(event));
   }
 
   // If email cookie exists, redirect to OTP verification page
