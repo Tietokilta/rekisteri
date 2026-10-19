@@ -65,7 +65,11 @@ export const verifyAuthentication = command(
   v.any(), // AuthenticationResponseJSON from SimpleWebAuthn
   async (
     response,
-  ): Promise<{ success: boolean; user: { id: string; email: string; adminRole: "none" | "readonly" | "admin" } }> => {
+  ): Promise<{
+    success: boolean;
+    user: { id: string; email: string; adminRole: "none" | "readonly" | "admin" };
+    returnTo?: string;
+  }> => {
     const { cookies, request, getClientAddress, locals } = getRequestEvent();
     const LL = getLL(locals.locale);
 
@@ -122,6 +126,11 @@ export const verifyAuthentication = command(
       cookies.delete(emailCookieName, { path: "/" });
       cookies.delete(signInEmailCookieName, { path: "/" });
 
+      const returnTo = cookies.get("returnTo");
+      if (returnTo) {
+        cookies.delete("returnTo", { path: "/" });
+      }
+
       return {
         success: true,
         user: {
@@ -129,6 +138,7 @@ export const verifyAuthentication = command(
           email: user.email,
           adminRole: user.adminRole,
         },
+        returnTo: returnTo || undefined,
       };
     } catch (err) {
       console.error("Failed to verify passkey authentication:", err);
