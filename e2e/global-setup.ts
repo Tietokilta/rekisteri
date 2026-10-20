@@ -21,7 +21,12 @@ async function globalSetup(_config: FullConfig) {
   try {
     await setUp(cleanups);
   } catch (error) {
-    await teardown();
+    // Report the setup failure, not a cleanup failure it may have caused
+    try {
+      await teardown();
+    } catch (cleanupError) {
+      console.error("Cleanup after failed setup failed:", cleanupError);
+    }
     throw error;
   }
   return teardown;
