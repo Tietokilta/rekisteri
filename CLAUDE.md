@@ -71,7 +71,7 @@ Key testing resources:
 - **Test directory**: `e2e/`
 - **Test files**: `e2e/*.test.ts`
 - **Auth fixtures**: `e2e/fixtures/auth.ts` (provides `adminPage`, `authenticatedPage`, `adminUser`)
-- **Global setup**: `e2e/global-setup.ts` (creates test DB, seeds data, sets up auth)
+- **Global setup**: `e2e/global-setup.ts` (starts DB testcontainer and app server, seeds data, sets up auth)
 
 Quick reference:
 
