@@ -183,6 +183,9 @@ importers:
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
+      testcontainers:
+        specifier: ^12.1.0
+        version: 12.1.0(supports-color@10.2.2)
       tsx:
         specifier: ^4.23.13
         version: 4.23.13
