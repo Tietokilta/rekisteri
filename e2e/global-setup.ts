@@ -10,7 +10,24 @@ import { execSync, spawn } from "node:child_process";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { loadEnvFile } from "./utils";
 
+type Cleanup = () => unknown;
+
 async function globalSetup(_config: FullConfig) {
+  // Stops what setup started, in reverse order, whether setup succeeds or not
+  const cleanups: Cleanup[] = [];
+  const teardown = async () => {
+    for (const cleanup of cleanups.toReversed()) await cleanup();
+  };
+  try {
+    await setUp(cleanups);
+  } catch (error) {
+    await teardown();
+    throw error;
+  }
+  return teardown;
+}
+
+async function setUp(cleanups: Cleanup[]) {
   loadEnvFile();
 
   const port = process.env.E2E_PORT;
@@ -20,10 +37,14 @@ async function globalSetup(_config: FullConfig) {
   const baseURL = `http://localhost:${port}`;
 
   console.log("✓ Starting test database container and building app...");
-  const [container] = await Promise.all([
+  const [started, build] = await Promise.allSettled([
     new PostgreSqlContainer("postgres:17-alpine").start(),
     run("pnpm", ["build"]),
   ]);
+  if (started.status === "rejected") throw started.reason;
+  const container = started.value;
+  cleanups.push(() => container.stop());
+  if (build.status === "rejected") throw build.reason;
   const dbUrl = container.getConnectionUri();
   // Inherited by test workers (fixtures read it to access the database directly)
   process.env.DATABASE_URL_TEST = dbUrl;
@@ -161,9 +182,9 @@ async function globalSetup(_config: FullConfig) {
   console.log("✓ Created authenticated admin and readonly admin sessions for tests");
 
   console.log(`✓ Starting app server on ${baseURL}...`);
-  const server = spawn("pnpm", ["preview", "--port", port, "--strictPort"], {
-    // Own process group, so teardown can kill pnpm and vite together
-    detached: true,
+  // Vite directly rather than `pnpm preview`, so there's no wrapper process to
+  // outlive a kill. It stays in Playwright's process group, so Ctrl-C reaches it.
+  const server = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "preview", "--port", port, "--strictPort"], {
     stdio: ["ignore", "ignore", "inherit"],
     env: {
       ...process.env,
@@ -176,23 +197,10 @@ async function globalSetup(_config: FullConfig) {
       RP_NAME: "Tietokilta Rekisteri",
     },
   });
-  const stopServer = () => {
-    if (server.pid && server.exitCode === null) process.kill(-server.pid, "SIGTERM");
-  };
+  cleanups.push(() => server.kill());
 
-  try {
-    await waitForServer(baseURL, server);
-  } catch (error) {
-    stopServer();
-    await container.stop();
-    throw error;
-  }
+  await waitForServer(baseURL, server);
   console.log("✓ App server ready");
-
-  return async () => {
-    stopServer();
-    await container.stop();
-  };
 }
 
 function run(command: string, args: string[]) {
@@ -214,7 +222,7 @@ async function waitForServer(url: string, server: ReturnType<typeof spawn>, time
       throw new Error(`App server exited with code ${server.exitCode}`);
     }
     try {
-      await fetch(url, { redirect: "manual" });
+      await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(5000) });
       return;
     } catch {
       await new Promise((resolve) => setTimeout(resolve, 250));
