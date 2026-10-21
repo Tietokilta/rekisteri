@@ -19,6 +19,7 @@ import { generateUserId } from "$lib/server/auth/utils";
 import * as table from "$lib/server/db/schema";
 import { db } from "$lib/server/db";
 import { route } from "$lib/ROUTES";
+import { consumeSignInNext } from "$lib/server/auth/sign-in-next";
 import { auditLogin, auditLoginFailed } from "$lib/server/audit";
 import { verifyCodeSchema } from "./schema";
 import { getLL } from "$lib/server/i18n";
@@ -110,7 +111,7 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }, issue) => {
   deleteEmailOTP(otp.id);
   deleteEmailOTPCookie(event);
 
-  redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
+  redirect(302, consumeSignInNext(event));
 });
 
 export const resendEmail = form(async () => {

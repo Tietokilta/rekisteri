@@ -18,10 +18,10 @@ test.describe("Authentication", () => {
     // Verify we're not redirected to sign-in
     await expect(adminPage).not.toHaveURL(/sign-in|kirjaudu/);
 
-    // Check for the membership card or profile incomplete card on dashboard
-    // The dashboard now shows either MembershipCard (Jäsenyystila) or ProfileIncompleteCard (Täydennä profiilisi)
+    // The dashboard shows MembershipCard (Jäsenyystila), ProfileIncompleteCard (Täydennä profiilisi),
+    // or the onboarding checklist (Hae jäsenyyttä) for users who have never had a membership
     // Using getByText with regex per PLAYWRIGHT.md best practices
-    await expect(adminPage.getByText(/Jäsenyystila|Täydennä profiilisi/)).toBeVisible();
+    await expect(adminPage.getByText(/Jäsenyystila|Täydennä profiilisi|Hae jäsenyyttä/)).toBeVisible();
   });
 
   test("user info form refreshes displayed data after save", async ({ adminPage }) => {

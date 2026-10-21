@@ -6,6 +6,7 @@ import type { Component } from "svelte";
 // Icons from @lucide/svelte
 import IdCard from "@lucide/svelte/icons/id-card";
 import History from "@lucide/svelte/icons/history";
+import CreditCard from "@lucide/svelte/icons/credit-card";
 import User from "@lucide/svelte/icons/user";
 import Key from "@lucide/svelte/icons/key";
 import Mail from "@lucide/svelte/icons/mail";
@@ -34,6 +35,11 @@ export function getMainNavItems(locale: Locale, LL: TranslationFunctions): NavIt
       title: LL.nav.membership(),
       href: route("/[locale=locale]/membership", { locale }),
       icon: History,
+    },
+    {
+      title: LL.nav.buyMembership(),
+      href: route("/[locale=locale]/new", { locale }),
+      icon: CreditCard,
     },
   ];
 }

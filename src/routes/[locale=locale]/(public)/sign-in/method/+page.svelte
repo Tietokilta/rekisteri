@@ -7,7 +7,6 @@
   import { Separator } from "$lib/components/ui/separator/index.js";
   import { LL } from "$lib/i18n/i18n-svelte";
   import { startAuthentication } from "@simplewebauthn/browser";
-  import { route } from "$lib/ROUTES";
   import Fingerprint from "@lucide/svelte/icons/fingerprint";
   import Mail from "@lucide/svelte/icons/mail";
   import { getAuthenticationOptions, verifyAuthentication } from "$lib/api/authenticate.remote";
@@ -22,6 +21,9 @@
   // Type-safe persisted state for tracking last used sign-in method per email
   const lastUsedMethod = $derived(new PersistedState<"passkey" | "email" | null>(`signInMethod:${data.email}`, null));
 
+  // New users must use the email code, so it comes first unless a passkey was used last
+  const passkeyFirst = $derived(lastUsedMethod.current === "passkey");
+
   async function handlePasskeyAuth() {
     isAuthenticating = true;
     errorMessage = "";
@@ -34,13 +36,13 @@
       const credential = await startAuthentication({ optionsJSON: options });
 
       // Step 3: Verify authentication with server
-      await verifyAuthentication(credential);
+      const { redirectTo } = await verifyAuthentication(credential);
 
       // Save this method as last used
       lastUsedMethod.current = "passkey";
 
-      // Success! Redirect to home page
-      goto(route("/[locale=locale]", { locale: data.email.includes("tietokilta") ? "fi" : "en" }));
+      // Success! Continue to where the user was going (or the front page)
+      goto(redirectTo);
     } catch (error) {
       console.error("Passkey authentication error:", error);
 
@@ -81,31 +83,11 @@
       </Card.Description>
     </Card.Header>
     <Card.Content class="space-y-6">
-      <!-- Passkey authentication button -->
-      <div class="relative">
-        <Button
-          data-testid="sign-in-with-passkey-button"
-          onclick={handlePasskeyAuth}
-          disabled={isAuthenticating}
-          class="w-full"
-          size="lg"
-          type="button"
-        >
-          <Fingerprint class="mr-2 h-5 w-5" />
-          {#if isAuthenticating}
-            {$LL.auth.passkey.authenticating()}
-          {:else}
-            {$LL.auth.passkey.signInWithPasskey()}
-          {/if}
-        </Button>
-        {#if lastUsedMethod.current === "passkey"}
-          <span
-            class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground"
-          >
-            ({$LL.auth.passkey.lastUsed()})
-          </span>
-        {/if}
-      </div>
+      {#if passkeyFirst}
+        {@render passkeyButton()}
+      {:else}
+        {@render emailButton()}
+      {/if}
 
       {#if errorMessage}
         <Alert.Root variant="destructive">
@@ -123,29 +105,11 @@
         </div>
       </div>
 
-      <!-- Email OTP fallback -->
-      <form {...useEmail} class="w-full">
-        <div class="relative">
-          <Button
-            type="submit"
-            variant="outline"
-            class="w-full"
-            size="lg"
-            onclick={handleEmailClick}
-            disabled={!!useEmail.pending}
-          >
-            <Mail class="mr-2 h-5 w-5" />
-            {$LL.auth.passkey.sendEmailCode()}
-          </Button>
-          {#if lastUsedMethod.current === "email"}
-            <span
-              class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground"
-            >
-              ({$LL.auth.passkey.lastUsed()})
-            </span>
-          {/if}
-        </div>
-      </form>
+      {#if passkeyFirst}
+        {@render emailButton()}
+      {:else}
+        {@render passkeyButton()}
+      {/if}
       <p class="text-center text-sm text-muted-foreground">{$LL.auth.passkey.newUserHint()}</p>
 
       <!-- Change email -->
@@ -157,3 +121,56 @@
     </Card.Content>
   </Card.Root>
 </main>
+
+{#snippet passkeyButton()}
+  <div class="relative">
+    <Button
+      data-testid="sign-in-with-passkey-button"
+      onclick={handlePasskeyAuth}
+      disabled={isAuthenticating}
+      variant={passkeyFirst ? "default" : "outline"}
+      class="w-full"
+      size="lg"
+      type="button"
+    >
+      <Fingerprint class="mr-2 h-5 w-5" />
+      {#if isAuthenticating}
+        {$LL.auth.passkey.authenticating()}
+      {:else}
+        {$LL.auth.passkey.signInWithPasskey()}
+      {/if}
+    </Button>
+    {#if lastUsedMethod.current === "passkey"}
+      <span
+        class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground"
+      >
+        ({$LL.auth.passkey.lastUsed()})
+      </span>
+    {/if}
+  </div>
+{/snippet}
+
+{#snippet emailButton()}
+  <form {...useEmail} class="w-full">
+    <div class="relative">
+      <Button
+        type="submit"
+        variant={passkeyFirst ? "outline" : "default"}
+        class="w-full"
+        size="lg"
+        onclick={handleEmailClick}
+        disabled={!!useEmail.pending}
+      >
+        <Mail class="mr-2 h-5 w-5" />
+        {$LL.auth.passkey.sendEmailCode()}
+      </Button>
+      {#if lastUsedMethod.current === "email"}
+        <span
+          class="pointer-events-none absolute -top-2 -right-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground"
+        >
+          ({$LL.auth.passkey.lastUsed()})
+        </span>
+      {/if}
+    </div>
+  </form>
+{/snippet}
