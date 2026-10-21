@@ -1,4 +1,5 @@
 import * as v from "valibot";
+import { nameSchema } from "$lib/shared/name";
 
 export const memberIdSchema = v.object({
   memberId: v.pipe(v.string(), v.minLength(1)),
@@ -30,8 +31,8 @@ const adminCreateStatusSchema = v.picklist(["awaiting_approval", "active"]);
 const createPersonMemberSchema = v.object({
   type: v.literal("person"),
   email: v.pipe(v.string(), v.email()),
-  firstNames: v.optional(v.string()),
-  lastName: v.optional(v.string()),
+  firstNames: v.optional(nameSchema),
+  lastName: v.optional(nameSchema),
   homeMunicipality: v.optional(v.string()),
   membershipId: v.pipe(v.string(), v.minLength(1)),
   status: adminCreateStatusSchema,

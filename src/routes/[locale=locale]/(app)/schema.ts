@@ -1,9 +1,10 @@
 import * as v from "valibot";
+import { nameSchema } from "$lib/shared/name";
 import { PREFERRED_LANGUAGE_VALUES } from "$lib/shared/enums";
 
 export const userInfoSchema = v.object({
-  firstNames: v.pipe(v.string(), v.minLength(1)),
-  lastName: v.pipe(v.string(), v.minLength(1)),
+  firstNames: v.pipe(nameSchema, v.minLength(1)),
+  lastName: v.pipe(nameSchema, v.minLength(1)),
   homeMunicipality: v.pipe(v.string(), v.minLength(1)),
   preferredLanguage: v.picklist(PREFERRED_LANGUAGE_VALUES),
   // For checkbox inputs in remote forms, use optional boolean with default
