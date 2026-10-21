@@ -190,9 +190,17 @@ test.describe("Meeting attendance", () => {
     await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 1 vierasta");
     const [meeting] = await db.select().from(table.meeting).where(eq(table.meeting.id, id));
     if (!meeting?.startsAt) throw new Error("Meeting did not start");
-    const response = await adminPage.request.get(`${meetingUrl(id)}/export?kind=attendees`);
+    const response = await adminPage.request.get(`${meetingUrl(id)}/export`);
     expect(response.ok()).toBe(true);
-    expect(await response.text()).toContain(meeting.startsAt.toISOString());
+    const startedAt = new Intl.DateTimeFormat("sv-SE", {
+      timeZone: "Europe/Helsinki",
+      dateStyle: "short",
+      timeStyle: "medium",
+    }).format(meeting.startsAt);
+    const csv = await response.text();
+    expect(csv).toContain(`"${startedAt}",,"kokous alkoi"`);
+    expect(csv).toContain(`"${user.displayName}","saapui"`);
+    expect(csv).toContain('"Paikalla: 0 jäsentä, 1 vierasta"');
   });
 
   test("checks people in long before the scheduled start", async ({ adminPage, db }) => {
@@ -695,9 +703,9 @@ test.describe("Meeting attendance", () => {
     await adminPage.goto(meetingUrl(id));
     await expect(attendeeRow(adminPage, user.displayName)).toContainText("Ei voimassa olevaa jäsenyyttä");
     await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 1 vierasta");
-    const response = await adminPage.request.get(`${meetingUrl(id)}/export?kind=attendees`);
+    const response = await adminPage.request.get(`${meetingUrl(id)}/export`);
     expect(response.ok()).toBe(true);
-    expect(await response.text()).toContain("Guest / no active membership");
+    expect(await response.text()).toContain(`"${user.displayName}","saapui","Ei voimassa olevaa jäsenyyttä"`);
   });
 
   test("keeps the actual start before recesses while allowing earlier check-ins", async ({ adminPage, db }) => {
