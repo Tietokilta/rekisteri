@@ -6,8 +6,8 @@ import { route } from "../src/lib/ROUTES";
 // Use existing membership type from seed data
 const membershipTypeId = "ulkojasen"; // External member - no student verification required
 
-// Real Stripe test price ID from seed data - this is required because the page
-// fetches price metadata from Stripe API, and fake price IDs will fail
+// Price ID from seed data. The page fetches price metadata from Stripe, which
+// e2e tests serve from stripe-mock (see global-setup.ts)
 const realStripePriceId = "price_1Sqs7y2a3B4f6jfhHjnWzk9n";
 
 test.describe("Membership Overlap Blocking", () => {

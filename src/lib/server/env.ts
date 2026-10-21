@@ -57,6 +57,8 @@ const privateEnvSchema = v.pipe(
       v.minLength(1, "STRIPE_WEBHOOK_SECRET is required"),
       v.startsWith("whsec_", "STRIPE_WEBHOOK_SECRET must start with 'whsec_'"),
     ),
+    // Alternative Stripe API endpoint, e.g. stripe-mock in e2e tests (unset in production)
+    STRIPE_API_URL: v.optional(v.pipe(v.string(), v.url())),
 
     // SMTP configuration (optional in dev, required in production)
     SMTP_HOST: v.optional(
@@ -132,6 +134,7 @@ const parsed = v.safeParse(privateEnvSchema, {
   DATABASE_URL: privateEnv.DATABASE_URL,
   STRIPE_API_KEY: privateEnv.STRIPE_API_KEY,
   STRIPE_WEBHOOK_SECRET: privateEnv.STRIPE_WEBHOOK_SECRET,
+  STRIPE_API_URL: privateEnv.STRIPE_API_URL || undefined,
   SMTP_HOST: privateEnv.SMTP_HOST,
   SMTP_PORT: privateEnv.SMTP_PORT,
   SMTP_USER: privateEnv.SMTP_USER,

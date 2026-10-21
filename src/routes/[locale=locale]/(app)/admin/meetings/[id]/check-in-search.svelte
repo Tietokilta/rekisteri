@@ -4,6 +4,7 @@
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { matchesSearchTokens } from "$lib/utils";
+  import { singleLine } from "$lib/shared/name";
   import type { AttendeeRow, RecordTarget } from "./types";
   import type { Registry, RegistryUser } from "./registry.svelte";
 
@@ -37,7 +38,7 @@
   });
 
   const userById = $derived(new Map(registry.users.map((user) => [user.id, user])));
-  const trimmed = $derived(query.trim());
+  const trimmed = $derived(singleLine(query));
   const rows = $derived.by((): Row[] => {
     if (trimmed.length < 2) return [];
     const local = attendees
@@ -61,7 +62,7 @@
     // No guest row while the registry loads (so a member isn't added as a guest), or for an email address
     // Also none when the name is already a guest here, so the same person isn't split across two rows
     const existingGuest = attendees.some(
-      (person) => person.isGuest && person.displayName.toLowerCase() === trimmed.toLowerCase(),
+      (person) => person.isGuest && singleLine(person.displayName).toLowerCase() === trimmed.toLowerCase(),
     );
     const guest: Row[] =
       registry.status !== "loading" && !trimmed.includes("@") && !existingGuest

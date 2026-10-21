@@ -419,17 +419,9 @@
               <DropdownMenu.Label class="text-xs font-semibold text-muted-foreground">
                 {$LL.admin.meetings.export()}
               </DropdownMenu.Label>
-              {#each ["attendees", "events", "corrections", "recesses"] as kind (kind)}
-                <DropdownMenu.Item onclick={() => location.assign(`${page.url.pathname}/export?kind=${kind}`)}>
-                  {kind === "attendees"
-                    ? $LL.admin.meetings.downloadAttendees()
-                    : kind === "events"
-                      ? $LL.admin.meetings.downloadEvents()
-                      : kind === "corrections"
-                        ? $LL.admin.meetings.downloadCorrections()
-                        : $LL.admin.meetings.downloadRecesses()}
-                </DropdownMenu.Item>
-              {/each}
+              <DropdownMenu.Item onclick={() => location.assign(`${page.url.pathname}/export`)}>
+                {$LL.admin.meetings.downloadEvents()}
+              </DropdownMenu.Item>
               {#if status === "running"}
                 <DropdownMenu.Separator />
                 <DropdownMenu.Item variant="destructive" onclick={() => (closeDialogOpen = true)}>

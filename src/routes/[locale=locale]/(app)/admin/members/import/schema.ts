@@ -1,8 +1,9 @@
 import * as v from "valibot";
+import { nameSchema } from "$lib/shared/name";
 
 export const csvRowSchema = v.object({
-  firstNames: v.pipe(v.string(), v.minLength(1)),
-  lastName: v.pipe(v.string(), v.minLength(1)),
+  firstNames: v.pipe(nameSchema, v.minLength(1)),
+  lastName: v.pipe(nameSchema, v.minLength(1)),
   homeMunicipality: v.pipe(v.string(), v.minLength(1)),
   email: v.pipe(v.string(), v.email()),
   membershipTypeId: v.pipe(v.string(), v.minLength(1)),

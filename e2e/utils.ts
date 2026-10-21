@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { createServer, type AddressInfo } from "node:net";
 
 export function loadEnvFile() {
   try {
@@ -20,4 +21,15 @@ export function loadEnvFile() {
   } catch (e) {
     console.warn("Could not load .env file:", e);
   }
+}
+
+export function getFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = createServer();
+    server.once("error", reject);
+    server.listen(0, () => {
+      const { port } = server.address() as AddressInfo;
+      server.close(() => resolve(port));
+    });
+  });
 }

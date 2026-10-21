@@ -88,20 +88,22 @@ e2e/
 Configuration is defined in `playwright.config.ts`:
 
 - **Test directory**: `e2e/`
-- **Base URL**: `http://localhost:4173`
+- **Base URL**: `http://localhost:<random free port>` (chosen in `playwright.config.ts`)
 - **Locale**: Finnish (`fi-FI`) - **locked for test stability**
 - **Timezone**: `Europe/Helsinki`
-- **Database**: Isolated test database (`DATABASE_URL_TEST`)
+- **Database**: Fresh PostgreSQL testcontainer per run (`DATABASE_URL_TEST`, set by global setup)
+- **Stripe**: [stripe-mock](https://github.com/stripe/stripe-mock) testcontainer, so no Stripe key is needed. It returns fixture data for any ID (every price is a 20.00 USD "T-shirt")
 
 ### Global Setup
 
 The `global-setup.ts` file runs **once** before all tests:
 
-1. Creates/validates test database
-2. Pushes schema to test database
-3. Seeds with initial data (admin user)
-4. Creates authenticated admin session
-5. Saves session storage state to `e2e/.auth/admin.json`
+1. Starts fresh PostgreSQL and stripe-mock testcontainers (requires Docker) and builds the app in parallel
+2. Runs migrations and seeds the database
+3. Creates authenticated admin and readonly admin sessions, saved to `e2e/.auth/`
+4. Starts the app server (`pnpm preview`) on a random free port and waits for it
+
+It sets `DATABASE_URL_TEST` to the container's URL for the test workers and returns a teardown that stops the server and container. No local database or `.env` entry is needed, and several worktrees can run e2e tests at once.
 
 This allows tests to start authenticated without repeating login flows.
 

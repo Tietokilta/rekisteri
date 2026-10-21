@@ -4,6 +4,7 @@
   import { toast } from "svelte-sonner";
   import { LL } from "$lib/i18n/i18n-svelte";
   import { matchesSearchTokens } from "$lib/utils";
+  import { singleLine } from "$lib/shared/name";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
@@ -34,7 +35,7 @@
   let reason = $derived(open ? "" : "");
   const form = $derived(updateAttendee.for(attendee?.id ?? "none"));
 
-  const trimmed = $derived(query.trim());
+  const trimmed = $derived(singleLine(query));
   const matches = $derived(
     trimmed.length < 2
       ? []

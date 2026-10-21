@@ -190,9 +190,17 @@ test.describe("Meeting attendance", () => {
     await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 1 vierasta");
     const [meeting] = await db.select().from(table.meeting).where(eq(table.meeting.id, id));
     if (!meeting?.startsAt) throw new Error("Meeting did not start");
-    const response = await adminPage.request.get(`${meetingUrl(id)}/export?kind=attendees`);
+    const response = await adminPage.request.get(`${meetingUrl(id)}/export`);
     expect(response.ok()).toBe(true);
-    expect(await response.text()).toContain(meeting.startsAt.toISOString());
+    const startedAt = new Intl.DateTimeFormat("sv-SE", {
+      timeZone: "Europe/Helsinki",
+      dateStyle: "short",
+      timeStyle: "medium",
+    }).format(meeting.startsAt);
+    const csv = await response.text();
+    expect(csv).toContain(`"${startedAt}",,"kokous alkoi"`);
+    expect(csv).toContain(`"${user.displayName}","saapui"`);
+    expect(csv).toContain('"Paikalla: 0 jäsentä, 1 vierasta"');
   });
 
   test("checks people in long before the scheduled start", async ({ adminPage, db }) => {
@@ -315,7 +323,11 @@ test.describe("Meeting attendance", () => {
     await installQrCamera(adminPage, token);
     await adminPage.goto(meetingUrl(id));
 
-    await adminPage.route("**/_app/remote/**", (request) => request.abort("internetdisconnected"));
+    // Toggled rather than unrouted: unrouting while the reloaded page loads can lose its requests
+    let offline = true;
+    await adminPage.route("**/_app/remote/**", (request) =>
+      offline ? request.abort("internetdisconnected") : request.continue(),
+    );
     await adminPage.getByRole("button", { name: "Skannaa QR-koodi" }).click();
     const scanner = adminPage.getByRole("dialog", { name: "Skannaa QR-koodi" });
     await expect(scanner).toContainText("Skannaus on jonossa");
@@ -328,7 +340,7 @@ test.describe("Meeting attendance", () => {
     );
     expect(stored).toEqual([expect.objectContaining({ meetingId: id, direction: "in", token })]);
 
-    await adminPage.unroute("**/_app/remote/**");
+    offline = false;
     await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla", { timeout: 10_000 });
     await expect
       .poll(() => adminPage.evaluate((key) => localStorage.getItem(key), `meeting-scan-queue:${adminUser.id}`))
@@ -393,6 +405,8 @@ test.describe("Meeting attendance", () => {
       await db.update(table.user).set({ qrToken: tokens[index] }).where(eq(table.user.id, user.id));
     }
     const other = await adminPage.context().newPage();
+    // Toggled rather than unrouted: unrouting while the reloaded page loads can lose its requests
+    let offline = true;
     try {
       const pages = [adminPage, other];
       await Promise.all(
@@ -401,7 +415,9 @@ test.describe("Meeting attendance", () => {
           if (!token) throw new Error("Missing test QR token");
           await installQrCamera(page, token);
           await page.goto(meetingUrl(id));
-          await page.route("**/_app/remote/**", (request) => request.abort("internetdisconnected"));
+          await page.route("**/_app/remote/**", (request) =>
+            offline ? request.abort("internetdisconnected") : request.continue(),
+          );
         }),
       );
       await Promise.all(pages.map((page) => page.getByRole("button", { name: "Skannaa QR-koodi" }).click()));
@@ -413,7 +429,7 @@ test.describe("Meeting attendance", () => {
         .poll(() => adminPage.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "[]").length, key))
         .toBe(2);
       await adminPage.reload();
-      await Promise.all(pages.map((page) => page.unroute("**/_app/remote/**")));
+      offline = false;
       for (const user of users) {
         await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla", { timeout: 10_000 });
       }
@@ -466,9 +482,17 @@ test.describe("Meeting attendance", () => {
     await adminPage.goto(meetingUrl(id));
     let release = () => {};
     const waiting = new Promise<void>((resolve) => (release = resolve));
+    let attempts = 0;
+    // Stall only the first request. Unrouting instead would race with the
+    // reloaded page's first data request, which Playwright can then lose.
     await adminPage.route("**/_app/remote/**", async (request) => {
-      await waiting;
-      await request.abort("timedout");
+      attempts++;
+      if (attempts === 1) {
+        await waiting;
+        await request.abort("timedout");
+      } else {
+        await request.continue();
+      }
     });
     try {
       await adminPage.getByRole("button", { name: "Skannaa QR-koodi" }).click();
@@ -478,8 +502,6 @@ test.describe("Meeting attendance", () => {
         .toBe(1);
       await adminPage.reload();
       release();
-      await adminPage.unrouteAll({ behavior: "wait" });
-      await adminPage.evaluate(() => dispatchEvent(new Event("online")));
       await expect(attendeeRow(adminPage, user.displayName)).toContainText("Paikalla", { timeout: 10_000 });
       const events = await db
         .select()
@@ -681,9 +703,9 @@ test.describe("Meeting attendance", () => {
     await adminPage.goto(meetingUrl(id));
     await expect(attendeeRow(adminPage, user.displayName)).toContainText("Ei voimassa olevaa jäsenyyttä");
     await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 1 vierasta");
-    const response = await adminPage.request.get(`${meetingUrl(id)}/export?kind=attendees`);
+    const response = await adminPage.request.get(`${meetingUrl(id)}/export`);
     expect(response.ok()).toBe(true);
-    expect(await response.text()).toContain("Guest / no active membership");
+    expect(await response.text()).toContain(`"${user.displayName}","saapui","Ei voimassa olevaa jäsenyyttä"`);
   });
 
   test("keeps the actual start before recesses while allowing earlier check-ins", async ({ adminPage, db }) => {
@@ -743,6 +765,72 @@ test.describe("Meeting attendance", () => {
     expect(meeting?.startsAt?.getTime()).toBeGreaterThan(startedAt.getTime() - 5 * 60_000);
     expect(meeting?.startsAt?.getTime()).toBeLessThan(startedAt.getTime());
     await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 1 vierasta");
+  });
+
+  test("exports a long recess as an exit row per person present, on one line each", async ({ adminPage, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const attendeeId = crypto.randomUUID();
+    const name = `Rivi ${suffix()}`;
+    await db.insert(table.meetingAttendee).values({ id: attendeeId, meetingId: id, displayName: `${name}\n  Vaihto` });
+    await db.insert(table.meetingAttendanceEvent).values({
+      id: crypto.randomUUID(),
+      meetingId: id,
+      attendeeId,
+      direction: "in",
+      source: "manual",
+      effectiveAt: new Date(Date.now() - 10 * 60_000),
+    });
+    await db.insert(table.meetingRecess).values({
+      id: crypto.randomUUID(),
+      meetingId: id,
+      mode: "reset_all",
+      startedAt: new Date(Date.now() - 5 * 60_000),
+    });
+    // A missed exit added inside the recess must not count the person out twice
+    await db.insert(table.meetingAttendanceEvent).values({
+      id: crypto.randomUUID(),
+      meetingId: id,
+      attendeeId,
+      direction: "out",
+      source: "correction",
+      effectiveAt: new Date(Date.now() - 2 * 60_000),
+    });
+
+    const response = await adminPage.request.get(`${meetingUrl(id)}/export`);
+    expect(response.ok()).toBe(true);
+    const csv = await response.text();
+    const recessAt = csv.indexOf('"pitkä tauko alkoi"');
+    expect(csv).toContain(`"${name} Vaihto","saapui"`);
+    expect(recessAt).toBeGreaterThan(-1);
+    expect(csv.indexOf(`"${name} Vaihto","poistui"`)).toBeGreaterThan(recessAt);
+    expect(csv.split(`"${name} Vaihto","poistui"`)).toHaveLength(2);
+    expect(csv).toContain('"Paikalla: 0 jäsentä, 0 vierasta"');
+  });
+
+  test("exports a second entry with a new membership type as a type change, not an arrival", async ({
+    adminPage,
+    db,
+  }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const { attendeeId, displayName } = await createPresentGuest(db, id);
+    await db.insert(table.meetingAttendanceEvent).values({
+      id: crypto.randomUUID(),
+      meetingId: id,
+      attendeeId,
+      direction: "in",
+      source: "manual",
+      membershipTypeId: "varsinainen-jasen",
+      effectiveAt: new Date(Date.now() - 5 * 60_000),
+    });
+
+    const response = await adminPage.request.get(`${meetingUrl(id)}/export`);
+    expect(response.ok()).toBe(true);
+    const csv = await response.text();
+    expect(csv.split(`"${displayName}","saapui"`)).toHaveLength(2);
+    expect(csv).toContain(`"${displayName}","jäsenyys muuttui","Varsinainen jäsen"`);
+    expect(csv).toContain('"Paikalla: 1 jäsentä, 0 vierasta"');
   });
 
   test("adds a guest from the search box", async ({ adminPage, db }) => {
