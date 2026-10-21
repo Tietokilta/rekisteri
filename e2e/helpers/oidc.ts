@@ -100,7 +100,7 @@ export function validateIdTokenSecurityAndClaims(
   idTokenStr: string,
   expectedClientId: string,
   expectedUserId: string,
-  expectedIssuer = `${getBaseUrl()}/oidc`,
+  expectedIssuer = getBaseUrl(),
 ) {
   expect(typeof idTokenStr).toBe("string");
   const { header, payload, signature } = decodeJwt(idTokenStr);

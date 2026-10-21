@@ -66,6 +66,7 @@
               cp -r build $out/lib/server
               cp -r drizzle $out/lib/drizzle
               cp src/start-with-migrations.ts $out/lib/start.ts
+              cp src/oidc-mount.ts $out/lib/oidc-mount.ts
               pnpm prune --prod
               cp -r node_modules $out/lib
 

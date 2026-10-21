@@ -1,11 +1,11 @@
 import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad, Actions } from "./$types";
 import { db } from "$lib/server/db";
-import { oidcClient, oidcConsent, oidcEntity } from "$lib/server/db/schema";
+import { oidcClient, oidcConsent } from "$lib/server/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getOidcProvider } from "$lib/server/oidc/provider";
 import { getLL } from "$lib/server/i18n";
-import { finishInteraction } from "$lib/server/oidc/bridge";
+import { finishInteraction, getInteraction } from "$lib/server/oidc/interaction";
 import { invalidateSession, deleteSessionTokenCookie } from "$lib/server/auth/session";
 import { auditFromEvent, createAuditLog } from "$lib/server/audit";
 
@@ -19,9 +19,9 @@ export const load: PageServerLoad = async (event) => {
   const { params, locals } = event;
   const targetLocale = (params.locale as string) || locals.locale || "fi";
   const uid = params.uid;
-  const [payloadRow] = await db.select().from(oidcEntity).where(eq(oidcEntity.id, uid));
+  const interaction = await getInteraction(event.cookies, uid);
 
-  if (!payloadRow) {
+  if (!interaction) {
     const errorCode = await createAuditLog({
       userId: locals.user?.id,
       action: "oidc_entity.error",
@@ -36,14 +36,8 @@ export const load: PageServerLoad = async (event) => {
     redirect(302, `/${targetLocale}/oidc/error?code=${errorCode}`);
   }
 
-  const interaction = payloadRow.payload as {
-    prompt?: { name?: string };
-    params?: { client_id?: string; scope?: string; prompt?: string };
-    session?: { accountId?: string };
-  };
-
-  const clientId = interaction.params?.client_id || "";
-  const requestedPrompt = interaction.params?.prompt ? interaction.params.prompt.split(" ") : [];
+  const clientId = String(interaction.params.client_id ?? "");
+  const requestedPrompt = typeof interaction.params.prompt === "string" ? interaction.params.prompt.split(" ") : [];
   const isForceConsent = requestedPrompt.includes("consent");
 
   const currentUser = locals.user;
@@ -107,7 +101,7 @@ export const load: PageServerLoad = async (event) => {
       consent: { grantId },
     };
 
-    return finishInteraction(event, provider, result);
+    return finishInteraction(interaction, result);
   }
 
   return {
@@ -158,9 +152,9 @@ export const actions: Actions = {
 
     const uid = params.uid;
 
-    const [payloadRow] = await db.select().from(oidcEntity).where(eq(oidcEntity.id, uid));
+    const interaction = await getInteraction(event.cookies, uid);
 
-    if (!payloadRow) {
+    if (!interaction) {
       const errorCode = await createAuditLog({
         userId: locals.user.id,
         action: "oidc_entity.error",
@@ -175,10 +169,7 @@ export const actions: Actions = {
       redirect(302, `/${targetLocale}/oidc/error?code=${errorCode}`);
     }
 
-    const interaction = (payloadRow.payload || {}) as Record<string, unknown>;
-    const interactionParams = (interaction.params || {}) as Record<string, string>;
-    const clientId = interactionParams.client_id || "";
-    const currentRedirectUri = interactionParams.redirect_uri || "";
+    const clientId = String(interaction.params.client_id ?? "");
     const [client] = await db.select().from(oidcClient).where(eq(oidcClient.clientId, clientId));
 
     if (!client) {
@@ -197,26 +188,6 @@ export const actions: Actions = {
         userAgent: event.request.headers.get("user-agent") || undefined,
       });
       redirect(302, `/${targetLocale}/oidc/error?code=${errorCode}`);
-    }
-
-    const currentLocale = (params.locale as string) || locals.locale || "fi";
-    const otherLocale = currentLocale === "fi" ? "en" : "fi";
-
-    if (currentRedirectUri && Array.isArray(client.redirectUris)) {
-      const swappedUri = currentRedirectUri.replace(new RegExp(`/${otherLocale}(/|$)`), `/${currentLocale}$1`);
-      if (swappedUri !== currentRedirectUri && client.redirectUris.includes(swappedUri)) {
-        interactionParams.redirect_uri = swappedUri;
-        await db
-          .update(oidcEntity)
-          .set({
-            payload: {
-              ...interaction,
-              params: interactionParams,
-            },
-            updatedAt: new Date(),
-          })
-          .where(eq(oidcEntity.id, uid));
-      }
     }
 
     const provider = getOidcProvider();
@@ -261,19 +232,22 @@ export const actions: Actions = {
       },
     };
 
-    return finishInteraction(event, provider, result);
+    return finishInteraction(interaction, result);
   },
 
   deny: async (event) => {
-    const { locals } = event;
+    const { locals, params } = event;
     const LL = getLL(locals.locale);
-    const provider = getOidcProvider();
+    const interaction = await getInteraction(event.cookies, params.uid);
+    if (!interaction) {
+      redirect(302, `/${locals.locale}/oidc/error`);
+    }
 
     const result = {
       error: "access_denied",
       error_description: LL.oidc.consent.deny(),
     };
 
-    return finishInteraction(event, provider, result);
+    return finishInteraction(interaction, result);
   },
 };

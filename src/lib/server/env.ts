@@ -110,6 +110,9 @@ const privateEnvSchema = v.pipe(
     RP_ID: v.pipe(v.string(), v.minLength(1)),
     RP_ORIGIN: v.pipe(v.string(), v.url(), v.regex(/^https?:\/\/.+/, "RP_ORIGIN must use http or https protocol")),
 
+    // OIDC provider feature flag
+    OIDC_ENABLED: v.optional(booleanish, false),
+
     // OIDC signing key override (optional)
     OIDC_SIGNING_KEY_JWK: v.optional(v.string()),
   }),
@@ -159,6 +162,7 @@ const parsed = v.safeParse(privateEnvSchema, {
   RP_NAME: privateEnv.RP_NAME,
   RP_ID: privateEnv.RP_ID,
   RP_ORIGIN: privateEnv.RP_ORIGIN,
+  OIDC_ENABLED: privateEnv.OIDC_ENABLED,
   OIDC_SIGNING_KEY_JWK: privateEnv.OIDC_SIGNING_KEY_JWK,
 });
 

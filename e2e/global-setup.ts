@@ -213,6 +213,7 @@ async function setUp(cleanups: Cleanup[]) {
       RP_ORIGIN: baseURL,
       RP_ID: "localhost",
       RP_NAME: "Tietokilta Rekisteri",
+      OIDC_ENABLED: "true",
     },
   });
   cleanups.push(() => server.kill());

@@ -22,15 +22,13 @@ import { preferredLanguageToLocale } from "$lib/i18n/routing";
 import { OIDC_SCOPES } from "$lib/shared/oidc";
 import { verifyClientSecret } from "./secret";
 import { createAuditLog } from "$lib/server/audit";
-import type { RequestEvent } from "@sveltejs/kit";
 
 /**
  * Constructs the canonical OIDC issuer URL from environment configuration.
- * e.g., "https://rekisteri.tietokilta.fi/oidc"
+ * e.g., "https://rekisteri.tietokilta.fi" (no path, so discovery is at /.well-known/openid-configuration)
  */
 function getIssuerUrl(): string {
-  const baseUrl = env.PUBLIC_URL.replace(/\/$/, "");
-  return baseUrl.endsWith("/oidc") ? baseUrl : `${baseUrl}/oidc`;
+  return new URL(env.PUBLIC_URL).origin;
 }
 
 // Preserve signing key and Provider instance across Vite HMR reloads in development mode
@@ -121,38 +119,17 @@ const SIGNING_ALGS = [
   "EdDSA",
 ] as const;
 
+// Same client address source as SvelteKit's adapter-node (ADDRESS_HEADER, e.g. X-Client-IP on Azure)
 function getKoaIp(ctx: unknown): string | undefined {
   const koaCtx = ctx as
-    | {
-        get?: (header: string) => string | undefined;
-        ip?: string;
-        req?: { event?: RequestEvent; socket?: { remoteAddress?: string } };
-      }
-    | undefined;
+    { get?: (header: string) => string | undefined; req?: { socket?: { remoteAddress?: string } } } | undefined;
   if (!koaCtx) return undefined;
-  if (koaCtx.req?.event && typeof koaCtx.req.event.getClientAddress === "function") {
-    try {
-      return koaCtx.req.event.getClientAddress();
-    } catch {
-      // ignore fallback
-    }
-  }
-  if (typeof koaCtx.get === "function") {
-    const xClientIp = koaCtx.get("x-client-ip");
-    if (xClientIp) return xClientIp.split(",", 1)[0]?.trim();
-    const xForwardedFor = koaCtx.get("x-forwarded-for");
-    if (xForwardedFor) return xForwardedFor.split(",", 1)[0]?.trim();
-  }
-  if (typeof koaCtx.ip === "string" && koaCtx.ip) return koaCtx.ip;
-  return koaCtx.req?.socket?.remoteAddress;
+  const fromHeader = typeof koaCtx.get === "function" ? koaCtx.get(env.ADDRESS_HEADER) : undefined;
+  return fromHeader?.split(",", 1)[0]?.trim() || koaCtx.req?.socket?.remoteAddress;
 }
 
 function getKoaUserAgent(ctx: unknown): string | undefined {
-  const koaCtx = ctx as { get?: (header: string) => string | undefined; req?: { event?: RequestEvent } } | undefined;
-  if (koaCtx?.req?.event?.request?.headers) {
-    const ua = koaCtx.req.event.request.headers.get("user-agent");
-    if (ua) return ua;
-  }
+  const koaCtx = ctx as { get?: (header: string) => string | undefined } | undefined;
   if (koaCtx && typeof koaCtx.get === "function") {
     return koaCtx.get("user-agent") || undefined;
   }
@@ -321,12 +298,18 @@ const configuration: Configuration = {
   // Server allowed formal scope identifiers from shared/oidc
   scopes: OIDC_SCOPES.map((s) => s.key),
 
-  // Custom route paths relative to issuer URL
+  // Protocol endpoints. src/oidc-mount.ts forwards exactly these paths (plus discovery) to the provider.
   routes: {
-    authorization: "/auth",
-    token: "/token",
-    jwks: "/jwks",
-    end_session: "/logout",
+    authorization: "/oidc/auth",
+    token: "/oidc/token",
+    jwks: "/oidc/jwks",
+    end_session: "/oidc/logout",
+  },
+
+  cookies: {
+    // The interaction cookie defaults to the interaction URL's path, but the login page is
+    // served under a locale prefix (/fi/oidc/login/:uid), so widen it to the whole site.
+    short: { httpOnly: true, sameSite: "lax", path: "/" },
   },
 
   // Token & session TTLs (in seconds)
@@ -411,62 +394,6 @@ const configuration: Configuration = {
   },
 };
 
-function normalizeDiscoveryBodyInContext(ctx: {
-  path: string;
-  status: number;
-  body?: unknown;
-  protocol?: string;
-  host?: string;
-  oidc?: { route?: string };
-}) {
-  if (
-    (!ctx.path.includes(".well-known") && ctx.oidc?.route !== "discovery") ||
-    ctx.status !== 200 ||
-    !ctx.body ||
-    typeof ctx.body !== "object"
-  ) {
-    return;
-  }
-
-  const doc = ctx.body as Record<string, unknown>;
-  const rawIssuer = typeof doc.issuer === "string" ? doc.issuer : "";
-  let baseOrigin = "";
-  if (rawIssuer) {
-    try {
-      baseOrigin = new URL(rawIssuer).origin;
-    } catch {
-      // Ignore
-    }
-  }
-  if (!baseOrigin) {
-    baseOrigin = `${ctx.protocol || "http"}://${ctx.host || "localhost"}`;
-  }
-  doc.issuer = `${baseOrigin}/oidc`;
-  doc.response_modes_supported = ["query"];
-
-  for (const [key, value] of Object.entries(doc)) {
-    if (
-      typeof value === "string" &&
-      (key.endsWith("_endpoint") || key.endsWith("_uri") || key === "check_session_iframe")
-    ) {
-      try {
-        const u = new URL(value, baseOrigin);
-        let pathname = u.pathname;
-        if (!pathname.startsWith("/oidc/") && pathname !== "/oidc") {
-          pathname = `/oidc${pathname.startsWith("/") ? pathname : `/${pathname}`}`;
-        }
-        const orig = new URL(baseOrigin);
-        u.protocol = orig.protocol;
-        u.host = orig.host;
-        u.pathname = pathname;
-        doc[key] = u.href;
-      } catch {
-        // Ignore
-      }
-    }
-  }
-}
-
 /**
  * Returns the singleton `Provider` instance, initializing it if necessary.
  * Reuses existing instance across Vite HMR reloads.
@@ -481,22 +408,12 @@ export function getOidcProvider(): Provider {
   provider.proxy = true;
 
   provider.use(async (ctx, next) => {
-    const req = ctx.req as unknown as { event?: unknown };
-    if (req?.event) {
-      (ctx as Record<string, unknown>).event = req.event;
-    }
     await next();
-    if (
-      (ctx.path === "/token" || (ctx as { oidc?: { route?: string } }).oidc?.route === "token") &&
-      ctx.status === 200 &&
-      ctx.body &&
-      typeof ctx.body === "object"
-    ) {
-      const body = ctx.body as Record<string, unknown>;
-      delete body.access_token;
-      delete body.token_type;
-    }
-    normalizeDiscoveryBodyInContext(ctx);
+    const isTokenResponse = (ctx as { oidc?: { route?: string } }).oidc?.route === "token" && ctx.status === 200;
+    if (!isTokenResponse || !ctx.body || typeof ctx.body !== "object") return;
+    const body = ctx.body as Record<string, unknown>;
+    delete body.access_token;
+    delete body.token_type;
   });
 
   // Use scrypt client secret verification against stored hashes

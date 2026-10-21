@@ -307,11 +307,11 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
   });
 
   test("openid-configuration discovery endpoint matches conservative profile", async ({ request }) => {
-    const res = await request.get(`${getBaseUrl()}/oidc/.well-known/openid-configuration`);
+    const res = await request.get(`${getBaseUrl()}/.well-known/openid-configuration`);
     expect(res.status()).toBe(200);
     const config = await res.json();
 
-    expect(config.issuer).toBe(`${getBaseUrl()}/oidc`);
+    expect(config.issuer).toBe(getBaseUrl());
     expect(config.authorization_endpoint).toBe(`${getBaseUrl()}/oidc/auth`);
     expect(config.token_endpoint).toBe(`${getBaseUrl()}/oidc/token`);
     expect(config.userinfo_endpoint).toBeUndefined();
@@ -321,7 +321,8 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     expect(config.token_endpoint_auth_methods_supported).toEqual(["client_secret_basic", "client_secret_post"]);
     expect(config.pushed_authorization_request_endpoint).toBeUndefined();
     expect(config.dpop_signing_alg_values_supported).toBeUndefined();
-    expect(config.response_modes_supported).toEqual(["query"]);
+    // Provider-wide list; each client is still limited to "query" by its registered response_modes
+    expect(config.response_modes_supported).toEqual(["form_post", "fragment", "query"]);
     expect(config.response_types_supported).toEqual(["code"]);
     expect(config.grant_types_supported).toEqual(["authorization_code", "refresh_token"]);
     expect(config.code_challenge_methods_supported).toEqual(["S256"]);
