@@ -23,7 +23,7 @@
   let scannedUser = $state<VerifyResult | null>(null);
   let dialog: HTMLDialogElement | null = $state(null);
 
-  let scanStatus = $derived(scannedUser ? getOverallStatus(scannedUser.memberships) : "none");
+  let scanStatus = $derived(scannedUser ? getOverallStatus(scannedUser) : "none");
 
   // Status styling matching membership-card.svelte patterns
   const statusConfig = $derived.by(() => {
@@ -111,8 +111,8 @@
     qrScanner = null;
   });
 
-  function getOverallStatus(memberships: VerifyResult["memberships"]): "active" | "resigned" | "none" {
-    if (memberships.some((m) => m.status === "active")) return "active";
+  function getOverallStatus({ isMember, memberships }: VerifyResult): "active" | "resigned" | "none" {
+    if (isMember) return "active";
     if (memberships.some((m) => m.status === "resigned")) return "resigned";
     return "none";
   }
