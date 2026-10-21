@@ -7,7 +7,8 @@
   import * as Card from "$lib/components/ui/card/index.js";
   import { Button } from "$lib/components/ui/button";
   import ProfileIncompleteCard from "$lib/components/profile-incomplete-card.svelte";
-  import CircleCheck from "@lucide/svelte/icons/circle-check";
+  import StudentEmailVerification from "$lib/components/student-email-verification.svelte";
+  import PersonalEmailPrompt from "$lib/components/personal-email-prompt.svelte";
   import CircleAlert from "@lucide/svelte/icons/circle-alert";
   import ExternalLink from "@lucide/svelte/icons/external-link";
   import { payMembership } from "./data.remote";
@@ -53,12 +54,6 @@
   );
   let disableForm = $derived(
     (requireStudentVerification && (!isStudent || !data.hasValidAaltoEmail)) || filteredMemberships.length === 0,
-  );
-
-  // Build the URL to the emails page with a ?next= param so the email
-  // verification flow redirects back here after completion.
-  const emailsUrlWithNext = $derived(
-    `${route("/[locale=locale]/settings/emails", { locale: $locale })}?next=${encodeURIComponent(route("/[locale=locale]/new", { locale: $locale }))}`,
   );
 
   const rulesUrl = $derived(page.data.customizations?.organizationRulesUrl?.[$locale]);
@@ -116,6 +111,11 @@
 </script>
 
 <div class="container mx-auto max-w-2xl px-4 py-8">
+  {#if data.needsPersonalEmail}
+    <div class="mb-4">
+      <PersonalEmailPrompt userId={data.user.id} domain={data.user.email.split("@", 2)[1] ?? ""} />
+    </div>
+  {/if}
   {#if !isProfileComplete}
     <ProfileIncompleteCard next={route("/[locale=locale]/new", { locale: $locale })} />
   {:else}
@@ -126,7 +126,7 @@
       </Card.Header>
       <!-- Show membership options when profile is complete -->
       <Card.Content>
-        <form {...payMembership.preflight(payMembershipSchema)} class="flex flex-col gap-4">
+        <form id="pay-membership-form" {...payMembership.preflight(payMembershipSchema)} class="flex flex-col gap-4">
           {#if filteredMemberships.length === 0}
             <Alert.Root>
               <CircleAlert class="h-4 w-4" />
@@ -202,77 +202,53 @@
               />
             </div>
           {/if}
-
-          {#if requireStudentVerification}
-            <div class="space-y-3">
-              <div class="rounded-lg border p-4">
-                <label class="flex cursor-pointer items-start gap-3">
-                  <input type="checkbox" name="isStudent" bind:checked={isStudent} required class="mt-1 rounded" />
-                  <span class="text-sm">{$LL.membership.isStudent()}</span>
-                </label>
-              </div>
-
-              {#if data.hasValidAaltoEmail}
-                <Alert.Root
-                  variant="default"
-                  class="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950"
-                >
-                  <CircleCheck class="h-4 w-4 text-green-600 dark:text-green-400" />
-                  <Alert.Description class="text-green-800 dark:text-green-200">
-                    {$LL.secondaryEmail.verifiedDomainEmail()}
-                    {#if data.aaltoEmailExpiry}
-                      ({$LL.secondaryEmail.expiresOn({
-                        date: formatDate(new Date(data.aaltoEmailExpiry), $locale),
-                      })})
-                    {/if}
-                  </Alert.Description>
-                </Alert.Root>
-              {:else if data.hasExpiredAaltoEmail}
-                <Alert.Root variant="destructive">
-                  <CircleAlert class="h-4 w-4" />
-                  <Alert.Description>
-                    {$LL.secondaryEmail.expiredMessage()}
-                    <a href={emailsUrlWithNext} class="ml-1 font-medium underline">
-                      {$LL.secondaryEmail.reverifyNow()}
-                    </a>
-                  </Alert.Description>
-                </Alert.Root>
-              {:else}
-                <Alert.Root variant="destructive">
-                  <CircleAlert class="h-4 w-4" />
-                  <Alert.Description>
-                    {$LL.secondaryEmail.notVerifiedMessage()}
-                    <a href={emailsUrlWithNext} class="ml-1 font-medium underline">
-                      {$LL.secondaryEmail.addDomainEmail({ domain: "aalto.fi" })}
-                    </a>
-                  </Alert.Description>
-                </Alert.Root>
-              {/if}
-            </div>
-          {/if}
-
-          <Button
-            type="submit"
-            disabled={disableForm || !!payMembership.pending}
-            class={disableForm ? "cursor-not-allowed opacity-50" : ""}
-          >
-            {$LL.membership.buy()}
-            {#if payMembership.fields.membershipId.value()}
-              {@const selectedMembership = availableMemberships.find(
-                (x) => x.id === payMembership.fields.membershipId.value(),
-              )}
-              {#if selectedMembership?.stripePriceId}
-                <svelte:boundary>
-                  {@const priceMetadata = await getStripePriceMetadata(selectedMembership.stripePriceId)}
-                  ({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
-                  {#snippet failed()}
-                    <span>(-)</span>
-                  {/snippet}
-                </svelte:boundary>
-              {/if}
-            {/if}
-          </Button>
         </form>
+
+        {#if requireStudentVerification}
+          <div class="mt-4 space-y-3">
+            <div class="rounded-lg border p-4">
+              <label class="flex cursor-pointer items-start gap-3">
+                <input type="checkbox" name="isStudent" bind:checked={isStudent} class="mt-1 rounded" />
+                <span class="text-sm">{$LL.membership.isStudent()}</span>
+              </label>
+            </div>
+
+            {#if isStudent}
+              <StudentEmailVerification
+                domain="aalto.fi"
+                verifiedEmail={data.validAaltoEmail}
+                verifiedUntil={data.aaltoEmailExpiry ?? null}
+                expiredEmail={data.expiredAaltoEmail}
+                expiredAt={data.expiredAaltoEmail ? (data.aaltoEmailExpiry ?? null) : null}
+                next={route("/[locale=locale]/new", { locale: $locale })}
+              />
+            {/if}
+          </div>
+        {/if}
+
+        <!-- Outside the form so the verification above can use its own forms -->
+        <Button
+          type="submit"
+          form="pay-membership-form"
+          disabled={disableForm || !!payMembership.pending}
+          class={disableForm ? "mt-4 w-full cursor-not-allowed opacity-50" : "mt-4 w-full"}
+        >
+          {$LL.membership.buy()}
+          {#if payMembership.fields.membershipId.value()}
+            {@const selectedMembership = availableMemberships.find(
+              (x) => x.id === payMembership.fields.membershipId.value(),
+            )}
+            {#if selectedMembership?.stripePriceId}
+              <svelte:boundary>
+                {@const priceMetadata = await getStripePriceMetadata(selectedMembership.stripePriceId)}
+                ({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
+                {#snippet failed()}
+                  <span>(-)</span>
+                {/snippet}
+              </svelte:boundary>
+            {/if}
+          {/if}
+        </Button>
       </Card.Content>
     </Card.Root>
   {/if}

@@ -8,6 +8,7 @@
   import MembershipCard from "$lib/components/membership-card.svelte";
   import ProfileIncompleteCard from "$lib/components/profile-incomplete-card.svelte";
   import OnboardingChecklist from "$lib/components/onboarding-checklist.svelte";
+  import PersonalEmailPrompt from "$lib/components/personal-email-prompt.svelte";
   import { formatFullName } from "$lib/utils";
 
   let { data }: { data: PageServerData } = $props();
@@ -45,6 +46,9 @@
 
 <div class="container mx-auto max-w-2xl px-4 py-8">
   <div class="space-y-4">
+    {#if data.needsPersonalEmail}
+      <PersonalEmailPrompt userId={data.user.id} domain={data.user.email.split("@", 2)[1] ?? ""} />
+    {/if}
     {#if isNewApplicant}
       <OnboardingChecklist {isProfileComplete} />
     {:else if isProfileComplete}
