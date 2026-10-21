@@ -13,10 +13,12 @@ describe("membership status", () => {
   let testDb: TestDatabase;
   let db: TestDatabase["db"];
 
-  async function createUserWith(memberships: { typeId: string; period: typeof lastPeriod; status: MemberStatus }[]) {
+  async function createUserWith(
+    memberships: { typeId: string; period: typeof lastPeriod; status: MemberStatus; createdAt?: Date }[],
+  ) {
     const userId = crypto.randomUUID();
     await db.insert(table.user).values({ id: userId, email: `${userId}@example.com`, adminRole: "none" });
-    for (const { typeId, period, status } of memberships) {
+    for (const { typeId, period, status, createdAt = new Date("2025-07-01") } of memberships) {
       const membershipId = crypto.randomUUID();
       await db
         .insert(table.membershipType)
@@ -24,7 +26,7 @@ describe("membership status", () => {
       await db
         .insert(table.membership)
         .values({ id: membershipId, membershipTypeId: `${typeId}-${membershipId}`, ...period });
-      await db.insert(table.member).values({ id: crypto.randomUUID(), userId, membershipId, status });
+      await db.insert(table.member).values({ id: crypto.randomUUID(), userId, membershipId, status, createdAt });
     }
     return userId;
   }
@@ -66,6 +68,19 @@ describe("membership status", () => {
   it("counts a member whose first period has not started yet", async () => {
     const userId = await createUserWith([{ typeId: "regular", period: nextPeriod, status: "active" }]);
     expect(await typeOf(userId)).toBe("regular");
+  });
+
+  it("ignores memberships bought after the given time", async () => {
+    const userId = await createUserWith([
+      { typeId: "student", period: lastPeriod, status: "active" },
+      { typeId: "regular", period: thisPeriod, status: "active", createdAt: new Date("2026-11-01") },
+      { typeId: "senior", period: nextPeriod, status: "active", createdAt: new Date("2026-11-01") },
+    ]);
+    expect(await typeOf(userId)).toBe("student");
+    const later = await createUserWith([
+      { typeId: "regular", period: nextPeriod, status: "active", createdAt: new Date("2026-11-01") },
+    ]);
+    expect(await typeOf(later)).toBeNull();
   });
 
   it("looks up many users at once", async () => {
