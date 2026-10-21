@@ -1,4 +1,5 @@
 import * as v from "valibot";
+import { nameSchema } from "$lib/shared/name";
 
 const id = v.pipe(v.string(), v.minLength(1));
 /** Client-generated so a retried request records the action only once. */
@@ -35,7 +36,7 @@ export const recordAttendanceSchema = v.object({
   direction,
   attendeeId: v.optional(v.string()),
   userId: v.optional(v.string()),
-  guestName: v.optional(v.pipe(v.string(), v.trim(), v.maxLength(200))),
+  guestName: v.optional(v.pipe(nameSchema, v.maxLength(200))),
 });
 
 export const scanAttendanceSchema = v.object({
@@ -88,7 +89,7 @@ export const updateAttendeeSchema = v.pipe(
     meetingId: id,
     attendeeId: id,
     userId: v.optional(v.string(), ""),
-    guestName: v.optional(v.pipe(v.string(), v.trim(), v.maxLength(200)), ""),
+    guestName: v.optional(v.pipe(nameSchema, v.maxLength(200)), ""),
     reason,
   }),
   v.check((data) => Boolean(data.userId) !== Boolean(data.guestName), "Choose a member or enter a guest name"),

@@ -767,6 +767,37 @@ test.describe("Meeting attendance", () => {
     await expect(adminPage.getByTestId("present-count")).toHaveText("Paikalla: 0 jäsentä, 1 vierasta");
   });
 
+  test("exports a long recess as an exit row per person present, on one line each", async ({ adminPage, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const attendeeId = crypto.randomUUID();
+    const name = `Rivi ${suffix()}`;
+    await db.insert(table.meetingAttendee).values({ id: attendeeId, meetingId: id, displayName: `${name}\n  Vaihto` });
+    await db.insert(table.meetingAttendanceEvent).values({
+      id: crypto.randomUUID(),
+      meetingId: id,
+      attendeeId,
+      direction: "in",
+      source: "manual",
+      effectiveAt: new Date(Date.now() - 10 * 60_000),
+    });
+    await db.insert(table.meetingRecess).values({
+      id: crypto.randomUUID(),
+      meetingId: id,
+      mode: "reset_all",
+      startedAt: new Date(Date.now() - 5 * 60_000),
+    });
+
+    const response = await adminPage.request.get(`${meetingUrl(id)}/export`);
+    expect(response.ok()).toBe(true);
+    const csv = await response.text();
+    const recessAt = csv.indexOf('"pitkä tauko alkoi"');
+    expect(csv).toContain(`"${name} Vaihto","saapui"`);
+    expect(recessAt).toBeGreaterThan(-1);
+    expect(csv.indexOf(`"${name} Vaihto","poistui"`)).toBeGreaterThan(recessAt);
+    expect(csv).toContain('"Paikalla: 0 jäsentä, 0 vierasta"');
+  });
+
   test("adds a guest from the search box", async ({ adminPage, db }) => {
     const id = await createMeeting(db, { started: true });
     meetingIds.push(id);
