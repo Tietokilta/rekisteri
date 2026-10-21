@@ -8,6 +8,7 @@ import { encodeBase64url } from "@oslojs/encoding";
 import { eq } from "drizzle-orm";
 import { execSync, spawn } from "node:child_process";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
+import { GenericContainer, Wait } from "testcontainers";
 import { loadEnvFile } from "./utils";
 
 type Cleanup = () => unknown;
@@ -41,15 +42,24 @@ async function setUp(cleanups: Cleanup[]) {
   }
   const baseURL = `http://localhost:${port}`;
 
-  console.log("✓ Starting test database container and building app...");
-  const [started, build] = await Promise.allSettled([
+  console.log("✓ Starting test database and Stripe mock containers and building app...");
+  const [started, stripeStarted, build] = await Promise.allSettled([
     new PostgreSqlContainer("postgres:17-alpine").start(),
+    // Official Stripe API mock, so tests need no Stripe key. It returns fixture
+    // data for any ID (e.g. every price is a 20.00 USD "T-shirt").
+    new GenericContainer("stripe/stripe-mock:v0.206.0")
+      .withExposedPorts(12_111)
+      .withWaitStrategy(Wait.forListeningPorts())
+      .start(),
     run("pnpm", ["build"]),
   ]);
+  if (started.status === "fulfilled") cleanups.push(() => started.value.stop());
+  if (stripeStarted.status === "fulfilled") cleanups.push(() => stripeStarted.value.stop());
   if (started.status === "rejected") throw started.reason;
-  const container = started.value;
-  cleanups.push(() => container.stop());
+  if (stripeStarted.status === "rejected") throw stripeStarted.reason;
   if (build.status === "rejected") throw build.reason;
+  const container = started.value;
+  const stripeApiUrl = `http://${stripeStarted.value.getHost()}:${stripeStarted.value.getMappedPort(12_111)}`;
   const dbUrl = container.getConnectionUri();
   // Inherited by test workers (fixtures read it to access the database directly)
   process.env.DATABASE_URL_TEST = dbUrl;
@@ -194,6 +204,8 @@ async function setUp(cleanups: Cleanup[]) {
     env: {
       ...process.env,
       DATABASE_URL: dbUrl,
+      STRIPE_API_URL: stripeApiUrl,
+      STRIPE_API_KEY: "sk_test_mock",
       UNSAFE_DISABLE_RATE_LIMITS: "true",
       TEST: "true",
       // WebAuthn/Passkey configuration for test environment

@@ -92,12 +92,13 @@ Configuration is defined in `playwright.config.ts`:
 - **Locale**: Finnish (`fi-FI`) - **locked for test stability**
 - **Timezone**: `Europe/Helsinki`
 - **Database**: Fresh PostgreSQL testcontainer per run (`DATABASE_URL_TEST`, set by global setup)
+- **Stripe**: [stripe-mock](https://github.com/stripe/stripe-mock) testcontainer, so no Stripe key is needed. It returns fixture data for any ID (every price is a 20.00 USD "T-shirt")
 
 ### Global Setup
 
 The `global-setup.ts` file runs **once** before all tests:
 
-1. Starts a fresh PostgreSQL testcontainer (requires Docker) and builds the app in parallel
+1. Starts fresh PostgreSQL and stripe-mock testcontainers (requires Docker) and builds the app in parallel
 2. Runs migrations and seeds the database
 3. Creates authenticated admin and readonly admin sessions, saved to `e2e/.auth/`
 4. Starts the app server (`pnpm preview`) on a random free port and waits for it
