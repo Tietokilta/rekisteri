@@ -93,11 +93,11 @@ describe("generateGoogleGroupsCSV", () => {
     const emailsOf = (list: MailingList) =>
       parse(generateGoogleGroupsCSV(languageMembers, list).csv).map((r) => r["Member Email"] || "");
 
-    it("puts Finnish and unspecified members in jasenet-fi@", () => {
-      const { count } = generateGoogleGroupsCSV(languageMembers, MAILING_LISTS["jasenet-fi"]);
+    it("puts Finnish and unspecified members in jasenet@", () => {
+      const { count } = generateGoogleGroupsCSV(languageMembers, MAILING_LISTS.jasenet);
 
       expect(count).toBe(5);
-      expect(emailsOf(MAILING_LISTS["jasenet-fi"])).toEqual([
+      expect(emailsOf(MAILING_LISTS.jasenet)).toEqual([
         "fi-allowed@tietokilta.fi",
         "fi-notallowed@tietokilta.fi",
         "unspecified-allowed@tietokilta.fi",
@@ -106,20 +106,17 @@ describe("generateGoogleGroupsCSV", () => {
       ]);
     });
 
-    it("puts only English speakers in jasenet-en@", () => {
-      expect(emailsOf(MAILING_LISTS["jasenet-en"])).toEqual([
-        "en-allowed@tietokilta.fi",
-        "en-notallowed@tietokilta.fi",
-      ]);
+    it("puts only English speakers in members@", () => {
+      expect(emailsOf(MAILING_LISTS.members)).toEqual(["en-allowed@tietokilta.fi", "en-notallowed@tietokilta.fi"]);
     });
 
-    it("combines the language filter with the opt-in requirement for aktiivit", () => {
-      expect(emailsOf(MAILING_LISTS["aktiivit-fi"])).toEqual([
+    it("combines the language filter with the opt-in requirement for aktiivit@ and actives@", () => {
+      expect(emailsOf(MAILING_LISTS.aktiivit)).toEqual([
         "fi-allowed@tietokilta.fi",
         "unspecified-allowed@tietokilta.fi",
         "null-allowed@tietokilta.fi",
       ]);
-      expect(emailsOf(MAILING_LISTS["aktiivit-en"])).toEqual(["en-allowed@tietokilta.fi"]);
+      expect(emailsOf(MAILING_LISTS.actives)).toEqual(["en-allowed@tietokilta.fi"]);
     });
 
     it.each(Object.entries(MAILING_LISTS))("targets the list address in the %s export", (_id, list) => {
@@ -128,20 +125,19 @@ describe("generateGoogleGroupsCSV", () => {
       expect(new Set(parse(csv).map((r) => r["Group Email [Required]"]))).toEqual(new Set([list.address]));
     });
 
-    it("splits each combined list exactly between its language lists", () => {
-      for (const name of ["jasenet", "aktiivit"] as const) {
-        const split = [...emailsOf(MAILING_LISTS[`${name}-fi`]), ...emailsOf(MAILING_LISTS[`${name}-en`])];
+    it("puts every member with an email in exactly one of the Finnish or English list", () => {
+      const finnishAndEnglish = [...emailsOf(MAILING_LISTS.jasenet), ...emailsOf(MAILING_LISTS.members)];
+      const everyone = languageMembers.flatMap((m) => (m.email ? [m.email.replace(/\+.*@/, "@")] : []));
 
-        expect(split.toSorted((a, b) => a.localeCompare(b))).toEqual(
-          emailsOf(MAILING_LISTS[name]).toSorted((a, b) => a.localeCompare(b)),
-        );
-      }
+      expect(finnishAndEnglish.toSorted((a, b) => a.localeCompare(b))).toEqual(
+        everyone.toSorted((a, b) => a.localeCompare(b)),
+      );
     });
 
     it("reports zero rows when nobody speaks the requested language", () => {
       const { csv, count } = generateGoogleGroupsCSV(
         [{ email: "member@example.com", isAllowedEmails: true, preferredLanguage: "finnish" }],
-        MAILING_LISTS["aktiivit-en"],
+        MAILING_LISTS.actives,
       );
       expect(count).toBe(0);
       expect(parse(csv)).toEqual([]);
