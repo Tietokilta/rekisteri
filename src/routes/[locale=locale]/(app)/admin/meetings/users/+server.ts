@@ -2,7 +2,7 @@ import { error, json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { db } from "$lib/server/db";
 import * as table from "$lib/server/db/schema";
-import { membershipTypesAt } from "$lib/server/attendance/membership";
+import { membershipTypesAt } from "$lib/server/membership/status";
 import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
 
 /** Every registry user for the check-in search, which filters them in the browser. */
