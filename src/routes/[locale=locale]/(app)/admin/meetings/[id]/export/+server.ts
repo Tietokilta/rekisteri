@@ -44,25 +44,27 @@ export const GET: RequestHandler = async (event) => {
     log.push({ at: recess.startedAt, action: recess.mode === "reset_all" ? "pitkä tauko alkoi" : "lyhyt tauko alkoi" });
     if (recess.endedAt) log.push({ at: recess.endedAt, action: "tauko päättyi" });
   }
-  // A long recess checks everyone out, so it gets an exit row per person. Rows that change nothing (an exit
-  // while already out, a second entry) are left out, so counting entries minus exits matches the room
+  // A long recess checks everyone out, so it gets an exit row per person. Only rows that change who is in the
+  // room are "saapui"/"poistui", so counting entries minus exits matches the room. An exit while already out is
+  // left out, and a second entry only shows a changed membership type
   const activeEvents = state.resolvedEvents.filter((item) => !item.voided);
-  const inRoom = new Set<string>();
+  const typeInRoom = new Map<string, string | null>();
   for (const item of meetingPhysicalEvents(activeEvents, state.recesses).toSorted(
     (a, b) =>
       a.effectiveAt.getTime() - b.effectiveAt.getTime() ||
       a.recordedAt.getTime() - b.recordedAt.getTime() ||
       a.id.localeCompare(b.id),
   )) {
-    if ((item.direction === "in") === inRoom.has(item.attendeeId)) continue;
-    if (item.direction === "in") inRoom.add(item.attendeeId);
-    else inRoom.delete(item.attendeeId);
-    log.push({
-      at: item.effectiveAt,
-      name: nameById.get(item.attendeeId),
-      action: item.direction === "in" ? "saapui" : "poistui",
-      type: item.direction === "in" ? typeName(item.membershipTypeId ?? null) : undefined,
-    });
+    const name = nameById.get(item.attendeeId);
+    if (item.direction === "out") {
+      if (typeInRoom.delete(item.attendeeId)) log.push({ at: item.effectiveAt, name, action: "poistui" });
+      continue;
+    }
+    const type = item.membershipTypeId ?? null;
+    let action: string | null = "saapui";
+    if (typeInRoom.has(item.attendeeId)) action = typeInRoom.get(item.attendeeId) === type ? null : "jäsenyys muuttui";
+    typeInRoom.set(item.attendeeId, type);
+    if (action) log.push({ at: item.effectiveAt, name, action, type: typeName(type) });
   }
   if (meeting.closedAt) log.push({ at: meeting.closedAt, action: "kokous päättyi" });
 

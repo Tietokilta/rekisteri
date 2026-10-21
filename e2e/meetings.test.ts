@@ -808,6 +808,31 @@ test.describe("Meeting attendance", () => {
     expect(csv).toContain('"Paikalla: 0 jäsentä, 0 vierasta"');
   });
 
+  test("exports a second entry with a new membership type as a type change, not an arrival", async ({
+    adminPage,
+    db,
+  }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const { attendeeId, displayName } = await createPresentGuest(db, id);
+    await db.insert(table.meetingAttendanceEvent).values({
+      id: crypto.randomUUID(),
+      meetingId: id,
+      attendeeId,
+      direction: "in",
+      source: "manual",
+      membershipTypeId: "varsinainen-jasen",
+      effectiveAt: new Date(Date.now() - 5 * 60_000),
+    });
+
+    const response = await adminPage.request.get(`${meetingUrl(id)}/export`);
+    expect(response.ok()).toBe(true);
+    const csv = await response.text();
+    expect(csv.split(`"${displayName}","saapui"`)).toHaveLength(2);
+    expect(csv).toContain(`"${displayName}","jäsenyys muuttui","Varsinainen jäsen"`);
+    expect(csv).toContain('"Paikalla: 1 jäsentä, 0 vierasta"');
+  });
+
   test("adds a guest from the search box", async ({ adminPage, db }) => {
     const id = await createMeeting(db, { started: true });
     meetingIds.push(id);
