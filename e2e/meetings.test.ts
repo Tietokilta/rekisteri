@@ -787,6 +787,15 @@ test.describe("Meeting attendance", () => {
       mode: "reset_all",
       startedAt: new Date(Date.now() - 5 * 60_000),
     });
+    // A missed exit added inside the recess must not count the person out twice
+    await db.insert(table.meetingAttendanceEvent).values({
+      id: crypto.randomUUID(),
+      meetingId: id,
+      attendeeId,
+      direction: "out",
+      source: "correction",
+      effectiveAt: new Date(Date.now() - 2 * 60_000),
+    });
 
     const response = await adminPage.request.get(`${meetingUrl(id)}/export`);
     expect(response.ok()).toBe(true);
@@ -795,6 +804,7 @@ test.describe("Meeting attendance", () => {
     expect(csv).toContain(`"${name} Vaihto","saapui"`);
     expect(recessAt).toBeGreaterThan(-1);
     expect(csv.indexOf(`"${name} Vaihto","poistui"`)).toBeGreaterThan(recessAt);
+    expect(csv.split(`"${name} Vaihto","poistui"`)).toHaveLength(2);
     expect(csv).toContain('"Paikalla: 0 jäsentä, 0 vierasta"');
   });
 

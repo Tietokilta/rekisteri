@@ -44,9 +44,19 @@ export const GET: RequestHandler = async (event) => {
     log.push({ at: recess.startedAt, action: recess.mode === "reset_all" ? "pitkä tauko alkoi" : "lyhyt tauko alkoi" });
     if (recess.endedAt) log.push({ at: recess.endedAt, action: "tauko päättyi" });
   }
-  // A long recess checks everyone out, so it gets an exit row per person and a running in/out count stays right
+  // A long recess checks everyone out, so it gets an exit row per person. Rows that change nothing (an exit
+  // while already out, a second entry) are left out, so counting entries minus exits matches the room
   const activeEvents = state.resolvedEvents.filter((item) => !item.voided);
-  for (const item of meetingPhysicalEvents(activeEvents, state.recesses)) {
+  const inRoom = new Set<string>();
+  for (const item of meetingPhysicalEvents(activeEvents, state.recesses).toSorted(
+    (a, b) =>
+      a.effectiveAt.getTime() - b.effectiveAt.getTime() ||
+      a.recordedAt.getTime() - b.recordedAt.getTime() ||
+      a.id.localeCompare(b.id),
+  )) {
+    if ((item.direction === "in") === inRoom.has(item.attendeeId)) continue;
+    if (item.direction === "in") inRoom.add(item.attendeeId);
+    else inRoom.delete(item.attendeeId);
     log.push({
       at: item.effectiveAt,
       name: nameById.get(item.attendeeId),
