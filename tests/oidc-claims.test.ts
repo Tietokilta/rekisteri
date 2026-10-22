@@ -1,717 +1,141 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { createTestDatabase, stopTestDatabase, type TestDatabase } from "./utils/db";
 import * as table from "../src/lib/server/db/schema";
-import type { RequestEvent } from "@sveltejs/kit";
-import { hashClientSecret } from "../src/lib/server/oidc/secret";
-import { generatePkce, catchRedirect, expectNoAccessToken } from "./utils/oidc";
+import {
+  createClient,
+  decodeJwtPayload,
+  getTokens,
+  startOidcTestServer,
+  userinfo,
+  type OidcTestServer,
+} from "./utils/oidc";
 
-describe("OIDC Scope-Based Claims Resolution Tests", () => {
-  let testDb: TestDatabase;
-  let testUserId: string;
-  let db: TestDatabase["db"];
-  let getOidcProvider: typeof import("../src/lib/server/oidc/provider").getOidcProvider;
-  let handleOidcRequest: typeof import("../src/lib/server/oidc/bridge").handleOidcRequest;
-  let finishInteraction: typeof import("../src/lib/server/oidc/bridge").finishInteraction;
+const CLIENT_ID = "claims-client";
+const SECRET = "claims-secret";
+const DAY = 86_400_000;
+
+describe("OIDC claims per scope", () => {
+  let server: OidcTestServer;
+
+  async function createUser(id: string, email: string, extra: Partial<typeof table.user.$inferInsert> = {}) {
+    await server.db.insert(table.user).values({ id, email, firstNames: "Testi", lastName: "Käyttäjä", ...extra });
+  }
+
+  async function addSecondaryEmail(userId: string, email: string, verifiedAt: Date | null, expiresAt: Date | null) {
+    await server.db.insert(table.secondaryEmail).values({
+      id: crypto.randomUUID(),
+      userId,
+      email,
+      domain: email.split("@", 2)[1] ?? "",
+      verifiedAt,
+      expiresAt,
+    });
+  }
+
+  async function addMembership(userId: string, typeId: string, start: Date, end: Date) {
+    const membershipId = crypto.randomUUID();
+    await server.db
+      .insert(table.membership)
+      .values({ id: membershipId, membershipTypeId: typeId, startTime: start, endTime: end });
+    await server.db.insert(table.member).values({ id: crypto.randomUUID(), userId, membershipId, status: "active" });
+  }
+
+  /** Claims from the id_token, after checking userinfo returns the same ones. */
+  async function claimsFor(userId: string, scope: string) {
+    const tokens = await getTokens(server, { clientId: CLIENT_ID, secret: SECRET, userId, scope });
+    const fromUserinfo = await userinfo(server, tokens.access_token);
+    const fromIdToken = decodeJwtPayload(tokens.id_token);
+    for (const [claim, value] of Object.entries(fromUserinfo.claims)) expect(fromIdToken[claim]).toEqual(value);
+    return fromIdToken;
+  }
 
   beforeAll(async () => {
-    testDb = await createTestDatabase();
-    process.env.DATABASE_URL = testDb.container.getConnectionUri();
-    process.env.PUBLIC_URL = "http://localhost:5173";
-
-    const dbModule = await import("../src/lib/server/db");
-    db = dbModule.db;
-    const providerModule = await import("../src/lib/server/oidc/provider");
-    getOidcProvider = providerModule.getOidcProvider;
-    const bridgeModule = await import("../src/lib/server/oidc/bridge");
-    handleOidcRequest = bridgeModule.handleOidcRequest;
-    finishInteraction = bridgeModule.finishInteraction;
-
-    testUserId = "user_test_oidc_claims";
-    await db.delete(table.oidcConsent);
-    await db.delete(table.oidcEntity);
-    await db.delete(table.oidcClient);
-
-    await db
-      .insert(table.user)
-      .values({
-        id: testUserId,
-        email: "student@aalto.fi",
-        firstNames: "Matti Oskari",
-        lastName: "Meikäläinen",
-        isAllowedEmails: true,
-        preferredLanguage: "english",
-      })
-      .onConflictDoNothing();
-
-    await db
-      .insert(table.membershipType)
-      .values({
-        id: "varsinainen_jasen",
-        name: { fi: "Varsinainen jäsen", en: "Regular member" },
-      })
-      .onConflictDoNothing();
-
-    const membershipId = "membership_period_123";
-    await db
-      .insert(table.membership)
-      .values({
-        id: membershipId,
-        membershipTypeId: "varsinainen_jasen",
-        startTime: new Date(Date.now() - 1000 * 60 * 60 * 24),
-        endTime: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
-      })
-      .onConflictDoNothing();
-
-    await db
-      .insert(table.member)
-      .values({
-        id: "member_record_123",
-        userId: testUserId,
-        membershipId,
-        status: "active",
-      })
-      .onConflictDoNothing();
-  });
+    server = await startOidcTestServer();
+    await createClient(server.db, {
+      clientId: CLIENT_ID,
+      secret: SECRET,
+      scopes: ["openid", "profile", "email", "membership"],
+    });
+  }, 120_000);
 
   afterAll(async () => {
-    await stopTestDatabase(testDb);
+    await server?.stop();
   });
 
-  it("profile scope returns all profile claims and excludes email/membership claims", async () => {
-    const clientId = "profile-scope-client";
-    const clientSecret = "sec_profile_secret_123";
-    const redirectUri = "http://localhost:3000/callback";
-    const pkce = generatePkce();
+  it("profile scope returns name, locale and aalto_email_verified, nothing from other scopes", async () => {
+    await createUser("profile-user", "profile@aalto.fi", { preferredLanguage: "english" });
 
-    await db.insert(table.oidcClient).values({
-      clientId,
-      name: "Profile Scope Client",
-      clientSecret: hashClientSecret(clientSecret),
-      redirectUris: [redirectUri],
-      scopes: ["openid", "profile"],
-      type: "authorization_code",
+    const claims = await claimsFor("profile-user", "openid profile");
+    expect(claims).toMatchObject({
+      sub: "profile-user",
+      given_name: "Testi",
+      family_name: "Käyttäjä",
+      locale: "en",
+      aalto_email_verified: true,
     });
-
-    const provider = getOidcProvider();
-
-    const authUrl = `http://localhost:5173/oidc/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20profile&state=state_profile&code_challenge=${pkce.challenge}&code_challenge_method=S256`;
-    const eventAuth = {
-      request: new Request(authUrl, { headers: { host: "localhost:5173" } }),
-      url: new URL(authUrl),
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resAuth = await handleOidcRequest(eventAuth, provider);
-    const loginLocation = resAuth.headers.get("location") || "";
-    const uid = loginLocation.split("/").pop() || "";
-
-    const grant = new provider.Grant({ accountId: testUserId, clientId });
-    grant.addOIDCScope("openid profile");
-    const grantId = await grant.save();
-
-    const mockAcceptEvent = {
-      params: { uid },
-      request: new Request(`http://localhost:5173/oidc/login/${uid}`, {
-        method: "POST",
-        headers: { cookie: `_interaction=${uid}; _interaction_resume=${uid}`, host: "localhost:5173" },
-      }),
-      url: new URL(`http://localhost:5173/oidc/login/${uid}`),
-      cookies: { set: () => {}, get: (key: string) => (key.startsWith("_interaction") ? uid : undefined) },
-    } as unknown as RequestEvent;
-
-    let resumeUrl = "";
-    try {
-      await finishInteraction(mockAcceptEvent, provider, {
-        login: { accountId: testUserId },
-        consent: { grantId },
-      });
-    } catch (e: unknown) {
-      resumeUrl = catchRedirect(e);
-    }
-
-    const parsedResume = new URL(resumeUrl, "http://localhost:5173");
-    const eventResume = {
-      request: new Request(parsedResume.href, {
-        headers: { cookie: `_interaction_resume=${uid}`, host: "localhost:5173" },
-      }),
-      url: parsedResume,
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resResume = await handleOidcRequest(eventResume, provider);
-    const callbackUrl = resResume.headers.get("location") || "";
-    const code = new URL(callbackUrl).searchParams.get("code") || "";
-
-    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
-    const tokenParams = new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri,
-      code_verifier: pkce.verifier,
-    });
-
-    const eventToken = {
-      request: new Request("http://localhost:5173/oidc/token", {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-          authorization: `Basic ${basicAuth}`,
-          host: "localhost:5173",
-        },
-        body: tokenParams.toString(),
-      }),
-      url: new URL("http://localhost:5173/oidc/token"),
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resToken = await handleOidcRequest(eventToken, provider);
-    expect(resToken.status).toBe(200);
-    const tokenData = await resToken.json();
-    expectNoAccessToken(tokenData);
-
-    const payload = JSON.parse(Buffer.from(tokenData.id_token.split(".", 2)[1], "base64url").toString());
-
-    // Profile scope claims MUST be present
-    expect(payload.given_name).toBe("Matti Oskari");
-    expect(payload.family_name).toBe("Meikäläinen");
-    expect(payload.locale).toBe("en");
-    expect(payload.verified_student).toBe(true);
-
-    // Email and membership claims MUST NOT be present
-    expect(payload.primary_email).toBeUndefined();
-    expect(payload.verified_emails).toBeUndefined();
-    expect(payload.optional_emails_allowed).toBeUndefined();
-    expect(payload.active_memberships).toBeUndefined();
+    expect(claims.email).toBeUndefined();
+    expect(claims.active_memberships).toBeUndefined();
   });
 
-  it("email scope returns all email claims and excludes profile/membership claims", async () => {
-    const clientId = "email-scope-client";
-    const clientSecret = "sec_email_secret_123";
-    const redirectUri = "http://localhost:3000/callback";
-    const pkce = generatePkce();
-
-    await db.insert(table.oidcClient).values({
-      clientId,
-      name: "Email Scope Client",
-      clientSecret: hashClientSecret(clientSecret),
-      redirectUris: [redirectUri],
-      scopes: ["openid", "email"],
-      type: "authorization_code",
-    });
-
-    const provider = getOidcProvider();
-
-    const authUrl = `http://localhost:5173/oidc/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email&state=state_email&code_challenge=${pkce.challenge}&code_challenge_method=S256`;
-    const eventAuth = {
-      request: new Request(authUrl, { headers: { host: "localhost:5173" } }),
-      url: new URL(authUrl),
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resAuth = await handleOidcRequest(eventAuth, provider);
-    const loginLocation = resAuth.headers.get("location") || "";
-    const uid = loginLocation.split("/").pop() || "";
-
-    const grant = new provider.Grant({ accountId: testUserId, clientId });
-    grant.addOIDCScope("openid email");
-    const grantId = await grant.save();
-
-    const mockAcceptEvent = {
-      params: { uid },
-      request: new Request(`http://localhost:5173/oidc/login/${uid}`, {
-        method: "POST",
-        headers: { cookie: `_interaction=${uid}; _interaction_resume=${uid}`, host: "localhost:5173" },
-      }),
-      url: new URL(`http://localhost:5173/oidc/login/${uid}`),
-      cookies: { set: () => {}, get: (key: string) => (key.startsWith("_interaction") ? uid : undefined) },
-    } as unknown as RequestEvent;
-
-    let resumeUrl = "";
-    try {
-      await finishInteraction(mockAcceptEvent, provider, {
-        login: { accountId: testUserId },
-        consent: { grantId },
-      });
-    } catch (e: unknown) {
-      resumeUrl = catchRedirect(e);
-    }
-
-    const parsedResume = new URL(resumeUrl, "http://localhost:5173");
-    const eventResume = {
-      request: new Request(parsedResume.href, {
-        headers: { cookie: `_interaction_resume=${uid}`, host: "localhost:5173" },
-      }),
-      url: parsedResume,
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resResume = await handleOidcRequest(eventResume, provider);
-    const callbackUrl = resResume.headers.get("location") || "";
-    const code = new URL(callbackUrl).searchParams.get("code") || "";
-
-    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
-    const tokenParams = new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri,
-      code_verifier: pkce.verifier,
-    });
-
-    const eventToken = {
-      request: new Request("http://localhost:5173/oidc/token", {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-          authorization: `Basic ${basicAuth}`,
-          host: "localhost:5173",
-        },
-        body: tokenParams.toString(),
-      }),
-      url: new URL("http://localhost:5173/oidc/token"),
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resToken = await handleOidcRequest(eventToken, provider);
-    expect(resToken.status).toBe(200);
-    const tokenData = await resToken.json();
-    expectNoAccessToken(tokenData);
-
-    const payload = JSON.parse(Buffer.from(tokenData.id_token.split(".", 2)[1], "base64url").toString());
-
-    // Email scope claims MUST be present
-    expect(payload.primary_email).toBe("student@aalto.fi");
-    expect(payload.verified_emails).toContain("student@aalto.fi");
-    expect(payload.optional_emails_allowed).toBe(true);
-
-    // Profile and membership claims MUST NOT be present
-    expect(payload.given_name).toBeUndefined();
-    expect(payload.family_name).toBeUndefined();
-    expect(payload.locale).toBeUndefined();
-    expect(payload.verified_student).toBeUndefined();
-    expect(payload.active_memberships).toBeUndefined();
-  });
-
-  it("membership scope returns membership claims and excludes profile/email claims", async () => {
-    const clientId = "membership-scope-client";
-    const clientSecret = "sec_membership_secret_123";
-    const redirectUri = "http://localhost:3000/callback";
-    const pkce = generatePkce();
-
-    await db.insert(table.oidcClient).values({
-      clientId,
-      name: "Membership Scope Client",
-      clientSecret: hashClientSecret(clientSecret),
-      redirectUris: [redirectUri],
-      scopes: ["openid", "membership"],
-      type: "authorization_code",
-    });
-
-    const provider = getOidcProvider();
-
-    const authUrl = `http://localhost:5173/oidc/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20membership&state=state_membership&code_challenge=${pkce.challenge}&code_challenge_method=S256`;
-    const eventAuth = {
-      request: new Request(authUrl, { headers: { host: "localhost:5173" } }),
-      url: new URL(authUrl),
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resAuth = await handleOidcRequest(eventAuth, provider);
-    const loginLocation = resAuth.headers.get("location") || "";
-    const uid = loginLocation.split("/").pop() || "";
-
-    const grant = new provider.Grant({ accountId: testUserId, clientId });
-    grant.addOIDCScope("openid membership");
-    const grantId = await grant.save();
-
-    const mockAcceptEvent = {
-      params: { uid },
-      request: new Request(`http://localhost:5173/oidc/login/${uid}`, {
-        method: "POST",
-        headers: { cookie: `_interaction=${uid}; _interaction_resume=${uid}`, host: "localhost:5173" },
-      }),
-      url: new URL(`http://localhost:5173/oidc/login/${uid}`),
-      cookies: { set: () => {}, get: (key: string) => (key.startsWith("_interaction") ? uid : undefined) },
-    } as unknown as RequestEvent;
-
-    let resumeUrl = "";
-    try {
-      await finishInteraction(mockAcceptEvent, provider, {
-        login: { accountId: testUserId },
-        consent: { grantId },
-      });
-    } catch (e: unknown) {
-      resumeUrl = catchRedirect(e);
-    }
-
-    const parsedResume = new URL(resumeUrl, "http://localhost:5173");
-    const eventResume = {
-      request: new Request(parsedResume.href, {
-        headers: { cookie: `_interaction_resume=${uid}`, host: "localhost:5173" },
-      }),
-      url: parsedResume,
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resResume = await handleOidcRequest(eventResume, provider);
-    const callbackUrl = resResume.headers.get("location") || "";
-    const code = new URL(callbackUrl).searchParams.get("code") || "";
-
-    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
-    const tokenParams = new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri,
-      code_verifier: pkce.verifier,
-    });
-
-    const eventToken = {
-      request: new Request("http://localhost:5173/oidc/token", {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-          authorization: `Basic ${basicAuth}`,
-          host: "localhost:5173",
-        },
-        body: tokenParams.toString(),
-      }),
-      url: new URL("http://localhost:5173/oidc/token"),
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resToken = await handleOidcRequest(eventToken, provider);
-    expect(resToken.status).toBe(200);
-    const tokenData = await resToken.json();
-    expectNoAccessToken(tokenData);
-
-    const payload = JSON.parse(Buffer.from(tokenData.id_token.split(".", 2)[1], "base64url").toString());
-
-    // Membership scope claims MUST be present
-    expect(payload.active_memberships).toContain("varsinainen_jasen");
-
-    // Profile and email claims MUST NOT be present
-    expect(payload.given_name).toBeUndefined();
-    expect(payload.family_name).toBeUndefined();
-    expect(payload.locale).toBeUndefined();
-    expect(payload.verified_student).toBeUndefined();
-    expect(payload.primary_email).toBeUndefined();
-    expect(payload.verified_emails).toBeUndefined();
-    expect(payload.optional_emails_allowed).toBeUndefined();
-  });
-
-  it("resolves all scope claims dynamically when full scopes (profile, email, membership) are requested", async () => {
-    const clientId = "claims-full-client";
-    const clientSecret = "sec_claims_full_123";
-    const redirectUri = "http://localhost:3000/callback";
-    const pkce = generatePkce();
-
-    await db.insert(table.oidcClient).values({
-      clientId,
-      name: "Full Claims Client",
-      clientSecret: hashClientSecret(clientSecret),
-      redirectUris: [redirectUri],
-      scopes: ["openid", "profile", "email", "membership"],
-      type: "authorization_code",
-    });
-
-    const provider = getOidcProvider();
-    const authUrl = `http://localhost:5173/oidc/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20profile%20email%20membership&code_challenge=${pkce.challenge}&code_challenge_method=S256`;
-    const eventAuth = {
-      request: new Request(authUrl, { headers: { host: "localhost:5173" } }),
-      url: new URL(authUrl),
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resAuth = await handleOidcRequest(eventAuth, provider);
-    const loginLocation = resAuth.headers.get("location") || "";
-    const uid = loginLocation.split("/").pop() || "";
-
-    const grant = new provider.Grant({ accountId: testUserId, clientId });
-    grant.addOIDCScope("openid profile email membership");
-    const grantId = await grant.save();
-
-    const mockAcceptEvent = {
-      params: { uid },
-      request: new Request(`http://localhost:5173/oidc/login/${uid}`, {
-        method: "POST",
-        headers: { cookie: `_interaction=${uid}; _interaction_resume=${uid}`, host: "localhost:5173" },
-      }),
-      url: new URL(`http://localhost:5173/oidc/login/${uid}`),
-      cookies: { set: () => {}, get: (key: string) => (key.startsWith("_interaction") ? uid : undefined) },
-    } as unknown as RequestEvent;
-
-    let resumeUrl = "";
-    try {
-      await finishInteraction(mockAcceptEvent, provider, {
-        login: { accountId: testUserId },
-        consent: { grantId },
-      });
-    } catch (e: unknown) {
-      resumeUrl = catchRedirect(e);
-    }
-
-    const parsedResume = new URL(resumeUrl, "http://localhost:5173");
-    const eventResume = {
-      request: new Request(parsedResume.href, {
-        headers: { cookie: `_interaction_resume=${uid}`, host: "localhost:5173" },
-      }),
-      url: parsedResume,
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resResume = await handleOidcRequest(eventResume, provider);
-    const callbackUrl = resResume.headers.get("location") || "";
-    const code = new URL(callbackUrl).searchParams.get("code") || "";
-
-    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
-    const tokenParams = new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri,
-      code_verifier: pkce.verifier,
-    });
-
-    const resToken = await handleOidcRequest(
-      {
-        request: new Request("http://localhost:5173/oidc/token", {
-          method: "POST",
-          headers: {
-            "content-type": "application/x-www-form-urlencoded",
-            authorization: `Basic ${basicAuth}`,
-            host: "localhost:5173",
-          },
-          body: tokenParams.toString(),
-        }),
-        url: new URL("http://localhost:5173/oidc/token"),
-        cookies: { set: () => {}, get: () => {} },
-      } as unknown as RequestEvent,
-      provider,
+  it("aalto_email_verified counts only secondary aalto.fi addresses whose verification hasn't expired", async () => {
+    await createUser("expired-aalto", "expired@example.com");
+    await addSecondaryEmail(
+      "expired-aalto",
+      "expired@aalto.fi",
+      new Date(Date.now() - 200 * DAY),
+      new Date(Date.now() - DAY),
     );
+    expect((await claimsFor("expired-aalto", "openid profile")).aalto_email_verified).toBe(false);
 
-    expect(resToken.status).toBe(200);
-    const tokenData = await resToken.json();
-    expectNoAccessToken(tokenData);
-
-    const payload = JSON.parse(Buffer.from(tokenData.id_token.split(".", 2)[1], "base64url").toString());
-
-    // All claims under requested scopes MUST be present
-    expect(payload.given_name).toBe("Matti Oskari");
-    expect(payload.family_name).toBe("Meikäläinen");
-    expect(payload.primary_email).toBe("student@aalto.fi");
-    expect(payload.verified_student).toBe(true);
-    expect(payload.locale).toBe("en");
-    expect(payload.optional_emails_allowed).toBe(true);
-    expect(payload.active_memberships).toContain("varsinainen_jasen");
+    await createUser("valid-aalto", "valid@example.com");
+    await addSecondaryEmail("valid-aalto", "valid@aalto.fi", new Date(), new Date(Date.now() + 100 * DAY));
+    expect((await claimsFor("valid-aalto", "openid profile")).aalto_email_verified).toBe(true);
   });
 
-  it("does not support granular claim names as scopes (individual claim names are ignored)", async () => {
-    const clientId = "granular-scopes-ignored-client";
-    const clientSecret = "sec_granular_ignored_123";
-    const redirectUri = "http://localhost:3000/callback";
-    const pkce = generatePkce();
+  it("email scope returns the standard email claims and only currently verified addresses", async () => {
+    await createUser("email-user", "primary@example.com", { isAllowedEmails: true });
+    await addSecondaryEmail("email-user", "second@example.com", new Date(), null);
+    await addSecondaryEmail("email-user", "unverified@example.com", null, null);
+    await addSecondaryEmail("email-user", "old@aalto.fi", new Date(Date.now() - 200 * DAY), new Date(Date.now() - DAY));
 
-    // Client only has openid registered
-    await db.insert(table.oidcClient).values({
-      clientId,
-      name: "Granular Scopes Ignored Client",
-      clientSecret: hashClientSecret(clientSecret),
-      redirectUris: [redirectUri],
-      scopes: ["openid"],
-      type: "authorization_code",
-    });
-
-    const provider = getOidcProvider();
-
-    // Attempting to request claim names 'given_name' and 'primary_email' as scopes
-    const authUrl = `http://localhost:5173/oidc/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20given_name%20primary_email&state=state_granular&code_challenge=${pkce.challenge}&code_challenge_method=S256`;
-    const eventAuth = {
-      request: new Request(authUrl, { headers: { host: "localhost:5173" } }),
-      url: new URL(authUrl),
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resAuth = await handleOidcRequest(eventAuth, provider);
-    const loginLocation = resAuth.headers.get("location") || "";
-    const uid = loginLocation.split("/").pop() || "";
-
-    const grant = new provider.Grant({ accountId: testUserId, clientId });
-    grant.addOIDCScope("openid");
-    const grantId = await grant.save();
-
-    const mockAcceptEvent = {
-      params: { uid },
-      request: new Request(`http://localhost:5173/oidc/login/${uid}`, {
-        method: "POST",
-        headers: { host: "localhost:5173" },
-      }),
-      url: new URL(`http://localhost:5173/oidc/login/${uid}`),
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    let resumeUrl = "";
-    try {
-      await finishInteraction(mockAcceptEvent, provider, {
-        login: { accountId: testUserId },
-        consent: { grantId },
-      });
-    } catch (e: unknown) {
-      resumeUrl = catchRedirect(e);
-    }
-
-    const parsedResume = new URL(resumeUrl, "http://localhost:5173");
-    const eventResume = {
-      request: new Request(parsedResume.href, {
-        headers: { cookie: `_interaction_resume=${uid}`, host: "localhost:5173" },
-      }),
-      url: parsedResume,
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resResume = await handleOidcRequest(eventResume, provider);
-    const callbackUrl = resResume.headers.get("location") || "";
-    const code = new URL(callbackUrl).searchParams.get("code") || "";
-
-    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
-    const tokenParams = new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri,
-      code_verifier: pkce.verifier,
-    });
-
-    const eventToken = {
-      request: new Request("http://localhost:5173/oidc/token", {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-          authorization: `Basic ${basicAuth}`,
-          host: "localhost:5173",
-        },
-        body: tokenParams.toString(),
-      }),
-      url: new URL("http://localhost:5173/oidc/token"),
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resToken = await handleOidcRequest(eventToken, provider);
-    expect(resToken.status).toBe(200);
-    const tokenData = await resToken.json();
-    expectNoAccessToken(tokenData);
-
-    const payload = JSON.parse(Buffer.from(tokenData.id_token.split(".", 2)[1], "base64url").toString());
-
-    // Only standard openid claims must be present; granular claim names were not recognized as scopes
-    expect(payload.sub).toBe(testUserId);
-    expect(payload.given_name).toBeUndefined();
-    expect(payload.primary_email).toBeUndefined();
-    expect(payload.family_name).toBeUndefined();
-    expect(payload.verified_student).toBeUndefined();
-    expect(payload.active_memberships).toBeUndefined();
+    const claims = await claimsFor("email-user", "openid email");
+    expect(claims).toMatchObject({ email: "primary@example.com", email_verified: true, optional_emails_allowed: true });
+    expect(claims.verified_emails).toEqual(["primary@example.com", "second@example.com"]);
+    expect(claims.given_name).toBeUndefined();
   });
 
-  it("returns all client configured scopes and claims even if the client app requested only openid", async () => {
-    const clientId = "client-configured-scopes-client";
-    const clientSecret = "sec_configured_scopes_123";
-    const redirectUri = "http://localhost:3000/callback";
-    const pkce = generatePkce();
+  it("membership scope lists only memberships active right now", async () => {
+    await createUser("member-user", "member@example.com");
+    const [type] = await server.db
+      .insert(table.membershipType)
+      .values({ id: "claims-type", name: { fi: "Jäsen", en: "Member" } })
+      .returning();
+    if (!type) throw new Error("Failed to create membership type");
+    await addMembership("member-user", type.id, new Date(Date.now() - DAY), new Date(Date.now() + DAY));
+    // Status still active, but the period is over
+    await addMembership("member-user", type.id, new Date(Date.now() - 400 * DAY), new Date(Date.now() - 35 * DAY));
 
-    // Client is configured with openid, profile, email, membership
-    await db.insert(table.oidcClient).values({
-      clientId,
-      name: "Configured Scopes App",
-      clientSecret: hashClientSecret(clientSecret),
-      redirectUris: [redirectUri],
-      scopes: ["openid", "profile", "email", "membership"],
-      type: "authorization_code",
+    const claims = await claimsFor("member-user", "openid membership");
+    expect(claims.active_memberships).toEqual(["claims-type"]);
+
+    await createUser("former-member", "former@example.com");
+    await addMembership("former-member", type.id, new Date(Date.now() - 50 * DAY), new Date(Date.now() - 36 * DAY));
+    expect((await claimsFor("former-member", "openid membership")).active_memberships).toEqual([]);
+  });
+
+  it("returns only the scopes the request asked for, even if the client may use more", async () => {
+    await createUser("openid-only", "openid-only@aalto.fi");
+
+    const tokens = await getTokens(server, {
+      clientId: CLIENT_ID,
+      secret: SECRET,
+      userId: "openid-only",
+      scope: "openid",
     });
-
-    const provider = getOidcProvider();
-
-    // Client app requests ONLY openid in query string
-    const authUrl = `http://localhost:5173/oidc/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid&state=state_partial&code_challenge=${pkce.challenge}&code_challenge_method=S256`;
-    const eventAuth = {
-      request: new Request(authUrl, { headers: { host: "localhost:5173" } }),
-      url: new URL(authUrl),
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resAuth = await handleOidcRequest(eventAuth, provider);
-    const loginLocation = resAuth.headers.get("location") || "";
-    const uid = loginLocation.split("/").pop() || "";
-
-    const grant = new provider.Grant({ accountId: testUserId, clientId });
-    grant.addOIDCScope("openid profile email membership");
-    const grantId = await grant.save();
-
-    const mockAcceptEvent = {
-      params: { uid },
-      request: new Request(`http://localhost:5173/oidc/login/${uid}`, {
-        method: "POST",
-        headers: { host: "localhost:5173" },
-      }),
-      url: new URL(`http://localhost:5173/oidc/login/${uid}`),
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    let resumeUrl = "";
-    try {
-      await finishInteraction(mockAcceptEvent, provider, {
-        login: { accountId: testUserId },
-        consent: { grantId },
-      });
-    } catch (e: unknown) {
-      resumeUrl = catchRedirect(e);
+    expect(tokens.scope).toBe("openid");
+    const claims = decodeJwtPayload(tokens.id_token);
+    expect(claims.sub).toBe("openid-only");
+    for (const claim of ["given_name", "email", "aalto_email_verified", "active_memberships"]) {
+      expect(claims[claim]).toBeUndefined();
     }
-
-    const parsedResume = new URL(resumeUrl, "http://localhost:5173");
-    const eventResume = {
-      request: new Request(parsedResume.href, {
-        headers: { cookie: `_interaction_resume=${uid}`, host: "localhost:5173" },
-      }),
-      url: parsedResume,
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resResume = await handleOidcRequest(eventResume, provider);
-    const callbackUrl = resResume.headers.get("location") || "";
-    const code = new URL(callbackUrl).searchParams.get("code") || "";
-
-    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
-    const tokenParams = new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri,
-      code_verifier: pkce.verifier,
-    });
-
-    const eventToken = {
-      request: new Request("http://localhost:5173/oidc/token", {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-          authorization: `Basic ${basicAuth}`,
-          host: "localhost:5173",
-        },
-        body: tokenParams.toString(),
-      }),
-      url: new URL("http://localhost:5173/oidc/token"),
-      cookies: { set: () => {}, get: () => {} },
-    } as unknown as RequestEvent;
-
-    const resToken = await handleOidcRequest(eventToken, provider);
-    expect(resToken.status).toBe(200);
-    const tokenData = await resToken.json();
-    expectNoAccessToken(tokenData);
-
-    const payload = JSON.parse(Buffer.from(tokenData.id_token.split(".", 2)[1], "base64url").toString());
-
-    // All claims for all configured client scopes must be returned
-    expect(payload.sub).toBe(testUserId);
-    expect(payload.given_name).toBe("Matti Oskari");
-    expect(payload.family_name).toBe("Meikäläinen");
-    expect(payload.locale).toBe("en");
-    expect(payload.verified_student).toBe(true);
-    expect(payload.primary_email).toBe("student@aalto.fi");
-    expect(payload.optional_emails_allowed).toBe(true);
-    expect(payload.active_memberships).toContain("varsinainen_jasen");
   });
 });

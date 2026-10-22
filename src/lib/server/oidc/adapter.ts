@@ -315,6 +315,7 @@ export class DrizzleOidcAdapter implements Adapter {
    *
    * @param id - Entity identifier to delete.
    */
+  // fallow-ignore-next-line unused-class-member
   async destroy(id: string): Promise<void> {
     await db.delete(oidcEntity).where(or(eq(oidcEntity.id, id), eq(oidcEntity.grantId, id), eq(oidcEntity.uid, id)));
   }
