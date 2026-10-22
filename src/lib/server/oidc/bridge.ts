@@ -590,7 +590,6 @@ export async function handleOidcRequest(event: RequestEvent, provider: Provider)
  * @param provider - The initialized oidc-provider instance.
  * @param result - Interaction result object.
  */
-// fallow-ignore-next-line unused-export
 export async function finishInteraction(
   event: RequestEvent,
   provider: Provider,
