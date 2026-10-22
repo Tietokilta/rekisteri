@@ -1015,6 +1015,28 @@ Best regards,
     },
   },
 
+  // OIDC
+  oidc: {
+    consent: {
+      title: "OIDC Authorization",
+      introduction: "This application is requesting access to your information.",
+      signInPrompt: "Please sign in to proceed.",
+      signInAction: "Go to sign in",
+      requestedPermissions: "Requested permissions",
+      readOnly: "Read",
+      readWrite: "Read & Write",
+      proceedNotice: "By proceeding you allow the application to access all requested permissions listed above.",
+      allowAccess: "Allow access",
+      deny: "Deny",
+    },
+    error: {
+      title: "Authentication Error",
+      genericDescription:
+        "An error occurred during authentication. Application administrators can investigate this issue using the error identifier code.",
+      errorCode: "Error Identifier Code",
+    },
+  },
+
   // Common
   common: {
     save: "Save",

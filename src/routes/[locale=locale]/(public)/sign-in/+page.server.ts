@@ -5,6 +5,11 @@ import { route } from "$lib/ROUTES";
 
 export const load: PageServerLoad = async (event) => {
   if (event.locals.user) {
+    const returnTo = event.cookies.get("returnTo");
+    if (returnTo) {
+      event.cookies.delete("returnTo", { path: "/" });
+      redirect(302, returnTo);
+    }
     redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
   }
 
