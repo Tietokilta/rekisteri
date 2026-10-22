@@ -313,7 +313,7 @@ const configuration: Configuration = {
 
   // Protocol endpoints. src/oidc-mount.ts forwards exactly these paths (plus discovery) to the provider.
   routes: {
-    authorization: "/oidc/auth",
+    authorization: "/oidc/authorize",
     token: "/oidc/token",
     jwks: "/oidc/jwks",
     userinfo: "/oidc/userinfo",

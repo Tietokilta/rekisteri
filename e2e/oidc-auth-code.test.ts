@@ -55,7 +55,7 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     const page = await context.newPage();
 
     const pkce = generatePkce();
-    const authUrl = `${getBaseUrl()}/oidc/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=openid%20profile&state=state1&code_challenge=${pkce.challenge}&code_challenge_method=S256`;
+    const authUrl = `${getBaseUrl()}/oidc/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=openid%20profile&state=state1&code_challenge=${pkce.challenge}&code_challenge_method=S256`;
 
     await page.goto(authUrl);
 
@@ -172,7 +172,7 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     const page = await context.newPage();
 
     const pkce = generatePkce();
-    const authUrl = `${getBaseUrl()}/oidc/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=openid%20profile&state=state2&code_challenge=${pkce.challenge}&code_challenge_method=S256`;
+    const authUrl = `${getBaseUrl()}/oidc/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=openid%20profile&state=state2&code_challenge=${pkce.challenge}&code_challenge_method=S256`;
 
     await page.goto(authUrl);
 
@@ -223,7 +223,7 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     const page = await context.newPage();
 
     const pkce = generatePkce();
-    const authUrl = `${getBaseUrl()}/oidc/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=openid%20profile&state=state3&code_challenge=${pkce.challenge}&code_challenge_method=S256`;
+    const authUrl = `${getBaseUrl()}/oidc/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=openid%20profile&state=state3&code_challenge=${pkce.challenge}&code_challenge_method=S256`;
 
     // Automatic authorization!
     const callbackUrl = await waitForCallbackUrl(page, () => page.goto(authUrl));
@@ -271,7 +271,7 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     const page = await context.newPage();
 
     const pkce = generatePkce();
-    const authUrl = `${getBaseUrl()}/oidc/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=openid%20profile&state=state4&code_challenge=${pkce.challenge}&code_challenge_method=S256`;
+    const authUrl = `${getBaseUrl()}/oidc/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=openid%20profile&state=state4&code_challenge=${pkce.challenge}&code_challenge_method=S256`;
 
     await page.goto(authUrl);
     await expect(page).toHaveURL(/\/(fi|en)\/oidc\/login\//);
@@ -322,7 +322,7 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     const config = await res.json();
 
     expect(config.issuer).toBe(getBaseUrl());
-    expect(config.authorization_endpoint).toBe(`${getBaseUrl()}/oidc/auth`);
+    expect(config.authorization_endpoint).toBe(`${getBaseUrl()}/oidc/authorize`);
     expect(config.token_endpoint).toBe(`${getBaseUrl()}/oidc/token`);
     expect(config.userinfo_endpoint).toBe(`${getBaseUrl()}/oidc/userinfo`);
     expect(config.jwks_uri).toBe(`${getBaseUrl()}/oidc/jwks`);

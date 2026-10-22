@@ -22,7 +22,7 @@ const CLIENT_ID = "oidc-e2e-session";
 const OTHER_USER_ID = "oidc-e2e-session-other-user";
 
 function authUrl(state: string) {
-  return `${getBaseUrl()}/oidc/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=openid&state=${state}&code_challenge=${generatePkce().challenge}&code_challenge_method=S256`;
+  return `${getBaseUrl()}/oidc/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=openid&state=${state}&code_challenge=${generatePkce().challenge}&code_challenge_method=S256`;
 }
 
 function sessionIdOf(token: string) {

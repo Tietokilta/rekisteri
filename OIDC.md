@@ -12,7 +12,7 @@ The issuer is the site origin, e.g. `https://rekisteri.tietokilta.fi`, so most c
 | :---------------- | :----- | :---------------------------------- | :------------------------------------------ |
 | **Discovery**     | `GET`  | `/.well-known/openid-configuration` | OpenID configuration document               |
 | **JWKS**          | `GET`  | `/oidc/jwks`                        | Public RSA keys for JWT verification        |
-| **Authorization** | `GET`  | `/oidc/auth`                        | Login & consent flow                        |
+| **Authorization** | `GET`  | `/oidc/authorize`                   | Login & consent flow                        |
 | **Token**         | `POST` | `/oidc/token`                       | Authorization code & refresh token exchange |
 | **UserInfo**      | `GET`  | `/oidc/userinfo`                    | Claims for the access token's scopes        |
 | **Logout**        | `GET`  | `/oidc/logout`                      | RP-Initiated logout                         |
@@ -21,12 +21,12 @@ The issuer is the site origin, e.g. `https://rekisteri.tietokilta.fi`, so most c
 
 ## 2. Authentication Flow
 
-### Step 1: Authorization Request (`GET /oidc/auth`)
+### Step 1: Authorization Request (`GET /oidc/authorize`)
 
 Redirect the user to the authorization endpoint:
 
 ```
-GET /oidc/auth?
+GET /oidc/authorize?
   client_id=YOUR_CLIENT_ID
   &redirect_uri=https%3A%2F%2Fmyapp.org%2Fcallback
   &response_type=code

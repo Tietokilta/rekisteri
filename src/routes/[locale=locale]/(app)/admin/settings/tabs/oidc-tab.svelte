@@ -698,7 +698,7 @@
 
     <div class="mt-4 space-y-3 text-xs">
       <div class="grid grid-cols-1 gap-2">
-        {#each [{ label: "Discovery Document", url: `${browser ? location.origin : ""}/oidc/.well-known/openid-configuration` }, { label: "Authorization Endpoint", url: `${browser ? location.origin : ""}/oidc/auth` }, { label: "Token Endpoint", url: `${browser ? location.origin : ""}/oidc/token` }, { label: "Public Keys (JWKS)", url: `${browser ? location.origin : ""}/oidc/jwks` }, { label: "Logout Endpoint", url: `${browser ? location.origin : ""}/oidc/logout` }] as ep (ep.label)}
+        {#each [{ label: "Discovery Document", url: `${browser ? location.origin : ""}/.well-known/openid-configuration` }, { label: "Authorization Endpoint", url: `${browser ? location.origin : ""}/oidc/authorize` }, { label: "Token Endpoint", url: `${browser ? location.origin : ""}/oidc/token` }, { label: "UserInfo Endpoint", url: `${browser ? location.origin : ""}/oidc/userinfo` }, { label: "Public Keys (JWKS)", url: `${browser ? location.origin : ""}/oidc/jwks` }, { label: "Logout Endpoint", url: `${browser ? location.origin : ""}/oidc/logout` }] as ep (ep.label)}
           <div class="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
             <div class="min-w-0 flex-1">
               <p class="font-medium text-foreground">{ep.label}</p>
