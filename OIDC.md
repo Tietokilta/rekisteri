@@ -36,7 +36,7 @@ GET /oidc/authorize?
 ```
 
 - `scope`: Always include `openid`. Add `profile`, `email`, `membership`, or `offline_access` (for refresh tokens) as permitted for your client.
-- `code_challenge`: Base64URL-encoded SHA-256 hash of your PKCE `code_verifier`.
+- `code_challenge`: Base64URL-encoded SHA-256 hash of your PKCE `code_verifier`. PKCE (`S256`) is required for every client. In Discourse, enable the `openid connect use pkce` setting.
 
 ### Step 2: Callback with Code
 

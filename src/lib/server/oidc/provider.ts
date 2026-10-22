@@ -339,6 +339,9 @@ const configuration: Configuration = {
   // Supported ID Token Claims registry (dynamically mapped per scope from shared/oidc)
   claims: claimsRegistry,
 
+  // PKCE for every client, not just public ones (oidc-provider's default). RFC 9700 §2.1.1
+  pkce: { required: () => true },
+
   // Supported response types (restricting to 'code' disables implicit flow)
   responseTypes: ["code"],
 
