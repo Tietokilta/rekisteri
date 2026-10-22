@@ -11,7 +11,7 @@
  * - Hot Module Replacement (HMR) state preservation in development mode.
  */
 
-import Provider, { type Configuration } from "oidc-provider";
+import Provider, { interactionPolicy, type Configuration, type KoaContextWithOIDC } from "oidc-provider";
 import { generateKeyPairSync, randomUUID, createHash } from "node:crypto";
 import { db } from "$lib/server/db";
 import { user, member, membership, secondaryEmail } from "$lib/server/db/schema";
@@ -22,6 +22,7 @@ import { preferredLanguageToLocale } from "$lib/i18n/routing";
 import { OIDC_SCOPES } from "$lib/shared/oidc";
 import { verifyClientSecret } from "./secret";
 import { createAuditLog } from "$lib/server/audit";
+import { sessionCookieName, validateSessionToken } from "$lib/server/auth/session";
 
 /**
  * Constructs the canonical OIDC issuer URL from environment configuration.
@@ -182,6 +183,36 @@ function extractAuditContext(ctx: unknown, fallbackClientId?: string) {
 }
 
 /**
+ * oidc-provider keeps its own session cookie, separate from Rekisteri's. On its own, that session
+ * would keep signing apps in after the user logs out of Rekisteri (or an admin revokes the session).
+ * So the login prompt also requires a valid Rekisteri session for the same account; without one,
+ * the user is sent to the login page (or gets `login_required` with `prompt=none`).
+ */
+function buildInteractionPolicy() {
+  const policy = interactionPolicy.base();
+  policy.get("login")?.checks.add(
+    new interactionPolicy.Check(
+      "rekisteri_session",
+      "Rekisteri session is missing or belongs to another user",
+      async (ctx: KoaContextWithOIDC) => {
+        const accountId = ctx.oidc.session?.accountId;
+        // No provider session is handled by the built-in no_session check; a login just
+        // completed in this interaction is the Rekisteri login itself.
+        if (!accountId || ctx.oidc.result?.login) return interactionPolicy.Check.NO_NEED_TO_PROMPT;
+
+        const token = ctx.cookies.get(sessionCookieName, { signed: false });
+        if (!token) return interactionPolicy.Check.REQUEST_PROMPT;
+        const { user: sessionUser } = await validateSessionToken(token);
+        return sessionUser?.id === accountId
+          ? interactionPolicy.Check.NO_NEED_TO_PROMPT
+          : interactionPolicy.Check.REQUEST_PROMPT;
+      },
+    ),
+  );
+  return policy;
+}
+
+/**
  * Master configuration object for `oidc-provider`.
  */
 const configuration: Configuration = {
@@ -323,6 +354,7 @@ const configuration: Configuration = {
 
   // Custom user interaction URL handler
   interactions: {
+    policy: buildInteractionPolicy(),
     url(_ctx: unknown, interaction: { uid: string }) {
       return `/oidc/login/${interaction.uid}`;
     },
