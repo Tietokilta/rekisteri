@@ -334,6 +334,7 @@ const configuration: Configuration = {
     authorization: "/oidc/auth",
     token: "/oidc/token",
     jwks: "/oidc/jwks",
+    userinfo: "/oidc/userinfo",
     end_session: "/oidc/logout",
   },
 
@@ -346,6 +347,7 @@ const configuration: Configuration = {
   // Token & session TTLs (in seconds)
   ttl: {
     AuthorizationCode: 300, // 5 minutes
+    AccessToken: 3600, // 1 hour
     IdToken: 3600, // 1 hour
     RefreshToken: 30 * 24 * 3600, // 30 days
     Interaction: 300, // 5 minutes
@@ -361,7 +363,7 @@ const configuration: Configuration = {
   },
 
   features: {
-    userinfo: { enabled: false },
+    userinfo: { enabled: true },
     devInteractions: { enabled: false },
     clientCredentials: { enabled: false },
     pushedAuthorizationRequests: { enabled: false },
@@ -438,15 +440,6 @@ export function getOidcProvider(): Provider {
   const issuer = getIssuerUrl();
   const provider = new Provider(issuer, configuration);
   provider.proxy = true;
-
-  provider.use(async (ctx, next) => {
-    await next();
-    const isTokenResponse = (ctx as { oidc?: { route?: string } }).oidc?.route === "token" && ctx.status === 200;
-    if (!isTokenResponse || !ctx.body || typeof ctx.body !== "object") return;
-    const body = ctx.body as Record<string, unknown>;
-    delete body.access_token;
-    delete body.token_type;
-  });
 
   // Use scrypt client secret verification against stored hashes
   provider.Client.prototype.compareClientSecret = async function (actualSecret: string) {

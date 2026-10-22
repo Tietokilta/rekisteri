@@ -143,6 +143,6 @@ export function validateIdTokenSecurityAndClaims(
 
 export function validateTokenResponseFormat(tokenData: Record<string, unknown>) {
   expect(typeof tokenData.id_token).toBe("string");
-  expect(tokenData.access_token).toBeUndefined();
-  expect(tokenData.token_type).toBeUndefined();
+  expect(typeof tokenData.access_token).toBe("string");
+  expect(tokenData.token_type).toBe("Bearer");
 }

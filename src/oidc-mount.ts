@@ -17,7 +17,14 @@ type NodeHandler = (req: IncomingMessage, res: ServerResponse) => unknown;
 type OidcProvider = { callback: () => NodeHandler };
 
 // Protocol endpoints served by oidc-provider. Must match `routes` in src/lib/server/oidc/provider.ts.
-const OIDC_PATHS = ["/.well-known/openid-configuration", "/oidc/auth", "/oidc/token", "/oidc/jwks", "/oidc/logout"];
+const OIDC_PATHS = [
+  "/.well-known/openid-configuration",
+  "/oidc/auth",
+  "/oidc/token",
+  "/oidc/jwks",
+  "/oidc/userinfo",
+  "/oidc/logout",
+];
 
 export function isOidcPath(url: string | undefined): boolean {
   const { pathname } = new URL(url ?? "/", "http://localhost");

@@ -232,11 +232,6 @@ export class DrizzleOidcAdapter implements Adapter {
    * @param expiresIn - Lifetime in seconds, used to compute `expiresAt`.
    */
   async upsert(id: string, payload: AdapterPayload, expiresIn: number): Promise<void> {
-    // Access tokens are omitted in Rekisteri (only ID tokens & refresh tokens are used)
-    if (this.name === "AccessToken") {
-      return;
-    }
-
     const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000) : null;
     const { clientId, consentId, userId } = await resolveClientIdAndConsentId(this.name, id, payload);
     const entityId = this.name === "Interaction" && payload.uid ? (payload.uid as string) : id;
@@ -280,9 +275,6 @@ export class DrizzleOidcAdapter implements Adapter {
    * @returns The adapter payload object or undefined if not found/expired.
    */
   async find(id: string): Promise<AdapterPayload | undefined> {
-    if (this.name === "AccessToken") {
-      return undefined;
-    }
     if (this.name === "Client") {
       return findClient(id);
     }

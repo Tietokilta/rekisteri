@@ -95,13 +95,22 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     expect(tokenRes.status()).toBe(200);
     const tokenData = await tokenRes.json();
 
-    // Verify Token Response Format & Security (no access_token)
+    // Verify token response format (id_token + Bearer access_token)
     validateTokenResponseFormat(tokenData);
     expect(tokenData.refresh_token).toBeUndefined();
 
     // Verify ID Token JWT structure, algorithms, signature, issuer, audience, subject and timestamps
     const idClaims = validateIdTokenSecurityAndClaims(tokenData.id_token, clientId, adminUser.id);
     expect(idClaims.sub).toBe(adminUser.id);
+
+    // The access token works at the userinfo endpoint and returns the same subject
+    const userinfoRes = await request.get(`${getBaseUrl()}/oidc/userinfo`, {
+      headers: { authorization: `Bearer ${tokenData.access_token}` },
+    });
+    expect(userinfoRes.status()).toBe(200);
+    const userinfo = await userinfoRes.json();
+    expect(userinfo.sub).toBe(adminUser.id);
+    expect(userinfo.locale).toBeTruthy();
 
     // Security Check: Attempt code exchange with WRONG client secret -> MUST fail
     const badSecretRes = await request.post(`${getBaseUrl()}/oidc/token`, {
@@ -314,7 +323,7 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     expect(config.issuer).toBe(getBaseUrl());
     expect(config.authorization_endpoint).toBe(`${getBaseUrl()}/oidc/auth`);
     expect(config.token_endpoint).toBe(`${getBaseUrl()}/oidc/token`);
-    expect(config.userinfo_endpoint).toBeUndefined();
+    expect(config.userinfo_endpoint).toBe(`${getBaseUrl()}/oidc/userinfo`);
     expect(config.jwks_uri).toBe(`${getBaseUrl()}/oidc/jwks`);
     expect(config.end_session_endpoint).toBe(`${getBaseUrl()}/oidc/logout`);
 

@@ -105,7 +105,7 @@ test.describe("OIDC Authorization Code Flow with Refresh Token (E2E)", () => {
     expect(tokenRes.status()).toBe(200);
     const tokenData = await tokenRes.json();
 
-    // Verify Token Response Format & Security (no access_token)
+    // Verify token response format (id_token + Bearer access_token)
     validateTokenResponseFormat(tokenData);
     expect(tokenData.refresh_token).toBeDefined();
 
