@@ -282,6 +282,7 @@ export const createOidcClient = form(createOidcClientSchema, async (data) => {
     clientSecret: hashedSecret,
     redirectUris: uris,
     scopes: claims,
+    requireActiveMembership: data.requireActiveMembership,
     type: "authorization_code",
   });
 
@@ -292,6 +293,7 @@ export const createOidcClient = form(createOidcClientSchema, async (data) => {
       name: data.name,
       redirectUris: uris,
       scopes: claims,
+      requireActiveMembership: data.requireActiveMembership,
       type: "authorization_code",
     },
   });
@@ -315,6 +317,7 @@ export const updateOidcClient = form(updateOidcClientSchema, async (data) => {
       name: data.name,
       redirectUris: uris,
       scopes: claims,
+      requireActiveMembership: data.requireActiveMembership,
       type: "authorization_code",
       clientSecret,
     })
@@ -329,6 +332,7 @@ export const updateOidcClient = form(updateOidcClientSchema, async (data) => {
       name: data.name,
       redirectUris: uris,
       scopes: claims,
+      requireActiveMembership: data.requireActiveMembership,
       type: "authorization_code",
     },
   });

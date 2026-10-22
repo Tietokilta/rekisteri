@@ -492,6 +492,9 @@ Terveisin,
           applicationNamePlaceholder: "esim. Killan foorumi",
           redirectUrisPlaceholder: "esim. https://example.com/oauth/callback",
           openidClaims: "OpenID-väitteet",
+          membersOnly: "Vain jäsenille",
+          membersOnlyDescription:
+            "Vain käyttäjät, joilla on voimassa oleva jäsenyys, voivat kirjautua tähän sovellukseen.",
         },
         secret: {
           newTitle: "Uusi asiakassalaisuus luotu",
@@ -1032,6 +1035,8 @@ Terveisin,
       proceedNotice: "Jatkamalla sallit sovelluksen käyttää yllä lueteltuja tietoja.",
       allowAccess: "Salli pääsy",
       deny: "Hylkää",
+      membersOnly: "Tämä sovellus on vain jäsenille, joilla on voimassa oleva jäsenyys.",
+      getMembership: "Hanki jäsenyys",
     },
     error: {
       title: "Tunnistautumisvirhe",

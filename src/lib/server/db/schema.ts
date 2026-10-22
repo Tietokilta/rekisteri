@@ -327,6 +327,8 @@ export const oidcClient = snakeCase.table("oidc_client", {
   type: oidcGrantTypeEnum().notNull().default("authorization_code"),
   name: text().notNull(),
   redirectUris: jsonb().$type<string[]>().notNull().default([]),
+  // Only users with an active membership can sign in
+  requireActiveMembership: boolean().notNull().default(false),
   scopes: jsonb().$type<string[]>().notNull().default([]),
   ...timestamps,
 });

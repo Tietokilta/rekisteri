@@ -8,6 +8,7 @@ import { getLL } from "$lib/server/i18n";
 import { finishInteraction, getInteraction } from "$lib/server/oidc/interaction";
 import { invalidateSession, deleteSessionTokenCookie } from "$lib/server/auth/session";
 import { auditFromEvent, createAuditLog } from "$lib/server/audit";
+import { canUseClient } from "$lib/server/oidc/access";
 
 // Grant only what this request asked for, limited to the scopes the client is allowed
 function grantedScopes(requested: unknown, clientScopes: string[]): string {
@@ -74,8 +75,11 @@ export const load: PageServerLoad = async (event) => {
     redirect(302, `/${targetLocale}/oidc/error?code=${errorCode}`);
   }
 
+  // Members-only clients: the page explains instead of asking for consent
+  const membersOnly = currentUser ? !(await canUseClient(currentUser.id, client.clientId)) : false;
+
   // AUTOMATIC AUTHORIZATION:
-  if (currentUser && existingConsent && !isForceConsent) {
+  if (currentUser && existingConsent && !isForceConsent && !membersOnly) {
     const provider = getOidcProvider();
     const grant = new provider.Grant({
       accountId: currentUser.id,
@@ -113,6 +117,7 @@ export const load: PageServerLoad = async (event) => {
       scopes: client.scopes,
     },
     prompt: interaction.prompt,
+    membersOnly,
     user: currentUser
       ? {
           id: currentUser.id,
@@ -189,6 +194,13 @@ export const actions: Actions = {
         userAgent: event.request.headers.get("user-agent") || undefined,
       });
       redirect(302, `/${targetLocale}/oidc/error?code=${errorCode}`);
+    }
+
+    if (!(await canUseClient(locals.user.id, client.clientId))) {
+      return finishInteraction(interaction, {
+        error: "access_denied",
+        error_description: "An active membership is required",
+      });
     }
 
     const provider = getOidcProvider();

@@ -59,6 +59,7 @@
     name: string;
     redirectUris: string;
     scopes: string[];
+    requireActiveMembership: boolean;
     grantTypes: string[];
     clientSecret?: string | null;
   } | null>(null);

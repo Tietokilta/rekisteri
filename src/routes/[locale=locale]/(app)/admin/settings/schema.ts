@@ -101,6 +101,14 @@ const generateSecretSchema = v.optional(
   false,
 );
 
+const checkboxSchema = v.optional(
+  v.pipe(
+    v.union([v.boolean(), v.string()]),
+    v.transform((val) => val === true || val === "true" || val === "on"),
+  ),
+  false,
+);
+
 export const createOidcClientSchema = v.object({
   name: v.pipe(v.string(), v.minLength(1, "Name is required")),
   redirectUris: v.optional(v.string(), ""),
@@ -108,6 +116,7 @@ export const createOidcClientSchema = v.object({
   "idTokenClaims[]": idTokenClaimsSchema,
   grantTypes: grantTypesSchema,
   "grantTypes[]": grantTypesSchema,
+  requireActiveMembership: checkboxSchema,
   generateSecret: generateSecretSchema,
 });
 
@@ -119,6 +128,7 @@ export const updateOidcClientSchema = v.object({
   "idTokenClaims[]": idTokenClaimsSchema,
   grantTypes: grantTypesSchema,
   "grantTypes[]": grantTypesSchema,
+  requireActiveMembership: checkboxSchema,
   clientSecret: v.optional(v.string()),
 });
 

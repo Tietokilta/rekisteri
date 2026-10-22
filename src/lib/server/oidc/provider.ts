@@ -16,7 +16,7 @@ import { generateKeyPairSync, createHash } from "node:crypto";
 import { dev, building } from "$app/environment";
 import { db } from "$lib/server/db";
 import { user, member, membership } from "$lib/server/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, lte } from "drizzle-orm";
 import { DrizzleOidcAdapter } from "./adapter";
 import { env } from "$lib/server/env";
 import { preferredLanguageToLocale } from "$lib/i18n/routing";
@@ -25,6 +25,7 @@ import { verifyClientSecret } from "./secret";
 import { createAuditLog } from "$lib/server/audit";
 import { sessionCookieName, validateSessionToken } from "$lib/server/auth/session";
 import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
+import { canUseClient } from "./access";
 
 /**
  * Constructs the canonical OIDC issuer URL from environment configuration.
@@ -215,6 +216,21 @@ function buildInteractionPolicy() {
       },
     ),
   );
+  policy.get("login")?.checks.add(
+    // An existing session and grant would otherwise skip the login page, which is where
+    // members-only clients turn away users without an active membership
+    new interactionPolicy.Check(
+      "active_membership",
+      "Client requires an active membership",
+      async (ctx: KoaContextWithOIDC) => {
+        const accountId = ctx.oidc.session?.accountId;
+        if (!accountId || !ctx.oidc.client || ctx.oidc.result?.login) return interactionPolicy.Check.NO_NEED_TO_PROMPT;
+        return (await canUseClient(accountId, ctx.oidc.client.clientId))
+          ? interactionPolicy.Check.NO_NEED_TO_PROMPT
+          : interactionPolicy.Check.REQUEST_PROMPT;
+      },
+    ),
+  );
   return policy;
 }
 
@@ -248,7 +264,11 @@ const configuration: Configuration = {
    * @param ctx - Koa/oidc-provider context object.
    * @param id - The user UUID subject identifier.
    */
-  findAccount: async (_ctx: unknown, id: string) => {
+  findAccount: async (ctx: KoaContextWithOIDC, id: string) => {
+    // A members-only client's tokens and userinfo stop working once the membership ends
+    const { route, client } = ctx.oidc;
+    if ((route === "token" || route === "userinfo") && client && !(await canUseClient(id, client.clientId))) return;
+
     const [u] = await db.select().from(user).where(eq(user.id, id));
     if (!u) return;
 
@@ -290,13 +310,22 @@ const configuration: Configuration = {
 
         // --- Membership claims ---
         if (hasScope("membership")) {
+          // Same definition as canUseClient: active status and a period covering the current time
+          const now = new Date();
           const activeMembers = await db
             .select({ membershipTypeId: membership.membershipTypeId })
             .from(member)
             .innerJoin(membership, eq(member.membershipId, membership.id))
-            .where(and(eq(member.userId, u.id), eq(member.status, "active")));
+            .where(
+              and(
+                eq(member.userId, u.id),
+                eq(member.status, "active"),
+                lte(membership.startTime, now),
+                gte(membership.endTime, now),
+              ),
+            );
 
-          accountClaims.active_memberships = activeMembers.map((m) => m.membershipTypeId);
+          accountClaims.active_memberships = [...new Set(activeMembers.map((m) => m.membershipTypeId))];
         }
 
         return accountClaims;

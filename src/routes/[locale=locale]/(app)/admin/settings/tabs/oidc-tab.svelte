@@ -6,6 +6,7 @@
   import { Badge } from "$lib/components/ui/badge";
   import * as Tabs from "$lib/components/ui/tabs";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
+  import { Checkbox } from "$lib/components/ui/checkbox";
   import { toast } from "svelte-sonner";
   import type { PageData } from "../$types";
 
@@ -48,6 +49,7 @@
       name: string;
       redirectUris: string;
       scopes: string[];
+      requireActiveMembership: boolean;
       grantTypes: string[];
       clientSecret?: string | null;
     } | null;
@@ -162,6 +164,14 @@
             {/if}
           </div>
 
+          <label class="flex items-start gap-2 text-xs">
+            <Checkbox name="requireActiveMembership" class="mt-0.5" />
+            <span>
+              <span class="font-medium text-foreground">{oidcAdmin.form.membersOnly()}</span>
+              <span class="block text-muted-foreground">{oidcAdmin.form.membersOnlyDescription()}</span>
+            </span>
+          </label>
+
           <!-- Configurable Scopes Section -->
           <OidcClientConfig bind:scopes={createAllowedScopes} namePrefix="scope_category_create" />
         </form>
@@ -228,6 +238,18 @@
               ></textarea>
             </div>
 
+            <label class="flex items-start gap-2 text-xs">
+              <Checkbox
+                name="requireActiveMembership"
+                bind:checked={editingOidcClient.requireActiveMembership}
+                class="mt-0.5"
+              />
+              <span>
+                <span class="font-medium text-foreground">{oidcAdmin.form.membersOnly()}</span>
+                <span class="block text-muted-foreground">{oidcAdmin.form.membersOnlyDescription()}</span>
+              </span>
+            </label>
+
             <!-- Configurable Scopes Section -->
             <OidcClientConfig bind:scopes={editingOidcClient.scopes} namePrefix="scope_category_edit" />
           </form>
@@ -254,6 +276,9 @@
                     <Binary class="size-3" />
                     <span>{client.type}</span>
                   </Badge>
+                  {#if client.requireActiveMembership}
+                    <Badge variant="outline" class="text-[10px]">{oidcAdmin.form.membersOnly()}</Badge>
+                  {/if}
 
                   <ArrowRight class="size-3 shrink-0 text-muted-foreground/70" />
 
@@ -304,6 +329,7 @@
                       name: client.name,
                       redirectUris: client.redirectUris.join("\n"),
                       scopes: [...client.scopes],
+                      requireActiveMembership: client.requireActiveMembership,
                       grantTypes: [
                         client.type,
                         ...(client.scopes?.includes("offline_access") ? ["refresh_token"] : []),

@@ -12,6 +12,7 @@
   import { signInSchema } from "../../../sign-in/schema";
 
   import { OIDC_SCOPES } from "$lib/shared/oidc";
+  import { route } from "$lib/ROUTES";
 
   let { data }: { data: PageData } = $props();
   const textLocale = $derived($locale === "fi" ? "fi" : "en");
@@ -91,7 +92,23 @@
       </div>
     {/if}
 
-    {#if data.user}
+    {#if data.user && data.membersOnly}
+      <div class="mt-4 space-y-4" data-testid="oidc-members-only">
+        <p class="rounded-xl border border-border/80 bg-muted/30 p-4 text-center text-sm text-foreground">
+          {$LL.oidc.consent.membersOnly()}
+        </p>
+        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button type="submit" form="deny-form" variant="outline" class="w-full sm:w-auto">
+            {$LL.common.cancel()}
+          </Button>
+          <Button href={route("/[locale=locale]/new", { locale: $locale })} class="w-full sm:w-auto">
+            {$LL.oidc.consent.getMembership()}
+          </Button>
+        </div>
+      </div>
+
+      <form id="deny-form" method="POST" action="?/deny" class="hidden"></form>
+    {:else if data.user}
       <form method="POST" action="?/accept" class="mt-4 flex min-h-0 flex-1 flex-col justify-between space-y-4">
         <!-- Requested access display -->
         <div class="flex min-h-0 flex-1 flex-col space-y-2">
