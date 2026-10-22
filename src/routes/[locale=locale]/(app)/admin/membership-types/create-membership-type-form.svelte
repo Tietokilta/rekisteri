@@ -129,7 +129,7 @@
 
   <!-- Purchasable -->
   <div class="flex items-center gap-3">
-    <Checkbox {...createMembershipType.fields.purchasable.as("checkbox")} id="purchasable" />
+    <Checkbox {...createMembershipType.fields.purchasable} id="purchasable" />
     <div>
       <Label for="purchasable">{$LL.admin.membershipTypes.purchasable()}</Label>
       <p class="text-sm text-muted-foreground">{$LL.admin.membershipTypes.purchasableDescription()}</p>

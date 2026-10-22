@@ -121,7 +121,6 @@ export function matchesSearchTokens(query: string, fields: (string | null | unde
 /**
  * Returns all claim keys associated with the provided OIDC scopes or claim names.
  */
-// fallow-ignore-next-line unused-export
 export function getClaimsForScopes(scopes: readonly string[] | string[] | undefined | null): string[] {
   if (!scopes || !Array.isArray(scopes)) return [];
   const claims = new Set<string>();
