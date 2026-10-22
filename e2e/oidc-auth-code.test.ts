@@ -102,6 +102,9 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     // Verify ID Token JWT structure, algorithms, signature, issuer, audience, subject and timestamps
     const idClaims = validateIdTokenSecurityAndClaims(tokenData.id_token, clientId, adminUser.id);
     expect(idClaims.sub).toBe(adminUser.id);
+    // The client may use the email scope but didn't ask for it, so it isn't granted
+    expect(idClaims.email).toBeUndefined();
+    expect(tokenData.scope).toBe("openid profile");
 
     // The access token works at the userinfo endpoint and returns the same subject
     const userinfoRes = await request.get(`${getBaseUrl()}/oidc/userinfo`, {

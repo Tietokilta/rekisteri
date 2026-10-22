@@ -9,10 +9,11 @@ import { finishInteraction, getInteraction } from "$lib/server/oidc/interaction"
 import { invalidateSession, deleteSessionTokenCookie } from "$lib/server/auth/session";
 import { auditFromEvent, createAuditLog } from "$lib/server/audit";
 
-function buildGrantScopes(clientScopes?: string[]): string {
-  const clientAllowed = Array.isArray(clientScopes) ? clientScopes : ["openid"];
-  const finalScopes = new Set<string>(["openid", ...clientAllowed]);
-  return Array.from(finalScopes).join(" ");
+// Grant only what this request asked for, limited to the scopes the client is allowed
+function grantedScopes(requested: unknown, clientScopes: string[]): string {
+  const allowed = new Set(["openid", ...clientScopes]);
+  const requestedScopes = typeof requested === "string" ? requested.split(" ") : [];
+  return requestedScopes.filter((scope) => allowed.has(scope)).join(" ");
 }
 
 export const load: PageServerLoad = async (event) => {
@@ -80,7 +81,7 @@ export const load: PageServerLoad = async (event) => {
       accountId: currentUser.id,
       clientId: client.clientId,
     });
-    grant.addOIDCScope(buildGrantScopes(client.scopes));
+    grant.addOIDCScope(grantedScopes(interaction.params.scope, client.scopes));
     const grantId = await grant.save();
 
     await db
@@ -216,7 +217,7 @@ export const actions: Actions = {
       clientId: client.clientId,
     });
 
-    grant.addOIDCScope(buildGrantScopes(client.scopes));
+    grant.addOIDCScope(grantedScopes(interaction.params.scope, client.scopes));
     const grantId = await grant.save();
 
     await auditFromEvent(event, "oidc_consent.create", {
