@@ -15,6 +15,7 @@ const en = {
     profile: "Profile",
     passkeys: "Passkeys",
     emails: "Emails",
+    applications: "Connected Apps",
     admin: {
       title: "Admin",
       members: "Member registry",
@@ -71,6 +72,15 @@ const en = {
     emails: {
       title: "Emails",
       description: "Manage secondary emails",
+    },
+    applications: {
+      title: "Connected Applications",
+      description: "Manage applications that have been granted access to your account data.",
+      noGrants: "You haven't granted access to any third-party applications.",
+      revoke: "Revoke Access",
+      revokedSuccess: "Access revoked successfully",
+      grantedOn: "Granted on",
+      scopes: "Granted Permissions",
     },
   },
 
