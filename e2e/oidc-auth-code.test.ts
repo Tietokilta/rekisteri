@@ -111,6 +111,7 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     const userinfo = await userinfoRes.json();
     expect(userinfo.sub).toBe(adminUser.id);
     expect(userinfo.locale).toBeTruthy();
+    expect(typeof userinfo.aalto_email_verified).toBe("boolean");
 
     // Security Check: Attempt code exchange with WRONG client secret -> MUST fail
     const badSecretRes = await request.post(`${getBaseUrl()}/oidc/token`, {
@@ -354,8 +355,9 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
         "given_name",
         "family_name",
         "locale",
-        "verified_student",
-        "primary_email",
+        "aalto_email_verified",
+        "email",
+        "email_verified",
         "verified_emails",
         "optional_emails_allowed",
         "active_memberships",

@@ -84,18 +84,26 @@ export const OPTIONAL_CLAIMS: readonly OidcClaimDefinition[] = [
   },
   {
     // Private claim
-    key: "verified_student",
+    key: "aalto_email_verified",
     scope: "profile",
-    title: { fi: "Aalto-opiskelija", en: "Verified student" },
-    description: { fi: "Vahvistettu Aalto-yliopiston opiskelijastatus", en: "Verified Aalto student status boolean" },
+    title: { fi: "Vahvistettu Aalto-sähköposti", en: "Verified Aalto email" },
+    description: {
+      fi: "Onko käyttäjällä vahvistettu aalto.fi-sähköpostiosoite",
+      en: "Whether the user has a verified aalto.fi email address",
+    },
   },
   // Email claims
   {
-    // Private claim
-    key: "primary_email",
+    key: "email",
     scope: "email",
     title: { fi: "Pääsähköposti", en: "Primary email" },
-    description: { fi: "Käyttäjän Pääsähköpostiosoite", en: "User's primary email address" },
+    description: { fi: "Käyttäjän pääsähköpostiosoite", en: "User's primary email address" },
+  },
+  {
+    key: "email_verified",
+    scope: "email",
+    title: { fi: "Sähköposti vahvistettu", en: "Email verified" },
+    description: { fi: "Onko pääsähköpostiosoite vahvistettu", en: "Whether the primary email address is verified" },
   },
   {
     // Private claim
@@ -148,13 +156,13 @@ export const OIDC_SCOPES: readonly OidcScope[] = [
     key: "profile",
     title: { fi: "Profiili", en: "Profile" },
     icon: "User",
-    claims: ["given_name", "family_name", "locale", "verified_student"],
+    claims: ["given_name", "family_name", "locale", "aalto_email_verified"],
   },
   {
     key: "email",
     title: { fi: "Sähköposti", en: "Email" },
     icon: "Mail",
-    claims: ["primary_email", "verified_emails", "optional_emails_allowed"],
+    claims: ["email", "email_verified", "verified_emails", "optional_emails_allowed"],
   },
   {
     key: "membership",

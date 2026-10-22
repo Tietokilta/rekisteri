@@ -5,7 +5,7 @@
  * Configures the `oidc-provider` instance for Rekisteri, including:
  * - Custom RSA signing key generation with UUID key ID (`kid`).
  * - Drizzle ORM database adapter integration.
- * - Dynamic user account lookup & claim resolution (profile, email, verified student status, active memberships).
+ * - Dynamic user account lookup & claim resolution (profile, email, Aalto email verification, active memberships).
  * - Custom client secret verification.
  * - Custom error rendering and redirection to localized error pages.
  * - Hot Module Replacement (HMR) state preservation in development mode.
@@ -14,8 +14,8 @@
 import Provider, { interactionPolicy, type Configuration, type KoaContextWithOIDC } from "oidc-provider";
 import { generateKeyPairSync, randomUUID, createHash } from "node:crypto";
 import { db } from "$lib/server/db";
-import { user, member, membership, secondaryEmail } from "$lib/server/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { user, member, membership } from "$lib/server/db/schema";
+import { eq, and } from "drizzle-orm";
 import { DrizzleOidcAdapter } from "./adapter";
 import { env } from "$lib/server/env";
 import { preferredLanguageToLocale } from "$lib/i18n/routing";
@@ -23,6 +23,7 @@ import { OIDC_SCOPES } from "$lib/shared/oidc";
 import { verifyClientSecret } from "./secret";
 import { createAuditLog } from "$lib/server/audit";
 import { sessionCookieName, validateSessionToken } from "$lib/server/auth/session";
+import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
 
 /**
  * Constructs the canonical OIDC issuer URL from environment configuration.
@@ -257,48 +258,29 @@ const configuration: Configuration = {
           iss: getIssuerUrl(),
         };
 
+        // Verified secondary emails; aalto.fi verifications expire and must be renewed
+        const validSecondaryEmails =
+          hasScope("profile") || hasScope("email")
+            ? (await getUserSecondaryEmails(u.id)).filter((e) => isSecondaryEmailValid(e))
+            : [];
+
         // --- Profile claims ---
         if (hasScope("profile")) {
           accountClaims.given_name = u.firstNames || undefined;
           accountClaims.family_name = u.lastName || undefined;
           accountClaims.locale = preferredLanguageToLocale(u.preferredLanguage) || "fi";
-
-          const isPrimaryAalto = u.email?.toLowerCase().endsWith("@aalto.fi");
-          let isSecondaryAalto = false;
-          if (!isPrimaryAalto) {
-            const [secondaryAalto] = await db
-              .select({ id: secondaryEmail.id })
-              .from(secondaryEmail)
-              .where(
-                and(
-                  eq(secondaryEmail.userId, u.id),
-                  eq(secondaryEmail.domain, "aalto.fi"),
-                  sql`${secondaryEmail.verifiedAt} IS NOT NULL`,
-                ),
-              )
-              .limit(1);
-            isSecondaryAalto = !!secondaryAalto;
-          }
-          accountClaims.verified_student = isPrimaryAalto || isSecondaryAalto;
+          // Not student status: staff have aalto.fi addresses too
+          accountClaims.aalto_email_verified =
+            u.email.toLowerCase().endsWith("@aalto.fi") || validSecondaryEmails.some((e) => e.domain === "aalto.fi");
         }
 
         // --- Email claims ---
         if (hasScope("email")) {
-          accountClaims.primary_email = u.email;
+          // The primary email is verified at sign-up and whenever it changes
+          accountClaims.email = u.email;
+          accountClaims.email_verified = true;
+          accountClaims.verified_emails = [...new Set([u.email, ...validSecondaryEmails.map((e) => e.email)])];
           accountClaims.optional_emails_allowed = u.isAllowedEmails;
-
-          const secVerified = await db
-            .select({ email: secondaryEmail.email })
-            .from(secondaryEmail)
-            .where(and(eq(secondaryEmail.userId, u.id), sql`${secondaryEmail.verifiedAt} IS NOT NULL`));
-
-          const verifiedEmailsSet = new Set<string>();
-          if (u.email) verifiedEmailsSet.add(u.email);
-          for (const s of secVerified) {
-            if (s.email) verifiedEmailsSet.add(s.email);
-          }
-
-          accountClaims.verified_emails = Array.from(verifiedEmailsSet);
         }
 
         // --- Membership claims ---

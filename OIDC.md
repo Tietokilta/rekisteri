@@ -1,18 +1,21 @@
 # Integrating with Rekisteri OIDC
 
-Rekisteri provides OpenID Connect (OIDC Core 1.0 / OAuth 2.0) authentication for client applications using a **pure claims `id_token` model** with PKCE authorization code flow.
+Rekisteri provides OpenID Connect (OIDC Core 1.0 / OAuth 2.0) authentication for client applications using the authorization code flow with PKCE. Claims are available both in the signed `id_token` and from the UserInfo endpoint.
+
+The issuer is the site origin, e.g. `https://rekisteri.tietokilta.fi`, so most client libraries only need the issuer URL and use discovery for the rest.
 
 ---
 
 ## 1. Endpoints
 
-| Endpoint          | Method | Path                                     | Description                                 |
-| :---------------- | :----- | :--------------------------------------- | :------------------------------------------ |
-| **Discovery**     | `GET`  | `/oidc/.well-known/openid-configuration` | OpenID configuration document               |
-| **JWKS**          | `GET`  | `/oidc/jwks`                             | Public RSA keys for JWT verification        |
-| **Authorization** | `GET`  | `/oidc/auth`                             | Login & consent flow                        |
-| **Token**         | `POST` | `/oidc/token`                            | Authorization code & refresh token exchange |
-| **Logout**        | `GET`  | `/oidc/logout`                           | RP-Initiated logout                         |
+| Endpoint          | Method | Path                                | Description                                 |
+| :---------------- | :----- | :---------------------------------- | :------------------------------------------ |
+| **Discovery**     | `GET`  | `/.well-known/openid-configuration` | OpenID configuration document               |
+| **JWKS**          | `GET`  | `/oidc/jwks`                        | Public RSA keys for JWT verification        |
+| **Authorization** | `GET`  | `/oidc/auth`                        | Login & consent flow                        |
+| **Token**         | `POST` | `/oidc/token`                       | Authorization code & refresh token exchange |
+| **UserInfo**      | `GET`  | `/oidc/userinfo`                    | Claims for the access token's scopes        |
+| **Logout**        | `GET`  | `/oidc/logout`                      | RP-Initiated logout                         |
 
 ---
 
@@ -63,13 +66,16 @@ grant_type=authorization_code
 
 ```json
 {
+  "access_token": "Gc0XfR2...",
+  "token_type": "Bearer",
+  "expires_in": 3600,
   "id_token": "eyJhbGciOiJSUzI1NiIs...",
-  "refresh_token": "5lYu78qYmY7a4D6..."
+  "refresh_token": "5lYu78qYmY7a4D6...",
+  "scope": "openid profile email offline_access"
 }
 ```
 
-> [!NOTE]
-> Rekisteri delivers user identity attributes directly inside the signed `id_token`. No `access_token` or separate UserInfo query is needed.
+The `id_token` already contains the claims for the granted scopes. The `access_token` can be used to fetch the same claims from `GET /oidc/userinfo` (`Authorization: Bearer ...`). It's only valid for UserInfo.
 
 ### Step 4: Refresh Token Exchange (`POST /oidc/token`)
 
@@ -89,15 +95,15 @@ grant_type=refresh_token
 
 ## 3. Scopes & Claims Reference
 
-Identity claims are signed in the `id_token` (RS256) based on the client's authorized scopes:
+Claims are returned in the `id_token` (RS256) and from UserInfo, based on the scopes granted to the client. Standard OIDC claim names are used where one exists.
 
-| Scope            | Claims                                                                                                               | Description                                                               |
-| :--------------- | :------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------ |
-| `openid`         | `sub`, `iss`, `aud`, `iat`, `exp`                                                                                    | Subject identifier and protocol timestamps                                |
-| `profile`        | `given_name` (`string`)<br>`family_name` (`string`)<br>`locale` (`"fi"` \| `"en"`)<br>`verified_student` (`boolean`) | User's name, language preference, and `@aalto.fi` verified student status |
-| `email`          | `primary_email` (`string`)<br>`verified_emails` (`string[]`)<br>`optional_emails_allowed` (`boolean`)                | Primary email, all verified emails, and marketing email preference        |
-| `membership`     | `active_memberships` (`string[]`)                                                                                    | Identifiers of user's active membership types                             |
-| `offline_access` | _(issues `refresh_token`)_                                                                                           | Enables refresh token generation                                          |
+| Scope            | Claims                                                                                                                        | Description                                                                                                    |
+| :--------------- | :---------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| `openid`         | `sub`, `iss`, `aud`, `iat`, `exp`                                                                                             | Subject identifier and protocol timestamps                                                                     |
+| `profile`        | `given_name` (`string`)<br>`family_name` (`string`)<br>`locale` (`"fi"` \| `"en"`)<br>`aalto_email_verified` (`boolean`)      | Name, language, and whether the user has a verified aalto.fi address (not student status: staff have them too) |
+| `email`          | `email` (`string`)<br>`email_verified` (`boolean`)<br>`verified_emails` (`string[]`)<br>`optional_emails_allowed` (`boolean`) | Primary email, all currently verified emails, and permission for optional emails                               |
+| `membership`     | `active_memberships` (`string[]`)                                                                                             | Identifiers of the user's active membership types                                                              |
+| `offline_access` | _(issues `refresh_token`)_                                                                                                    | Enables refresh token generation                                                                               |
 
 ---
 
@@ -111,7 +117,7 @@ export const authOptions = {
     OIDCProvider({
       id: "rekisteri",
       name: "Rekisteri",
-      issuer: "https://rekisteri.tietokilta.fi/oidc",
+      issuer: "https://rekisteri.tietokilta.fi",
       clientId: REKISTERI_CLIENT_ID,
       clientSecret: REKISTERI_CLIENT_SECRET,
       authorization: { params: { scope: "openid profile email offline_access" } },
@@ -120,7 +126,7 @@ export const authOptions = {
         return {
           id: profile.sub,
           name: `${profile.given_name} ${profile.family_name}`,
-          email: profile.primary_email,
+          email: profile.email,
         };
       },
     }),
