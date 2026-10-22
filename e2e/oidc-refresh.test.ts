@@ -46,7 +46,6 @@ test.describe("OIDC Authorization Code Flow with Refresh Token (E2E)", () => {
     return request.post(`${getBaseUrl()}/oidc/token`, {
       headers: {
         authorization: `Basic ${Buffer.from(`${clientId}:${REFRESH_SECRET}`).toString("base64")}`,
-        origin: getBaseUrl(),
       },
       form: {
         grant_type: "refresh_token",
@@ -92,7 +91,6 @@ test.describe("OIDC Authorization Code Flow with Refresh Token (E2E)", () => {
     const tokenRes = await request.post(`${getBaseUrl()}/oidc/token`, {
       headers: {
         authorization: `Basic ${Buffer.from(`${clientId}:${REFRESH_SECRET}`).toString("base64")}`,
-        origin: getBaseUrl(),
       },
       form: {
         grant_type: "authorization_code",
@@ -180,7 +178,6 @@ test.describe("OIDC Authorization Code Flow with Refresh Token (E2E)", () => {
     const tokenRes = await request.post(`${getBaseUrl()}/oidc/token`, {
       headers: {
         authorization: `Basic ${Buffer.from(`${clientId}:${REFRESH_SECRET}`).toString("base64")}`,
-        origin: getBaseUrl(),
       },
       form: {
         grant_type: "authorization_code",
@@ -231,7 +228,6 @@ test.describe("OIDC Authorization Code Flow with Refresh Token (E2E)", () => {
     const tokenRes = await request.post(`${getBaseUrl()}/oidc/token`, {
       headers: {
         authorization: `Basic ${Buffer.from(`${clientId}:${REFRESH_SECRET}`).toString("base64")}`,
-        origin: getBaseUrl(),
       },
       form: {
         grant_type: "authorization_code",
@@ -307,7 +303,6 @@ test.describe("OIDC Authorization Code Flow with Refresh Token (E2E)", () => {
     const tokenRes = await request.post(`${getBaseUrl()}/oidc/token`, {
       headers: {
         authorization: `Basic ${Buffer.from(`${clientId}:${REFRESH_SECRET}`).toString("base64")}`,
-        origin: getBaseUrl(),
       },
       form: {
         grant_type: "authorization_code",

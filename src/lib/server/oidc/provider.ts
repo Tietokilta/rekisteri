@@ -352,9 +352,10 @@ const configuration: Configuration = {
     dPoP: { enabled: false },
   },
 
-  // Enable CORS for registered OIDC clients
+  // Clients are server-side apps, so browsers must not call the token, userinfo or revocation
+  // endpoints cross-origin. Discovery and JWKS stay open to all origins.
   clientBasedCORS() {
-    return true;
+    return false;
   },
 
   // Dynamically issue refresh tokens if client registration enables refresh_token grant

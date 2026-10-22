@@ -82,7 +82,6 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     const tokenRes = await request.post(`${getBaseUrl()}/oidc/token`, {
       headers: {
         authorization: `Basic ${Buffer.from(`${clientId}:${AUTH_CODE_SECRET}`).toString("base64")}`,
-        origin: getBaseUrl(),
       },
       form: {
         grant_type: "authorization_code",
@@ -120,7 +119,6 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     const badSecretRes = await request.post(`${getBaseUrl()}/oidc/token`, {
       headers: {
         authorization: `Basic ${Buffer.from(`${clientId}:wrong_secret`).toString("base64")}`,
-        origin: getBaseUrl(),
       },
       form: {
         grant_type: "authorization_code",
@@ -135,7 +133,6 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     const reuseCodeRes = await request.post(`${getBaseUrl()}/oidc/token`, {
       headers: {
         authorization: `Basic ${Buffer.from(`${clientId}:${AUTH_CODE_SECRET}`).toString("base64")}`,
-        origin: getBaseUrl(),
       },
       form: {
         grant_type: "authorization_code",
@@ -200,7 +197,6 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     const tokenRes = await request.post(`${getBaseUrl()}/oidc/token`, {
       headers: {
         authorization: `Basic ${Buffer.from(`${clientId}:${AUTH_CODE_SECRET}`).toString("base64")}`,
-        origin: getBaseUrl(),
       },
       form: {
         grant_type: "authorization_code",
@@ -244,7 +240,6 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     const tokenRes = await request.post(`${getBaseUrl()}/oidc/token`, {
       headers: {
         authorization: `Basic ${Buffer.from(`${clientId}:${AUTH_CODE_SECRET}`).toString("base64")}`,
-        origin: getBaseUrl(),
       },
       form: {
         grant_type: "authorization_code",
@@ -299,7 +294,6 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     const tokenRes = await request.post(`${getBaseUrl()}/oidc/token`, {
       headers: {
         authorization: `Basic ${Buffer.from(`${clientId}:${AUTH_CODE_SECRET}`).toString("base64")}`,
-        origin: getBaseUrl(),
       },
       form: {
         grant_type: "authorization_code",
