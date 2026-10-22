@@ -3,7 +3,7 @@
  * @description OIDC Identity Provider Configuration & Instance Management.
  *
  * Configures the `oidc-provider` instance for Rekisteri, including:
- * - Custom RSA signing key generation with UUID key ID (`kid`).
+ * - Signing keys from OIDC_SIGNING_KEY_JWK (one key or a set, for rotation), with RFC 7638 thumbprints as `kid`.
  * - Drizzle ORM database adapter integration.
  * - Dynamic user account lookup & claim resolution (profile, email, Aalto email verification, active memberships).
  * - Custom client secret verification.
@@ -12,7 +12,8 @@
  */
 
 import Provider, { interactionPolicy, type Configuration, type KoaContextWithOIDC } from "oidc-provider";
-import { generateKeyPairSync, randomUUID, createHash } from "node:crypto";
+import { generateKeyPairSync, createHash } from "node:crypto";
+import { dev, building } from "$app/environment";
 import { db } from "$lib/server/db";
 import { user, member, membership } from "$lib/server/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -35,7 +36,7 @@ function getIssuerUrl(): string {
 
 // Preserve signing key and Provider instance across Vite HMR reloads in development mode
 const globalForOidc = globalThis as unknown as {
-  __oidcJwk?: Record<string, unknown>;
+  __oidcJwks?: Record<string, unknown>[];
   __oidcProvider?: Provider;
 };
 
@@ -44,57 +45,61 @@ export function calculateRfc7638Thumbprint(jwk: Record<string, unknown>): string
   return createHash("sha256").update(canonicalJson).digest("base64url");
 }
 
-export function parseBase64Jwk(input: string): Record<string, unknown> | null {
-  if (!input || typeof input !== "string") return null;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Parses OIDC_SIGNING_KEY_JWK: Base64-encoded JSON holding either one private JWK or a JWK Set
+ * (`{"keys": [...]}`). With a set, the first key signs new tokens and the others are only
+ * published, so tokens they signed keep verifying. That's how keys are rotated: put the new key
+ * first, deploy, and drop the old one once its tokens have expired.
+ */
+export function parseSigningKeys(input: string): Record<string, unknown>[] | null {
   const trimmed = input.trim();
-  if (!trimmed) return null;
+  // Strictly reject anything that isn't Base64 (e.g. raw JSON)
+  if (!trimmed || !/^[A-Za-z0-9+/]+={0,2}$/.test(trimmed) || trimmed.length % 4 !== 0) return null;
 
-  // Strictly reject if not valid base64 (e.g. raw JSON strings)
-  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(trimmed) || trimmed.length % 4 !== 0) {
-    return null;
-  }
-
+  let parsed: unknown;
   try {
-    const decoded = Buffer.from(trimmed, "base64").toString("utf8");
-    const parsed = JSON.parse(decoded);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && typeof parsed.kty === "string") {
-      return parsed as Record<string, unknown>;
-    }
+    parsed = JSON.parse(Buffer.from(trimmed, "base64").toString("utf8"));
   } catch {
     return null;
   }
-  return null;
+  const keys: unknown[] = isRecord(parsed) && Array.isArray(parsed.keys) ? parsed.keys : [parsed];
+  if (keys.length === 0 || keys.some((key) => !(isRecord(key) && typeof key.kty === "string"))) return null;
+  return keys as Record<string, unknown>[];
 }
 
-export function getOrCreateJwk(): Record<string, unknown> {
-  if (globalForOidc.__oidcJwk) {
-    return globalForOidc.__oidcJwk;
-  }
-  const envJwk = env.OIDC_SIGNING_KEY_JWK;
-  if (envJwk) {
-    const parsed = parseBase64Jwk(envJwk);
-    if (parsed) {
-      parsed.kid = calculateRfc7638Thumbprint(parsed);
-      parsed.use = parsed.use ?? "sig";
-      parsed.alg = parsed.alg ?? "RS256";
-      globalForOidc.__oidcJwk = parsed;
-      return parsed;
-    } else {
-      console.warn("[OIDC] Failed to parse OIDC_SIGNING_KEY_JWK from environment, falling back to ephemeral key");
-    }
-  }
-  const { privateKey } = generateKeyPairSync("rsa", {
-    modulusLength: 2048,
-  });
-  const key = privateKey.export({ format: "jwk" }) as Record<string, unknown>;
-  key.use = "sig";
-  key.alg = "RS256";
-  key.kid = randomUUID();
-  globalForOidc.__oidcJwk = key;
-  return key;
+function withKeyDefaults(key: Record<string, unknown>): Record<string, unknown> {
+  return { ...key, kid: calculateRfc7638Thumbprint(key), use: key.use ?? "sig", alg: key.alg ?? "RS256" };
 }
 
-const jwk = getOrCreateJwk();
+/**
+ * The provider's signing keys. A missing key is an error in production: a generated key would
+ * change on every restart and make all issued tokens unverifiable. In dev and tests a throwaway
+ * key is generated instead.
+ */
+export function getSigningKeys(): Record<string, unknown>[] {
+  if (globalForOidc.__oidcJwks) return globalForOidc.__oidcJwks;
+
+  let keys: Record<string, unknown>[];
+  if (env.OIDC_SIGNING_KEY_JWK) {
+    const parsed = parseSigningKeys(env.OIDC_SIGNING_KEY_JWK);
+    if (!parsed) throw new Error("[OIDC] OIDC_SIGNING_KEY_JWK is not a Base64-encoded JWK or JWK Set");
+    keys = parsed.map((key) => withKeyDefaults(key));
+  } else if (!dev && !building && !env.TEST && env.NODE_ENV === "production") {
+    throw new Error(
+      "[OIDC] OIDC_SIGNING_KEY_JWK is required in production (generate one with `pnpm oidc:generate-key`)",
+    );
+  } else {
+    const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    keys = [withKeyDefaults(privateKey.export({ format: "jwk" }) as Record<string, unknown>)];
+  }
+
+  globalForOidc.__oidcJwks = keys;
+  return keys;
+}
 
 /**
  * Build dynamic claims mapping registry from shared OIDC definitions.
@@ -405,10 +410,6 @@ const configuration: Configuration = {
     ctx.status = 302;
     ctx.redirect(`/${maybeLocale}/oidc/error?${params.toString()}`);
   },
-
-  jwks: {
-    keys: [jwk],
-  },
 };
 
 /**
@@ -421,7 +422,10 @@ export function getOidcProvider(): Provider {
   }
 
   const issuer = getIssuerUrl();
-  const provider = new Provider(issuer, configuration);
+  const provider = new Provider(issuer, {
+    ...configuration,
+    jwks: { keys: getSigningKeys() as NonNullable<Configuration["jwks"]>["keys"] },
+  });
   provider.proxy = true;
 
   // Use scrypt client secret verification against stored hashes
