@@ -7,6 +7,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { and, eq, gte, lte } from "drizzle-orm";
 import postgres from "postgres";
 import { generateUserId } from "../auth/utils";
+import { hashClientSecret } from "../oidc/secret";
 
 try {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set");
@@ -540,6 +541,40 @@ try {
   console.log(
     `Seeded ${seededAttendees.length} meetings with ${seededAttendees.reduce((a, b) => a + b, 0)} attendees!`,
   );
+
+  console.log("Seeding OIDC clients...");
+  const oidcClientsToSeed = [
+    {
+      clientId: "client_homesite",
+      name: "Homesite",
+      clientSecret: hashClientSecret("sec_homesite"),
+      allowedOrigins: [],
+      redirectUris: [],
+      scopes: ["openid"],
+      type: "authorization_code" as const,
+    },
+    {
+      clientId: "client_galleria",
+      name: "Galleria",
+      clientSecret: hashClientSecret("sec_galleria"),
+      allowedOrigins: [],
+      redirectUris: [],
+      scopes: ["openid", "profile", "email", "offline_access"],
+      type: "authorization_code" as const,
+    },
+    {
+      clientId: "client_ilmomasiina",
+      name: "Ilmomasiina",
+      clientSecret: hashClientSecret("sec_ilmomasiina"),
+      allowedOrigins: [],
+      redirectUris: [],
+      scopes: ["openid", "profile", "email", "membership", "offline_access"],
+      type: "authorization_code" as const,
+    },
+  ];
+
+  await db.insert(table.oidcClient).values(oidcClientsToSeed);
+  console.log(`Seeded ${oidcClientsToSeed.length} OIDC clients!`);
 
   await client.end();
 } catch (e) {
