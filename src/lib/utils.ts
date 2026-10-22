@@ -97,6 +97,8 @@ export function formatShortDateRange(start: Date, end: Date, locale: string): st
 
 /* eslint-enable no-restricted-syntax */
 
+import { OIDC_SCOPES, ALL_CLAIMS } from "$lib/shared/oidc";
+
 /**
  * Normalize an email address: remove all whitespace and lowercase.
  */
@@ -114,4 +116,25 @@ export function matchesSearchTokens(query: string, fields: (string | null | unde
 
   const haystack = fields.filter(Boolean).join(" ").toLowerCase();
   return tokens.every((token) => haystack.includes(token));
+}
+
+/**
+ * Returns all claim keys associated with the provided OIDC scopes or claim names.
+ */
+// fallow-ignore-next-line unused-export
+export function getClaimsForScopes(scopes: readonly string[] | string[] | undefined | null): string[] {
+  if (!scopes || !Array.isArray(scopes)) return [];
+  const claims = new Set<string>();
+  for (const scope of scopes) {
+    const scopeDef = OIDC_SCOPES.find((s) => s.key === scope);
+    if (scopeDef) {
+      for (const c of scopeDef.claims) {
+        claims.add(c);
+      }
+    } else {
+      const claimDef = ALL_CLAIMS.find((c) => c.key === scope);
+      claims.add(claimDef ? claimDef.key : scope);
+    }
+  }
+  return Array.from(claims);
 }
