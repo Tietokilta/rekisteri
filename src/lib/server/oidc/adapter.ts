@@ -349,11 +349,8 @@ export class DrizzleOidcAdapter implements Adapter {
    */
   // fallow-ignore-next-line unused-class-member
   async consume(id: string): Promise<void> {
-    if (this.name === "AuthorizationCode") {
-      await this.destroy(id);
-      return;
-    }
-
+    // Mark as consumed rather than deleting, so oidc-provider can detect a reused authorization
+    // code and revoke everything issued from it (RFC 6749 §4.1.2)
     const row = await this.find(id);
     if (!row) {
       return;

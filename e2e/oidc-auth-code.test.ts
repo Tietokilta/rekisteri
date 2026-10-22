@@ -148,6 +148,12 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
     const reuseData = await reuseCodeRes.json();
     expect(reuseData.error).toBe("invalid_grant");
 
+    // Reusing the code revokes the tokens it already produced
+    const revokedUserinfoRes = await request.get(`${getBaseUrl()}/oidc/userinfo`, {
+      headers: { authorization: `Bearer ${tokenData.access_token}` },
+    });
+    expect(revokedUserinfoRes.status()).toBe(401);
+
     await context.close();
   });
 
