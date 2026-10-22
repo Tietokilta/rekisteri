@@ -46,7 +46,6 @@
     editingOidcClient: {
       id: string;
       name: string;
-      allowedOrigins?: string;
       redirectUris: string;
       scopes: string[];
       grantTypes: string[];
@@ -145,25 +144,6 @@
           </div>
 
           <div>
-            <label for="edit-allowed-origins" class="text-xs font-medium text-foreground">
-              {oidcAdmin.allowedOrigins()}
-              {$LL.common.onePerLine()}
-            </label>
-            <textarea
-              id="edit-allowed-origins"
-              name="allowedOrigins"
-              rows={2}
-              placeholder={oidcAdmin.form.allowedOriginsPlaceholder()}
-              class="mt-1 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-              required></textarea>
-            {#if createOidcClient.fields.allowedOrigins.issues()?.length}
-              <p class="mt-1 text-xs text-destructive">
-                {createOidcClient.fields.allowedOrigins.issues()?.[0]?.message}
-              </p>
-            {/if}
-          </div>
-
-          <div>
             <label for="create-redirect-uris" class="block text-xs font-medium text-foreground">
               {oidcAdmin.redirectUris()}
               {$LL.common.onePerLine()}
@@ -232,21 +212,6 @@
                 >{oidcAdmin.form.applicationName()}</label
               >
               <Input id="edit-name" name="name" type="text" bind:value={editingOidcClient.name} required class="mt-1" />
-            </div>
-
-            <div>
-              <label for="edit-allowed-origins" class="text-xs font-medium text-foreground">
-                {oidcAdmin.allowedOrigins()}
-                {$LL.common.onePerLine()}
-              </label>
-              <textarea
-                id="edit-allowed-origins"
-                name="allowedOrigins"
-                rows={2}
-                bind:value={editingOidcClient.allowedOrigins}
-                placeholder={oidcAdmin.form.allowedOriginsPlaceholder()}
-                class="mt-1 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-              ></textarea>
             </div>
 
             <div>
@@ -337,7 +302,6 @@
                     (editingOidcClient = {
                       id: client.clientId,
                       name: client.name,
-                      allowedOrigins: (client.allowedOrigins || []).join("\n"),
                       redirectUris: client.redirectUris.join("\n"),
                       scopes: [...client.scopes],
                       grantTypes: [
@@ -408,29 +372,6 @@
                   {/each}
                 </div>
               </div>
-
-              {#if client.allowedOrigins && client.allowedOrigins.length > 0}
-                <div>
-                  <p class="text-[11px] font-medium text-muted-foreground">{oidcAdmin.allowedOrigins()}:</p>
-                  <div class="mt-1 flex flex-wrap gap-1.5">
-                    {#each client.allowedOrigins as addr, idx (`addr-${addr}-${idx}`)}
-                      <div
-                        class="flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/20 px-2.5 py-1 font-mono text-xs"
-                      >
-                        <span class="break-all text-foreground">{addr}</span>
-                        <button
-                          type="button"
-                          onclick={() => copyToClipboard(addr)}
-                          title={$LL.common.copyUri()}
-                          class="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          <Copy class="size-3" />
-                        </button>
-                      </div>
-                    {/each}
-                  </div>
-                </div>
-              {/if}
 
               {#if client.type === "authorization_code" && client.redirectUris.length > 0}
                 <div>

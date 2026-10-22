@@ -77,8 +77,6 @@ async function findClient(id: string): Promise<AdapterPayload | undefined> {
     client_id: client.clientId,
     client_secret: client.clientSecret || undefined,
     redirect_uris: client.redirectUris,
-    allowed_origins: client.allowedOrigins || [],
-    allowedOrigins: client.allowedOrigins || [],
     grant_types: grantTypes,
     response_types: responseTypes,
     response_modes: ["query"],

@@ -57,7 +57,6 @@
   let editingOidcClient = $state<{
     id: string;
     name: string;
-    allowedOrigins?: string;
     redirectUris: string;
     scopes: string[];
     grantTypes: string[];

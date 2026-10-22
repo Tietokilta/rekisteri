@@ -272,7 +272,6 @@ export const createOidcClient = form(createOidcClientSchema, async (data) => {
 
   const clientId = `client_${crypto.randomUUID().replaceAll("-", "")}`;
   const claims = extractClientScopes(data);
-  const origins = parseLines(data.allowedOrigins);
   const uris = parseLines(data.redirectUris);
   const plainSecret = `sec_${crypto.randomBytes(24).toString("base64url")}`;
   const hashedSecret = hashClientSecret(plainSecret);
@@ -281,7 +280,6 @@ export const createOidcClient = form(createOidcClientSchema, async (data) => {
     clientId,
     name: data.name,
     clientSecret: hashedSecret,
-    allowedOrigins: origins,
     redirectUris: uris,
     scopes: claims,
     type: "authorization_code",
@@ -292,7 +290,6 @@ export const createOidcClient = form(createOidcClientSchema, async (data) => {
     targetId: clientId,
     metadata: {
       name: data.name,
-      allowedOrigins: origins,
       redirectUris: uris,
       scopes: claims,
       type: "authorization_code",
@@ -308,7 +305,6 @@ export const updateOidcClient = form(updateOidcClientSchema, async (data) => {
   const existing = await getExistingOidcClient(data.id, LL);
 
   const claims = extractClientScopes(data);
-  const origins = parseLines(data.allowedOrigins);
   const uris = parseLines(data.redirectUris);
 
   const clientSecret = existing.clientSecret || hashClientSecret(`sec_${crypto.randomBytes(24).toString("base64url")}`);
@@ -317,7 +313,6 @@ export const updateOidcClient = form(updateOidcClientSchema, async (data) => {
     .update(table.oidcClient)
     .set({
       name: data.name,
-      allowedOrigins: origins,
       redirectUris: uris,
       scopes: claims,
       type: "authorization_code",
@@ -332,7 +327,6 @@ export const updateOidcClient = form(updateOidcClientSchema, async (data) => {
     targetId: data.id,
     metadata: {
       name: data.name,
-      allowedOrigins: origins,
       redirectUris: uris,
       scopes: claims,
       type: "authorization_code",

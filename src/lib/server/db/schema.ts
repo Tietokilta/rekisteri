@@ -326,7 +326,6 @@ export const oidcClient = snakeCase.table("oidc_client", {
   clientSecret: text().notNull(),
   type: oidcGrantTypeEnum().notNull().default("authorization_code"),
   name: text().notNull(),
-  allowedOrigins: jsonb().$type<string[]>().notNull().default([]),
   redirectUris: jsonb().$type<string[]>().notNull().default([]),
   scopes: jsonb().$type<string[]>().notNull().default([]),
   ...timestamps,

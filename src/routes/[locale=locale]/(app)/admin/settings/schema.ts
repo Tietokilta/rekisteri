@@ -103,7 +103,6 @@ const generateSecretSchema = v.optional(
 
 export const createOidcClientSchema = v.object({
   name: v.pipe(v.string(), v.minLength(1, "Name is required")),
-  allowedOrigins: v.optional(v.string(), ""),
   redirectUris: v.optional(v.string(), ""),
   idTokenClaims: idTokenClaimsSchema,
   "idTokenClaims[]": idTokenClaimsSchema,
@@ -115,7 +114,6 @@ export const createOidcClientSchema = v.object({
 export const updateOidcClientSchema = v.object({
   id: v.pipe(v.string(), v.minLength(1)),
   name: v.pipe(v.string(), v.minLength(1, "Name is required")),
-  allowedOrigins: v.optional(v.string(), ""),
   redirectUris: v.optional(v.string(), ""),
   idTokenClaims: idTokenClaimsSchema,
   "idTokenClaims[]": idTokenClaimsSchema,
