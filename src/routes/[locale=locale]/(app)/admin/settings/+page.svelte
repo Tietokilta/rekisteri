@@ -259,10 +259,12 @@
         {/if}
       </Tabs.Trigger>
 
-      <Tabs.Trigger value="oidcClients" data-testid="tab-oidc-clients" class="relative">
-        <AppWindow class="size-4" />
-        <span>{$LL.admin.settings.tabs.oidcClients()}</span>
-      </Tabs.Trigger>
+      {#if data.oidcEnabled}
+        <Tabs.Trigger value="oidcClients" data-testid="tab-oidc-clients" class="relative">
+          <AppWindow class="size-4" />
+          <span>{$LL.admin.settings.tabs.oidcClients()}</span>
+        </Tabs.Trigger>
+      {/if}
     </Tabs.List>
 
     <!-- FORM FOR GENERAL SETTINGS (TABS 1-4) -->
@@ -322,13 +324,15 @@
     </form>
 
     <!-- TAB 5: OIDC Applications -->
-    <OidcClientsTab
-      {data}
-      bind:newCreatedSecret
-      bind:showCreateOidcModal
-      bind:editingOidcClient
-      {copyToClipboard}
-      {getGrantTypeBadgeClass}
-    />
+    {#if data.oidcEnabled}
+      <OidcClientsTab
+        {data}
+        bind:newCreatedSecret
+        bind:showCreateOidcModal
+        bind:editingOidcClient
+        {copyToClipboard}
+        {getGrantTypeBadgeClass}
+      />
+    {/if}
   </Tabs.Root>
 </main>

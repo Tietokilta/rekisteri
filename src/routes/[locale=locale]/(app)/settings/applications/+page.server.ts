@@ -3,8 +3,11 @@ import type { PageServerLoad } from "./$types";
 import { db } from "$lib/server/db";
 import { oidcConsent, oidcClient } from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
+import { env } from "$lib/server/env";
 
 export const load: PageServerLoad = async (event) => {
+  if (!env.OIDC_ENABLED) error(404, "Not found");
+
   if (!event.locals.session || !event.locals.user) {
     error(401, "Unauthorized");
   }
