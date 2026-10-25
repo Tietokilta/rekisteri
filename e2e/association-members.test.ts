@@ -2,6 +2,8 @@ import { test, expect } from "./fixtures/db";
 import { route } from "../src/lib/ROUTES";
 import * as table from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import type { relations } from "../src/lib/server/db/relations";
 
 /**
  * E2E tests for association (yhteisö) member functionality.
@@ -12,6 +14,22 @@ import { eq } from "drizzle-orm";
  * - Viewing association members in the members table
  * - Non-purchasable membership types not appearing on the purchase page
  */
+
+/**
+ * A membership from the seed data. The add-member dropdown lists every membership, newest first, and
+ * other test files add and remove far-future memberships while this one runs in parallel, so picking
+ * an option by position could pick one that is deleted before the form is submitted. The unique
+ * (type, start time) index means no other test can create or remove this one.
+ */
+async function seededMembershipId(db: PostgresJsDatabase<typeof relations>) {
+  const now = new Date();
+  const membershipYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  const membership = await db.query.membership.findFirst({
+    where: { membershipTypeId: "varsinainen-jasen", startTime: { eq: new Date(`${membershipYear - 1}-08-01`) } },
+  });
+  if (!membership) throw new Error("Seeded membership not found");
+  return membership.id;
+}
 
 test.describe("Association members", () => {
   const createdMemberIds: string[] = [];
@@ -46,9 +64,8 @@ test.describe("Association members", () => {
     // Fill in organization name
     await adminPage.getByLabel(/Yhdistyksen nimi/).fill(orgName);
 
-    // Select a membership (pick the first one available)
-    const membershipSelect = adminPage.locator("#create-member-membership");
-    await membershipSelect.selectOption({ index: 1 });
+    // Select a membership
+    await adminPage.locator("#create-member-membership").selectOption(await seededMembershipId(db));
 
     // Submit the form
     await adminPage.getByRole("button", { name: "Luo" }).click();
@@ -93,8 +110,7 @@ test.describe("Association members", () => {
     await adminPage.getByLabel(/Sukunimi/).fill(lastName);
 
     // Select a membership
-    const membershipSelect = adminPage.locator("#create-member-membership");
-    await membershipSelect.selectOption({ index: 1 });
+    await adminPage.locator("#create-member-membership").selectOption(await seededMembershipId(db));
 
     // Submit
     await adminPage.getByRole("button", { name: "Luo" }).click();
