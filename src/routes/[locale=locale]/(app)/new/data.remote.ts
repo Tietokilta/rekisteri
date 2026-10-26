@@ -72,5 +72,5 @@ export const payMembership = form(payMembershipSchema, async ({ membershipId, de
   if (!paymentSession?.url) {
     error(400, LL.membership.paymentSessionFailed());
   }
-  redirect(303, paymentSession.url);
+  redirect(303, paymentSession.url, { external: true });
 });
