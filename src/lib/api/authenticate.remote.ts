@@ -9,6 +9,7 @@ import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/serv
 import { dev } from "$app/environment";
 import * as v from "valibot";
 import { getLL } from "$lib/server/i18n";
+import { takeReturnTo } from "$lib/server/oidc/return-to";
 
 // Rate limit: 10 authentication attempts per hour per email
 const authBucket = new RefillingTokenBucket<string>(10, 60 * 60);
@@ -65,7 +66,11 @@ export const verifyAuthentication = command(
   v.any(), // AuthenticationResponseJSON from SimpleWebAuthn
   async (
     response,
-  ): Promise<{ success: boolean; user: { id: string; email: string; adminRole: "none" | "readonly" | "admin" } }> => {
+  ): Promise<{
+    success: boolean;
+    user: { id: string; email: string; adminRole: "none" | "readonly" | "admin" };
+    returnTo?: string;
+  }> => {
     const { cookies, request, getClientAddress, locals } = getRequestEvent();
     const LL = getLL(locals.locale);
 
@@ -122,6 +127,8 @@ export const verifyAuthentication = command(
       cookies.delete(emailCookieName, { path: "/" });
       cookies.delete(signInEmailCookieName, { path: "/" });
 
+      const returnTo = takeReturnTo(cookies);
+
       return {
         success: true,
         user: {
@@ -129,6 +136,7 @@ export const verifyAuthentication = command(
           email: user.email,
           adminRole: user.adminRole,
         },
+        returnTo,
       };
     } catch (err) {
       console.error("Failed to verify passkey authentication:", err);

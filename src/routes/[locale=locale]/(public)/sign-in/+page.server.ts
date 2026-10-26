@@ -2,9 +2,12 @@ import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { emailCookieName } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
+import { takeReturnTo } from "$lib/server/oidc/return-to";
 
 export const load: PageServerLoad = async (event) => {
   if (event.locals.user) {
+    const returnTo = takeReturnTo(event.cookies);
+    if (returnTo) redirect(302, returnTo);
     redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
   }
 

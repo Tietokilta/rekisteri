@@ -7,9 +7,10 @@
  */
 
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { redirect, type Cookies } from "@sveltejs/kit";
+import { error, redirect, type Cookies } from "@sveltejs/kit";
 import type { InteractionResults } from "oidc-provider";
-import type { getOidcProvider } from "./provider";
+import { env } from "$lib/server/env";
+import { getCookieKeys, getOidcProvider } from "./provider";
 
 type Interaction = InstanceType<ReturnType<typeof getOidcProvider>["Interaction"]>;
 
@@ -26,6 +27,28 @@ export function readSignedCookie(cookies: Pick<Cookies, "get">, name: string, ke
     return expected.length === signature.length && timingSafeEqual(expected, signature);
   });
   return valid ? value : undefined;
+}
+
+/**
+ * Loads the interaction for `uid`, or returns null if it's missing, expired, or not bound to
+ * this browser (the signed `_interaction` cookie set by the provider must match).
+ */
+export async function getInteraction(cookies: Cookies, uid: string): Promise<Interaction | null> {
+  if (!env.OIDC_ENABLED) error(404);
+
+  const provider = getOidcProvider();
+  if (readSignedCookie(cookies, provider.cookieName("interaction"), getCookieKeys()) !== uid) return null;
+
+  const interaction = await provider.Interaction.find(uid);
+  if (!interaction) return null;
+
+  // Same check as oidc-provider: the provider session must not have changed hands meanwhile
+  if (interaction.session?.uid) {
+    const session = await provider.Session.findByUid(interaction.session.uid);
+    if (!session || session.accountId !== interaction.session.accountId) return null;
+  }
+
+  return interaction;
 }
 
 /** Stores the login/consent result and sends the browser back to the provider to resume. */
