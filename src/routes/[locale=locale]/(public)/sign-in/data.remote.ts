@@ -5,6 +5,7 @@ import { setEmailCookie } from "$lib/server/auth/email";
 import { route } from "$lib/ROUTES";
 import { signInSchema } from "./schema";
 import { getLL } from "$lib/server/i18n";
+import { rememberReturnTo } from "$lib/server/oidc/return-to";
 
 // Rate limit: 100 sign-in attempts per minute per IP (generous for shared networks)
 const ipBucket = new RefillingTokenBucket<string>(100, 60);
@@ -43,6 +44,9 @@ export const signIn = form(signInSchema, async ({ email: rawEmail }) => {
   }
 
   setEmailCookie(event, email, new Date(Date.now() + 1000 * 60 * 10));
+
+  // Coming from an app's OIDC login page? Return there after signing in
+  rememberReturnTo(event.cookies, event.request.headers.get("referer"), event.url.origin);
 
   // Always redirect to method selection page (prevents user enumeration)
   redirect(303, route("/[locale=locale]/sign-in/method", { locale: event.locals.locale }));

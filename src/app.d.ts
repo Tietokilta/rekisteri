@@ -7,6 +7,8 @@ declare global {
       session: import("$lib/server/auth/session").SessionValidationResult["session"];
       locale: import("$lib/i18n/routing").Locale;
       customizations: import("$lib/server/db/schema").AppCustomization;
+      // Set by the OIDC login page: origins its consent forms may end up redirecting to
+      oidcRedirectOrigins?: string[];
     }
   }
 }

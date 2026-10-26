@@ -22,6 +22,7 @@ import { route } from "$lib/ROUTES";
 import { auditLogin, auditLoginFailed } from "$lib/server/audit";
 import { verifyCodeSchema } from "./schema";
 import { getLL } from "$lib/server/i18n";
+import { takeReturnTo } from "$lib/server/oidc/return-to";
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
 
@@ -109,6 +110,9 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }, issue) => {
   deleteEmailCookie(event);
   deleteEmailOTP(otp.id);
   deleteEmailOTPCookie(event);
+
+  const returnTo = takeReturnTo(event.cookies);
+  if (returnTo) redirect(302, returnTo);
 
   redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
 });

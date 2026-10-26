@@ -958,7 +958,31 @@ Terveisin,
     },
   },
 
-  // Common
+  // OIDC
+  oidc: {
+    consent: {
+      title: "OIDC-suostumus",
+      introduction: "Tämä sovellus pyytää lupaa käyttää tietojasi.",
+      signInPrompt: "Ole hyvä ja kirjaudu sisään jatkaaksesi.",
+      signInAction: "Siirry kirjautumiseen",
+      requestedPermissions: "Pyydetyt oikeudet",
+      readOnly: "Luku",
+      readWrite: "Luku ja kirjoitus",
+      proceedNotice: "Jatkamalla sallit sovelluksen käyttää yllä lueteltuja tietoja.",
+      allowAccess: "Salli pääsy",
+      deny: "Hylkää",
+      membersOnly: "Tämä sovellus on vain jäsenille, joilla on voimassa oleva jäsenyys.",
+      getMembership: "Hanki jäsenyys",
+      reauthRequired: "Sovellus pyytää sinua kirjautumaan uudelleen ennen jatkamista.",
+      signInAgain: "Kirjaudu uudelleen",
+    },
+    error: {
+      title: "Tunnistautumisvirhe",
+      genericDescription:
+        "Tunnistautumisessa tapahtui virhe. Sovelluksen ylläpitäjät voivat tutkia asiaa virhetunnisteen avulla.",
+      errorCode: "Virhetunniste",
+    },
+  }, // Common
   common: {
     save: "Tallenna",
     delete: "Poista",

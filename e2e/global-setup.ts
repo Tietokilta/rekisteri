@@ -208,10 +208,12 @@ async function setUp(cleanups: Cleanup[]) {
       STRIPE_API_KEY: "sk_test_mock",
       UNSAFE_DISABLE_RATE_LIMITS: "true",
       TEST: "true",
+      PUBLIC_URL: baseURL,
       // WebAuthn/Passkey configuration for test environment
       RP_ORIGIN: baseURL,
       RP_ID: "localhost",
       RP_NAME: "Tietokilta Rekisteri",
+      OIDC_ENABLED: "true",
     },
   });
   cleanups.push(() => server.kill());

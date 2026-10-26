@@ -84,9 +84,18 @@ const handleLocaleRedirect: Handle = ({ event, resolve }) => {
   redirect(302, `/${targetLocale}${pathname}${event.url.search}`);
 };
 
+/** Locale for pages outside /{locale} (the OIDC pages): the user's preference, then the browser's. */
+function localeFromRequest(event: Parameters<Handle>[0]["event"]): Locale {
+  const preferred = event.locals.user ? preferredLanguageToLocale(event.locals.user.preferredLanguage) : null;
+  if (preferred) return preferred;
+  const accepted = (event.request.headers.get("accept-language") ?? "")
+    .split(",")
+    .map((part) => part.split(";", 1)[0]?.trim().slice(0, 2).toLowerCase());
+  return accepted.find((lang): lang is Locale => locales.includes(lang as Locale)) ?? baseLocale;
+}
+
 const handleI18n: Handle = ({ event, resolve }) => {
-  const locale = (event.params.locale as string) || baseLocale;
-  event.locals.locale = locale as typeof baseLocale;
+  event.locals.locale = (event.params.locale as Locale | undefined) ?? localeFromRequest(event);
 
   return resolve(event, {
     transformPageChunk: ({ html }) => {
@@ -99,6 +108,17 @@ const handleI18n: Handle = ({ event, resolve }) => {
 
 const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
   const response = await resolve(event);
+
+  // The consent forms post to this site, which then redirects to the client app. CSP form-action also
+  // applies to those redirects, so allow the client's registered redirect origins on that page.
+  const redirectOrigins = event.locals.oidcRedirectOrigins;
+  const csp = response.headers.get("content-security-policy");
+  if (redirectOrigins?.length && csp) {
+    response.headers.set(
+      "content-security-policy",
+      csp.replace(/form-action [^;]+/, `form-action 'self' ${redirectOrigins.join(" ")}`),
+    );
+  }
 
   // Set additional security headers not covered by CSP config in `svelte.config.js`
   response.headers.set("X-Frame-Options", "DENY");

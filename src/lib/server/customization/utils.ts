@@ -165,3 +165,17 @@ export async function processUploadedFile(field: CustomizationImageField, val: u
   }
   return undefined;
 }
+
+/** Customizations for page layouts: image URLs instead of raw image data. */
+export function getLayoutCustomizations(customizations: AppCustomization) {
+  const { logo, logoDark, favicon, faviconDark, ...safeCustomizations } = customizations;
+  const imageVersion = customizations.updatedAt.getTime().toString(36);
+  return {
+    ...safeCustomizations,
+    imageVersion,
+    logoUrl: logo ? `/api/image/logo.svg?v=${imageVersion}` : "/icon_dark.png",
+    logoDarkUrl: logoDark ? `/api/image/logo-dark.svg?v=${imageVersion}` : "/icon_light.png",
+    faviconUrl: favicon ? `/api/image/favicon.png?v=${imageVersion}` : "/icon_dark.png",
+    faviconDarkUrl: faviconDark ? `/api/image/favicon-dark.png?v=${imageVersion}` : "/icon_light.png",
+  };
+}
