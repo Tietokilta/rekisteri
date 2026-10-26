@@ -49,8 +49,6 @@ export default ts.config(
     rules: {
       // Keep readable guard clauses instead of requiring ternary expressions.
       "unicorn/prefer-ternary": "off",
-      // Its fixes make fallbacks apply only to undefined, which breaks null and empty-string handling.
-      "unicorn/prefer-default-parameters": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {

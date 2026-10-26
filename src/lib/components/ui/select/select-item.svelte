@@ -7,6 +7,7 @@
     ref = $bindable(null),
     class: className,
     value,
+    // eslint-disable-next-line unicorn/prefer-default-parameters -- an empty label should also fall back to value
     label,
     children: childrenProp,
     ...restProps

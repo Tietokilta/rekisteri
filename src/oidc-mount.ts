@@ -26,10 +26,10 @@ const OIDC_PATHS = [
   "/oidc/logout",
 ];
 
-export function isOidcPath(url: string | undefined): boolean {
+export function isOidcPath(url: string | undefined = "/"): boolean {
   // Plain string handling: request targets like `//[/` would make `new URL` throw, and an exception
   // here is outside any handler and would take the server down
-  const pathname = (url ?? "/").split("?", 1)[0] ?? "/";
+  const pathname = url.split("?", 1)[0] ?? "/";
   return OIDC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
