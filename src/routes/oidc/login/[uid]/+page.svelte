@@ -20,7 +20,8 @@
   // The response headers allow this page's forms to redirect to the client app (CSP form-action).
   // After a client-side navigation (e.g. returning from sign-in) the browser still enforces the
   // previous page's policy, so load the page fully.
-  afterNavigate(({ type }) => {
+  afterNavigate(({ type, shallow }) => {
+    if (shallow && type === "goto") return;
     if (type !== "enter") location.reload();
   });
   const textLocale = $derived($locale === "fi" ? "fi" : "en");
