@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import { LL, locale } from "#lib/i18n/i18n-svelte.js";
-  import { invalidateAll } from "$app/navigation";
+  import { refreshAll } from "$app/navigation";
   import { Button } from "#lib/components/ui/button/index.js";
   import * as Card from "#lib/components/ui/card/index.js";
   import * as Item from "#lib/components/ui/item/index.js";
@@ -93,7 +93,7 @@
               class="contents"
               {...revokeForm.preflight(revokeGrantSchema).enhance(async ({ submit }) => {
                 await submit();
-                await invalidateAll();
+                await refreshAll();
                 toast.success(revokeForm.result?.message || $LL.settings.applications.revokedSuccess());
               })}
             >

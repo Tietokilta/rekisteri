@@ -1,5 +1,6 @@
 import { defineParams } from "@sveltejs/kit/params";
-import { locales, Locale } from "#lib/i18n/routing.js";
+// `vite build` loads this file with plain Node, which only resolves the real `.ts` path
+import { locales, type Locale } from "#lib/i18n/routing.ts";
 
 const matchLocale = (param: string): param is Locale => {
   return locales.includes(param as Locale);

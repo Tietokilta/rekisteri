@@ -9,70 +9,70 @@
  * PAGES
  */
 const PAGES = {
-  "/[locale=locale]": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}`
   },
-  "/[locale=locale]/admin/meetings": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/admin/meetings": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/admin/meetings`
   },
-  "/[locale=locale]/admin/meetings/[id]": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>), id: (string | number) }) => {
+  "/[locale=locale]/admin/meetings/[id]": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>), id: (string | number) }) => {
     return `/${params['locale']}/admin/meetings/${params['id']}`
   },
-  "/[locale=locale]/admin/members": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/admin/members": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/admin/members`
   },
-  "/[locale=locale]/admin/members/import": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/admin/members/import": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/admin/members/import`
   },
-  "/[locale=locale]/admin/membership-types": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/admin/membership-types": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/admin/membership-types`
   },
-  "/[locale=locale]/admin/memberships": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/admin/memberships": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/admin/memberships`
   },
-  "/[locale=locale]/admin/settings": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/admin/settings": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/admin/settings`
   },
-  "/[locale=locale]/admin/users": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/admin/users": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/admin/users`
   },
-  "/[locale=locale]/admin/verify-qr": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/admin/verify-qr": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/admin/verify-qr`
   },
-  "/[locale=locale]/membership": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/membership": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/membership`
   },
-  "/[locale=locale]/new": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/new": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/new`
   },
-  "/[locale=locale]/settings/applications": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/settings/applications": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/settings/applications`
   },
-  "/[locale=locale]/settings/emails": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/settings/emails": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/settings/emails`
   },
-  "/[locale=locale]/settings/emails/add": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/settings/emails/add": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/settings/emails/add`
   },
-  "/[locale=locale]/settings/emails/verify": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/settings/emails/verify": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/settings/emails/verify`
   },
-  "/[locale=locale]/settings/passkeys": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/settings/passkeys": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/settings/passkeys`
   },
-  "/[locale=locale]/settings/profile": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/settings/profile": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/settings/profile`
   },
-  "/[locale=locale]/privacy-policy": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/privacy-policy": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/privacy-policy`
   },
-  "/[locale=locale]/sign-in": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/sign-in": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/sign-in`
   },
-  "/[locale=locale]/sign-in/email": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/sign-in/email": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/sign-in/email`
   },
-  "/[locale=locale]/sign-in/method": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "/[locale=locale]/sign-in/method": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/sign-in/method`
   },
   "/oidc/error": `/oidc/error`,
@@ -85,13 +85,13 @@ const PAGES = {
  * SERVERS
  */
 const SERVERS = {
-  "GET /[locale=locale]/admin/meetings/[id]/export": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>), id: (string | number) }) => {
+  "GET /[locale=locale]/admin/meetings/[id]/export": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>), id: (string | number) }) => {
     return `/${params['locale']}/admin/meetings/${params['id']}/export`
   },
-  "GET /[locale=locale]/admin/meetings/[id]/live": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>), id: (string | number) }) => {
+  "GET /[locale=locale]/admin/meetings/[id]/live": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>), id: (string | number) }) => {
     return `/${params['locale']}/admin/meetings/${params['id']}/live`
   },
-  "GET /[locale=locale]/admin/meetings/users": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+  "GET /[locale=locale]/admin/meetings/users": (params: { locale: (import('@sveltejs/kit/params').MatcherParam<(typeof import('../params.ts').params)['locale']>) }) => {
     return `/${params['locale']}/admin/meetings/users`
   },
   "GET /api/health": `/api/health`,
@@ -212,16 +212,12 @@ export function route<T extends keyof AllTypes>(key: T, ...params: any[]): strin
   }
 }
 
-/* type helpers param & predicate */
-type ExtractFnPredicate<T> = T extends (param: any) => param is infer U ? U : never;
-type ExtractParamType<T extends (param: any) => any> = ExtractFnPredicate<T> extends never ? Parameters<T>[0] : ExtractFnPredicate<T>
-
 /**
 * Add this type as a generic of the vite plugin `kitRoutes<KIT_ROUTES>`.
 *
 * Full example:
 * ```ts
-* import type { KIT_ROUTES } from '#lib/ROUTES.js'
+* import type { KIT_ROUTES } from '$lib/ROUTES'
 * import { kitRoutes } from 'vite-plugin-kit-routes'
 *
 * kitRoutes<KIT_ROUTES>({

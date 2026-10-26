@@ -3,7 +3,7 @@ import { sequence, type Handle, type ServerInit } from "@sveltejs/kit/hooks";
 import * as auth from "#lib/server/auth/session.js";
 import { userHasAdminAccess } from "#lib/server/auth/admin.js";
 import { baseLocale, locales, preferredLanguageToLocale, type Locale } from "#lib/i18n/routing.js";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 import cron from "node-cron";
 import { cleanupExpiredTokens, cleanupInactiveUsers, cleanupOldAuditLogs } from "#lib/server/db/cleanup.js";
 import { createInitialModeExpression } from "mode-watcher";

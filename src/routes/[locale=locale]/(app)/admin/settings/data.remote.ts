@@ -1,6 +1,6 @@
 import { error, invalid } from "@sveltejs/kit";
 import crypto from "node:crypto";
-import { form, getRequestEvent, type InvalidField } from "$app/server";
+import { form, getRequestEvent, type RemoteFormInvalidField } from "$app/server";
 import { eq } from "drizzle-orm";
 import type * as v from "valibot";
 
@@ -180,7 +180,7 @@ async function saveCustomization(updateData: ReturnType<typeof getCustomizationU
   }
 }
 
-function invalidUpload(issue: InvalidField<CustomizationInput>, e: CustomizationUploadError) {
+function invalidUpload(issue: RemoteFormInvalidField<CustomizationInput>, e: CustomizationUploadError) {
   if (e.field === "logo") return invalid(issue.logo(e.message));
   if (e.field === "logoDark") return invalid(issue.logoDark(e.message));
   if (e.field === "favicon") return invalid(issue.favicon(e.message));

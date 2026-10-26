@@ -6,7 +6,7 @@ import { createAuditLog } from "#lib/server/audit.js";
 import { emailCookieName as signInEmailCookieName } from "#lib/server/auth/email.js";
 import { RefillingTokenBucket } from "#lib/server/auth/rate-limit.js";
 import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/server";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 import * as v from "valibot";
 import { getLL } from "#lib/server/i18n.js";
 import { takeReturnTo } from "#lib/server/oidc/return-to.js";

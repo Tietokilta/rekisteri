@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import { invalidateAll } from "$app/navigation";
+  import { refreshAll } from "$app/navigation";
   import { LL } from "#lib/i18n/i18n-svelte.js";
   import { createMembershipType } from "./data.remote";
   import { createMembershipTypeSchema } from "./schema";
@@ -59,7 +59,7 @@
   {...createMembershipType.preflight(createMembershipTypeSchema).enhance(async ({ submit }) => {
     await submit();
     onClose();
-    await invalidateAll();
+    await refreshAll();
   })}
   class="flex flex-1 flex-col gap-5 px-4"
 >

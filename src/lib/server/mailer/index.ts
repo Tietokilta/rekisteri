@@ -1,5 +1,5 @@
 import { env } from "#lib/server/env.js";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 import { sendSmtpEmail, checkSmtpHealth } from "./smtp";
 import type { SendEmailOptions, SendEmailResult } from "./types";
 

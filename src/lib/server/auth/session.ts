@@ -1,7 +1,7 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { encodeBase64url } from "@oslojs/encoding";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 import { env } from "#lib/server/env.js";
 import { db } from "#lib/server/db/index.js";
 import * as table from "#lib/server/db/schema.js";

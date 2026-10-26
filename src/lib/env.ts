@@ -1,5 +1,4 @@
-import { env as dynamicPublicEnv } from "$env/dynamic/public";
-import { PUBLIC_GIT_COMMIT_SHA } from "$env/static/public";
+import { PUBLIC_URL, PUBLIC_GIT_COMMIT_SHA } from "$app/env/public";
 import * as v from "valibot";
 
 /**
@@ -9,13 +8,13 @@ import * as v from "valibot";
 const publicEnvSchema = v.object({
   // Public URL (required for Stripe redirects and other use cases)
   PUBLIC_URL: v.pipe(v.string(), v.url(), v.regex(/^https?:\/\/.+/, "PUBLIC_URL must use http or https protocol")),
-  // Git commit SHA for version display (optional, baked in at build time via $env/static/public)
+  // Git commit SHA for version display (optional, baked in at build time, see src/env.ts)
   PUBLIC_GIT_COMMIT_SHA: v.optional(v.string()),
 });
 
 // Validate public environment variables at module load (fail fast)
 const parsed = v.safeParse(publicEnvSchema, {
-  PUBLIC_URL: dynamicPublicEnv.PUBLIC_URL,
+  PUBLIC_URL,
   PUBLIC_GIT_COMMIT_SHA: PUBLIC_GIT_COMMIT_SHA || undefined,
 });
 
@@ -27,7 +26,7 @@ if (!parsed.success) {
 
 /**
  * Validated and type-safe public environment variables.
- * Use this instead of importing from $env/dynamic/public directly.
+ * Use this instead of importing from $app/env/public directly.
  * Can be imported on both client and server.
  *
  * @example

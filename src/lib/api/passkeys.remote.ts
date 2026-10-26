@@ -9,7 +9,7 @@ import {
 } from "#lib/server/auth/passkey.js";
 import { auditPasskeyRegistered, auditPasskeyDeleted } from "#lib/server/audit.js";
 import type { PublicKeyCredentialCreationOptionsJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 import * as v from "valibot";
 import { getLL } from "#lib/server/i18n.js";
 

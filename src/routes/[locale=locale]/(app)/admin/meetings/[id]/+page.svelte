@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import { untrack } from "svelte";
-  import { invalidateAll } from "$app/navigation";
+  import { refreshAll } from "$app/navigation";
   import { page } from "$app/state";
   import { toast } from "svelte-sonner";
   import { LL, locale } from "#lib/i18n/i18n-svelte.js";
@@ -53,7 +53,7 @@
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => {
       clearTimeout(timer);
-      timer = setTimeout(() => void invalidateAll().catch(() => {}), 300);
+      timer = setTimeout(() => void refreshAll().catch(() => {}), 300);
     };
     source.addEventListener("changed", refresh);
     // Catch up on changes between the page load and initial subscription, and
@@ -199,7 +199,7 @@
   async function run<T>(action: () => Promise<T>): Promise<T | undefined> {
     try {
       const result = await action();
-      await invalidateAll();
+      await refreshAll();
       return result;
     } catch (cause) {
       toast.error(remoteErrorMessage(cause, $LL.error.updateFailed()));
@@ -240,7 +240,7 @@
         : undefined,
     );
     // The scan is already recorded; a failed refresh only delays the list, so don't report it as a failed scan
-    void invalidateAll().catch(() => {});
+    void refreshAll().catch(() => {});
     return result;
   }
 
@@ -685,7 +685,7 @@
           }
           toast.success($LL.admin.meetings.saveTimes());
           timesOpen = false;
-          await invalidateAll();
+          await refreshAll();
         })}
         class="space-y-4 px-4"
       >

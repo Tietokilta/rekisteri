@@ -1,7 +1,7 @@
 import { error, redirect, isRedirect, isHttpError, invalid } from "@sveltejs/kit";
 import { getRequestEvent, query, form } from "$app/server";
 import * as v from "valibot";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 import {
   getUserSecondaryEmails,
   deleteSecondaryEmail,

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import { invalidateAll } from "$app/navigation";
+  import { refreshAll } from "$app/navigation";
   import { toast } from "svelte-sonner";
   import { LL } from "#lib/i18n/i18n-svelte.js";
   import { matchesSearchTokens } from "#lib/utils.js";
@@ -81,7 +81,7 @@
           }
           toast.success($LL.admin.meetings.attendeeUpdated());
           open = false;
-          await invalidateAll();
+          await refreshAll();
         })}
         class="space-y-4 px-4"
         data-testid="attendee-sheet"

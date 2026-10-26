@@ -15,7 +15,7 @@
   import Check from "@lucide/svelte/icons/check";
   import X from "@lucide/svelte/icons/x";
 
-  import { invalidateAll } from "$app/navigation";
+  import { refreshAll } from "$app/navigation";
   import { LL, locale } from "#lib/i18n/i18n-svelte.js";
   import { formatDate as formatDateUtil } from "#lib/utils.js";
   import * as Empty from "#lib/components/ui/empty/index.js";
@@ -85,7 +85,7 @@
       // Success! Hide name input and reload page data
       showNameInput = false;
       pendingCredential = null;
-      await invalidateAll();
+      await refreshAll();
     } catch (error) {
       console.error("Passkey verification error:", error);
       errorMessage = $LL.auth.passkey.regFailed();
@@ -195,7 +195,7 @@
                   class="space-y-2"
                   {...renameForm.enhance(async ({ submit }) => {
                     await submit();
-                    await invalidateAll();
+                    await refreshAll();
                     editingPasskeyId = null;
                   })}
                 >
@@ -265,7 +265,7 @@
                   class="contents"
                   {...deleteForm.enhance(async ({ submit }) => {
                     await submit();
-                    await invalidateAll();
+                    await refreshAll();
                   })}
                 >
                   <input type="hidden" name="passkeyId" value={passkey.id} />

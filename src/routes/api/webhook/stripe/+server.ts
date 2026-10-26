@@ -1,4 +1,3 @@
-import { json } from "@sveltejs/kit";
 import { stripe } from "#lib/server/payment/index.js";
 import { env } from "#lib/server/env.js";
 import { cancelSession, fulfillSession } from "#lib/server/payment/session.js";
@@ -16,7 +15,7 @@ export async function POST({ request }) {
 
     if (!signature) {
       console.error("[Webhook] Missing signature header");
-      return json({ message: "Missing webhook signature header" }, { status: 400 });
+      return Response.json({ message: "Missing webhook signature header" }, { status: 400 });
     }
 
     let event;
@@ -26,13 +25,13 @@ export async function POST({ request }) {
       event = stripe.webhooks.constructEvent(rawBody, signature, endpointSecret);
     } catch (err) {
       console.error("[Webhook] Signature verification failed:", err);
-      return json({ message: "Webhook signature verification failed" }, { status: 400 });
+      return Response.json({ message: "Webhook signature verification failed" }, { status: 400 });
     }
 
     // Additional replay protection: check if we've already processed this event
     if (processedEvents.has(event.id)) {
       console.warn(`[Webhook] Duplicate event detected: ${event.id}`);
-      return json({ received: true, duplicate: true });
+      return Response.json({ received: true, duplicate: true });
     }
 
     // Add to processed events (with size limit to prevent memory leak)
@@ -61,12 +60,12 @@ export async function POST({ request }) {
       console.error(`[Webhook] Error processing event ${event.id}:`, processingError);
       // Still return 200 to Stripe to acknowledge receipt, but log the error
       // In production, you might want to send this to an error tracking service
-      return json({ received: true, error: "Processing error - will retry" }, { status: 200 });
+      return Response.json({ received: true, error: "Processing error - will retry" }, { status: 200 });
     }
 
-    return json({ received: true });
+    return Response.json({ received: true });
   } catch (error) {
     console.error("[Webhook] Unexpected error:", error);
-    return json({ error: "Webhook processing error" }, { status: 500 });
+    return Response.json({ error: "Webhook processing error" }, { status: 500 });
   }
 }

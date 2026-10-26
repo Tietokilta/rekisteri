@@ -16,7 +16,7 @@
   import CheckCircle from "@lucide/svelte/icons/check-circle-2";
   import { updateUserRole, mergeUsers, mergeMeetingConflicts } from "./data.remote";
   import { toast } from "svelte-sonner";
-  import { invalidateAll } from "$app/navigation";
+  import { refreshAll } from "$app/navigation";
   import { formatFullName, matchesSearchTokens } from "#lib/utils.js";
   import { ADMIN_ROLE_VALUES, type AdminRole } from "#lib/shared/enums.js";
 
@@ -93,7 +93,7 @@
         toast.success($LL.admin.users.merge.success());
         closeMergeModal();
         // Refresh data to reflect changes
-        await invalidateAll();
+        await refreshAll();
       }
     } catch (err) {
       // Handle SvelteKit error responses
@@ -158,7 +158,7 @@
     }
     try {
       await updateUserRole({ userId, role: newRole });
-      await invalidateAll();
+      await refreshAll();
     } catch {
       toast.error($LL.error.updateFailed());
     }

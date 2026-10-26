@@ -11,7 +11,7 @@ import { createHmac } from "node:crypto";
 import { env } from "../src/lib/server/env";
 
 // Run as a built server, so NODE_ENV and TEST decide whether a key is required
-vi.mock("$app/environment", () => ({ dev: false, building: false, browser: false, version: "test" }));
+vi.mock("$app/env", () => ({ dev: false, building: false, browser: false, version: "test" }));
 
 function newJwk() {
   const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });

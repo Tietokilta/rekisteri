@@ -1,6 +1,6 @@
 <script lang="ts">
   import { LL, locale } from "#lib/i18n/i18n-svelte.js";
-  import { invalidateAll } from "$app/navigation";
+  import { refreshAll } from "$app/navigation";
   import { Input } from "#lib/components/ui/input/index.js";
   import { Button } from "#lib/components/ui/button/index.js";
   import { Badge } from "#lib/components/ui/badge/index.js";
@@ -29,7 +29,7 @@
   import Binary from "@lucide/svelte/icons/binary";
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import CloudSync from "@lucide/svelte/icons/cloud-sync";
-  import { browser } from "$app/environment";
+  import { browser } from "$app/env";
   import OidcClientConfig from "#lib/components/oidc-client-config.svelte";
   import { OPENID_CLAIM_KEYS } from "#lib/shared/oidc.js";
   import { getClaimsForScopes } from "#lib/utils.js";
@@ -107,7 +107,7 @@
               newCreatedSecret = createOidcClient.result.clientSecret;
             }
             showCreateOidcModal = false;
-            await invalidateAll();
+            await refreshAll();
             toast.success(oidcAdmin.toast.createSuccess());
           })}
           class="space-y-4"
@@ -193,7 +193,7 @@
               }
 
               editingOidcClient = null;
-              await invalidateAll();
+              await refreshAll();
               toast.success(oidcAdmin.toast.updateSuccess());
             })}
             class="space-y-4"
@@ -469,7 +469,7 @@
               }
 
               regeneratedSecret = res.clientSecret;
-              await invalidateAll();
+              await refreshAll();
               toast.success(oidcAdmin.toast.newSecret());
             })}
         >
@@ -622,7 +622,7 @@
           .enhance(async ({ submit }) => {
             await submit();
             deletingClient = null;
-            await invalidateAll();
+            await refreshAll();
             toast.success(oidcAdmin.toast.deleteSuccess());
           })}
       >

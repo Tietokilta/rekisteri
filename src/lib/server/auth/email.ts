@@ -4,7 +4,7 @@ import { ExpiringTokenBucket } from "./rate-limit";
 import { encodeBase32LowerCaseNoPadding } from "@oslojs/encoding";
 import * as table from "#lib/server/db/schema.js";
 import { eq } from "drizzle-orm";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 import { env } from "#lib/server/env.js";
 import { sendMemberEmail } from "#lib/server/emails/index.js";
 

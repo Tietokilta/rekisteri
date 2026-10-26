@@ -13,7 +13,7 @@
 
 import Provider, { interactionPolicy, type Configuration, type KoaContextWithOIDC } from "oidc-provider";
 import { generateKeyPairSync, createHash, createPrivateKey, randomBytes } from "node:crypto";
-import { dev, building } from "$app/environment";
+import { dev, building } from "$app/env";
 import { db } from "#lib/server/db/index.js";
 import { user } from "#lib/server/db/schema.js";
 import { eq } from "drizzle-orm";

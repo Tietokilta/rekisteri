@@ -100,7 +100,7 @@ async function checkStudentEmail(db: DbHandle, userId: string): Promise<boolean>
 
 /**
  * Check if a secondary email is currently valid (verified and not expired).
- * Inlined to avoid transitive dependency on $app/environment via secondary-email.ts.
+ * Inlined to avoid transitive dependency on $app/env via secondary-email.ts.
  */
 function isEmailValid(email: Pick<SecondaryEmail, "verifiedAt" | "expiresAt">): boolean {
   if (!email.verifiedAt) return false;

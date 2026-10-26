@@ -48,7 +48,7 @@
     DEFAULT_EXPORT_COLUMNS,
   } from "#lib/utils/export.js";
   import { untrack } from "svelte";
-  import { goto, invalidateAll } from "$app/navigation";
+  import { goto, refreshAll } from "$app/navigation";
   import { page } from "$app/state";
   import { SvelteURLSearchParams } from "svelte/reactivity";
   import { LL, locale } from "#lib/i18n/i18n-svelte.js";
@@ -186,7 +186,7 @@
   }
 
   // Reactive URL search params
-  const urlParams = new SvelteURLSearchParams(page.url.searchParams);
+  const urlParams = new SvelteURLSearchParams(page.url.search);
 
   // Table state - synced with URL
   let sorting = $state<SortingState>(
@@ -321,7 +321,7 @@
       typeChangeAction = null;
       targetMembershipId = "";
       toast.success($LL.admin.members.table.membershipTypeChanged());
-      await invalidateAll();
+      await refreshAll();
     } catch (error) {
       const message =
         error instanceof Error
@@ -383,7 +383,7 @@
 
       // Update URL without reloading
       const newUrl = `${page.url.pathname}${urlParams.toString() ? `?${urlParams.toString()}` : ""}`;
-      goto(newUrl, { replaceState: true, noScroll: true, keepFocus: true });
+      goto(newUrl, { replace: true, reset: false });
     }, 300); // 300ms debounce
   });
 
@@ -836,7 +836,7 @@
       await bulkApproveMembers({ memberIds });
       rowSelection = {};
       showApproveDialog = false;
-      await invalidateAll();
+      await refreshAll();
     } finally {
       bulkActionLoading = false;
     }
@@ -854,7 +854,7 @@
       });
       rowSelection = {};
       showDeemResignedDialog = false;
-      await invalidateAll();
+      await refreshAll();
     } finally {
       bulkActionLoading = false;
     }
@@ -892,7 +892,7 @@
           break;
       }
       individualAction = null;
-      await invalidateAll();
+      await refreshAll();
     } finally {
       individualActionLoading = false;
     }

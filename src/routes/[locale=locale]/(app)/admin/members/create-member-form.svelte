@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invalidateAll } from "$app/navigation";
+  import { refreshAll } from "$app/navigation";
   import { toast } from "svelte-sonner";
   import { LL, locale } from "#lib/i18n/i18n-svelte.js";
   import { formatDateRange as formatDateRangeUtil } from "#lib/utils.js";
@@ -98,7 +98,7 @@
 
       toast.success($LL.admin.members.memberCreated());
       onClose();
-      await invalidateAll();
+      await refreshAll();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       toast.error(message);

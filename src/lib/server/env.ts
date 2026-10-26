@@ -1,6 +1,6 @@
-import { env as privateEnv } from "$env/dynamic/private";
+import * as privateEnv from "$app/env/private";
 import { publicEnv } from "#lib/env.js";
-import { dev, building } from "$app/environment";
+import { dev, building } from "$app/env";
 import * as v from "valibot";
 
 /**
@@ -177,7 +177,7 @@ if (!parsed.success) {
 
 /**
  * Validated and type-safe environment variables (both public and private).
- * Use this instead of importing from $env/dynamic/private or $env/dynamic/public directly.
+ * Use this instead of importing from $app/env/private or $app/env/public directly.
  * Only importable in server code.
  *
  * @example

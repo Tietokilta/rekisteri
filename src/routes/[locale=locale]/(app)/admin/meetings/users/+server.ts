@@ -1,4 +1,4 @@
-import { error, json } from "@sveltejs/kit";
+import { error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { db } from "#lib/server/db/index.js";
 import * as table from "#lib/server/db/schema.js";
@@ -19,7 +19,7 @@ export const GET: RequestHandler = async (event) => {
       .from(table.user),
     membershipTypesAt(db, new Date()),
   ]);
-  return json(
+  return Response.json(
     users.map((user) => ({ ...user, membershipTypeId: typeByUser.get(user.id) ?? null })),
     { headers: { "cache-control": "no-store" } },
   );
