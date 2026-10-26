@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { form, getRequestEvent } from "$app/server";
 import { error, invalid } from "@sveltejs/kit";
 import type { InvalidField } from "@sveltejs/kit";
@@ -15,7 +16,16 @@ import {
 import { getLL } from "$lib/server/i18n";
 import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
 import { auditFromEvent } from "$lib/server/audit";
-import { updateCustomizationSchema } from "./schema";
+import {
+  updateCustomizationSchema,
+  createOidcClientSchema,
+  updateOidcClientSchema,
+  deleteOidcClientSchema,
+  regenerateOidcClientSecretSchema,
+} from "./schema";
+import { invalidateClientCache } from "$lib/server/oidc/adapter";
+import { hashClientSecret } from "$lib/server/oidc/secret";
+import { env } from "$lib/server/env";
 
 type CustomizationInput = v.InferInput<typeof updateCustomizationSchema>;
 type ValidCustomization = v.InferOutput<typeof updateCustomizationSchema>;
@@ -178,13 +188,17 @@ function invalidUpload(issue: InvalidField<CustomizationInput>, e: Customization
   return invalid(issue.faviconDark(e.message));
 }
 
-export const updateCustomization = form(updateCustomizationSchema, async (values, issue) => {
-  const event = getRequestEvent();
+function requireAdminWriteAccess(event: ReturnType<typeof getRequestEvent>) {
   const LL = getLL(event.locals.locale);
-
   if (!event.locals.session || !userHasAdminWriteAccess(event.locals.user)) {
     error(404, LL.error.resourceNotFound());
   }
+  return LL;
+}
+
+export const updateCustomization = form(updateCustomizationSchema, async (values, issue) => {
+  const event = getRequestEvent();
+  const LL = requireAdminWriteAccess(event);
 
   try {
     const uploaded = await processUploadedImages(values);
@@ -203,7 +217,8 @@ export const updateCustomization = form(updateCustomizationSchema, async (values
     }
 
     await updateCustomizationCache();
-    event.locals.customizations = await getCustomizations();
+    const updatedCustomizations = await getCustomizations();
+    event.locals.customizations = updatedCustomizations;
 
     return { success: true, message: LL.admin.settings.success() };
   } catch (e) {
@@ -214,4 +229,136 @@ export const updateCustomization = form(updateCustomizationSchema, async (values
     console.error("Failed to update app customization", e);
     return invalid(LL.admin.settings.error());
   }
+});
+
+// Refresh tokens follow from the offline_access scope (the adapter derives the grant types)
+function clientScopes(data: { idTokenClaims: string[]; "idTokenClaims[]": string[] }): string[] {
+  return [...new Set(["openid", ...data.idTokenClaims, ...data["idTokenClaims[]"]])];
+}
+
+function requireOidcAdmin(event: ReturnType<typeof getRequestEvent>) {
+  const LL = requireAdminWriteAccess(event);
+  if (!env.OIDC_ENABLED) error(404, LL.error.resourceNotFound());
+  return LL;
+}
+
+async function getExistingOidcClient(clientId: string, LL: ReturnType<typeof getLL>) {
+  const [existing] = await db.select().from(table.oidcClient).where(eq(table.oidcClient.clientId, clientId));
+
+  if (!existing) {
+    error(404, LL.admin.settings.oidc.error.clientNotFound());
+  }
+  return existing;
+}
+
+export const createOidcClient = form(createOidcClientSchema, async (data) => {
+  const event = getRequestEvent();
+  requireOidcAdmin(event);
+
+  const clientId = `client_${crypto.randomUUID().replaceAll("-", "")}`;
+  const claims = clientScopes(data);
+  const uris = data.redirectUris;
+  const plainSecret = `sec_${crypto.randomBytes(24).toString("base64url")}`;
+  const hashedSecret = hashClientSecret(plainSecret);
+
+  await db.insert(table.oidcClient).values({
+    clientId,
+    name: data.name,
+    clientSecret: hashedSecret,
+    redirectUris: uris,
+    scopes: claims,
+    requireActiveMembership: data.requireActiveMembership,
+    type: "authorization_code",
+  });
+
+  await auditFromEvent(event, "oidc_client.create", {
+    targetType: "oidc_client",
+    targetId: clientId,
+    metadata: {
+      name: data.name,
+      redirectUris: uris,
+      scopes: claims,
+      requireActiveMembership: data.requireActiveMembership,
+      type: "authorization_code",
+    },
+  });
+
+  return { success: true, clientId, clientSecret: plainSecret };
+});
+
+export const updateOidcClient = form(updateOidcClientSchema, async (data) => {
+  const event = getRequestEvent();
+  const LL = requireOidcAdmin(event);
+  await getExistingOidcClient(data.id, LL);
+
+  const claims = clientScopes(data);
+  const uris = data.redirectUris;
+
+  await db
+    .update(table.oidcClient)
+    .set({
+      name: data.name,
+      redirectUris: uris,
+      scopes: claims,
+      requireActiveMembership: data.requireActiveMembership,
+      type: "authorization_code",
+    })
+    .where(eq(table.oidcClient.clientId, data.id));
+
+  invalidateClientCache(data.id);
+
+  await auditFromEvent(event, "oidc_client.update", {
+    targetType: "oidc_client",
+    targetId: data.id,
+    metadata: {
+      name: data.name,
+      redirectUris: uris,
+      scopes: claims,
+      requireActiveMembership: data.requireActiveMembership,
+      type: "authorization_code",
+    },
+  });
+
+  return { success: true };
+});
+
+export const deleteOidcClient = form(deleteOidcClientSchema, async (data) => {
+  const event = getRequestEvent();
+  const LL = requireOidcAdmin(event);
+  await getExistingOidcClient(data.id, LL);
+
+  await db.delete(table.oidcClient).where(eq(table.oidcClient.clientId, data.id));
+  invalidateClientCache(data.id);
+
+  await auditFromEvent(event, "oidc_client.delete", {
+    targetType: "oidc_client",
+    targetId: data.id,
+  });
+
+  return { success: true };
+});
+
+export const regenerateOidcClientSecret = form(regenerateOidcClientSecretSchema, async (data) => {
+  const event = getRequestEvent();
+  const LL = requireOidcAdmin(event);
+  const existing = await getExistingOidcClient(data.id, LL);
+
+  const plainSecret = `sec_${crypto.randomBytes(24).toString("base64url")}`;
+  const hashedSecret = hashClientSecret(plainSecret);
+
+  // New secret, and every token and consent issued under the old one revoked, together
+  await db.transaction(async (tx) => {
+    await tx.update(table.oidcClient).set({ clientSecret: hashedSecret }).where(eq(table.oidcClient.clientId, data.id));
+    await tx.delete(table.oidcEntity).where(eq(table.oidcEntity.clientId, data.id));
+    await tx.delete(table.oidcConsent).where(eq(table.oidcConsent.clientId, data.id));
+  });
+  invalidateClientCache(data.id);
+
+  await auditFromEvent(event, "oidc_client.regenerate_secret", {
+    targetType: "oidc_client",
+    targetId: data.id,
+    metadata: { name: existing.name },
+  });
+
+  return { success: true, clientSecret: plainSecret };
 });

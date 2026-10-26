@@ -414,6 +414,7 @@ Best regards,
         organization: "Organization",
         resignation: "Resignation & Rules",
         privacyPolicy: "Privacy Policy",
+        oidcClients: "OpenID Connect",
       },
       brandingDefaults: {
         title: "General Branding",
@@ -457,6 +458,57 @@ Best regards,
         current: "Current:",
       },
       save: "Save customizations",
+
+      oidc: {
+        title: "OIDC Applications",
+        description: "Allow authentication to a third party app with the member registry user account.",
+        newClient: "New application",
+        emptyState: "No OIDC client applications registered yet.",
+        clientId: "Client ID",
+        claims: "Claims",
+        redirectUris: "Redirect URIs",
+        endpoints: {
+          button: "Endpoints",
+          title: "OIDC Endpoints",
+          description: "Public OIDC endpoints for this identity provider.",
+        },
+        form: {
+          createTitle: "Create new application",
+          editTitle: "Edit: {name}",
+          applicationName: "Application name",
+          applicationNamePlaceholder: "e.g. Guild Forum",
+          redirectUrisPlaceholder: "e.g. https://example.com/oauth/callback",
+          openidClaims: "OpenID claims",
+          membersOnly: "Members only",
+          membersOnlyDescription: "Only users with an active membership can sign in to this application.",
+        },
+        secret: {
+          newTitle: "New client secret generated",
+          newDescription: "Please copy this secret now. It will not be shown again:",
+          regenerate: "Regenerate secret",
+          regenerateTitle: "Regenerate client secret?",
+          regenerateWarning:
+            "Regenerating the secret will invalidate the current client secret and immediately revoke all active tokens for this application. This action cannot be undone.",
+        },
+        delete: {
+          title: "Delete application?",
+          description:
+            "Are you sure you want to delete this OIDC application? All registered redirect URIs, grants, and active tokens associated with this application will be permanently removed. This action cannot be undone.",
+        },
+        toast: {
+          copiedToClipboard: "Copied to clipboard",
+          createSuccess: "OIDC client created",
+          updateSuccess: "OIDC client updated",
+          deleteSuccess: "OIDC client deleted",
+          newSecret: "New client secret generated!",
+        },
+        error: {
+          clientNotFound: "Client application not found.",
+          unauthorized: "Unauthorized",
+          interactionNotFound: "Consent session not found or expired.",
+          interactionExpired: "Consent session has expired.",
+        },
+      },
     },
 
     members: {
@@ -989,6 +1041,11 @@ Best regards,
     select: "Select",
     loading: "Loading...",
     optional: "optional",
+    onePerLine: "(one per line)",
+    copyUri: "Copy URI",
+    required: "Required",
+    close: "Close",
+    done: "Done",
   },
 
   // Error page
