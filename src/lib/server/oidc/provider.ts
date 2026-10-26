@@ -12,7 +12,7 @@
  */
 
 import Provider, { interactionPolicy, type Configuration, type KoaContextWithOIDC } from "oidc-provider";
-import { generateKeyPairSync, createHash, randomBytes } from "node:crypto";
+import { generateKeyPairSync, createHash, createPrivateKey, randomBytes } from "node:crypto";
 import { dev, building } from "$app/environment";
 import { db } from "$lib/server/db";
 import { user } from "$lib/server/db/schema";
@@ -53,23 +53,30 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Parses OIDC_SIGNING_KEY_JWK: Base64-encoded JSON holding either one private JWK or a JWK Set
- * (`{"keys": [...]}`). With a set, the first key signs new tokens and the others are only
- * published, so tokens they signed keep verifying. That's how keys are rotated: put the new key
- * first, deploy, and drop the old one once its tokens have expired.
+ * Parses OIDC_SIGNING_KEY_JWK: Base64 of either JSON (one private JWK or a JWK Set, `{"keys": [...]}`)
+ * or PEM (one or more private key blocks, as Terraform's tls_private_key outputs). With several keys,
+ * the first signs new tokens and the others are only published, so tokens they signed keep
+ * verifying. That's how keys are rotated: put the new key first, deploy, and drop the old one once
+ * its tokens have expired.
  */
 export function parseSigningKeys(input: string): Record<string, unknown>[] | null {
   const trimmed = input.trim();
   // Strictly reject anything that isn't Base64 (e.g. raw JSON)
   if (!trimmed || !/^[A-Za-z0-9+/]+={0,2}$/.test(trimmed) || trimmed.length % 4 !== 0) return null;
 
-  let parsed: unknown;
+  const decoded = Buffer.from(trimmed, "base64").toString("utf8");
+  let keys: unknown[];
   try {
-    parsed = JSON.parse(Buffer.from(trimmed, "base64").toString("utf8"));
+    if (decoded.includes("-----BEGIN")) {
+      const blocks = decoded.match(/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g) ?? [];
+      keys = blocks.map((pem) => createPrivateKey(pem).export({ format: "jwk" }));
+    } else {
+      const parsed: unknown = JSON.parse(decoded);
+      keys = isRecord(parsed) && Array.isArray(parsed.keys) ? parsed.keys : [parsed];
+    }
   } catch {
     return null;
   }
-  const keys: unknown[] = isRecord(parsed) && Array.isArray(parsed.keys) ? parsed.keys : [parsed];
   // RSA only: the kid thumbprint and the RS256 default assume RSA keys
   if (keys.length === 0 || keys.some((key) => !(isRecord(key) && key.kty === "RSA"))) return null;
   return keys as Record<string, unknown>[];
