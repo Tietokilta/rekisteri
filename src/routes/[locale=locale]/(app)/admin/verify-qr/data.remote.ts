@@ -8,6 +8,7 @@ import { verifyQrSchema } from "./schema";
 import { getLL } from "$lib/server/i18n";
 import { userHasAdminAccess } from "$lib/server/auth/admin";
 import { auditFromEvent } from "$lib/server/audit";
+import { membershipTypeAt } from "$lib/server/membership/status";
 
 export const verifyQr = command(verifyQrSchema, async ({ token }) => {
   const event = getRequestEvent();
@@ -59,11 +60,12 @@ export const verifyQr = command(verifyQrSchema, async ({ token }) => {
     )
     .orderBy(desc(table.membership.startTime))
     .limit(3);
+  const isMember = (await membershipTypeAt(db, userId, new Date())) !== null;
 
   await auditFromEvent(event, "admin.verify_qr", {
     targetType: "user",
     targetId: userId,
   });
 
-  return { user, memberships };
+  return { user, memberships, isMember };
 });

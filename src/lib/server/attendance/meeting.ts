@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "$lib/server/db";
 import { notifyMeetingChanged } from "./live";
-import { membershipTypeAt } from "./membership";
+import { membershipTypeAt } from "$lib/server/membership/status";
 import * as table from "$lib/server/db/schema";
 import {
   bindEventsToRecess,
