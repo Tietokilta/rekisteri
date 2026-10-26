@@ -1,5 +1,5 @@
 import { env as privateEnv } from "$env/dynamic/private";
-import { publicEnv } from "$lib/env";
+import { publicEnv } from "#lib/env.js";
 import { dev, building } from "$app/environment";
 import * as v from "valibot";
 
@@ -181,7 +181,7 @@ if (!parsed.success) {
  * Only importable in server code.
  *
  * @example
- * import { env } from "$lib/server/env";
+ * import { env } from "#lib/server/env.js";
  * const stripe = new Stripe(env.STRIPE_API_KEY); // Type-safe!
  * const url = env.PUBLIC_URL; // Also includes public env vars
  */

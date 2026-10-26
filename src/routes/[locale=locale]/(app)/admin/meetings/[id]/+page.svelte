@@ -4,16 +4,16 @@
   import { invalidateAll } from "$app/navigation";
   import { page } from "$app/state";
   import { toast } from "svelte-sonner";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { formatDateTime, formatShortDateTime } from "$lib/utils";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog";
-  import * as Alert from "$lib/components/ui/alert";
-  import { Badge } from "$lib/components/ui/badge";
-  import { Button } from "$lib/components/ui/button";
-  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-  import { Label } from "$lib/components/ui/label";
-  import * as Sheet from "$lib/components/ui/sheet";
-  import * as Table from "$lib/components/ui/table";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { formatDateTime, formatShortDateTime } from "#lib/utils.js";
+  import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+  import * as Alert from "#lib/components/ui/alert/index.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
+  import * as Sheet from "#lib/components/ui/sheet/index.js";
+  import * as Table from "#lib/components/ui/table/index.js";
   import EllipsisVertical from "@lucide/svelte/icons/ellipsis-vertical";
   import CheckInSearch from "./check-in-search.svelte";
   import CorrectionSheet from "./correction-sheet.svelte";
@@ -34,7 +34,7 @@
     updateMeetingTimes,
   } from "../data.remote";
   import { updateMeetingTimesSchema } from "../schema";
-  import { meetingAttendanceSummary } from "$lib/shared/meeting-attendance";
+  import { meetingAttendanceSummary } from "#lib/shared/meeting-attendance.js";
   import { onMount } from "svelte";
   import { Registry } from "./registry.svelte";
   import { isTransientError, ScanQueue, type QueuedScan } from "./scan-queue.svelte";

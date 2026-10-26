@@ -1,7 +1,7 @@
 import { error, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
-import { db } from "$lib/server/db";
-import { resumeOrCreateSession } from "$lib/server/payment/session";
+import { db } from "#lib/server/db/index.js";
+import { resumeOrCreateSession } from "#lib/server/payment/session.js";
 import { retryPaymentSchema } from "./retry-payment.schema";
 
 export const retryPayment = form(retryPaymentSchema, async ({ memberId }) => {

@@ -1,4 +1,4 @@
-import type { MemberStatus } from "$lib/shared/enums";
+import type { MemberStatus } from "#lib/shared/enums.js";
 
 /**
  * Valid member status transitions, aligned with Tietokilta bylaws.

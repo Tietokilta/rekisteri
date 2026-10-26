@@ -1,12 +1,12 @@
 import { error } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import { count, eq } from "drizzle-orm";
 import { createMembershipTypeSchema, deleteMembershipTypeSchema, updateMembershipTypeSchema } from "./schema";
-import { getLL } from "$lib/server/i18n";
-import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
-import { auditFromEvent } from "$lib/server/audit";
+import { getLL } from "#lib/server/i18n.js";
+import { userHasAdminWriteAccess } from "#lib/server/auth/admin.js";
+import { auditFromEvent } from "#lib/server/audit.js";
 
 export const createMembershipType = form(createMembershipTypeSchema, async (data) => {
   const event = getRequestEvent();

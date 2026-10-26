@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { LL } from "$lib/i18n/i18n-svelte";
-  import MarkdownEditor from "$lib/components/markdown-editor.svelte";
-  import * as Tabs from "$lib/components/ui/tabs";
+  import { LL } from "#lib/i18n/i18n-svelte.js";
+  import MarkdownEditor from "#lib/components/markdown-editor.svelte";
+  import * as Tabs from "#lib/components/ui/tabs/index.js";
 
   let {
     values = $bindable(),

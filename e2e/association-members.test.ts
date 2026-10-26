@@ -1,6 +1,6 @@
 import { test, expect } from "./fixtures/db";
 import { route } from "../src/lib/ROUTES";
-import * as table from "$lib/server/db/schema";
+import * as table from "#lib/server/db/schema.js";
 import { eq } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { relations } from "../src/lib/server/db/relations";

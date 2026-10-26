@@ -1,6 +1,6 @@
 import type { LayoutLoad } from "./$types";
-import { loadLocaleAsync } from "$lib/i18n/i18n-util.async";
-import { setLocale } from "$lib/i18n/i18n-svelte";
+import { loadLocaleAsync } from "#lib/i18n/i18n-util.async.js";
+import { setLocale } from "#lib/i18n/i18n-svelte.js";
 
 export const load: LayoutLoad = async ({ data }) => {
   await loadLocaleAsync(data.locale);

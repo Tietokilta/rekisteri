@@ -1,14 +1,14 @@
 import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad, Actions } from "./$types";
-import { db } from "$lib/server/db";
-import { oidcClient, oidcConsent } from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import { oidcClient, oidcConsent } from "#lib/server/db/schema.js";
 import { eq, and } from "drizzle-orm";
-import { getOidcProvider } from "$lib/server/oidc/provider";
-import { getLL } from "$lib/server/i18n";
-import { finishInteraction, getInteraction } from "$lib/server/oidc/interaction";
-import { invalidateSession, deleteSessionTokenCookie } from "$lib/server/auth/session";
-import { auditFromEvent, createAuditLog } from "$lib/server/audit";
-import { canUseClient } from "$lib/server/oidc/access";
+import { getOidcProvider } from "#lib/server/oidc/provider.js";
+import { getLL } from "#lib/server/i18n.js";
+import { finishInteraction, getInteraction } from "#lib/server/oidc/interaction.js";
+import { invalidateSession, deleteSessionTokenCookie } from "#lib/server/auth/session.js";
+import { auditFromEvent, createAuditLog } from "#lib/server/audit.js";
+import { canUseClient } from "#lib/server/oidc/access.js";
 
 // Grant only what this request asked for, limited to the scopes the client is allowed
 function grantedScopes(requested: unknown, clientScopes: string[]): string[] {

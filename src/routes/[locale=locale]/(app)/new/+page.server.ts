@@ -1,12 +1,12 @@
 import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { route } from "$lib/ROUTES";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { route } from "#lib/ROUTES.js";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import { eq, desc, gt, gte, and, isNotNull } from "drizzle-orm";
-import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
-import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
-import { checkAutoApprovalEligibility } from "$lib/server/payment/auto-approval";
+import { getUserSecondaryEmails, isSecondaryEmailValid } from "#lib/server/auth/secondary-email.js";
+import { BLOCKING_MEMBER_STATUSES } from "#lib/shared/enums.js";
+import { checkAutoApprovalEligibility } from "#lib/server/payment/auto-approval.js";
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.user) {

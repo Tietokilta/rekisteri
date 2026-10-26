@@ -3,13 +3,13 @@ import path from "node:path";
 import fs from "node:fs";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as table from "$lib/server/db/schema";
-import { relations } from "$lib/server/db/relations";
+import * as table from "#lib/server/db/schema.js";
+import { relations } from "#lib/server/db/relations.js";
 import { and, eq, inArray } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { createVerifiedSecondaryEmail, createUnverifiedSecondaryEmail } from "./helpers/secondary-email";
 import { route } from "../src/lib/ROUTES";
-import type { Schema } from "$lib/server/db";
+import type { Schema } from "#lib/server/db/index.js";
 
 test.describe("CSV Import", () => {
   let client: ReturnType<typeof postgres>;

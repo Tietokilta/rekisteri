@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
   import { invalidateAll } from "$app/navigation";
-  import { Input } from "$lib/components/ui/input";
-  import { Button } from "$lib/components/ui/button";
-  import { Badge } from "$lib/components/ui/badge";
-  import * as Tabs from "$lib/components/ui/tabs";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog";
-  import { Checkbox } from "$lib/components/ui/checkbox";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
+  import * as Tabs from "#lib/components/ui/tabs/index.js";
+  import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+  import { Checkbox } from "#lib/components/ui/checkbox/index.js";
   import { toast } from "svelte-sonner";
   import type { PageData } from "../$types";
 
@@ -30,9 +30,9 @@
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import CloudSync from "@lucide/svelte/icons/cloud-sync";
   import { browser } from "$app/environment";
-  import OidcClientConfig from "$lib/components/oidc-client-config.svelte";
-  import { OPENID_CLAIM_KEYS } from "$lib/shared/oidc";
-  import { getClaimsForScopes } from "$lib/utils";
+  import OidcClientConfig from "#lib/components/oidc-client-config.svelte";
+  import { OPENID_CLAIM_KEYS } from "#lib/shared/oidc.js";
+  import { getClaimsForScopes } from "#lib/utils.js";
 
   let {
     data,

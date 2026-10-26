@@ -1,16 +1,16 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import type { PageData } from "./$types";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import * as Card from "$lib/components/ui/card/index.js";
-  import * as Alert from "$lib/components/ui/alert/index.js";
-  import { Separator } from "$lib/components/ui/separator/index.js";
-  import { LL } from "$lib/i18n/i18n-svelte";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import * as Card from "#lib/components/ui/card/index.js";
+  import * as Alert from "#lib/components/ui/alert/index.js";
+  import { Separator } from "#lib/components/ui/separator/index.js";
+  import { LL } from "#lib/i18n/i18n-svelte.js";
   import { startAuthentication } from "@simplewebauthn/browser";
-  import { route } from "$lib/ROUTES";
+  import { route } from "#lib/ROUTES.js";
   import Fingerprint from "@lucide/svelte/icons/fingerprint";
   import Mail from "@lucide/svelte/icons/mail";
-  import { getAuthenticationOptions, verifyAuthentication } from "$lib/api/authenticate.remote";
+  import { getAuthenticationOptions, verifyAuthentication } from "#lib/api/authenticate.remote.js";
   import { PersistedState } from "runed";
   import { useEmail, changeEmail } from "./data.remote";
 

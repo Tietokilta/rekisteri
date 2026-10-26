@@ -4,17 +4,17 @@ import { form, getRequestEvent, type InvalidField } from "$app/server";
 import { eq } from "drizzle-orm";
 import type * as v from "valibot";
 
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
-import { updateCustomizationCache, getCustomizations } from "$lib/server/customization/cache";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
+import { updateCustomizationCache, getCustomizations } from "#lib/server/customization/cache.js";
 import {
   type CustomizationImageField,
   CustomizationUploadError,
   processUploadedFile,
-} from "$lib/server/customization/utils";
-import { getLL } from "$lib/server/i18n";
-import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
-import { auditFromEvent } from "$lib/server/audit";
+} from "#lib/server/customization/utils.js";
+import { getLL } from "#lib/server/i18n.js";
+import { userHasAdminWriteAccess } from "#lib/server/auth/admin.js";
+import { auditFromEvent } from "#lib/server/audit.js";
 import {
   updateCustomizationSchema,
   createOidcClientSchema,
@@ -22,9 +22,9 @@ import {
   deleteOidcClientSchema,
   regenerateOidcClientSecretSchema,
 } from "./schema";
-import { invalidateClientCache } from "$lib/server/oidc/adapter";
-import { hashClientSecret } from "$lib/server/oidc/secret";
-import { env } from "$lib/server/env";
+import { invalidateClientCache } from "#lib/server/oidc/adapter.js";
+import { hashClientSecret } from "#lib/server/oidc/secret.js";
+import { env } from "#lib/server/env.js";
 
 type CustomizationInput = v.InferInput<typeof updateCustomizationSchema>;
 type ValidCustomization = v.InferOutput<typeof updateCustomizationSchema>;

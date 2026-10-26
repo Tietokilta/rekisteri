@@ -1,19 +1,19 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import { afterNavigate } from "$app/navigation";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { Button } from "$lib/components/ui/button";
-  import { Badge } from "$lib/components/ui/badge";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
   import ShieldKeyhole from "@lucide/svelte/icons/shield-keyhole";
   import Eye from "@lucide/svelte/icons/eye";
-  import ScopeIcon from "$lib/components/oidc-icon.svelte";
-  import { Input } from "$lib/components/ui/input/index.js";
-  import { Label } from "$lib/components/ui/label/index.js";
+  import ScopeIcon from "#lib/components/oidc-icon.svelte";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
   import { signIn } from "../../../[locale=locale]/(public)/sign-in/data.remote";
   import { signInSchema } from "../../../[locale=locale]/(public)/sign-in/schema";
 
-  import { OIDC_SCOPES } from "$lib/shared/oidc";
-  import { route } from "$lib/ROUTES";
+  import { OIDC_SCOPES } from "#lib/shared/oidc.js";
+  import { route } from "#lib/ROUTES.js";
 
   let { data }: { data: PageData } = $props();
 

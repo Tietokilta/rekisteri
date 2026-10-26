@@ -15,8 +15,8 @@
  */
 
 import { errors, type Adapter, type AdapterPayload } from "oidc-provider";
-import { db } from "$lib/server/db";
-import { oidcEntity, oidcClient, oidcConsent } from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import { oidcEntity, oidcClient, oidcConsent } from "#lib/server/db/schema.js";
 import { eq, and, or, sql, inArray } from "drizzle-orm";
 
 const CLIENT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes

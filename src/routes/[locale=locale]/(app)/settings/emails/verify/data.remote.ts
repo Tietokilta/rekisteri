@@ -11,12 +11,12 @@ import {
   sendOTPEmail,
   sendOTPBucket,
   setEmailOTPCookie,
-} from "$lib/server/auth/email";
-import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
-import { route } from "$lib/ROUTES";
-import { getUserSecondaryEmails, markSecondaryEmailVerified } from "$lib/server/auth/secondary-email";
+} from "#lib/server/auth/email.js";
+import { ExpiringTokenBucket } from "#lib/server/auth/rate-limit.js";
+import { route } from "#lib/ROUTES.js";
+import { getUserSecondaryEmails, markSecondaryEmailVerified } from "#lib/server/auth/secondary-email.js";
 import { verifyCodeSchema } from "./schema";
-import { getLL } from "$lib/server/i18n";
+import { getLL } from "#lib/server/i18n.js";
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
 

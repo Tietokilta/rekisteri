@@ -10,11 +10,11 @@ import {
   type RegistrationResponseJSON,
   type AuthenticationResponseJSON,
 } from "@simplewebauthn/server";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
-import type { User, Passkey } from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
+import type { User, Passkey } from "#lib/server/db/schema.js";
 import { encodeBase64url, decodeBase64url } from "@oslojs/encoding";
-import { env } from "$lib/server/env";
+import { env } from "#lib/server/env.js";
 import { getUserSecondaryEmails, isSecondaryEmailValid } from "./secondary-email";
 
 /**

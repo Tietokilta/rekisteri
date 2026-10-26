@@ -1,14 +1,14 @@
 import { error } from "@sveltejs/kit";
 import { command, getRequestEvent } from "$app/server";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import { eq, desc, and, or } from "drizzle-orm";
-import { verifyQrToken } from "$lib/server/attendance/qr-token";
+import { verifyQrToken } from "#lib/server/attendance/qr-token.js";
 import { verifyQrSchema } from "./schema";
-import { getLL } from "$lib/server/i18n";
-import { userHasAdminAccess } from "$lib/server/auth/admin";
-import { auditFromEvent } from "$lib/server/audit";
-import { membershipTypeAt } from "$lib/server/membership/status";
+import { getLL } from "#lib/server/i18n.js";
+import { userHasAdminAccess } from "#lib/server/auth/admin.js";
+import { auditFromEvent } from "#lib/server/audit.js";
+import { membershipTypeAt } from "#lib/server/membership/status.js";
 
 export const verifyQr = command(verifyQrSchema, async ({ token }) => {
   const event = getRequestEvent();

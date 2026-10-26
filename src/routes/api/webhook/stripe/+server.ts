@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
-import { stripe } from "$lib/server/payment";
-import { env } from "$lib/server/env";
-import { cancelSession, fulfillSession } from "$lib/server/payment/session.js";
+import { stripe } from "#lib/server/payment/index.js";
+import { env } from "#lib/server/env.js";
+import { cancelSession, fulfillSession } from "#lib/server/payment/session.js";
 
 const endpointSecret = env.STRIPE_WEBHOOK_SECRET;
 

@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import type SMTPPool from "nodemailer/lib/smtp-pool";
-import { env } from "$lib/server/env";
+import { env } from "#lib/server/env.js";
 import type { SendEmailOptions, SendEmailResult } from "./types";
 
 type SmtpTransporter = Transporter<SMTPPool.SentMessageInfo, SMTPPool.Options>;

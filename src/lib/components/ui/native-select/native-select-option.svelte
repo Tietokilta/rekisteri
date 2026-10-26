@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { HTMLOptionAttributes } from "svelte/elements";
-  import type { WithElementRef } from "$lib/utils.js";
+  import type { WithElementRef } from "#lib/utils.js";
 
   let { ref = $bindable(null), children, ...restProps }: WithElementRef<HTMLOptionAttributes> = $props();
 </script>

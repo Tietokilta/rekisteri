@@ -1,7 +1,7 @@
 import { test, expect } from "./fixtures/db";
 import type { Page } from "@playwright/test";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import * as table from "$lib/server/db/schema";
+import * as table from "#lib/server/db/schema.js";
 import { eq, inArray } from "drizzle-orm";
 import QRCode from "qrcode";
 import { route } from "../src/lib/ROUTES";

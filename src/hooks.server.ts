@@ -1,15 +1,15 @@
 import { redirect } from "@sveltejs/kit";
 import { sequence, type Handle, type ServerInit } from "@sveltejs/kit/hooks";
-import * as auth from "$lib/server/auth/session.js";
-import { userHasAdminAccess } from "$lib/server/auth/admin";
-import { baseLocale, locales, preferredLanguageToLocale, type Locale } from "$lib/i18n/routing";
+import * as auth from "#lib/server/auth/session.js";
+import { userHasAdminAccess } from "#lib/server/auth/admin.js";
+import { baseLocale, locales, preferredLanguageToLocale, type Locale } from "#lib/i18n/routing.js";
 import { dev } from "$app/environment";
 import cron from "node-cron";
-import { cleanupExpiredTokens, cleanupInactiveUsers, cleanupOldAuditLogs } from "$lib/server/db/cleanup";
+import { cleanupExpiredTokens, cleanupInactiveUsers, cleanupOldAuditLogs } from "#lib/server/db/cleanup.js";
 import { createInitialModeExpression } from "mode-watcher";
-import { getCustomizations } from "$lib/server/customization/cache";
-import { getOidcProvider } from "$lib/server/oidc/provider";
-import { env } from "$lib/server/env";
+import { getCustomizations } from "#lib/server/customization/cache.js";
+import { getOidcProvider } from "#lib/server/oidc/provider.js";
+import { env } from "#lib/server/env.js";
 
 const handleCustomizations: Handle = async ({ event, resolve }) => {
   event.locals.customizations = await getCustomizations();

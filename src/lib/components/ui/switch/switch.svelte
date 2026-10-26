@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Switch as SwitchPrimitive } from "bits-ui";
-  import { cn, type WithoutChildrenOrChild } from "$lib/utils.js";
+  import { cn, type WithoutChildrenOrChild } from "#lib/utils.js";
 
   // Extend the type to accept "checkbox" for remote form compatibility
   type SwitchProps = Omit<WithoutChildrenOrChild<SwitchPrimitive.RootProps>, "type"> & {

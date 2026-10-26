@@ -1,5 +1,5 @@
-import type { AppCustomization, LocalizedString } from "$lib/server/db/schema";
-import { CUSTOMIZATION_FAVICON_MAX_BYTES, CUSTOMIZATION_LOGO_MAX_BYTES } from "$lib/shared/customization";
+import type { AppCustomization, LocalizedString } from "#lib/server/db/schema.js";
+import { CUSTOMIZATION_FAVICON_MAX_BYTES, CUSTOMIZATION_LOGO_MAX_BYTES } from "#lib/shared/customization.js";
 
 export type CustomizationImageField = "logo" | "logoDark" | "favicon" | "faviconDark";
 

@@ -1,8 +1,8 @@
 import { error } from "@sveltejs/kit";
 import { command, form, getRequestEvent } from "$app/server";
 import { and, eq, isNull } from "drizzle-orm";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import {
   correctMeetingEvent,
   editMeetingRecess,
@@ -11,11 +11,11 @@ import {
   startMeetingRecess,
   updateMeetingAttendee,
   type AttendanceTarget,
-} from "$lib/server/attendance/meeting";
-import { notifyMeetingChanged } from "$lib/server/attendance/live";
-import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
-import { verifyQrToken } from "$lib/server/attendance/qr-token";
-import { getLL } from "$lib/server/i18n";
+} from "#lib/server/attendance/meeting.js";
+import { notifyMeetingChanged } from "#lib/server/attendance/live.js";
+import { userHasAdminWriteAccess } from "#lib/server/auth/admin.js";
+import { verifyQrToken } from "#lib/server/attendance/qr-token.js";
+import { getLL } from "#lib/server/i18n.js";
 import {
   addMissedActionSchema,
   correctEventSchema,

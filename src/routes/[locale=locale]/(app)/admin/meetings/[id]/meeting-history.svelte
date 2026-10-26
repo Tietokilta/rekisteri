@@ -1,11 +1,11 @@
 <script lang="ts">
   import type { PageData } from "./$types";
-  import { locale, LL } from "$lib/i18n/i18n-svelte";
-  import { formatShortDateTime } from "$lib/utils";
-  import { Badge } from "$lib/components/ui/badge";
-  import { Button } from "$lib/components/ui/button";
-  import * as Table from "$lib/components/ui/table";
-  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+  import { locale, LL } from "#lib/i18n/i18n-svelte.js";
+  import { formatShortDateTime } from "#lib/utils.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import * as Table from "#lib/components/ui/table/index.js";
+  import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
   import EllipsisVertical from "@lucide/svelte/icons/ellipsis-vertical";
   import Undo2 from "@lucide/svelte/icons/undo-2";
   import Redo2 from "@lucide/svelte/icons/redo-2";

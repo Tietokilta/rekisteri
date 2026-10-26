@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
   import { page } from "$app/stores";
-  import { route } from "$lib/ROUTES";
-  import { Input } from "$lib/components/ui/input";
-  import { Button } from "$lib/components/ui/button";
-  import { Label } from "$lib/components/ui/label";
-  import * as Alert from "$lib/components/ui/alert/index.js";
-  import * as Card from "$lib/components/ui/card/index.js";
-  import { addSecondaryEmailForm } from "$lib/api/secondary-emails.remote";
-  import { addSecondaryEmailSchema } from "$lib/api/secondary-emails.schema";
+  import { route } from "#lib/ROUTES.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
+  import * as Alert from "#lib/components/ui/alert/index.js";
+  import * as Card from "#lib/components/ui/card/index.js";
+  import { addSecondaryEmailForm } from "#lib/api/secondary-emails.remote.js";
+  import { addSecondaryEmailSchema } from "#lib/api/secondary-emails.schema.js";
 
   const next = $derived($page.url.searchParams.get("next") ?? "");
 

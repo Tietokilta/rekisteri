@@ -2,16 +2,16 @@
   import { untrack } from "svelte";
   import { invalidateAll } from "$app/navigation";
   import { toast } from "svelte-sonner";
-  import { LL } from "$lib/i18n/i18n-svelte";
+  import { LL } from "#lib/i18n/i18n-svelte.js";
   import { updateMembershipType, deleteMembershipType } from "./data.remote";
   import { updateMembershipTypeSchema, deleteMembershipTypeSchema } from "./schema";
-  import { Input } from "$lib/components/ui/input";
-  import { Checkbox } from "$lib/components/ui/checkbox";
-  import { Button } from "$lib/components/ui/button";
-  import { Label } from "$lib/components/ui/label";
-  import * as Sheet from "$lib/components/ui/sheet";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Checkbox } from "#lib/components/ui/checkbox/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
+  import * as Sheet from "#lib/components/ui/sheet/index.js";
   import Trash2 from "@lucide/svelte/icons/trash-2";
-  import type { LocalizedString } from "$lib/server/db/schema";
+  import type { LocalizedString } from "#lib/server/db/schema.js";
 
   interface MembershipType {
     id: string;

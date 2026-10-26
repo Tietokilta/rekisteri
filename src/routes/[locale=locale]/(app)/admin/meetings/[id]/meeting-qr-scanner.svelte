@@ -3,8 +3,8 @@
   import QrScanner from "qr-scanner";
   import QrCode from "@lucide/svelte/icons/qr-code";
   import X from "@lucide/svelte/icons/x";
-  import { LL } from "$lib/i18n/i18n-svelte";
-  import { Button } from "$lib/components/ui/button";
+  import { LL } from "#lib/i18n/i18n-svelte.js";
+  import { Button } from "#lib/components/ui/button/index.js";
   import { remoteErrorMessage } from "./types";
 
   type ScanResult = { displayName: string; membershipTypeId: string | null };

@@ -1,15 +1,15 @@
 import { error } from "@sveltejs/kit";
 import { getRequestEvent, command } from "$app/server";
-import { createAuthenticationOptions, verifyAuthenticationAndGetUser } from "$lib/server/auth/passkey";
-import { createSession, generateSessionToken, sessionCookieName } from "$lib/server/auth/session";
-import { createAuditLog } from "$lib/server/audit";
-import { emailCookieName as signInEmailCookieName } from "$lib/server/auth/email";
-import { RefillingTokenBucket } from "$lib/server/auth/rate-limit";
+import { createAuthenticationOptions, verifyAuthenticationAndGetUser } from "#lib/server/auth/passkey.js";
+import { createSession, generateSessionToken, sessionCookieName } from "#lib/server/auth/session.js";
+import { createAuditLog } from "#lib/server/audit.js";
+import { emailCookieName as signInEmailCookieName } from "#lib/server/auth/email.js";
+import { RefillingTokenBucket } from "#lib/server/auth/rate-limit.js";
 import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/server";
 import { dev } from "$app/environment";
 import * as v from "valibot";
-import { getLL } from "$lib/server/i18n";
-import { takeReturnTo } from "$lib/server/oidc/return-to";
+import { getLL } from "#lib/server/i18n.js";
+import { takeReturnTo } from "#lib/server/oidc/return-to.js";
 
 // Rate limit: 10 authentication attempts per hour per email
 const authBucket = new RefillingTokenBucket<string>(10, 60 * 60);

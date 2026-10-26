@@ -1,9 +1,9 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
-import { getMeetingState } from "$lib/server/attendance/meeting";
-import { userHasAdminAccess, userHasAdminWriteAccess } from "$lib/server/auth/admin";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
+import { getMeetingState } from "#lib/server/attendance/meeting.js";
+import { userHasAdminAccess, userHasAdminWriteAccess } from "#lib/server/auth/admin.js";
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.session || !userHasAdminAccess(event.locals.user)) error(404, "Not found");

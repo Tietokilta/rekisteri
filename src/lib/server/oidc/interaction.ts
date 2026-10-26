@@ -9,7 +9,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { error, redirect, type Cookies } from "@sveltejs/kit";
 import type { InteractionResults } from "oidc-provider";
-import { env } from "$lib/server/env";
+import { env } from "#lib/server/env.js";
 import { getCookieKeys, getOidcProvider } from "./provider";
 
 type Interaction = InstanceType<ReturnType<typeof getOidcProvider>["Interaction"]>;

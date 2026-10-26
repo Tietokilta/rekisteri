@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { ADMIN_ROLE_VALUES } from "$lib/shared/enums";
+import { ADMIN_ROLE_VALUES } from "#lib/shared/enums.js";
 
 export const updateUserRoleSchema = v.object({
   userId: v.pipe(v.string(), v.minLength(1)),

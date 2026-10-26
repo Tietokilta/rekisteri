@@ -1,8 +1,8 @@
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import { eq, sql } from "drizzle-orm";
 import { json } from "@sveltejs/kit";
-import { checkEmailHealth } from "$lib/server/mailer";
+import { checkEmailHealth } from "#lib/server/mailer/index.js";
 import type { RequestHandler } from "./$types";
 
 /**

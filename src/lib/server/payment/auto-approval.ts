@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
-import type { Schema } from "$lib/server/db";
-import type { Membership, SecondaryEmail } from "$lib/server/db/schema";
-import { secondaryEmail } from "$lib/server/db/schema";
+import type { Schema } from "#lib/server/db/index.js";
+import type { Membership, SecondaryEmail } from "#lib/server/db/schema.js";
+import { secondaryEmail } from "#lib/server/db/schema.js";
 import type { PostgresJsDatabase, PostgresJsTransaction } from "drizzle-orm/postgres-js";
 
 type DbHandle = PostgresJsDatabase<Schema> | PostgresJsTransaction<Schema>;

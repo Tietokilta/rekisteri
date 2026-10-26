@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { LL } from "$lib/i18n/i18n-svelte";
-  import { Badge } from "$lib/components/ui/badge";
-  import { Button } from "$lib/components/ui/button";
-  import { Input } from "$lib/components/ui/input";
-  import { matchesSearchTokens } from "$lib/utils";
-  import { singleLine } from "$lib/shared/name";
+  import { LL } from "#lib/i18n/i18n-svelte.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { matchesSearchTokens } from "#lib/utils.js";
+  import { singleLine } from "#lib/shared/name.js";
   import type { AttendeeRow, RecordTarget } from "./types";
   import type { Registry, RegistryUser } from "./registry.svelte";
 

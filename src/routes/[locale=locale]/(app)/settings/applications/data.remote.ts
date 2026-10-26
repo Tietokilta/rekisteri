@@ -1,11 +1,11 @@
 import { form, getRequestEvent } from "$app/server";
 import { error } from "@sveltejs/kit";
 import { eq, and } from "drizzle-orm";
-import { db } from "$lib/server/db";
-import { env } from "$lib/server/env";
-import * as table from "$lib/server/db/schema";
-import { getLL } from "$lib/server/i18n";
-import { auditFromEvent } from "$lib/server/audit";
+import { db } from "#lib/server/db/index.js";
+import { env } from "#lib/server/env.js";
+import * as table from "#lib/server/db/schema.js";
+import { getLL } from "#lib/server/i18n.js";
+import { auditFromEvent } from "#lib/server/audit.js";
 import { revokeGrantSchema } from "./schema";
 
 export const revokeGrant = form(revokeGrantSchema, async (data) => {

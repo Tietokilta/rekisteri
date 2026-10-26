@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { Textarea } from "$lib/components/ui/textarea";
-  import { Button } from "$lib/components/ui/button";
-  import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "$lib/components/ui/tooltip";
-  import * as ToggleGroup from "$lib/components/ui/toggle-group";
-  import { renderMarkdown } from "$lib/markdown";
+  import { Textarea } from "#lib/components/ui/textarea/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "#lib/components/ui/tooltip/index.js";
+  import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
+  import { renderMarkdown } from "#lib/markdown.js";
 
   import Bold from "@lucide/svelte/icons/bold";
   import Italic from "@lucide/svelte/icons/italic";

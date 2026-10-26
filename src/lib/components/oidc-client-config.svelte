@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { Badge } from "$lib/components/ui/badge";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
   import Lock from "@lucide/svelte/icons/lock";
-  import ScopeIcon from "$lib/components/oidc-icon.svelte";
-  import { OPENID_CLAIMS, ALL_CLAIMS, OIDC_SCOPES, OPTIONAL_CLAIMS } from "$lib/shared/oidc";
+  import ScopeIcon from "#lib/components/oidc-icon.svelte";
+  import { OPENID_CLAIMS, ALL_CLAIMS, OIDC_SCOPES, OPTIONAL_CLAIMS } from "#lib/shared/oidc.js";
 
   let {
     scopes = $bindable([]),

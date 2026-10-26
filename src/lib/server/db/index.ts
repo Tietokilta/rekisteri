@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { env } from "$lib/server/env";
+import { env } from "#lib/server/env.js";
 import { dev } from "$app/environment";
 import { relations } from "./relations";
 

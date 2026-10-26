@@ -1,11 +1,11 @@
 <script lang="ts">
-  import * as Drawer from "$lib/components/ui/drawer/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
+  import * as Drawer from "#lib/components/ui/drawer/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
   import { page } from "$app/state";
-  import LanguageToggle from "$lib/components/language-toggle.svelte";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { signOut } from "$lib/api/auth.remote";
-  import { getMainNavItems, getSettingsNavItems, getAdminNavItems } from "$lib/navigation";
+  import LanguageToggle from "#lib/components/language-toggle.svelte";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { signOut } from "#lib/api/auth.remote.js";
+  import { getMainNavItems, getSettingsNavItems, getAdminNavItems } from "#lib/navigation.js";
 
   // Icons from @lucide/svelte
   import Menu from "@lucide/svelte/icons/menu";
@@ -15,7 +15,7 @@
   import X from "@lucide/svelte/icons/x";
   import Languages from "@lucide/svelte/icons/languages";
 
-  import { hasAdminAccess, type AdminRole } from "$lib/shared/enums";
+  import { hasAdminAccess, type AdminRole } from "#lib/shared/enums.js";
 
   interface Props {
     user: {

@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures/db";
-import * as table from "$lib/server/db/schema";
+import * as table from "#lib/server/db/schema.js";
 import { and, eq } from "drizzle-orm";
 import { generateUserId } from "../src/lib/server/auth/utils";
 

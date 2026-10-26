@@ -2,12 +2,12 @@
   import { invalidateAll, goto } from "$app/navigation";
   import { page } from "$app/state";
   import { toast } from "svelte-sonner";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { route } from "$lib/ROUTES";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { route } from "#lib/ROUTES.js";
   import type { PageServerData } from "./$types";
-  import MembershipCard from "$lib/components/membership-card.svelte";
-  import ProfileIncompleteCard from "$lib/components/profile-incomplete-card.svelte";
-  import { formatFullName } from "$lib/utils";
+  import MembershipCard from "#lib/components/membership-card.svelte";
+  import ProfileIncompleteCard from "#lib/components/profile-incomplete-card.svelte";
+  import { formatFullName } from "#lib/utils.js";
 
   let { data }: { data: PageServerData } = $props();
 

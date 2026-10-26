@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { LL } from "$lib/i18n/i18n-svelte";
-  import { Input } from "$lib/components/ui/input";
-  import * as Tabs from "$lib/components/ui/tabs";
+  import { LL } from "#lib/i18n/i18n-svelte.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import * as Tabs from "#lib/components/ui/tabs/index.js";
   import type { PageData } from "../$types";
 
   let {

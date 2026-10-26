@@ -1,6 +1,6 @@
 import * as v from "valibot";
-import { OIDC_SCOPES } from "$lib/shared/oidc";
-import { CUSTOMIZATION_FAVICON_MAX_BYTES, CUSTOMIZATION_LOGO_MAX_BYTES } from "$lib/shared/customization";
+import { OIDC_SCOPES } from "#lib/shared/oidc.js";
+import { CUSTOMIZATION_FAVICON_MAX_BYTES, CUSTOMIZATION_LOGO_MAX_BYTES } from "#lib/shared/customization.js";
 
 const isSvgUpload = (file: File) =>
   file.size === 0 || file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg");

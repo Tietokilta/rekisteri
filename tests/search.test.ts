@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchesSearchTokens } from "$lib/utils";
+import { matchesSearchTokens } from "#lib/utils.js";
 
 describe("matchesSearchTokens", () => {
   const person = ["first.middle@example.org", "First Middle", "Last", "Espoo"];

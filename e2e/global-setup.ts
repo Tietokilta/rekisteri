@@ -1,9 +1,9 @@
 import { chromium, type FullConfig } from "@playwright/test";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as table from "$lib/server/db/schema";
-import { relations } from "$lib/server/db/relations";
-import { hashSessionToken } from "$lib/server/auth/utils";
+import * as table from "#lib/server/db/schema.js";
+import { relations } from "#lib/server/db/relations.js";
+import { hashSessionToken } from "#lib/server/auth/utils.js";
 import { encodeBase64url } from "@oslojs/encoding";
 import { eq } from "drizzle-orm";
 import { execSync, spawn } from "node:child_process";

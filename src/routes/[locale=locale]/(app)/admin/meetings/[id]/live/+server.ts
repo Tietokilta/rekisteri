@@ -1,7 +1,7 @@
 import { error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { subscribeMeetingChanges } from "$lib/server/attendance/live";
-import { userHasAdminAccess } from "$lib/server/auth/admin";
+import { subscribeMeetingChanges } from "#lib/server/attendance/live.js";
+import { userHasAdminAccess } from "#lib/server/auth/admin.js";
 
 // Proxies such as Azure's front end close responses that stay idle for a few minutes
 const PING_INTERVAL_MS = 25_000;

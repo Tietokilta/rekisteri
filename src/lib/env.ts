@@ -31,7 +31,7 @@ if (!parsed.success) {
  * Can be imported on both client and server.
  *
  * @example
- * import { publicEnv } from "$lib/env";
+ * import { publicEnv } from "#lib/env.js";
  * const redirectUrl = `${publicEnv.PUBLIC_URL}/callback`;
  */
 export const publicEnv = parsed.output;

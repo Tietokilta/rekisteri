@@ -1,11 +1,11 @@
 import { error, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
-import { RefillingTokenBucket } from "$lib/server/auth/rate-limit";
-import { setEmailCookie } from "$lib/server/auth/email";
-import { route } from "$lib/ROUTES";
+import { RefillingTokenBucket } from "#lib/server/auth/rate-limit.js";
+import { setEmailCookie } from "#lib/server/auth/email.js";
+import { route } from "#lib/ROUTES.js";
 import { signInSchema } from "./schema";
-import { getLL } from "$lib/server/i18n";
-import { rememberReturnTo } from "$lib/server/oidc/return-to";
+import { getLL } from "#lib/server/i18n.js";
+import { rememberReturnTo } from "#lib/server/oidc/return-to.js";
 
 // Rate limit: 100 sign-in attempts per minute per IP (generous for shared networks)
 const ipBucket = new RefillingTokenBucket<string>(100, 60);

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { RemoteFormField } from "$app/server";
-  import { Input } from "$lib/components/ui/input";
+  import { Input } from "#lib/components/ui/input/index.js";
 
   /**
    * A datetime-local input backed by a remote form field that stores an ISO timestamp.

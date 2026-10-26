@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { locale } from "$lib/i18n/i18n-svelte";
+  import { locale } from "#lib/i18n/i18n-svelte.js";
   import "../../app.css";
   import "@fontsource-variable/inter/index.css";
   import "@fontsource-variable/roboto-mono/index.css";
   import { ModeWatcher } from "mode-watcher";
-  import Footer from "$lib/components/footer.svelte";
+  import Footer from "#lib/components/footer.svelte";
   import type { LayoutData } from "./$types";
 
   // Like the public layout, minus the language toggle: these pages aren't under /{locale}

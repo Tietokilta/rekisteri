@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { userHasAdminAccess } from "$lib/server/auth/admin";
+import { userHasAdminAccess } from "#lib/server/auth/admin.js";
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.session || !userHasAdminAccess(event.locals.user)) {

@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
 import { getRequestEvent, query } from "$app/server";
-import { stripe } from "$lib/server/payment";
+import { stripe } from "#lib/server/payment/index.js";
 import * as v from "valibot";
 
 type StripePrice = Awaited<ReturnType<typeof stripe.prices.retrieve>>;

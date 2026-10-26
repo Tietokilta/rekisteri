@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { PageData } from "./$types";
-  import { LL } from "$lib/i18n/i18n-svelte";
-  import AdminPageHeader from "$lib/components/admin-page-header.svelte";
-  import { Button } from "$lib/components/ui/button";
-  import * as Tabs from "$lib/components/ui/tabs";
+  import { LL } from "#lib/i18n/i18n-svelte.js";
+  import AdminPageHeader from "#lib/components/admin-page-header.svelte";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import * as Tabs from "#lib/components/ui/tabs/index.js";
   import { toast } from "svelte-sonner";
 
   import { updateCustomization } from "./data.remote";

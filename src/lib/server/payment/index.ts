@@ -1,5 +1,5 @@
 import { Stripe } from "stripe";
-import { env } from "$lib/server/env";
+import { env } from "#lib/server/env.js";
 
 const apiUrl = env.STRIPE_API_URL ? new URL(env.STRIPE_API_URL) : undefined;
 

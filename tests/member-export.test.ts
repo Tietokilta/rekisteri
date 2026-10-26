@@ -7,10 +7,10 @@ import {
   DEFAULT_EXPORT_COLUMNS,
   type ExportableMember,
   type ExportColumnKey,
-} from "$lib/utils/export";
-import type { MemberStatus, PreferredLanguage } from "$lib/shared/enums";
+} from "#lib/utils/export.js";
+import type { MemberStatus, PreferredLanguage } from "#lib/shared/enums.js";
 import { createTestDatabase, stopTestDatabase, type TestDatabase } from "./utils/db";
-import * as table from "$lib/server/db/schema";
+import * as table from "#lib/server/db/schema.js";
 import { eq, sql } from "drizzle-orm";
 
 describe("stripEmailAlias", () => {

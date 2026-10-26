@@ -1,8 +1,8 @@
 import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { emailCookieName } from "$lib/server/auth/email";
-import { route } from "$lib/ROUTES";
-import { takeReturnTo } from "$lib/server/oidc/return-to";
+import { emailCookieName } from "#lib/server/auth/email.js";
+import { route } from "#lib/ROUTES.js";
+import { takeReturnTo } from "#lib/server/oidc/return-to.js";
 
 export const load: PageServerLoad = async (event) => {
   if (event.locals.user) {

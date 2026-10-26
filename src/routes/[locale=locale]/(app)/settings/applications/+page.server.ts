@@ -1,9 +1,9 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { db } from "$lib/server/db";
-import { oidcConsent, oidcClient } from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import { oidcConsent, oidcClient } from "#lib/server/db/schema.js";
 import { eq } from "drizzle-orm";
-import { env } from "$lib/server/env";
+import { env } from "#lib/server/env.js";
 
 export const load: PageServerLoad = async (event) => {
   if (!env.OIDC_ENABLED) error(404, "Not found");

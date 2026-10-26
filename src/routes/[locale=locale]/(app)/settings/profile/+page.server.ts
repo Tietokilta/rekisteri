@@ -1,6 +1,6 @@
 import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { route } from "$lib/ROUTES";
+import { route } from "#lib/ROUTES.js";
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.user) {

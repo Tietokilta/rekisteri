@@ -1,5 +1,5 @@
 import { defineParams } from "@sveltejs/kit/params";
-import { locales, Locale } from "$lib/i18n/routing";
+import { locales, Locale } from "#lib/i18n/routing.js";
 
 const matchLocale = (param: string): param is Locale => {
   return locales.includes(param as Locale);

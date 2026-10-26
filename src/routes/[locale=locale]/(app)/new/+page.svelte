@@ -1,21 +1,21 @@
 <script lang="ts">
   import type { PageProps } from "./$types";
   import { page } from "$app/state";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { route } from "$lib/ROUTES";
-  import * as Alert from "$lib/components/ui/alert/index.js";
-  import * as Card from "$lib/components/ui/card/index.js";
-  import { Button } from "$lib/components/ui/button";
-  import ProfileIncompleteCard from "$lib/components/profile-incomplete-card.svelte";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { route } from "#lib/ROUTES.js";
+  import * as Alert from "#lib/components/ui/alert/index.js";
+  import * as Card from "#lib/components/ui/card/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import ProfileIncompleteCard from "#lib/components/profile-incomplete-card.svelte";
   import CircleCheck from "@lucide/svelte/icons/circle-check";
   import CircleAlert from "@lucide/svelte/icons/circle-alert";
   import ExternalLink from "@lucide/svelte/icons/external-link";
   import { payMembership } from "./data.remote";
   import { payMembershipSchema } from "./schema";
-  import { getStripePriceMetadata } from "$lib/api/stripe.remote";
-  import { formatDate, formatPrice } from "$lib/utils";
-  import { Textarea } from "$lib/components/ui/textarea";
-  import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
+  import { getStripePriceMetadata } from "#lib/api/stripe.remote.js";
+  import { formatDate, formatPrice } from "#lib/utils.js";
+  import { Textarea } from "#lib/components/ui/textarea/index.js";
+  import { BLOCKING_MEMBER_STATUSES } from "#lib/shared/enums.js";
   import { PersistedState } from "runed";
   import { onMount, tick } from "svelte";
 

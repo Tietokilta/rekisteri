@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { publicEnv } from "$lib/env";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { publicEnv } from "#lib/env.js";
   import { dev } from "$app/environment";
-  import { route } from "$lib/ROUTES";
+  import { route } from "#lib/ROUTES.js";
   import { page } from "$app/state";
 
   const versionSha = publicEnv.PUBLIC_GIT_COMMIT_SHA ?? "development";

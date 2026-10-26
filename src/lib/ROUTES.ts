@@ -221,7 +221,7 @@ type ExtractParamType<T extends (param: any) => any> = ExtractFnPredicate<T> ext
 *
 * Full example:
 * ```ts
-* import type { KIT_ROUTES } from '$lib/ROUTES'
+* import type { KIT_ROUTES } from '#lib/ROUTES.js'
 * import { kitRoutes } from 'vite-plugin-kit-routes'
 *
 * kitRoutes<KIT_ROUTES>({

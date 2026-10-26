@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { PageData } from "./$types";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { Button } from "$lib/components/ui/button";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { Button } from "#lib/components/ui/button/index.js";
   import ShieldAlert from "@lucide/svelte/icons/shield-alert";
-  import { route } from "$lib/ROUTES";
+  import { route } from "#lib/ROUTES.js";
 
   let { data }: { data: PageData } = $props();
 </script>

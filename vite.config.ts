@@ -5,7 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { kitRoutes } from "vite-plugin-kit-routes";
 import { defineConfig, type Plugin } from "vite";
-import type { KIT_ROUTES } from "$lib/ROUTES";
+import type { KIT_ROUTES } from "#lib/ROUTES.js";
 import { hasOidcProvider, isOidcPath, oidcMiddleware } from "./src/oidc-mount.ts";
 
 // Serves OIDC protocol endpoints in `vite dev` and `vite preview`, like start-with-migrations.ts does in production

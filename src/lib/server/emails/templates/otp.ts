@@ -1,5 +1,5 @@
 import type { EmailTemplate, OTPMetadata } from "../types";
-import { env } from "$lib/server/env";
+import { env } from "#lib/server/env.js";
 
 export const otpTemplate: EmailTemplate<OTPMetadata> = {
   type: "otp",

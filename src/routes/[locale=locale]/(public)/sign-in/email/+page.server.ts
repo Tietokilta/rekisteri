@@ -6,8 +6,8 @@ import {
   getEmailOTPFromRequest,
   sendOTPEmail,
   setEmailOTPCookie,
-} from "$lib/server/auth/email";
-import { route } from "$lib/ROUTES";
+} from "#lib/server/auth/email.js";
+import { route } from "#lib/ROUTES.js";
 
 export const load: PageServerLoad = async (event) => {
   const email = event.cookies.get(emailCookieName);

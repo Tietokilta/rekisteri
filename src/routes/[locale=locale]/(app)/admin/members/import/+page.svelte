@@ -35,20 +35,20 @@
 </script>
 
 <script lang="ts">
-  import { Input } from "$lib/components/ui/input/index.js";
-  import { Label } from "$lib/components/ui/label/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { Badge } from "$lib/components/ui/badge/index.js";
-  import * as NativeSelect from "$lib/components/ui/native-select/index.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
+  import * as NativeSelect from "#lib/components/ui/native-select/index.js";
   import Papa from "papaparse";
   import { importMembers, createLegacyMembership, createLegacyMemberships } from "./data.remote";
   import { csvRowSchema, importMembersSchema } from "./schema";
   import type { PageData } from "./$types";
   import { untrack } from "svelte";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
   import * as v from "valibot";
-  import AdminPageHeader from "$lib/components/admin-page-header.svelte";
-  import { normalizeEmail, formatDate } from "$lib/utils";
+  import AdminPageHeader from "#lib/components/admin-page-header.svelte";
+  import { normalizeEmail, formatDate } from "#lib/utils.js";
 
   import CircleCheck from "@lucide/svelte/icons/circle-check";
   import CircleAlert from "@lucide/svelte/icons/circle-alert";

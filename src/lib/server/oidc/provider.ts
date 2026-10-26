@@ -14,19 +14,19 @@
 import Provider, { interactionPolicy, type Configuration, type KoaContextWithOIDC } from "oidc-provider";
 import { generateKeyPairSync, createHash, createPrivateKey, randomBytes } from "node:crypto";
 import { dev, building } from "$app/environment";
-import { db } from "$lib/server/db";
-import { user } from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import { user } from "#lib/server/db/schema.js";
 import { eq } from "drizzle-orm";
 import { DrizzleOidcAdapter } from "./adapter";
-import { env } from "$lib/server/env";
-import { preferredLanguageToLocale } from "$lib/i18n/routing";
-import { OIDC_SCOPES } from "$lib/shared/oidc";
+import { env } from "#lib/server/env.js";
+import { preferredLanguageToLocale } from "#lib/i18n/routing.js";
+import { OIDC_SCOPES } from "#lib/shared/oidc.js";
 import { verifyClientSecret } from "./secret";
-import { createAuditLog } from "$lib/server/audit";
-import { sessionCookieName, validateSessionToken } from "$lib/server/auth/session";
-import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
+import { createAuditLog } from "#lib/server/audit.js";
+import { sessionCookieName, validateSessionToken } from "#lib/server/auth/session.js";
+import { getUserSecondaryEmails, isSecondaryEmailValid } from "#lib/server/auth/secondary-email.js";
 import { canUseClient } from "./access";
-import { membershipTypeAt } from "$lib/server/membership/status";
+import { membershipTypeAt } from "#lib/server/membership/status.js";
 
 /**
  * Constructs the canonical OIDC issuer URL from environment configuration.

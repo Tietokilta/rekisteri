@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { getUserPasskeys } from "$lib/server/auth/passkey";
+import { getUserPasskeys } from "#lib/server/auth/passkey.js";
 
 export const load: PageServerLoad = async ({ locals }) => {
   if (!locals.user) {

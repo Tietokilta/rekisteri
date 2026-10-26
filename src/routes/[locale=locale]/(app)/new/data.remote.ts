@@ -1,13 +1,13 @@
 import { error, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import { eq, desc, inArray, and } from "drizzle-orm";
-import { createSession } from "$lib/server/payment/session";
-import { getUserSecondaryEmails, isSecondaryEmailValid } from "$lib/server/auth/secondary-email";
+import { createSession } from "#lib/server/payment/session.js";
+import { getUserSecondaryEmails, isSecondaryEmailValid } from "#lib/server/auth/secondary-email.js";
 import { payMembershipSchema } from "./schema";
-import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
-import { getLL } from "$lib/server/i18n";
+import { BLOCKING_MEMBER_STATUSES } from "#lib/shared/enums.js";
+import { getLL } from "#lib/server/i18n.js";
 
 export const payMembership = form(payMembershipSchema, async ({ membershipId, description }) => {
   const event = getRequestEvent();

@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { PageData } from "./$types";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import * as Item from "$lib/components/ui/item/index.js";
-  import * as Card from "$lib/components/ui/card/index.js";
-  import { Badge } from "$lib/components/ui/badge/index.js";
-  import * as Alert from "$lib/components/ui/alert/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import * as Item from "#lib/components/ui/item/index.js";
+  import * as Card from "#lib/components/ui/card/index.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
+  import * as Alert from "#lib/components/ui/alert/index.js";
   import { startRegistration } from "@simplewebauthn/browser";
   import type { RegistrationResponseJSON } from "@simplewebauthn/server";
   import Trash2 from "@lucide/svelte/icons/trash-2";
@@ -16,17 +16,17 @@
   import X from "@lucide/svelte/icons/x";
 
   import { invalidateAll } from "$app/navigation";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { formatDate as formatDateUtil } from "$lib/utils";
-  import * as Empty from "$lib/components/ui/empty/index.js";
-  import { Input } from "$lib/components/ui/input/index.js";
-  import { Label } from "$lib/components/ui/label/index.js";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { formatDate as formatDateUtil } from "#lib/utils.js";
+  import * as Empty from "#lib/components/ui/empty/index.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
   import {
     getRegistrationOptions,
     verifyRegistration,
     deletePasskeyForm,
     renamePasskeyForm,
-  } from "$lib/api/passkeys.remote";
+  } from "#lib/api/passkeys.remote.js";
 
   let { data }: { data: PageData } = $props();
 

@@ -1,6 +1,6 @@
 import { encodeBase64url } from "@oslojs/encoding";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import { and, eq, isNull } from "drizzle-orm";
 
 /**

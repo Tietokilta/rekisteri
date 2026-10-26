@@ -1,9 +1,9 @@
 import { redirect } from "@sveltejs/kit";
 import type { LayoutServerLoad } from "./$types";
-import { route } from "$lib/ROUTES";
-import { db } from "$lib/server/db";
-import { oidcClient } from "$lib/server/db/schema";
-import { env } from "$lib/server/env";
+import { route } from "#lib/ROUTES.js";
+import { db } from "#lib/server/db/index.js";
+import { oidcClient } from "#lib/server/db/schema.js";
+import { env } from "#lib/server/env.js";
 
 export const load: LayoutServerLoad = async (event) => {
   if (!event.locals.user) {

@@ -1,9 +1,9 @@
 import { error } from "@sveltejs/kit";
 import { getRequestEvent, command } from "$app/server";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import { and, eq, inArray, ne } from "drizzle-orm";
-import { auditFromEvent, auditMemberAction, auditBulkMemberAction } from "$lib/server/audit";
+import { auditFromEvent, auditMemberAction, auditBulkMemberAction } from "#lib/server/audit.js";
 import {
   memberIdSchema,
   memberIdWithReasonSchema,
@@ -13,16 +13,16 @@ import {
   createMemberSchema,
   logMemberExportSchema,
 } from "./schema";
-import { getLL } from "$lib/server/i18n";
-import { sendMemberEmail } from "$lib/server/emails";
-import { getMembershipName } from "$lib/server/utils/membership";
-import { getUserLocale } from "$lib/server/utils/user";
-import { isValidTransition } from "$lib/server/utils/member";
-import { generateUserId } from "$lib/server/auth/utils";
-import { getDisplayFirstName } from "$lib/utils";
-import { userHasAdminAccess, userHasAdminWriteAccess } from "$lib/server/auth/admin";
+import { getLL } from "#lib/server/i18n.js";
+import { sendMemberEmail } from "#lib/server/emails/index.js";
+import { getMembershipName } from "#lib/server/utils/membership.js";
+import { getUserLocale } from "#lib/server/utils/user.js";
+import { isValidTransition } from "#lib/server/utils/member.js";
+import { generateUserId } from "#lib/server/auth/utils.js";
+import { getDisplayFirstName } from "#lib/utils.js";
+import { userHasAdminAccess, userHasAdminWriteAccess } from "#lib/server/auth/admin.js";
 import type { InferOutput } from "valibot";
-import { stripe } from "$lib/server/payment";
+import { stripe } from "#lib/server/payment/index.js";
 
 type CreateMemberData = InferOutput<typeof createMemberSchema>;
 type CreateAssociationMemberData = Extract<CreateMemberData, { type: "association" }>;

@@ -1,13 +1,13 @@
 <script lang="ts">
   import type { PageProps } from "./$types";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { route } from "$lib/ROUTES";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import AdminPageHeader from "$lib/components/admin-page-header.svelte";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { route } from "#lib/ROUTES.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import AdminPageHeader from "#lib/components/admin-page-header.svelte";
   import MembersTableAsync from "./members-table-async.svelte";
   import MembersTableSkeleton from "./members-table-skeleton.svelte";
   import CreateMemberForm from "./create-member-form.svelte";
-  import * as Sheet from "$lib/components/ui/sheet";
+  import * as Sheet from "#lib/components/ui/sheet/index.js";
   import Upload from "@lucide/svelte/icons/upload";
   import Plus from "@lucide/svelte/icons/plus";
 
