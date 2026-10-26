@@ -4,11 +4,14 @@
     "noUncheckedIndexedAccess": true,
     "erasableSyntaxOnly": true,
     "sourceMap": true,
-    "strict": true
+    "strict": true,
+    // Mirrors `imports` in package.json for tools that resolve through tsconfig, not Node:
+    // Playwright and tsx map `#lib/foo.js` to `src/lib/foo.ts` only via `paths`
+    "paths": {
+      "#lib/*": ["./src/lib/*"]
+    }
   },
   "include": [
-    ".svelte-kit/ambient.d.ts",
-    ".svelte-kit/non-ambient.d.ts",
     ".svelte-kit/types/**/$types.d.ts",
     "vite.config.js",
     "vite.config.ts",

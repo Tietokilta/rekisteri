@@ -111,7 +111,6 @@
     "node": ">=22.22.0 <25.0.0"
   },
   "imports": {
-    "#lib": "./src/lib/index.js",
     "#lib/*": "./src/lib/*"
   }
 }
