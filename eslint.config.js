@@ -61,24 +61,24 @@ export default ts.config(
       // Will be replaced by SvelteKit's native solution once it covers same patterns
       "svelte/no-navigation-without-resolve": "off",
 
-      // Prevent direct imports of SvelteKit env - use $lib/server/env instead
+      // Prevent direct imports of SvelteKit env - use #lib/server/env instead
       "no-restricted-imports": [
         "error",
         {
           patterns: [
             {
-              group: ["$env/dynamic/private"],
+              group: ["$app/env/private", "$env/dynamic/private"],
               message: "Import from '#lib/server/env' instead to use validated environment variables.",
             },
             {
-              group: ["$env/dynamic/public"],
+              group: ["$app/env/public", "$env/dynamic/public"],
               message: "Import from '#lib/server/env' instead to use validated environment variables.",
             },
           ],
         },
       ],
 
-      // Prevent direct access to process.env - use $lib/server/env instead
+      // Prevent direct access to process.env - use #lib/server/env instead
       "no-restricted-syntax": [
         "error",
         {

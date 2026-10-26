@@ -119,7 +119,7 @@ const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
     );
   }
 
-  // Set additional security headers not covered by CSP config in `svelte.config.js`
+  // Set additional security headers not covered by CSP config in `vite.config.ts`
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
