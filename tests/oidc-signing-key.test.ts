@@ -58,6 +58,30 @@ describe("OIDC signing keys", () => {
     expect(keys?.map((key) => key.n)).toEqual([first.n, second.n]);
   });
 
+  it("parses Base64-encoded PEM, one or several keys, in order", () => {
+    const pem = () => generateKeyPairSync("rsa", { modulusLength: 2048 }).privateKey;
+    const [current, previous] = [pem(), pem()];
+    // PKCS#1, as Terraform's tls_private_key outputs, and PKCS#8
+    const text = [
+      current.export({ format: "pem", type: "pkcs1" }),
+      previous.export({ format: "pem", type: "pkcs8" }),
+    ].join("\n");
+    const keys = parseSigningKeys(Buffer.from(text).toString("base64"));
+    expect(keys?.map((key) => key.n)).toEqual([
+      current.export({ format: "jwk" }).n,
+      previous.export({ format: "jwk" }).n,
+    ]);
+    expect(keys?.[0]?.d).toBeTruthy();
+  });
+
+  it("rejects PEM that isn't a private key", () => {
+    const publicPem = generateKeyPairSync("rsa", { modulusLength: 2048 }).publicKey.export({
+      format: "pem",
+      type: "spki",
+    });
+    expect(parseSigningKeys(Buffer.from(publicPem).toString("base64"))).toBeNull();
+  });
+
   it("rejects raw JSON, malformed input and objects that aren't keys", () => {
     expect(parseSigningKeys(JSON.stringify(newJwk()))).toBeNull();
     expect(parseSigningKeys("")).toBeNull();
