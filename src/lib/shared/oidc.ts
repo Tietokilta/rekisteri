@@ -14,6 +14,131 @@ export interface OidcScope {
   readonly claims: readonly string[];
 }
 
+export interface OidcClaimDefinition {
+  readonly key: string;
+  readonly scope: OidcScopeKey;
+  readonly title: { fi: string; en: string };
+  readonly description: { fi: string; en: string };
+}
+
+// Mandatory claims that are part of the openid definition. Same as openid scope.
+export const OPENID_CLAIMS: readonly OidcClaimDefinition[] = [
+  {
+    key: "sub",
+    scope: "openid",
+    title: { fi: "Käyttäjän ID (Subject)", en: "Subject (User ID)" },
+    description: { fi: "Käyttäjän uniikki tunniste järjestelmässä", en: "Unique user identifier in system" },
+  },
+  {
+    key: "iss",
+    scope: "openid",
+    title: { fi: "Myöntäjä (Issuer)", en: "Issuer URL" },
+    description: { fi: "Identiteettipalvelun osoite", en: "Identity provider issuer URL" },
+  },
+  {
+    key: "aud",
+    scope: "openid",
+    title: { fi: "Vastaanottaja (Audience)", en: "Audience" },
+    description: { fi: "Asiakassovelluksen asiakastunnus (client_id)", en: "Application client_id" },
+  },
+  {
+    key: "iat",
+    scope: "openid",
+    title: { fi: "Myöntämisaika (Issued At)", en: "Issued at" },
+    description: { fi: "Tokenin luontihetken Unix-aikaleima", en: "Unix timestamp of token issuance" },
+  },
+  {
+    key: "exp",
+    scope: "openid",
+    title: { fi: "Vanhenemisaika (Expiration)", en: "Expiration time" },
+    description: { fi: "Tokenin vanhenemishetken Unix-aikaleima", en: "Unix timestamp of token expiration" },
+  },
+] as const;
+
+// Contains all public and private claims supported by rekisteri.
+export const OPTIONAL_CLAIMS: readonly OidcClaimDefinition[] = [
+  {
+    key: "refresh_token",
+    scope: "offline_access",
+    title: { fi: "Virkistyspoletti", en: "Refresh Token" },
+    description: { fi: "", en: "" },
+  },
+  // Profile claims
+  {
+    key: "given_name",
+    scope: "profile",
+    title: { fi: "Etunimet", en: "Given names" },
+    description: { fi: "Käyttäjän viralliset etunimet", en: "User's official given names" },
+  },
+  {
+    key: "family_name",
+    scope: "profile",
+    title: { fi: "Sukunimi", en: "Family name" },
+    description: { fi: "Käyttäjän sukunimi", en: "User's family name" },
+  },
+  {
+    key: "locale",
+    scope: "profile",
+    title: { fi: "Asiointikieli", en: "Preferred language" },
+    description: { fi: "Käyttäjän valitsema asiointikieli (fi, en, sv)", en: "User's preferred language code" },
+  },
+  {
+    // Private claim
+    key: "aalto_email_verified",
+    scope: "profile",
+    title: { fi: "Vahvistettu Aalto-sähköposti", en: "Verified Aalto email" },
+    description: {
+      fi: "Onko käyttäjällä vahvistettu aalto.fi-sähköpostiosoite",
+      en: "Whether the user has a verified aalto.fi email address",
+    },
+  },
+  // Email claims
+  {
+    key: "email",
+    scope: "email",
+    title: { fi: "Pääsähköposti", en: "Primary email" },
+    description: { fi: "Käyttäjän pääsähköpostiosoite", en: "User's primary email address" },
+  },
+  {
+    key: "email_verified",
+    scope: "email",
+    title: { fi: "Sähköposti vahvistettu", en: "Email verified" },
+    description: { fi: "Onko pääsähköpostiosoite vahvistettu", en: "Whether the primary email address is verified" },
+  },
+  {
+    // Private claim
+    key: "verified_emails",
+    scope: "email",
+    title: { fi: "Vahvistetut sähköpostit", en: "Verified emails" },
+    description: {
+      fi: "Lista kaikista käyttäjän vahvistetuista sähköposteista",
+      en: "Array of all verified email addresses",
+    },
+  },
+  {
+    // Private claim
+    key: "optional_emails_allowed",
+    scope: "email",
+    title: { fi: "Tiedotelupa", en: "Optional emails allowed" },
+    description: { fi: "Sallitaanko valinnaisten järjestötiedotteiden lähetys", en: "Permission for optional emails" },
+  },
+  // Membership claims
+  {
+    // Private claim
+    key: "active_memberships",
+    scope: "membership",
+    title: { fi: "Aktiiviset jäsenyydet", en: "Active memberships" },
+    description: {
+      fi: "Lista käyttäjän aktiivisten jäsenyyksien tyyppitunnisteista",
+      en: "Array of active membership type identifiers",
+    },
+  },
+] as const;
+
+export const ALL_CLAIMS = [...OPENID_CLAIMS, ...OPTIONAL_CLAIMS];
+
+export const OPENID_CLAIM_KEYS = new Set(OPENID_CLAIMS.map((c) => c.key));
+
 export const OIDC_SCOPES: readonly OidcScope[] = [
   {
     key: "openid",

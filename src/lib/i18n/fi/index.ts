@@ -416,6 +416,7 @@ Terveisin,
         organization: "Organisaatio",
         resignation: "Erottaminen & säännöt",
         privacyPolicy: "Tietosuojaseloste",
+        oidcClients: "OpenID Connect",
       },
       brandingDefaults: {
         title: "Yleisilme",
@@ -459,6 +460,59 @@ Terveisin,
         current: "Nykyinen:",
       },
       save: "Tallenna",
+
+      oidc: {
+        title: "OIDC-sovellukset",
+        description:
+          "Salli tunnistautuminen kolmannen osapuolen palveluun käyttäen jäsenrekisterin käyttäjätunnuksia ja muita tietoja.",
+        newClient: "Uusi sovellus",
+        emptyState: "Yhtään OIDC-asiakassovellusta ei ole vielä rekisteröity.",
+        clientId: "Asiakastunnus (Client ID)",
+        claims: "Väitteet (Claims)",
+        redirectUris: "Uudelleenohjaus-URIt",
+        endpoints: {
+          button: "Päätepisteet",
+          title: "OIDC-päätepisteet",
+          description: "Tämän tunnistautumispalvelun julkiset OIDC-päätepisteet.",
+        },
+        form: {
+          createTitle: "Luo uusi sovellus",
+          editTitle: "Muokkaa: {name}",
+          applicationName: "Sovelluksen nimi",
+          applicationNamePlaceholder: "esim. Killan foorumi",
+          redirectUrisPlaceholder: "esim. https://example.com/oauth/callback",
+          openidClaims: "OpenID-väitteet",
+          membersOnly: "Vain jäsenille",
+          membersOnlyDescription:
+            "Vain käyttäjät, joilla on voimassa oleva jäsenyys, voivat kirjautua tähän sovellukseen.",
+        },
+        secret: {
+          newTitle: "Uusi asiakassalaisuus luotu",
+          newDescription: "Kopioi tämä salaisuus talteen nyt. Sitä ei näytetä enää uudelleen:",
+          regenerate: "Uusi salaisuus",
+          regenerateTitle: "Uusitaanko asiakassalaisuus?",
+          regenerateWarning:
+            "Uuden salaisuuden luominen mitätöi nykyisen asiakassalaisuuden ja peruu kaikki sovelluksen voimassa olevat poletit välittömästi. Tätä toimintoa ei voi peruuttaa.",
+        },
+        delete: {
+          title: "Poistetaanko sovellus?",
+          description:
+            "Oletko varma, että haluat poistaa tämän OIDC-sovelluksen? Kaikki sovelluksen uudelleenohjausosoitteet, luvat ja aktiiviset poletit poistetaan lopullisesti. Tätä toimintoa ei voi peruuttaa.",
+        },
+        toast: {
+          copiedToClipboard: "Kopioitu leikepöydälle!",
+          createSuccess: "OIDC-asiakas luotu!",
+          updateSuccess: "OIDC-asiakas päivitetty!",
+          deleteSuccess: "OIDC-asiakas poistettu!",
+          newSecret: "Uusi asiakassalaisuus luotu!",
+        },
+        error: {
+          clientNotFound: "Asiakassovellusta ei löytynyt.",
+          unauthorized: "Ei valtuuksia",
+          interactionNotFound: "Suostumusistuntoa ei löytynyt tai se on vanhentunut.",
+          interactionExpired: "Suostumusistunto on vanhentunut.",
+        },
+      },
     },
 
     members: {
@@ -994,6 +1048,11 @@ Terveisin,
     select: "Valitse",
     loading: "Ladataan...",
     optional: "valinnainen",
+    onePerLine: "(yksi per rivi)",
+    copyUri: "Kopioi URI",
+    required: "Pakollinen",
+    close: "Sulje",
+    done: "Valmis",
   },
 
   // Error page

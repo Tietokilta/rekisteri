@@ -29,6 +29,18 @@ interface CachedClient {
 const clientCache = new Map<string, CachedClient>();
 
 /**
+ * Invalidates the in-memory OIDC client cache.
+ * If `clientId` is provided, invalidates only that client.
+ * Otherwise, clears the entire client cache.
+ */
+export function invalidateClientCache(clientId?: string): void {
+  if (clientId) {
+    clientCache.delete(clientId);
+  } else {
+    clientCache.clear();
+  }
+}
+/**
  * Finds an OIDC client registration by client ID.
  * Uses an in-memory TTL cache to eliminate redundant Postgres queries during authentication,
  * consent verification, token exchange, and refresh token flows.
