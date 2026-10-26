@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "entry": ["src/index.{ts,tsx,js,jsx}", "src/main.{ts,tsx,js,jsx}", "src/start-with-migrations.ts"],
   "ignorePatterns": ["src/lib/ROUTES.ts"],
-  "ignoreUnresolvedImports": ["./server/index.js"],
+  "ignoreUnresolvedImports": ["./server/handler.js"],
   "ignoreExports": [
     {
       "file": "src/lib/components/ui/**/index.ts",

@@ -54,7 +54,7 @@
               inherit (finalAttrs) pname version src;
               inherit pnpm;
               fetcherVersion = 4;
-              hash = "sha256-hgTSHfto/bUNv/ri/IzkWMjyiOmXmZP74ciXgVZaSg4=";
+              hash = "sha256-C1cCG5D80T4O/bZs5vyWzouxGTFVHfQXiYLd16htIYg=";
             };
 
             installPhase = ''
@@ -66,6 +66,7 @@
               cp -r build $out/lib/server
               cp -r drizzle $out/lib/drizzle
               cp src/start-with-migrations.ts $out/lib/start.ts
+              cp src/oidc-mount.ts $out/lib/oidc-mount.ts
               pnpm prune --prod
               cp -r node_modules $out/lib
 

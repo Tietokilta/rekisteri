@@ -9,6 +9,8 @@ import cron from "node-cron";
 import { cleanupExpiredTokens, cleanupInactiveUsers, cleanupOldAuditLogs } from "$lib/server/db/cleanup";
 import { createInitialModeExpression } from "mode-watcher";
 import { getCustomizations } from "$lib/server/customization/cache";
+import { getOidcProvider } from "$lib/server/oidc/provider";
+import { env } from "$lib/server/env";
 
 const handleCustomizations: Handle = async ({ event, resolve }) => {
   event.locals.customizations = await getCustomizations();
@@ -49,9 +51,11 @@ const handleLocaleRedirect: Handle = ({ event, resolve }) => {
 
   const pathname = event.url.pathname;
 
-  // Skip redirect for API routes, static assets, and SvelteKit internals
+  // Skip redirect for API routes, OIDC protocol endpoints, static assets, and SvelteKit internals
   if (
     pathname.startsWith("/api/") ||
+    pathname.startsWith("/oidc/") ||
+    pathname.startsWith("/.well-known/") ||
     pathname.startsWith("/_app/") ||
     /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/.test(pathname)
   ) {
@@ -130,6 +134,9 @@ export const handle: Handle = sequence(
 );
 
 export const init: ServerInit = () => {
+  // Create the OIDC provider up front; src/oidc-mount.ts serves its endpoints outside SvelteKit
+  if (env.OIDC_ENABLED) getOidcProvider();
+
   // Warm up customization cache
   void getCustomizations().catch((err) => console.error("[Init] Failed to warm Customization cache:", err));
 
