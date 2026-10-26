@@ -2,7 +2,7 @@
   import { tick } from "svelte";
   import { Label } from "#lib/components/ui/label/index.js";
   import { Button } from "#lib/components/ui/button/index.js";
-  import { page } from "$app/stores";
+  import { page } from "$app/state";
   import { LL } from "#lib/i18n/i18n-svelte.js";
   import * as InputOTP from "#lib/components/ui/input-otp/index.js";
   import { REGEXP_ONLY_DIGITS_AND_CHARS } from "bits-ui";
@@ -13,7 +13,7 @@
 
   let { data }: { data: PageData } = $props();
 
-  const next = $derived($page.url.searchParams.get("next") ?? "");
+  const next = $derived(page.url.searchParams.get("next") ?? "");
 
   let verifyFormEl: HTMLFormElement;
 
