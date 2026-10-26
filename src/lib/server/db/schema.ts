@@ -21,7 +21,6 @@ import {
   OIDC_GRANT_TYPE_VALUES,
   PREFERRED_LANGUAGE_VALUES,
 } from "../../shared/enums";
-import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 
 export type LocalizedString = { fi: string; en: string };
 
@@ -91,7 +90,7 @@ export const passkey = snakeCase.table(
     publicKey: text().notNull(), // Public key for verification (base64url encoded)
     counter: integer().notNull().default(0), // Signature counter for replay protection
     deviceName: text(), // User-friendly device name (e.g., "iPhone 15", "YubiKey 5")
-    transports: json().$type<AuthenticatorTransportFuture[]>(), // Authenticator transports
+    transports: json().$type<string[]>(), // Authenticator transports
     backedUp: boolean().notNull().default(false), // Whether passkey is synced (e.g., iCloud Keychain)
     lastUsedAt: timestamp({ withTimezone: true }),
     ...timestamps,

@@ -49,6 +49,8 @@ export default ts.config(
     rules: {
       // Keep readable guard clauses instead of requiring ternary expressions.
       "unicorn/prefer-ternary": "off",
+      // Its fixes make fallbacks apply only to undefined, which breaks null and empty-string handling.
+      "unicorn/prefer-default-parameters": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
@@ -146,13 +148,6 @@ export default ts.config(
     files: ["src/lib/ROUTES.ts"],
     rules: {
       "unicorn/no-abusive-eslint-disable": "off",
-    },
-  },
-  // These modules intentionally perform one-time initialization when imported.
-  {
-    files: ["playwright.config.ts", "src/lib/server/i18n.ts"],
-    rules: {
-      "unicorn/no-top-level-side-effects": "off",
     },
   },
 );

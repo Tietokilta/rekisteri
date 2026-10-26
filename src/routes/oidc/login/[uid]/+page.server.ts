@@ -147,7 +147,7 @@ export const load: PageServerLoad = async (event) => {
   ];
 
   // Members-only clients: the page explains instead of asking for consent
-  const membersOnly = signedIn ? !(await canUseClient(signedIn.user.id, client.clientId)) : false;
+  const membersOnly = !!signedIn && !(await canUseClient(signedIn.user.id, client.clientId));
   const scopes = grantedScopes(interaction.params.scope, client.scopes);
   const alreadyApproved = existingConsent !== null && scopes.every((scope) => existingConsent.scopes.includes(scope));
 

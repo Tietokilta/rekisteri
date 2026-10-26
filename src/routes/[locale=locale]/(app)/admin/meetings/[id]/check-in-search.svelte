@@ -65,9 +65,9 @@
       (person) => person.isGuest && singleLine(person.displayName).toLowerCase() === trimmed.toLowerCase(),
     );
     const guest: Row[] =
-      registry.status !== "loading" && !trimmed.includes("@") && !existingGuest
-        ? [{ key: "guest", kind: "guest", name: trimmed }]
-        : [];
+      registry.status === "loading" || trimmed.includes("@") || existingGuest
+        ? []
+        : [{ key: "guest", kind: "guest", name: trimmed }];
     return [...local, ...matches, ...guest];
   });
 
