@@ -10,7 +10,7 @@
 
 <SidebarProvider>
   <AppSidebar user={data.user} />
-  <SidebarInset>
+  <SidebarInset class="min-w-0">
     <div class="flex min-h-svh flex-col">
       <main class="flex-1">
         {@render children()}
