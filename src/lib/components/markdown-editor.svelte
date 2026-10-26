@@ -19,11 +19,11 @@
     value = $bindable(),
     id,
     placeholder,
-  } = $props<{
+  }: {
     value?: string;
     id?: string;
     placeholder?: string;
-  }>();
+  } = $props();
 
   let textarea: HTMLTextAreaElement | null = $state(null);
   let view = $state("edit");

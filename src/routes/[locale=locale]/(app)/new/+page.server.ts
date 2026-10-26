@@ -71,7 +71,7 @@ export const load: PageServerLoad = async (event) => {
 
   const secondaryEmails = await getUserSecondaryEmails(user.id);
   const aaltoSecondaryEmail = secondaryEmails.find((e) => e.domain === "aalto.fi");
-  const hasValidSecondaryAalto = aaltoSecondaryEmail ? isSecondaryEmailValid(aaltoSecondaryEmail) : false;
+  const hasValidSecondaryAalto = !!aaltoSecondaryEmail && isSecondaryEmailValid(aaltoSecondaryEmail);
   const hasExpiredSecondaryAalto = aaltoSecondaryEmail && !isSecondaryEmailValid(aaltoSecondaryEmail);
 
   // Primary email is always considered valid (no expiration tracking for primary)

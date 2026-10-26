@@ -109,7 +109,12 @@ async function createCheckoutSessionWithRetry(
  *
  * @see {@link https://docs.stripe.com/checkout/quickstart}
  */
-export async function createSession(userId: string, membershipId: string, locale: Locale, description?: string | null) {
+export async function createSession(
+  userId: string,
+  membershipId: string,
+  locale: Locale,
+  description: string | null = null,
+) {
   const membership = await db.query.membership.findFirst({
     where: { id: membershipId },
     with: { membershipType: true },
@@ -152,7 +157,7 @@ export async function createSession(userId: string, membershipId: string, locale
     membershipId: membershipId,
     stripeSessionId: session.id,
     status: "awaiting_payment",
-    description: description ?? null,
+    description,
   });
 
   return session;
