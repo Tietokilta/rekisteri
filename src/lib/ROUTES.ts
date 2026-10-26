@@ -45,6 +45,9 @@ const PAGES = {
   "/[locale=locale]/new": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
     return `/${params['locale']}/new`
   },
+  "/[locale=locale]/settings/applications": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
+    return `/${params['locale']}/settings/applications`
+  },
   "/[locale=locale]/settings/emails": (params: { locale: (ExtractParamType<typeof import('../params/locale.ts').match>) }) => {
     return `/${params['locale']}/settings/emails`
   },
@@ -229,7 +232,7 @@ type ExtractParamType<T extends (param: any) => any> = ExtractFnPredicate<T> ext
 * ```
 */
 export type KIT_ROUTES = {
-  PAGES: { '/[locale=locale]': 'locale', '/[locale=locale]/admin/meetings': 'locale', '/[locale=locale]/admin/meetings/[id]': 'locale' | 'id', '/[locale=locale]/admin/members': 'locale', '/[locale=locale]/admin/members/import': 'locale', '/[locale=locale]/admin/membership-types': 'locale', '/[locale=locale]/admin/memberships': 'locale', '/[locale=locale]/admin/settings': 'locale', '/[locale=locale]/admin/users': 'locale', '/[locale=locale]/admin/verify-qr': 'locale', '/[locale=locale]/membership': 'locale', '/[locale=locale]/new': 'locale', '/[locale=locale]/settings/emails': 'locale', '/[locale=locale]/settings/emails/add': 'locale', '/[locale=locale]/settings/emails/verify': 'locale', '/[locale=locale]/settings/passkeys': 'locale', '/[locale=locale]/settings/profile': 'locale', '/[locale=locale]/privacy-policy': 'locale', '/[locale=locale]/sign-in': 'locale', '/[locale=locale]/sign-in/email': 'locale', '/[locale=locale]/sign-in/method': 'locale', '/oidc/error': never, '/oidc/login/[uid]': 'uid' }
+  PAGES: { '/[locale=locale]': 'locale', '/[locale=locale]/admin/meetings': 'locale', '/[locale=locale]/admin/meetings/[id]': 'locale' | 'id', '/[locale=locale]/admin/members': 'locale', '/[locale=locale]/admin/members/import': 'locale', '/[locale=locale]/admin/membership-types': 'locale', '/[locale=locale]/admin/memberships': 'locale', '/[locale=locale]/admin/settings': 'locale', '/[locale=locale]/admin/users': 'locale', '/[locale=locale]/admin/verify-qr': 'locale', '/[locale=locale]/membership': 'locale', '/[locale=locale]/new': 'locale', '/[locale=locale]/settings/applications': 'locale', '/[locale=locale]/settings/emails': 'locale', '/[locale=locale]/settings/emails/add': 'locale', '/[locale=locale]/settings/emails/verify': 'locale', '/[locale=locale]/settings/passkeys': 'locale', '/[locale=locale]/settings/profile': 'locale', '/[locale=locale]/privacy-policy': 'locale', '/[locale=locale]/sign-in': 'locale', '/[locale=locale]/sign-in/email': 'locale', '/[locale=locale]/sign-in/method': 'locale', '/oidc/error': never, '/oidc/login/[uid]': 'uid' }
   SERVERS: { 'GET /[locale=locale]/admin/meetings/[id]/export': 'locale' | 'id', 'GET /[locale=locale]/admin/meetings/[id]/live': 'locale' | 'id', 'GET /[locale=locale]/admin/meetings/users': 'locale', 'GET /api/health': never, 'GET /api/image/[filename]': 'filename', 'POST /api/webhook/stripe': never }
   ACTIONS: { 'switchAccount /oidc/login/[uid]': 'uid', 'accept /oidc/login/[uid]': 'uid', 'deny /oidc/login/[uid]': 'uid' }
   LINKS: Record<string, never>
