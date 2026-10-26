@@ -2,6 +2,7 @@
   import { LL } from "#lib/i18n/i18n-svelte.js";
   import MarkdownEditor from "#lib/components/markdown-editor.svelte";
   import * as Tabs from "#lib/components/ui/tabs/index.js";
+  import { updateCustomization } from "../data.remote";
 
   let {
     values = $bindable(),
@@ -24,7 +25,11 @@
           {$LL.admin.settings.privacyPolicy.fi()}
         </label>
         <MarkdownEditor id="privacyPolicyFI" bind:value={values.privacyPolicyFi} />
-        <input type="hidden" name="privacyPolicyFi" bind:value={values.privacyPolicyFi} />
+        <input
+          type="hidden"
+          name={updateCustomization.fields.privacyPolicyFi.as("text").name}
+          bind:value={values.privacyPolicyFi}
+        />
         {#if errors.privacyPolicyFi}
           <p class="mt-2 text-sm text-red-600">{errors.privacyPolicyFi}</p>
         {/if}
@@ -35,7 +40,11 @@
           {$LL.admin.settings.privacyPolicy.en()}
         </label>
         <MarkdownEditor id="privacyPolicyEN" bind:value={values.privacyPolicyEn} />
-        <input type="hidden" name="privacyPolicyEn" bind:value={values.privacyPolicyEn} />
+        <input
+          type="hidden"
+          name={updateCustomization.fields.privacyPolicyEn.as("text").name}
+          bind:value={values.privacyPolicyEn}
+        />
         {#if errors.privacyPolicyEn}
           <p class="mt-2 text-sm text-red-600">{errors.privacyPolicyEn}</p>
         {/if}

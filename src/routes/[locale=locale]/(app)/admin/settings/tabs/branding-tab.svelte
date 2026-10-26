@@ -3,6 +3,7 @@
   import { Input } from "#lib/components/ui/input/index.js";
   import * as Tabs from "#lib/components/ui/tabs/index.js";
   import type { PageData } from "../$types";
+  import { updateCustomization } from "../data.remote";
 
   let {
     values = $bindable(),
@@ -56,7 +57,7 @@
           <div class="mt-3 flex items-center gap-4">
             <input
               type="color"
-              name="accentColor"
+              name={updateCustomization.fields.accentColor.as("text").name}
               id="accentColor"
               bind:value={accentColorInputValue}
               class="h-10 w-20 cursor-pointer rounded border-border bg-background shadow-xs focus:border-ring focus:ring-ring sm:text-sm"
@@ -80,7 +81,13 @@
             {$LL.admin.settings.brandingDefaults.appNameFi()}
           </label>
           <div class="mt-1.5">
-            <Input type="text" name="appNameFi" id="appNameFI" bind:value={values.appNameFi} class="w-full" />
+            <Input
+              type="text"
+              name={updateCustomization.fields.appNameFi.as("text").name}
+              id="appNameFI"
+              bind:value={values.appNameFi}
+              class="w-full"
+            />
           </div>
           {#if errors.appNameFi}<p class="mt-2 text-sm text-red-600">{errors.appNameFi}</p>{/if}
         </div>
@@ -90,7 +97,13 @@
             {$LL.admin.settings.brandingDefaults.appNameEn()}
           </label>
           <div class="mt-1.5">
-            <Input type="text" name="appNameEn" id="appNameEN" bind:value={values.appNameEn} class="w-full" />
+            <Input
+              type="text"
+              name={updateCustomization.fields.appNameEn.as("text").name}
+              id="appNameEN"
+              bind:value={values.appNameEn}
+              class="w-full"
+            />
           </div>
           {#if errors.appNameEn}<p class="mt-2 text-sm text-red-600">{errors.appNameEn}</p>{/if}
         </div>
@@ -110,7 +123,13 @@
         <label for="logo" class="mb-1 block text-sm font-medium text-foreground">
           {$LL.admin.settings.images.logoLight()}
         </label>
-        <input type="file" name="logo" id="logo" accept="image/svg+xml" class={fileInputClass} />
+        <input
+          type="file"
+          name={updateCustomization.fields.logo.as("file").name}
+          id="logo"
+          accept="image/svg+xml"
+          class={fileInputClass}
+        />
         {#if data.customImageExists.logo}
           {#if getImageUrl("logo")}
             <div class="mt-2 text-xs text-muted-foreground">
@@ -138,7 +157,13 @@
         <label for="logoDark" class="mb-1 block text-sm font-medium text-foreground">
           {$LL.admin.settings.images.logoDark()}
         </label>
-        <input type="file" name="logoDark" id="logoDark" accept="image/svg+xml" class={fileInputClass} />
+        <input
+          type="file"
+          name={updateCustomization.fields.logoDark.as("file").name}
+          id="logoDark"
+          accept="image/svg+xml"
+          class={fileInputClass}
+        />
         {#if data.customImageExists.logoDark}
           {#if getImageUrl("logoDark")}
             <div class="mt-2 text-xs text-muted-foreground">
@@ -166,7 +191,13 @@
         <label for="favicon" class="mb-1 block text-sm font-medium text-foreground">
           {$LL.admin.settings.images.faviconLight()}
         </label>
-        <input type="file" name="favicon" id="favicon" accept="image/png" class={fileInputClass} />
+        <input
+          type="file"
+          name={updateCustomization.fields.favicon.as("file").name}
+          id="favicon"
+          accept="image/png"
+          class={fileInputClass}
+        />
         {#if data.customImageExists.favicon}
           {#if getImageUrl("favicon")}
             <div class="mt-2 text-xs text-muted-foreground">
@@ -194,7 +225,13 @@
         <label for="faviconDark" class="mb-1 block text-sm font-medium text-foreground">
           {$LL.admin.settings.images.faviconDark()}
         </label>
-        <input type="file" name="faviconDark" id="faviconDark" accept="image/png" class={fileInputClass} />
+        <input
+          type="file"
+          name={updateCustomization.fields.faviconDark.as("file").name}
+          id="faviconDark"
+          accept="image/png"
+          class={fileInputClass}
+        />
         {#if data.customImageExists.faviconDark}
           {#if getImageUrl("faviconDark")}
             <div class="mt-2 text-xs text-muted-foreground">

@@ -295,10 +295,12 @@
       enctype="multipart/form-data"
       class="contents"
     >
-      {#if removeImages.logo}<input type="hidden" name="removeLogo" value="true" />{/if}
-      {#if removeImages.logoDark}<input type="hidden" name="removeLogoDark" value="true" />{/if}
-      {#if removeImages.favicon}<input type="hidden" name="removeFavicon" value="true" />{/if}
-      {#if removeImages.faviconDark}<input type="hidden" name="removeFaviconDark" value="true" />{/if}
+      {#if removeImages.logo}<input {...updateCustomization.fields.removeLogo.as("hidden", "true")} />{/if}
+      {#if removeImages.logoDark}<input {...updateCustomization.fields.removeLogoDark.as("hidden", "true")} />{/if}
+      {#if removeImages.favicon}<input {...updateCustomization.fields.removeFavicon.as("hidden", "true")} />{/if}
+      {#if removeImages.faviconDark}<input
+          {...updateCustomization.fields.removeFaviconDark.as("hidden", "true")}
+        />{/if}
 
       <!-- TAB 1: Branding & Appearance -->
       <BrandingTab

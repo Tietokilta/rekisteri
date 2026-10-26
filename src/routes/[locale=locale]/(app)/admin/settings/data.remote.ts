@@ -231,8 +231,8 @@ export const updateCustomization = form(updateCustomizationSchema, async (values
 });
 
 // Refresh tokens follow from the offline_access scope (the adapter derives the grant types)
-function clientScopes(data: { idTokenClaims: string[]; "idTokenClaims[]": string[] }): string[] {
-  return [...new Set(["openid", ...data.idTokenClaims, ...data["idTokenClaims[]"]])];
+function clientScopes(data: { idTokenClaims: string[] }): string[] {
+  return [...new Set(["openid", ...data.idTokenClaims])];
 }
 
 function requireOidcAdmin(event: ReturnType<typeof getRequestEvent>) {

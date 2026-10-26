@@ -33,7 +33,7 @@
   <Card.Content>
     <div class="flex w-full flex-col gap-4">
       <form bind:this={verifyFormEl} {...verifyCode.preflight(verifyCodeSchema)} class="contents">
-        {#if next}<input type="hidden" name="next" value={next} />{/if}
+        {#if next}<input {...verifyCode.fields.next.as("hidden", next)} />{/if}
         <div class="flex flex-col gap-2">
           <Label for="code">{$LL.secondaryEmail.code()}</Label>
           <InputOTP.Root

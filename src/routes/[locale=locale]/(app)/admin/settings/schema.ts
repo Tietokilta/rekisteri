@@ -80,13 +80,7 @@ export const updateCustomizationSchema = v.object({
 
 const OIDC_SCOPE_KEYS = OIDC_SCOPES.map((scope) => scope.key);
 
-const scopesSchema = v.optional(
-  v.pipe(
-    v.union([v.picklist(OIDC_SCOPE_KEYS), v.array(v.picklist(OIDC_SCOPE_KEYS))]),
-    v.transform((val) => (Array.isArray(val) ? val : [val])),
-  ),
-  [],
-);
+const scopesSchema = v.optional(v.array(v.picklist(OIDC_SCOPE_KEYS)), []);
 
 const checkboxSchema = v.optional(
   v.pipe(
@@ -127,7 +121,6 @@ const oidcClientFields = {
   name: v.pipe(v.string(), v.trim(), v.minLength(1, "Name is required"), v.maxLength(100)),
   redirectUris: redirectUrisSchema,
   idTokenClaims: scopesSchema,
-  "idTokenClaims[]": scopesSchema,
   requireActiveMembership: checkboxSchema,
 };
 

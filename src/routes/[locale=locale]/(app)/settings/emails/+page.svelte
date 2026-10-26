@@ -132,7 +132,7 @@
                   await refreshAll();
                 })}
               >
-                <input type="hidden" name="emailId" value={email.id} />
+                <input {...changePrimaryForm.fields.emailId.as("hidden", email.id)} />
                 <Button
                   type="submit"
                   variant="outline"
@@ -159,8 +159,8 @@
               <DropdownMenu.Content align="end">
                 {#if status === "expired" || status === "unverified"}
                   <form class="contents" {...reverifyForm}>
-                    <input type="hidden" name="emailId" value={email.id} />
-                    {#if next}<input type="hidden" name="next" value={next} />{/if}
+                    <input {...reverifyForm.fields.emailId.as("hidden", email.id)} />
+                    {#if next}<input {...reverifyForm.fields.next.as("hidden", next)} />{/if}
                     <DropdownMenu.Item
                       disabled={!!reverifyForm.pending}
                       data-testid="reverify-email"
@@ -183,7 +183,7 @@
                     await refreshAll();
                   })}
                 >
-                  <input type="hidden" name="emailId" value={email.id} />
+                  <input {...deleteForm.fields.emailId.as("hidden", email.id)} />
                   <DropdownMenu.Item
                     variant="destructive"
                     disabled={!!deleteForm.pending}

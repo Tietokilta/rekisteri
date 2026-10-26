@@ -133,7 +133,7 @@
             <Input
               type="text"
               id="create-app-name"
-              name="name"
+              name={createOidcClient.fields.name.as("text").name}
               placeholder={oidcAdmin.form.applicationNamePlaceholder()}
               class="mt-1"
               required
@@ -150,7 +150,7 @@
             </label>
             <textarea
               id="create-redirect-uris"
-              name="redirectUris"
+              name={createOidcClient.fields.redirectUris.as("text").name}
               rows={3}
               placeholder={oidcAdmin.form.redirectUrisPlaceholder()}
               class="mt-1 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
@@ -163,7 +163,7 @@
           </div>
 
           <label class="flex items-start gap-2 text-xs">
-            <Checkbox name="requireActiveMembership" class="mt-0.5" />
+            <Checkbox name={createOidcClient.fields.requireActiveMembership.as("checkbox").name} class="mt-0.5" />
             <span>
               <span class="font-medium text-foreground">{oidcAdmin.form.membersOnly()}</span>
               <span class="block text-muted-foreground">{oidcAdmin.form.membersOnlyDescription()}</span>
@@ -171,7 +171,11 @@
           </label>
 
           <!-- Configurable Scopes Section -->
-          <OidcClientConfig bind:scopes={createAllowedScopes} namePrefix="scope_category_create" />
+          <OidcClientConfig
+            bind:scopes={createAllowedScopes}
+            claimsName={createOidcClient.fields.idTokenClaims.as("checkbox", "openid").name}
+            testIdPrefix="scope_category_create"
+          />
         </form>
       </AlertDialog.Content>
     </AlertDialog.Root>
@@ -198,7 +202,7 @@
             })}
             class="space-y-4"
           >
-            <input type="hidden" name="id" value={editingOidcClient.id} />
+            <input {...updateOidcClient.fields.id.as("hidden", editingOidcClient.id)} />
 
             <div class="flex items-center justify-between border-b border-border/60 pb-3">
               <AlertDialog.Title class="text-base font-semibold text-foreground">
@@ -218,7 +222,14 @@
               <label for="edit-name" class="text-xs font-medium text-foreground"
                 >{oidcAdmin.form.applicationName()}</label
               >
-              <Input id="edit-name" name="name" type="text" bind:value={editingOidcClient.name} required class="mt-1" />
+              <Input
+                id="edit-name"
+                name={updateOidcClient.fields.name.as("text").name}
+                type="text"
+                bind:value={editingOidcClient.name}
+                required
+                class="mt-1"
+              />
             </div>
 
             <div>
@@ -228,7 +239,7 @@
               </label>
               <textarea
                 id="edit-redirect-uris"
-                name="redirectUris"
+                name={updateOidcClient.fields.redirectUris.as("text").name}
                 rows={3}
                 bind:value={editingOidcClient.redirectUris}
                 class="mt-1 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
@@ -242,7 +253,7 @@
 
             <label class="flex items-start gap-2 text-xs">
               <Checkbox
-                name="requireActiveMembership"
+                name={updateOidcClient.fields.requireActiveMembership.as("checkbox").name}
                 bind:checked={editingOidcClient.requireActiveMembership}
                 class="mt-0.5"
               />
@@ -253,7 +264,11 @@
             </label>
 
             <!-- Configurable Scopes Section -->
-            <OidcClientConfig bind:scopes={editingOidcClient.scopes} namePrefix="scope_category_edit" />
+            <OidcClientConfig
+              bind:scopes={editingOidcClient.scopes}
+              claimsName={updateOidcClient.fields.idTokenClaims.as("checkbox", "openid").name}
+              testIdPrefix="scope_category_edit"
+            />
           </form>
         </AlertDialog.Content>
       {/if}
@@ -473,7 +488,9 @@
               toast.success(oidcAdmin.toast.newSecret());
             })}
         >
-          <input type="hidden" name="id" value={regeneratingClient.id} />
+          <input
+            {...regenerateOidcClientSecret.for(regeneratingClient.id).fields.id.as("hidden", regeneratingClient.id)}
+          />
           <AlertDialog.Footer class="flex justify-end gap-2">
             <Button
               type="button"
@@ -626,7 +643,7 @@
             toast.success(oidcAdmin.toast.deleteSuccess());
           })}
       >
-        <input type="hidden" name="id" value={deletingClient.id} />
+        <input {...deleteOidcClient.for(deletingClient.id).fields.id.as("hidden", deletingClient.id)} />
         <AlertDialog.Footer class="flex justify-end gap-2">
           <Button type="button" variant="outline" size="sm" onclick={() => (deletingClient = null)}>
             {$LL.common.cancel()}

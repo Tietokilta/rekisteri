@@ -39,7 +39,7 @@
     </Alert.Root>
 
     <form {...addSecondaryEmailForm.preflight(addSecondaryEmailSchema)} class="space-y-4">
-      {#if next}<input type="hidden" name="next" value={next} />{/if}
+      {#if next}<input {...addSecondaryEmailForm.fields.next.as("hidden", next)} />{/if}
       <div class="space-y-2">
         <Label for="email">{$LL.secondaryEmail.emailAddress()}</Label>
         <Input

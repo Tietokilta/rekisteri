@@ -203,7 +203,7 @@
   <Card.Footer class="flex flex-wrap gap-2">
     {#if isAwaitingPayment && currentMembership}
       <form {...retryPayment.preflight(retryPaymentSchema)} class="flex-1">
-        <input type="hidden" name="memberId" value={currentMembership.unique_id} />
+        <input {...retryPayment.fields.memberId.as("hidden", currentMembership.unique_id)} />
         <Button type="submit" class="w-full" disabled={!!retryPayment.pending}>
           {#if retryPayment.pending}
             {$LL.common.loading()}

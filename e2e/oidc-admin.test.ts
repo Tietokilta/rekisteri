@@ -33,8 +33,8 @@ test.describe("OIDC applications admin", () => {
     await adminPage.getByRole("button", { name: "New application" }).click();
     await adminPage.locator("#create-app-name").fill(name);
     await adminPage.locator("#create-redirect-uris").fill(REDIRECT_URI);
-    await adminPage.locator('input[name="scope_category_create_profile"]').check();
-    await adminPage.locator('input[name="scope_category_create_offline_access"]').check();
+    await adminPage.getByTestId("scope_category_create_profile").check();
+    await adminPage.getByTestId("scope_category_create_offline_access").check();
     await adminPage.getByRole("button", { name: "Create", exact: true }).click();
 
     // The secret is shown once

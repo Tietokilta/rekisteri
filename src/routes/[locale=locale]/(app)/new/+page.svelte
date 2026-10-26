@@ -67,7 +67,7 @@
   // Guard: skip until onMount restore completes to avoid overwriting saved state.
   $effect(() => {
     if (!restored) return;
-    const textarea = document.querySelector<HTMLTextAreaElement>('textarea[name="description"]');
+    const textarea = document.querySelector<HTMLTextAreaElement>("textarea#description");
     formPersist.current = {
       membershipId: payMembership.fields.membershipId.value() ?? "",
       description: textarea?.value ?? "",
@@ -92,7 +92,7 @@
 
     if (saved.membershipId) {
       const radio = document.querySelector<HTMLInputElement>(
-        `input[type="radio"][name="membershipId"][value="${CSS.escape(saved.membershipId)}"]`,
+        `input[type="radio"][value="${CSS.escape(saved.membershipId)}"]`,
       );
       if (radio) {
         radio.checked = true;
@@ -104,7 +104,7 @@
     await tick();
 
     if (saved.description) {
-      const textarea = document.querySelector<HTMLTextAreaElement>('textarea[name="description"]');
+      const textarea = document.querySelector<HTMLTextAreaElement>("textarea#description");
       if (textarea) {
         textarea.value = saved.description;
         textarea.dispatchEvent(new Event("input", { bubbles: true }));
@@ -195,7 +195,7 @@
               </label>
               <Textarea
                 id="description"
-                name="description"
+                {...payMembership.fields.description.as("text")}
                 rows={3}
                 required={!requireStudentVerification}
                 placeholder={$LL.membership.descriptionPlaceholder()}
@@ -207,7 +207,13 @@
             <div class="space-y-3">
               <div class="rounded-lg border p-4">
                 <label class="flex cursor-pointer items-start gap-3">
-                  <input type="checkbox" name="isStudent" bind:checked={isStudent} required class="mt-1 rounded" />
+                  <input
+                    type="checkbox"
+                    data-testid="is-student"
+                    bind:checked={isStudent}
+                    required
+                    class="mt-1 rounded"
+                  />
                   <span class="text-sm">{$LL.membership.isStudent()}</span>
                 </label>
               </div>

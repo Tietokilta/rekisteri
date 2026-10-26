@@ -199,14 +199,12 @@
                     editingPasskeyId = null;
                   })}
                 >
-                  <input type="hidden" name="passkeyId" value={passkey.id} />
+                  <input {...renameForm.fields.passkeyId.as("hidden", passkey.id)} />
                   <div>
                     <Label for="rename-{passkey.id}">{$LL.auth.passkey.deviceName()}</Label>
                     <Input
                       id="rename-{passkey.id}"
-                      type="text"
-                      name="deviceName"
-                      value={passkey.deviceName}
+                      {...renameForm.fields.deviceName.as("text", passkey.deviceName ?? undefined)}
                       class="mt-1"
                       onkeydown={(e) => {
                         if (e.key === "Escape") {
@@ -268,7 +266,7 @@
                     await refreshAll();
                   })}
                 >
-                  <input type="hidden" name="passkeyId" value={passkey.id} />
+                  <input {...deleteForm.fields.passkeyId.as("hidden", passkey.id)} />
                   <Button
                     type="submit"
                     variant="destructive"

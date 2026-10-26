@@ -97,7 +97,7 @@
                 toast.success(revokeForm.result?.message || $LL.settings.applications.revokedSuccess());
               })}
             >
-              <input type="hidden" name="clientId" value={grant.clientId} />
+              <input {...revokeForm.fields.clientId.as("hidden", grant.clientId)} />
               <Button
                 type="submit"
                 variant="outline"
