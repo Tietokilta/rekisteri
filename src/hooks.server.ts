@@ -1,6 +1,5 @@
-import { sequence } from "@sveltejs/kit/hooks";
-import type { Handle, ServerInit } from "@sveltejs/kit";
 import { redirect } from "@sveltejs/kit";
+import { sequence, type Handle, type ServerInit } from "@sveltejs/kit/hooks";
 import * as auth from "$lib/server/auth/session.js";
 import { userHasAdminAccess } from "$lib/server/auth/admin";
 import { baseLocale, locales, preferredLanguageToLocale, type Locale } from "$lib/i18n/routing";
