@@ -1,0 +1,58 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
+  "timezone": "Europe/Helsinki",
+  "schedule": ["before 6am on monday"],
+  "semanticCommits": "enabled",
+  "labels": ["dependencies"],
+  "dependencyDashboard": true,
+  "prHourlyLimit": 0,
+  "minimumReleaseAge": "3 days",
+  "postUpdateOptions": ["pnpmDedupe"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"]
+  },
+  "vulnerabilityAlerts": {
+    "minimumReleaseAge": null,
+    "schedule": ["at any time"]
+  },
+  "packageRules": [
+    {
+      "description": "Every lockfile change needs a manual fetchPnpmDeps hash bump in flake.nix, so batch non-major npm updates into one weekly PR",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "non-major dependencies"
+    },
+    {
+      "matchPackageNames": ["svelte", "@sveltejs/**", "svelte-check", "prettier-plugin-svelte", "eslint-plugin-svelte"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "Svelte"
+    },
+    {
+      "description": "drizzle-kit, drizzle-orm and drizzle-seed are released together",
+      "matchPackageNames": ["drizzle-kit", "drizzle-orm", "drizzle-seed"],
+      "groupName": "drizzle"
+    },
+    {
+      "matchPackageNames": ["tailwindcss", "@tailwindcss/**"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "Tailwind CSS"
+    },
+    {
+      "matchPackageNames": ["eslint", "@eslint/**", "typescript-eslint"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "ESLint"
+    },
+    {
+      "description": "Runtime is nodejs_24 from nixpkgs (flake.nix); bump @types/node together with it",
+      "matchPackageNames": ["@types/node"],
+      "allowedVersions": "<25"
+    },
+    {
+      "description": "Group GitHub Actions updates (majors stay separate); main.yml publishes and deploys, so review it",
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions"
+    }
+  ]
+}
