@@ -1,3 +1,10 @@
+<script lang="ts" module>
+  // Issues from the last server response. Kit keeps them until the next one, also when a later preflight fails.
+  // Module scope, because the remote form instance holding them outlives this page.
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- bookkeeping only, must not trigger the issues effect
+  const lastServerIssues = new Set<string>();
+</script>
+
 <script lang="ts">
   import type { PageData } from "./$types";
   import { LL } from "#lib/i18n/i18n-svelte.js";
@@ -154,9 +161,6 @@
   const issueKey = (issue: { path: (string | number)[]; message: string }) =>
     `${issue.path.join(".")}:${issue.message}`;
 
-  // Issues from the last server response. Kit keeps them until the next one, also when a later preflight fails.
-  let lastServerIssues = new Set<string>();
-
   // A failed preflight never calls the enhance callback, so react to the issues themselves (set on every
   // failed submit, from preflight or the server): jump to the first tab with errors, show a toast and focus
   // the first invalid field. Wait until the submission settles, because a passing preflight re-sets the
@@ -311,10 +315,13 @@
         try {
           succeeded = await submit();
         } catch {
+          // Not a validation failure, so the issues effect has nothing to report
+          saveAttempted = false;
           toast.error($LL.admin.settings.error());
           return;
         } finally {
-          lastServerIssues = new Set(updateCustomization.fields.allIssues()?.map(issueKey));
+          lastServerIssues.clear();
+          for (const issue of updateCustomization.fields.allIssues() ?? []) lastServerIssues.add(issueKey(issue));
         }
 
         // Validation errors are handled by the $effect above

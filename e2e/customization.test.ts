@@ -201,6 +201,55 @@ test.describe("App Customization", () => {
     await expect(adminPage.locator("#rulesUrlEn")).toBeFocused();
   });
 
+  test("a stale server-side error is still ignored after leaving and returning to the page", async ({ adminPage }) => {
+    await adminPage.goto("/en/admin/settings");
+
+    await adminPage.setInputFiles("#logo", {
+      name: "broken.svg",
+      mimeType: "image/svg+xml",
+      buffer: Buffer.from([0xff, 0xfe, 0xfd]),
+    });
+    await adminPage.getByTestId("save-customizations").click();
+    await expect(adminPage.locator("text=/Must be a valid UTF-8 SVG image/")).toBeVisible();
+
+    // Client-side navigation keeps the remote form instance (and the server's logo error) alive
+    await adminPage.locator('a[href="/en/admin/members"]').first().click();
+    await expect(adminPage).toHaveURL(/\/en\/admin\/members/);
+    await adminPage.goBack();
+    await expect(adminPage).toHaveURL(/\/en\/admin\/settings/);
+
+    await adminPage.getByTestId("tab-resignation").click();
+    await adminPage.fill("#rulesUrlEn", "not a url");
+    await adminPage.getByTestId("tab-organization").click();
+    await adminPage.getByTestId("save-customizations").click();
+
+    await expect(adminPage.getByTestId("tab-resignation")).toHaveAttribute("data-state", "active");
+    await expect(adminPage.locator("#rulesUrlEn")).toBeFocused();
+  });
+
+  test("a network error after a server-side validation error doesn't replay the old error", async ({ adminPage }) => {
+    await adminPage.goto("/en/admin/settings");
+
+    await adminPage.setInputFiles("#logo", {
+      name: "broken.svg",
+      mimeType: "image/svg+xml",
+      buffer: Buffer.from([0xff, 0xfe, 0xfd]),
+    });
+    await adminPage.getByTestId("save-customizations").click();
+    const errorToast = adminPage.locator("text=/Failed to update settings/");
+    await expect(errorToast).toBeVisible();
+    await expect(errorToast).toBeHidden({ timeout: 10_000 });
+
+    await adminPage.setInputFiles("#logo", []);
+    await adminPage.getByTestId("tab-organization").click();
+    await adminPage.route("**/_app/remote/**", (route) => route.abort());
+    await adminPage.getByTestId("save-customizations").click();
+
+    await expect(errorToast).toHaveCount(1);
+    await expect(adminPage.getByTestId("tab-organization")).toHaveAttribute("data-state", "active");
+    await expect(adminPage.locator("#logo")).not.toBeFocused();
+  });
+
   test("a successful save after a server-side validation error stays on the current tab", async ({ adminPage }) => {
     await adminPage.goto("/en/admin/settings");
 
