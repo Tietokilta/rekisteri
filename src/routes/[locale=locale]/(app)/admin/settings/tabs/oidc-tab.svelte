@@ -62,11 +62,19 @@
     data.oidcClients.toSorted((a, b) => a.name.localeCompare(b.name, $locale, { sensitivity: "base" })),
   );
 
-  let createAllowedScopes = $state<string[]>(["profile", "email", "membership"]);
+  const defaultCreateScopes = ["profile", "email", "membership"];
+  let createAllowedScopes = $state<string[]>([...defaultCreateScopes]);
   let showInfoModal = $state(false);
   let deletingClient = $state<{ id: string; name: string } | null>(null);
   let regeneratingClient = $state<{ id: string; name: string } | null>(null);
   let regeneratedSecret = $state<string | null>(null);
+
+  // The create dialog's form mounts on every open. Start it from the defaults, and reset
+  // the form so the remote form also drops its input and issues from the last submission.
+  function resetCreateForm(form: HTMLFormElement) {
+    createAllowedScopes = [...defaultCreateScopes];
+    form.reset();
+  }
 </script>
 
 <Tabs.Content value="oidcClients" class="mt-4 space-y-4">
@@ -110,6 +118,7 @@
             await refreshAll();
             toast.success(oidcAdmin.toast.createSuccess());
           })}
+          {@attach resetCreateForm}
           class="space-y-4"
         >
           <div class="flex items-center justify-between border-b border-border/60 pb-3">

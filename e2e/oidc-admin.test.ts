@@ -113,3 +113,68 @@ test.describe("OIDC applications admin validation", () => {
     expect(await db.select().from(table.oidcClient).where(eq(table.oidcClient.name, name))).toHaveLength(0);
   });
 });
+
+test.describe("OIDC applications admin create dialog", () => {
+  const name = `E2E Reset App ${crypto.randomUUID().slice(0, 8)}`;
+
+  test.afterEach(async ({ db }) => {
+    await db.delete(table.oidcClient).where(eq(table.oidcClient.name, name));
+  });
+
+  test("starts from the defaults every time it opens", async ({ adminPage, db }) => {
+    const dialog = adminPage.getByRole("alertdialog");
+    const nameInput = adminPage.locator("#create-app-name");
+    const redirectInput = adminPage.locator("#create-redirect-uris");
+    const membersOnly = dialog.getByRole("checkbox", { name: /Members only/ });
+    const scope = (key: string) => adminPage.getByTestId(`scope_category_create_${key}`);
+    const issue = dialog.getByText(/Redirect URIs must be absolute https URLs/);
+
+    const expectDefaults = async () => {
+      await expect(nameInput).toHaveValue("");
+      await expect(redirectInput).toHaveValue("");
+      await expect(membersOnly).not.toBeChecked();
+      await expect(scope("profile")).toBeChecked();
+      await expect(scope("email")).toBeChecked();
+      await expect(scope("membership")).toBeChecked();
+      await expect(scope("offline_access")).not.toBeChecked();
+      await expect(issue).toBeHidden();
+    };
+
+    await adminPage.goto("/en/admin/settings");
+    await adminPage.getByTestId("tab-oidc-clients").click();
+    const openDialog = () => adminPage.getByRole("button", { name: "New application" }).click();
+
+    // A rejected submit, then cancel: the issue and the typed values don't come back
+    await openDialog();
+    await expectDefaults();
+    await nameInput.fill(name);
+    await redirectInput.fill("javascript:alert(1)");
+    await membersOnly.click();
+    await scope("offline_access").check();
+    await adminPage.getByRole("button", { name: "Create", exact: true }).click();
+    await expect(issue).toBeVisible();
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toBeHidden();
+
+    await openDialog();
+    await expectDefaults();
+
+    // A successful create with non-default choices
+    await nameInput.fill(name);
+    await redirectInput.fill(REDIRECT_URI);
+    await membersOnly.click();
+    await scope("offline_access").check();
+    await scope("profile").uncheck();
+    await adminPage.getByRole("button", { name: "Create", exact: true }).click();
+    const secretDialog = adminPage.getByRole("alertdialog").filter({ hasText: "New client secret generated" });
+    await secretDialog.getByRole("button", { name: "Done" }).click();
+    await expect(secretDialog).toBeHidden();
+    const [client] = await db.select().from(table.oidcClient).where(eq(table.oidcClient.name, name));
+    expect(client?.scopes).toEqual(expect.arrayContaining(["offline_access"]));
+    expect(client?.scopes).not.toContain("profile");
+    expect(client?.requireActiveMembership).toBe(true);
+
+    await openDialog();
+    await expectDefaults();
+  });
+});

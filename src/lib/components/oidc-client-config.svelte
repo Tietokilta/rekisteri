@@ -104,6 +104,7 @@
               type="checkbox"
               data-testid={`${testIdPrefix}_${scope.key}`}
               checked={enabled}
+              defaultChecked={enabled}
               onchange={(e) => (scopes = toggleScope(scopes, scope.key, e.currentTarget.checked))}
               class="size-4 shrink-0 rounded border-gray-300 text-primary focus:ring-primary"
             />
