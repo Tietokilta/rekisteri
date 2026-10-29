@@ -11,18 +11,18 @@ import {
   sendOTPEmail,
   sendOTPBucket,
   setEmailOTPCookie,
-} from "$lib/server/auth/email";
-import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
-import { createSession, generateSessionToken, setSessionTokenCookie } from "$lib/server/auth/session";
-import { getUserByEmail, deleteUnverifiedSecondaryEmailClaims } from "$lib/server/auth/secondary-email";
-import { generateUserId } from "$lib/server/auth/utils";
-import * as table from "$lib/server/db/schema";
-import { db } from "$lib/server/db";
-import { route } from "$lib/ROUTES";
-import { auditLogin, auditLoginFailed } from "$lib/server/audit";
+} from "#lib/server/auth/email.js";
+import { ExpiringTokenBucket } from "#lib/server/auth/rate-limit.js";
+import { createSession, generateSessionToken, setSessionTokenCookie } from "#lib/server/auth/session.js";
+import { getUserByEmail, deleteUnverifiedSecondaryEmailClaims } from "#lib/server/auth/secondary-email.js";
+import { generateUserId } from "#lib/server/auth/utils.js";
+import * as table from "#lib/server/db/schema.js";
+import { db } from "#lib/server/db/index.js";
+import { route } from "#lib/ROUTES.js";
+import { auditLogin, auditLoginFailed } from "#lib/server/audit.js";
 import { verifyCodeSchema } from "./schema";
-import { getLL } from "$lib/server/i18n";
-import { takeReturnTo } from "$lib/server/oidc/return-to";
+import { getLL } from "#lib/server/i18n.js";
+import { takeReturnTo } from "#lib/server/oidc/return-to.js";
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
 

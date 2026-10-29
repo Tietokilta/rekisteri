@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { Input } from "$lib/components/ui/input/index.js";
-  import { Label } from "$lib/components/ui/label/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { LL } from "$lib/i18n/i18n-svelte";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { LL } from "#lib/i18n/i18n-svelte.js";
   import { signIn } from "./data.remote";
   import { signInSchema } from "./schema";
 </script>

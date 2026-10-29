@@ -1,10 +1,10 @@
 import { error } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import { eq } from "drizzle-orm";
 import { userInfoSchema } from "./schema";
-import { getLL } from "$lib/server/i18n";
+import { getLL } from "#lib/server/i18n.js";
 
 export const saveUserInfo = form(userInfoSchema, async (data) => {
   const event = getRequestEvent();

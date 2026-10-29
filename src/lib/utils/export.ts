@@ -1,8 +1,8 @@
 import Papa from "papaparse";
-import { formatDate, formatDateRange } from "$lib/utils";
-import type { LocalizedString } from "$lib/server/db/schema";
-import type { MemberStatus, PreferredLanguage } from "$lib/shared/enums";
-import type { TranslationFunctions } from "$lib/i18n/i18n-types";
+import { formatDate, formatDateRange } from "#lib/utils.js";
+import type { LocalizedString } from "#lib/server/db/schema.js";
+import type { MemberStatus, PreferredLanguage } from "#lib/shared/enums.js";
+import type { TranslationFunctions } from "#lib/i18n/i18n-types.js";
 
 export type ExportColumnKey =
   | "firstNames"

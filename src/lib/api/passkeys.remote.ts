@@ -6,12 +6,12 @@ import {
   getUserPasskeys,
   deletePasskey,
   renamePasskey,
-} from "$lib/server/auth/passkey";
-import { auditPasskeyRegistered, auditPasskeyDeleted } from "$lib/server/audit";
+} from "#lib/server/auth/passkey.js";
+import { auditPasskeyRegistered, auditPasskeyDeleted } from "#lib/server/audit.js";
 import type { PublicKeyCredentialCreationOptionsJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 import * as v from "valibot";
-import { getLL } from "$lib/server/i18n";
+import { getLL } from "#lib/server/i18n.js";
 
 // Valibot schema for AuthenticatorTransportFuture
 const authenticatorTransportSchema = v.picklist(["ble", "cable", "hybrid", "internal", "nfc", "smart-card", "usb"]);

@@ -1,21 +1,21 @@
 <script lang="ts">
   import type { PageData } from "./$types";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { invalidateAll } from "$app/navigation";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import * as Card from "$lib/components/ui/card/index.js";
-  import * as Item from "$lib/components/ui/item/index.js";
-  import * as Empty from "$lib/components/ui/empty/index.js";
-  import { Badge } from "$lib/components/ui/badge/index.js";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { refreshAll } from "$app/navigation";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import * as Card from "#lib/components/ui/card/index.js";
+  import * as Item from "#lib/components/ui/item/index.js";
+  import * as Empty from "#lib/components/ui/empty/index.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
   import { toast } from "svelte-sonner";
   import AppWindow from "@lucide/svelte/icons/app-window";
   import ShieldOff from "@lucide/svelte/icons/shield-off";
   import Clock from "@lucide/svelte/icons/clock";
   import { revokeGrant } from "./data.remote";
   import { revokeGrantSchema } from "./schema";
-  import { formatDate as formatDateUtil } from "$lib/utils";
-  import ScopeIcon from "$lib/components/oidc-icon.svelte";
-  import { OIDC_SCOPES } from "$lib/shared/oidc";
+  import { formatDate as formatDateUtil } from "#lib/utils.js";
+  import ScopeIcon from "#lib/components/oidc-icon.svelte";
+  import { OIDC_SCOPES } from "#lib/shared/oidc.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -93,11 +93,11 @@
               class="contents"
               {...revokeForm.preflight(revokeGrantSchema).enhance(async ({ submit }) => {
                 await submit();
-                await invalidateAll();
+                await refreshAll();
                 toast.success(revokeForm.result?.message || $LL.settings.applications.revokedSuccess());
               })}
             >
-              <input type="hidden" name="clientId" value={grant.clientId} />
+              <input {...revokeForm.fields.clientId.as("hidden", grant.clientId)} />
               <Button
                 type="submit"
                 variant="outline"

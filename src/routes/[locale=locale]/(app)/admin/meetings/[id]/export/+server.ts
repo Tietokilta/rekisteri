@@ -1,12 +1,12 @@
 import { error } from "@sveltejs/kit";
 import Papa from "papaparse";
 import type { RequestHandler } from "./$types";
-import { db } from "$lib/server/db";
-import { getMeetingState } from "$lib/server/attendance/meeting";
-import { userHasAdminAccess } from "$lib/server/auth/admin";
-import { getLL } from "$lib/server/i18n";
-import { meetingAttendanceSummary, meetingPhysicalEvents } from "$lib/shared/meeting-attendance";
-import { singleLine } from "$lib/shared/name";
+import { db } from "#lib/server/db/index.js";
+import { getMeetingState } from "#lib/server/attendance/meeting.js";
+import { userHasAdminAccess } from "#lib/server/auth/admin.js";
+import { getLL } from "#lib/server/i18n.js";
+import { meetingAttendanceSummary, meetingPhysicalEvents } from "#lib/shared/meeting-attendance.js";
+import { singleLine } from "#lib/shared/name.js";
 
 // Swedish locale formats as "YYYY-MM-DD HH:MM:SS", which spreadsheets parse as a date and time
 const helsinkiTime = new Intl.DateTimeFormat("sv-SE", {

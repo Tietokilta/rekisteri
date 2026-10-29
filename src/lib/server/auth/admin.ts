@@ -3,7 +3,7 @@ import {
   hasAdminWriteAccess as _hasAdminWriteAccess,
   isReadOnlyAdmin as _isReadOnlyAdmin,
   type AdminRole,
-} from "$lib/shared/enums";
+} from "#lib/shared/enums.js";
 
 type UserWithAdminRole = { adminRole: AdminRole } | null | undefined;
 

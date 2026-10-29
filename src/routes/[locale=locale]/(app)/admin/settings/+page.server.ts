@@ -1,11 +1,11 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { flattenCustomization } from "$lib/server/customization/utils";
-import { hasAdminAccess, hasAdminWriteAccess } from "$lib/shared/enums";
-import { db } from "$lib/server/db";
-import { oidcClient } from "$lib/server/db/schema";
+import { flattenCustomization } from "#lib/server/customization/utils.js";
+import { hasAdminAccess, hasAdminWriteAccess } from "#lib/shared/enums.js";
+import { db } from "#lib/server/db/index.js";
+import { oidcClient } from "#lib/server/db/schema.js";
 import { asc } from "drizzle-orm";
-import { env } from "$lib/server/env";
+import { env } from "#lib/server/env.js";
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.session || !hasAdminAccess(event.locals.user?.adminRole ?? "none")) {

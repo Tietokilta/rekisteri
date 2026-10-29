@@ -1,6 +1,6 @@
 import * as v from "valibot";
-import { nameSchema } from "$lib/shared/name";
-import { PREFERRED_LANGUAGE_VALUES } from "$lib/shared/enums";
+import { nameSchema } from "#lib/shared/name.js";
+import { PREFERRED_LANGUAGE_VALUES } from "#lib/shared/enums.js";
 
 export const userInfoSchema = v.object({
   firstNames: v.pipe(nameSchema, v.minLength(1)),

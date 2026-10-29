@@ -1,7 +1,7 @@
 import { error } from "@sveltejs/kit";
 import type { LayoutServerLoad } from "./$types";
-import { env } from "$lib/server/env";
-import { getLayoutCustomizations } from "$lib/server/customization/utils";
+import { env } from "#lib/server/env.js";
+import { getLayoutCustomizations } from "#lib/server/customization/utils.js";
 
 // The OIDC login and error pages live outside the /{locale} routes, so oidc-provider's per-login
 // interaction cookie (scoped to /oidc/login/{uid}) reaches them. The locale is picked in hooks.

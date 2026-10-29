@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
   import type { PageProps } from "./$types";
-  import { Button } from "$lib/components/ui/button";
-  import { Badge } from "$lib/components/ui/badge";
-  import AdminPageHeader from "$lib/components/admin-page-header.svelte";
-  import { getStripePriceMetadata } from "$lib/api/stripe.remote";
-  import { formatDateRange, formatPrice, formatShortDateRange } from "$lib/utils";
-  import * as Sheet from "$lib/components/ui/sheet";
-  import * as Item from "$lib/components/ui/item";
-  import * as Empty from "$lib/components/ui/empty";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
+  import AdminPageHeader from "#lib/components/admin-page-header.svelte";
+  import { getStripePriceMetadata } from "#lib/api/stripe.remote.js";
+  import { formatDateRange, formatPrice, formatShortDateRange } from "#lib/utils.js";
+  import * as Sheet from "#lib/components/ui/sheet/index.js";
+  import * as Item from "#lib/components/ui/item/index.js";
+  import * as Empty from "#lib/components/ui/empty/index.js";
   import Plus from "@lucide/svelte/icons/plus";
   import Users from "@lucide/svelte/icons/users";
   import Calendar from "@lucide/svelte/icons/calendar";

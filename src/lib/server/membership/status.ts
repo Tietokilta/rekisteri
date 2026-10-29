@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, lte } from "drizzle-orm";
 import type { PostgresJsDatabase, PostgresJsTransaction } from "drizzle-orm/postgres-js";
-import type { Schema } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import type { Schema } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 
 type Executor = PostgresJsDatabase<Schema> | PostgresJsTransaction<Schema>;
 

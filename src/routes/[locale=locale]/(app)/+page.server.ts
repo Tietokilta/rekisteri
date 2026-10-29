@@ -1,11 +1,11 @@
 import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { route } from "$lib/ROUTES";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { route } from "#lib/ROUTES.js";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import { eq, desc, gt, gte, and, isNotNull, count } from "drizzle-orm";
-import { ensureUserHasQrToken } from "$lib/server/attendance/qr-token";
-import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
+import { ensureUserHasQrToken } from "#lib/server/attendance/qr-token.js";
+import { BLOCKING_MEMBER_STATUSES } from "#lib/shared/enums.js";
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.user) {

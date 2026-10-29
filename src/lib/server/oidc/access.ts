@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
-import { db } from "$lib/server/db";
-import { oidcClient } from "$lib/server/db/schema";
-import { membershipTypeAt } from "$lib/server/membership/status";
+import { db } from "#lib/server/db/index.js";
+import { oidcClient } from "#lib/server/db/schema.js";
+import { membershipTypeAt } from "#lib/server/membership/status.js";
 
 /**
  * Whether the user may sign in to the client. Clients marked members-only need the user to be a

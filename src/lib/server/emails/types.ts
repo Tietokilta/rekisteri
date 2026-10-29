@@ -1,4 +1,4 @@
-import type { TranslationFunctions } from "$lib/i18n/i18n-types";
+import type { TranslationFunctions } from "#lib/i18n/i18n-types.js";
 
 export type EmailType = "otp" | "payment_success" | "membership_approved" | "membership_renewed";
 

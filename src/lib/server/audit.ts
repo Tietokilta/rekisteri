@@ -1,5 +1,5 @@
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import type { RequestEvent } from "@sveltejs/kit";
 import { encodeBase32LowerCase } from "@oslojs/encoding";
 

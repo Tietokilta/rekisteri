@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { nameSchema } from "$lib/shared/name";
+import { nameSchema } from "#lib/shared/name.js";
 
 const id = v.pipe(v.string(), v.minLength(1));
 /** Client-generated so a retried request records the action only once. */

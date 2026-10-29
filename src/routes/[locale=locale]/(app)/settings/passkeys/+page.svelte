@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { PageData } from "./$types";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import * as Item from "$lib/components/ui/item/index.js";
-  import * as Card from "$lib/components/ui/card/index.js";
-  import { Badge } from "$lib/components/ui/badge/index.js";
-  import * as Alert from "$lib/components/ui/alert/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import * as Item from "#lib/components/ui/item/index.js";
+  import * as Card from "#lib/components/ui/card/index.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
+  import * as Alert from "#lib/components/ui/alert/index.js";
   import { startRegistration } from "@simplewebauthn/browser";
   import type { RegistrationResponseJSON } from "@simplewebauthn/server";
   import Trash2 from "@lucide/svelte/icons/trash-2";
@@ -15,18 +15,18 @@
   import Check from "@lucide/svelte/icons/check";
   import X from "@lucide/svelte/icons/x";
 
-  import { invalidateAll } from "$app/navigation";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { formatDate as formatDateUtil } from "$lib/utils";
-  import * as Empty from "$lib/components/ui/empty/index.js";
-  import { Input } from "$lib/components/ui/input/index.js";
-  import { Label } from "$lib/components/ui/label/index.js";
+  import { refreshAll } from "$app/navigation";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { formatDate as formatDateUtil } from "#lib/utils.js";
+  import * as Empty from "#lib/components/ui/empty/index.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
   import {
     getRegistrationOptions,
     verifyRegistration,
     deletePasskeyForm,
     renamePasskeyForm,
-  } from "$lib/api/passkeys.remote";
+  } from "#lib/api/passkeys.remote.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -85,7 +85,7 @@
       // Success! Hide name input and reload page data
       showNameInput = false;
       pendingCredential = null;
-      await invalidateAll();
+      await refreshAll();
     } catch (error) {
       console.error("Passkey verification error:", error);
       errorMessage = $LL.auth.passkey.regFailed();
@@ -195,18 +195,16 @@
                   class="space-y-2"
                   {...renameForm.enhance(async ({ submit }) => {
                     await submit();
-                    await invalidateAll();
+                    await refreshAll();
                     editingPasskeyId = null;
                   })}
                 >
-                  <input type="hidden" name="passkeyId" value={passkey.id} />
+                  <input {...renameForm.fields.passkeyId.as("hidden", passkey.id)} />
                   <div>
                     <Label for="rename-{passkey.id}">{$LL.auth.passkey.deviceName()}</Label>
                     <Input
                       id="rename-{passkey.id}"
-                      type="text"
-                      name="deviceName"
-                      value={passkey.deviceName}
+                      {...renameForm.fields.deviceName.as("text", passkey.deviceName ?? undefined)}
                       class="mt-1"
                       onkeydown={(e) => {
                         if (e.key === "Escape") {
@@ -265,10 +263,10 @@
                   class="contents"
                   {...deleteForm.enhance(async ({ submit }) => {
                     await submit();
-                    await invalidateAll();
+                    await refreshAll();
                   })}
                 >
-                  <input type="hidden" name="passkeyId" value={passkey.id} />
+                  <input {...deleteForm.fields.passkeyId.as("hidden", passkey.id)} />
                   <Button
                     type="submit"
                     variant="destructive"

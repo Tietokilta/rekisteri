@@ -1,22 +1,22 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import { invalidateAll } from "$app/navigation";
+  import { refreshAll } from "$app/navigation";
   import { toast } from "svelte-sonner";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
   import { updateMembership, deleteMembership } from "./data.remote";
   import { updateMembershipSchema, deleteMembershipSchema } from "./schema";
-  import { Input } from "$lib/components/ui/input";
-  import { Checkbox } from "$lib/components/ui/checkbox";
-  import { Button } from "$lib/components/ui/button";
-  import { Label } from "$lib/components/ui/label";
-  import { Badge } from "$lib/components/ui/badge";
-  import { getStripePriceMetadata } from "$lib/api/stripe.remote";
-  import { formatPrice } from "$lib/utils";
-  import * as Sheet from "$lib/components/ui/sheet";
-  import * as NativeSelect from "$lib/components/ui/native-select";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Checkbox } from "#lib/components/ui/checkbox/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
+  import { getStripePriceMetadata } from "#lib/api/stripe.remote.js";
+  import { formatPrice } from "#lib/utils.js";
+  import * as Sheet from "#lib/components/ui/sheet/index.js";
+  import * as NativeSelect from "#lib/components/ui/native-select/index.js";
   import Trash2 from "@lucide/svelte/icons/trash-2";
   import GraduationCap from "@lucide/svelte/icons/graduation-cap";
-  import type { MembershipType } from "$lib/server/db/schema";
+  import type { MembershipType } from "#lib/server/db/schema.js";
 
   interface Membership {
     id: string;
@@ -119,7 +119,7 @@
   id={formId}
   {...editForm.preflight(updateMembershipSchema).enhance(async ({ submit }) => {
     await submit();
-    await invalidateAll();
+    await refreshAll();
     onClose();
   })}
   class="flex flex-1 flex-col gap-5 px-4"
@@ -238,7 +238,7 @@
           toast.error($LL.common.deleteFailed());
           return;
         }
-        await invalidateAll();
+        await refreshAll();
         onClose();
       })}
       class="w-full"

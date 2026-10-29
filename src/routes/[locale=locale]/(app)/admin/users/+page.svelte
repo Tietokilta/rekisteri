@@ -1,24 +1,24 @@
 <script lang="ts">
   import type { PageProps } from "./$types";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { formatDateTime } from "$lib/utils";
-  import * as Table from "$lib/components/ui/table";
-  import * as Select from "$lib/components/ui/select";
-  import { Button } from "$lib/components/ui/button";
-  import { Input } from "$lib/components/ui/input";
-  import { Badge } from "$lib/components/ui/badge";
-  import AdminPageHeader from "$lib/components/admin-page-header.svelte";
-  import * as Card from "$lib/components/ui/card";
-  import * as Alert from "$lib/components/ui/alert";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { formatDateTime } from "#lib/utils.js";
+  import * as Table from "#lib/components/ui/table/index.js";
+  import * as Select from "#lib/components/ui/select/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
+  import AdminPageHeader from "#lib/components/admin-page-header.svelte";
+  import * as Card from "#lib/components/ui/card/index.js";
+  import * as Alert from "#lib/components/ui/alert/index.js";
   import Merge from "@lucide/svelte/icons/merge";
   import X from "@lucide/svelte/icons/x";
   import AlertCircle from "@lucide/svelte/icons/alert-circle";
   import CheckCircle from "@lucide/svelte/icons/check-circle-2";
   import { updateUserRole, mergeUsers, mergeMeetingConflicts } from "./data.remote";
   import { toast } from "svelte-sonner";
-  import { invalidateAll } from "$app/navigation";
-  import { formatFullName, matchesSearchTokens } from "$lib/utils";
-  import { ADMIN_ROLE_VALUES, type AdminRole } from "$lib/shared/enums";
+  import { refreshAll } from "$app/navigation";
+  import { formatFullName, matchesSearchTokens } from "#lib/utils.js";
+  import { ADMIN_ROLE_VALUES, type AdminRole } from "#lib/shared/enums.js";
 
   const { data }: PageProps = $props();
 
@@ -93,7 +93,7 @@
         toast.success($LL.admin.users.merge.success());
         closeMergeModal();
         // Refresh data to reflect changes
-        await invalidateAll();
+        await refreshAll();
       }
     } catch (err) {
       // Handle SvelteKit error responses
@@ -158,7 +158,7 @@
     }
     try {
       await updateUserRole({ userId, role: newRole });
-      await invalidateAll();
+      await refreshAll();
     } catch {
       toast.error($LL.error.updateFailed());
     }

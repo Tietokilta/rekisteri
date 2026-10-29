@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { LL } from "$lib/i18n/i18n-svelte";
-  import { Input } from "$lib/components/ui/input";
-  import * as Tabs from "$lib/components/ui/tabs";
+  import { LL } from "#lib/i18n/i18n-svelte.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import * as Tabs from "#lib/components/ui/tabs/index.js";
+  import { updateCustomization } from "../data.remote";
 
   let {
     values = $bindable(),
@@ -28,7 +29,7 @@
           <div class="mt-1.5">
             <Input
               type="url"
-              name="organizationRulesUrlFi"
+              name={updateCustomization.fields.organizationRulesUrlFi.as("text").name}
               id="rulesUrlFi"
               bind:value={values.organizationRulesUrlFi}
               class="w-full"
@@ -46,7 +47,7 @@
           <div class="mt-1.5">
             <Input
               type="url"
-              name="organizationRulesUrlEn"
+              name={updateCustomization.fields.organizationRulesUrlEn.as("text").name}
               id="rulesUrlEn"
               bind:value={values.organizationRulesUrlEn}
               class="w-full"
@@ -65,7 +66,7 @@
         <div class="mt-1.5">
           <Input
             type="text"
-            name="memberResignRule"
+            name={updateCustomization.fields.memberResignRule.as("text").name}
             id="memberResignRule"
             bind:value={values.memberResignRule}
             class="max-w-md"
@@ -82,7 +83,7 @@
           <div class="mt-1.5">
             <Input
               type="text"
-              name="memberResignDefaultReasonFi"
+              name={updateCustomization.fields.memberResignDefaultReasonFi.as("text").name}
               id="memberResignDefaultReasonFi"
               bind:value={values.memberResignDefaultReasonFi}
               class="w-full"
@@ -100,7 +101,7 @@
           <div class="mt-1.5">
             <Input
               type="text"
-              name="memberResignDefaultReasonEn"
+              name={updateCustomization.fields.memberResignDefaultReasonEn.as("text").name}
               id="memberResignDefaultReasonEn"
               bind:value={values.memberResignDefaultReasonEn}
               class="w-full"

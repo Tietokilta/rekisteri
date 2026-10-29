@@ -1,16 +1,15 @@
-import { sequence } from "@sveltejs/kit/hooks";
-import type { Handle, ServerInit } from "@sveltejs/kit";
 import { redirect } from "@sveltejs/kit";
-import * as auth from "$lib/server/auth/session.js";
-import { userHasAdminAccess } from "$lib/server/auth/admin";
-import { baseLocale, locales, preferredLanguageToLocale, type Locale } from "$lib/i18n/routing";
-import { dev } from "$app/environment";
+import { sequence, type Handle, type ServerInit } from "@sveltejs/kit/hooks";
+import * as auth from "#lib/server/auth/session.js";
+import { userHasAdminAccess } from "#lib/server/auth/admin.js";
+import { baseLocale, locales, preferredLanguageToLocale, type Locale } from "#lib/i18n/routing.js";
+import { dev } from "$app/env";
 import cron from "node-cron";
-import { cleanupExpiredTokens, cleanupInactiveUsers, cleanupOldAuditLogs } from "$lib/server/db/cleanup";
+import { cleanupExpiredTokens, cleanupInactiveUsers, cleanupOldAuditLogs } from "#lib/server/db/cleanup.js";
 import { createInitialModeExpression } from "mode-watcher";
-import { getCustomizations } from "$lib/server/customization/cache";
-import { getOidcProvider } from "$lib/server/oidc/provider";
-import { env } from "$lib/server/env";
+import { getCustomizations } from "#lib/server/customization/cache.js";
+import { getOidcProvider } from "#lib/server/oidc/provider.js";
+import { env } from "#lib/server/env.js";
 
 const handleCustomizations: Handle = async ({ event, resolve }) => {
   event.locals.customizations = await getCustomizations();
@@ -120,7 +119,7 @@ const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
     );
   }
 
-  // Set additional security headers not covered by CSP config in `svelte.config.js`
+  // Set additional security headers not covered by CSP config in `vite.config.ts`
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");

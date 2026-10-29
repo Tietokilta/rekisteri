@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures/isolated-user";
-import * as table from "$lib/server/db/schema";
+import * as table from "#lib/server/db/schema.js";
 import { eq, and, isNotNull, gt } from "drizzle-orm";
 import { route } from "../src/lib/ROUTES";
 
@@ -36,7 +36,7 @@ test.describe("Aalto email redirect flow", () => {
       await isolatedPage.locator(`input[type="radio"][value="${membership.id}"]`).check();
 
       // Check "I am a student" checkbox
-      await isolatedPage.locator('input[name="isStudent"]').check();
+      await isolatedPage.getByTestId("is-student").check();
 
       // The "add aalto.fi email" alert link should be visible — click it.
       // The link carries ?next= so the email flow redirects back here.
@@ -65,7 +65,7 @@ test.describe("Aalto email redirect flow", () => {
 
       // Verify form state was restored from sessionStorage
       await expect(isolatedPage.locator(`input[type="radio"][value="${membership.id}"]`)).toBeChecked();
-      await expect(isolatedPage.locator('input[name="isStudent"]')).toBeChecked();
+      await expect(isolatedPage.getByTestId("is-student")).toBeChecked();
 
       // The submit button should be enabled now that the email is verified
       // and form state (membership + isStudent) is restored

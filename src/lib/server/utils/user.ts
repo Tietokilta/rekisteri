@@ -1,4 +1,4 @@
-import type { User } from "$lib/server/db/schema";
+import type { User } from "#lib/server/db/schema.js";
 
 /**
  * Convert user's preferred language to locale code

@@ -1,14 +1,14 @@
 import { error } from "@sveltejs/kit";
 import { getRequestEvent, command, query } from "$app/server";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import { eq, inArray, sql } from "drizzle-orm";
-import { isNonEmpty, formatDate } from "$lib/utils";
+import { isNonEmpty, formatDate } from "#lib/utils.js";
 import { updateUserRoleSchema, mergeUsersSchema, mergeMeetingConflictsSchema } from "./schema";
-import { BLOCKING_MEMBER_STATUSES } from "$lib/shared/enums";
-import { auditUserAdminAction } from "$lib/server/audit";
-import { getLL } from "$lib/server/i18n";
-import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
+import { BLOCKING_MEMBER_STATUSES } from "#lib/shared/enums.js";
+import { auditUserAdminAction } from "#lib/server/audit.js";
+import { getLL } from "#lib/server/i18n.js";
+import { userHasAdminWriteAccess } from "#lib/server/auth/admin.js";
 
 export const updateUserRole = command(updateUserRoleSchema, async ({ userId, role }) => {
   const event = getRequestEvent();

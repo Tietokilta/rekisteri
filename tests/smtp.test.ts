@@ -16,7 +16,7 @@ vi.mock("nodemailer", () => ({
   },
 }));
 
-vi.mock("$lib/server/env", () => ({
+vi.mock("#lib/server/env.js", () => ({
   env: {
     CI: false,
     SMTP_HOST: "smtp.example.com",
@@ -27,7 +27,7 @@ vi.mock("$lib/server/env", () => ({
   },
 }));
 
-import { sendSmtpEmail } from "$lib/server/mailer/smtp";
+import { sendSmtpEmail } from "#lib/server/mailer/smtp.js";
 
 describe("SMTP mailer", () => {
   it("queues concurrent sends through one TLS-required connection pool", async () => {

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import { createTestDatabase, stopTestDatabase, type TestDatabase } from "./utils/db";
-import * as table from "$lib/server/db/schema";
-import { hashSessionToken } from "$lib/server/auth/utils";
+import * as table from "#lib/server/db/schema.js";
+import { hashSessionToken } from "#lib/server/auth/utils.js";
 import { encodeBase64url } from "@oslojs/encoding";
 
 function generateSessionToken() {

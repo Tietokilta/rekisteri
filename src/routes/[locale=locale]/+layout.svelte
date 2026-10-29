@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { locale } from "$lib/i18n/i18n-svelte";
+  import { locale } from "#lib/i18n/i18n-svelte.js";
   import "../../app.css";
   import "@fontsource-variable/inter/index.css";
   import "@fontsource-variable/roboto-mono/index.css";
   import { ModeWatcher } from "mode-watcher";
-  import { Toaster } from "$lib/components/ui/sonner";
+  import { Toaster } from "#lib/components/ui/sonner/index.js";
   import type { LayoutData } from "./$types";
 
   let { data, children }: { data: LayoutData; children: import("svelte").Snippet } = $props();

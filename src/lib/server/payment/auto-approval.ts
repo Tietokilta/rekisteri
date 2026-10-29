@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
-import type { Schema } from "$lib/server/db";
-import type { Membership, SecondaryEmail } from "$lib/server/db/schema";
-import { secondaryEmail } from "$lib/server/db/schema";
+import type { Schema } from "#lib/server/db/index.js";
+import type { Membership, SecondaryEmail } from "#lib/server/db/schema.js";
+import { secondaryEmail } from "#lib/server/db/schema.js";
 import type { PostgresJsDatabase, PostgresJsTransaction } from "drizzle-orm/postgres-js";
 
 type DbHandle = PostgresJsDatabase<Schema> | PostgresJsTransaction<Schema>;
@@ -100,7 +100,7 @@ async function checkStudentEmail(db: DbHandle, userId: string): Promise<boolean>
 
 /**
  * Check if a secondary email is currently valid (verified and not expired).
- * Inlined to avoid transitive dependency on $app/environment via secondary-email.ts.
+ * Inlined to avoid transitive dependency on $app/env via secondary-email.ts.
  */
 function isEmailValid(email: Pick<SecondaryEmail, "verifiedAt" | "expiresAt">): boolean {
   if (!email.verifiedAt) return false;

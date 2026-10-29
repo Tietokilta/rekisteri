@@ -1,14 +1,14 @@
 import { generateRandomOTP } from "./utils";
-import { db } from "$lib/server/db";
+import { db } from "#lib/server/db/index.js";
 import { ExpiringTokenBucket } from "./rate-limit";
 import { encodeBase32LowerCaseNoPadding } from "@oslojs/encoding";
-import * as table from "$lib/server/db/schema";
+import * as table from "#lib/server/db/schema.js";
 import { eq } from "drizzle-orm";
-import { dev } from "$app/environment";
-import { env } from "$lib/server/env";
-import { sendMemberEmail } from "$lib/server/emails";
+import { dev } from "$app/env";
+import { env } from "#lib/server/env.js";
+import { sendMemberEmail } from "#lib/server/emails/index.js";
 
-import type { EmailOTP } from "$lib/server/db/schema";
+import type { EmailOTP } from "#lib/server/db/schema.js";
 import type { RequestEvent } from "@sveltejs/kit";
 
 export const emailCookieName = "email";

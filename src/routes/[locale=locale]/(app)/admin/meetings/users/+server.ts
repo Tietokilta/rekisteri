@@ -1,9 +1,9 @@
-import { error, json } from "@sveltejs/kit";
+import { error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
-import { membershipTypesAt } from "$lib/server/membership/status";
-import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
+import { membershipTypesAt } from "#lib/server/membership/status.js";
+import { userHasAdminWriteAccess } from "#lib/server/auth/admin.js";
 
 /** Every registry user for the check-in search, which filters them in the browser. */
 export const GET: RequestHandler = async (event) => {
@@ -19,7 +19,7 @@ export const GET: RequestHandler = async (event) => {
       .from(table.user),
     membershipTypesAt(db, new Date()),
   ]);
-  return json(
+  return Response.json(
     users.map((user) => ({ ...user, membershipTypeId: typeByUser.get(user.id) ?? null })),
     { headers: { "cache-control": "no-store" } },
   );

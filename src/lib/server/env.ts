@@ -1,188 +1,49 @@
-import { env as privateEnv } from "$env/dynamic/private";
-import { publicEnv } from "$lib/env";
-import { dev, building } from "$app/environment";
-import * as v from "valibot";
-
-/**
- * Schema for parsing booleanish environment variables.
- * Accepts: true, false, "true", "1", "yes", "on", "y", "enabled", "false", "0", "no", "off", "n", "disabled"
- * Transforms to boolean.
- */
-const booleanish = v.pipe(
-  v.union([
-    v.boolean(),
-    v.picklist(["true", "1", "yes", "on", "y", "enabled", "false", "0", "no", "off", "n", "disabled"]),
-  ]),
-  v.transform((val) => {
-    if (typeof val === "boolean") return val;
-    return ["true", "1", "yes", "on", "y", "enabled"].includes(val.toLowerCase());
-  }),
-);
-
-/**
- * Private environment variable validation schema using Valibot.
- * Validates all server-only environment variables at server startup.
- * If validation fails, the server will not start and will log detailed errors.
- */
-const privateEnvSchema = v.pipe(
-  v.object({
-    // Node environment
-    NODE_ENV: v.optional(v.picklist(["development", "production", "test"]), "development"),
-
-    // CI environment (automatically set by most CI systems like GitHub Actions)
-    CI: v.optional(booleanish, false),
-
-    // Test mode (set when running e2e or integration tests)
-    // This keeps NODE_ENV=production for accurate behavior while enabling test-specific features
-    TEST: v.optional(booleanish, false),
-
-    // UNSAFE: Disable rate limits for e2e tests (never set in production!)
-    UNSAFE_DISABLE_RATE_LIMITS: v.optional(booleanish, false),
-
-    // Database
-    DATABASE_URL: v.pipe(
-      v.string(),
-      v.url(),
-      v.regex(/^postgres(ql)?:\/\/.+/, "DATABASE_URL must use postgres or postgresql protocol"),
-    ),
-
-    // Stripe (required)
-    STRIPE_API_KEY: v.pipe(
-      v.string(),
-      v.minLength(1, "STRIPE_API_KEY is required"),
-      v.startsWith("sk_", "STRIPE_API_KEY must start with 'sk_'"),
-    ),
-    STRIPE_WEBHOOK_SECRET: v.pipe(
-      v.string(),
-      v.minLength(1, "STRIPE_WEBHOOK_SECRET is required"),
-      v.startsWith("whsec_", "STRIPE_WEBHOOK_SECRET must start with 'whsec_'"),
-    ),
-    // Alternative Stripe API endpoint, e.g. stripe-mock in e2e tests (unset in production)
-    STRIPE_API_URL: v.optional(v.pipe(v.string(), v.url())),
-
-    // SMTP configuration (optional in dev, required in production)
-    SMTP_HOST: v.optional(
-      v.pipe(
-        v.string(),
-        v.transform((val) => (val === "" ? undefined : val)),
-      ),
-    ),
-    SMTP_PORT: v.optional(
-      v.pipe(
-        v.union([
-          v.number(),
-          v.pipe(
-            v.string(),
-            v.transform((val) => (val === "" ? undefined : Number(val))),
-          ),
-        ]),
-        v.optional(v.pipe(v.number(), v.integer(), v.minValue(1))),
-      ),
-    ),
-    SMTP_USER: v.optional(
-      v.pipe(
-        v.string(),
-        v.transform((val) => (val === "" ? undefined : val)),
-      ),
-    ),
-    SMTP_PASS: v.optional(
-      v.pipe(
-        v.string(),
-        v.transform((val) => (val === "" ? undefined : val)),
-      ),
-    ),
-    SMTP_FROM: v.optional(
-      v.pipe(
-        v.string(),
-        v.transform((val) => (val === "" ? undefined : val)),
-      ),
-    ),
-
-    // Server configuration
-    PORT: v.optional(
-      v.pipe(v.union([v.number(), v.pipe(v.string(), v.transform(Number))]), v.number(), v.integer(), v.minValue(1)),
-      5173,
-    ),
-    ADDRESS_HEADER: v.optional(v.string(), "X-Client-IP"),
-
-    // Passkey/WebAuthn Configuration
-    RP_NAME: v.pipe(v.string(), v.minLength(1)),
-    RP_ID: v.pipe(v.string(), v.minLength(1)),
-    RP_ORIGIN: v.pipe(v.string(), v.url(), v.regex(/^https?:\/\/.+/, "RP_ORIGIN must use http or https protocol")),
-
-    // OIDC provider feature flag
-    OIDC_ENABLED: v.optional(booleanish, false),
-
-    // OIDC signing key override (optional)
-    OIDC_SIGNING_KEY_JWK: v.optional(v.string()),
-    // Secrets for signing the OIDC provider's cookies, comma-separated (first signs, all verify)
-    OIDC_COOKIE_KEYS: v.optional(v.string()),
-  }),
-  // In production, SMTP is required
-  v.check((data) => {
-    if (!dev && data.NODE_ENV === "production") {
-      return (
-        data.SMTP_HOST !== undefined &&
-        data.SMTP_PORT !== undefined &&
-        data.SMTP_USER !== undefined &&
-        data.SMTP_PASS !== undefined &&
-        data.SMTP_FROM !== undefined
-      );
-    }
-    return true;
-  }, "SMTP configuration (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM) is required in production"),
-  // With OIDC enabled in production, PUBLIC_URL (the issuer) must use https, except for
-  // localhost/127.0.0.1 or during build time.
-  v.check((data) => {
-    if (data.OIDC_ENABLED && !dev && !building && !data.TEST && data.NODE_ENV === "production") {
-      const isLocalhost =
-        publicEnv.PUBLIC_URL.startsWith("http://localhost") || publicEnv.PUBLIC_URL.startsWith("http://127.0.0.1");
-      if (isLocalhost) return true;
-      return publicEnv.PUBLIC_URL.startsWith("https://");
-    }
-    return true;
-  }, "PUBLIC_URL must use https when OIDC is enabled in production"),
-);
-
-// Validate private environment variables at module load (fail fast)
-const parsed = v.safeParse(privateEnvSchema, {
-  NODE_ENV: privateEnv.NODE_ENV,
-  CI: privateEnv.CI,
-  TEST: privateEnv.TEST,
-  UNSAFE_DISABLE_RATE_LIMITS: privateEnv.UNSAFE_DISABLE_RATE_LIMITS,
-  DATABASE_URL: privateEnv.DATABASE_URL,
-  STRIPE_API_KEY: privateEnv.STRIPE_API_KEY,
-  STRIPE_WEBHOOK_SECRET: privateEnv.STRIPE_WEBHOOK_SECRET,
-  STRIPE_API_URL: privateEnv.STRIPE_API_URL || undefined,
-  SMTP_HOST: privateEnv.SMTP_HOST,
-  SMTP_PORT: privateEnv.SMTP_PORT,
-  SMTP_USER: privateEnv.SMTP_USER,
-  SMTP_PASS: privateEnv.SMTP_PASS,
-  SMTP_FROM: privateEnv.SMTP_FROM,
-  PORT: privateEnv.PORT,
-  ADDRESS_HEADER: privateEnv.ADDRESS_HEADER,
-  RP_NAME: privateEnv.RP_NAME,
-  RP_ID: privateEnv.RP_ID,
-  RP_ORIGIN: privateEnv.RP_ORIGIN,
-  OIDC_ENABLED: privateEnv.OIDC_ENABLED,
-  OIDC_SIGNING_KEY_JWK: privateEnv.OIDC_SIGNING_KEY_JWK,
-  OIDC_COOKIE_KEYS: privateEnv.OIDC_COOKIE_KEYS,
-});
-
-if (!parsed.success) {
-  console.error("❌ Invalid private environment variables:");
-  console.error(JSON.stringify(v.flatten(parsed.issues), null, 2));
-  throw new Error("Private environment validation failed. Check the errors above.");
-}
+import * as privateEnv from "$app/env/private";
+import { publicEnv } from "#lib/env.js";
+import { dev, building } from "$app/env";
 
 /**
  * Validated and type-safe environment variables (both public and private).
- * Use this instead of importing from $env/dynamic/private or $env/dynamic/public directly.
+ * SvelteKit validates each variable against its schema in src/env.ts; the checks below span several.
+ * Use this instead of importing from $app/env/private or $app/env/public directly.
  * Only importable in server code.
  *
  * @example
- * import { env } from "$lib/server/env";
+ * import { env } from "#lib/server/env.js";
  * const stripe = new Stripe(env.STRIPE_API_KEY); // Type-safe!
  * const url = env.PUBLIC_URL; // Also includes public env vars
  */
-export const env = { ...publicEnv, ...parsed.output };
+export const env = { ...publicEnv, ...privateEnv };
+
+const issues: string[] = [];
+
+// In production, SMTP is required
+if (
+  !dev &&
+  env.NODE_ENV === "production" &&
+  [env.SMTP_HOST, env.SMTP_PORT, env.SMTP_USER, env.SMTP_PASS, env.SMTP_FROM].includes(undefined)
+) {
+  issues.push("SMTP configuration (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM) is required in production");
+}
+
+// With OIDC enabled in production, PUBLIC_URL (the issuer) must use https, except for
+// localhost/127.0.0.1 or during build time.
+if (
+  env.OIDC_ENABLED &&
+  !dev &&
+  !building &&
+  !env.TEST &&
+  env.NODE_ENV === "production" &&
+  !env.PUBLIC_URL.startsWith("http://localhost") &&
+  !env.PUBLIC_URL.startsWith("http://127.0.0.1") &&
+  !env.PUBLIC_URL.startsWith("https://")
+) {
+  issues.push("PUBLIC_URL must use https when OIDC is enabled in production");
+}
+
+// Fail fast at module load
+if (issues.length > 0) {
+  console.error("❌ Invalid environment variables:");
+  for (const issue of issues) console.error(`- ${issue}`);
+  throw new Error("Environment validation failed. Check the errors above.");
+}

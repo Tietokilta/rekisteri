@@ -5,11 +5,11 @@
   import CircleAlert from "@lucide/svelte/icons/circle-alert";
   import CircleX from "@lucide/svelte/icons/circle-x";
   import X from "@lucide/svelte/icons/x";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { cn, formatFullName, formatDate as formatDateUtil } from "$lib/utils";
-  import AdminPageHeader from "$lib/components/admin-page-header.svelte";
-  import { Button } from "$lib/components/ui/button";
-  import { Badge } from "$lib/components/ui/badge";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { cn, formatFullName, formatDate as formatDateUtil } from "#lib/utils.js";
+  import AdminPageHeader from "#lib/components/admin-page-header.svelte";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
   import { verifyQr } from "./data.remote";
 
   let scanning = $state(false);

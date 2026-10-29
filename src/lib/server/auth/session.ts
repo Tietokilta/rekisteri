@@ -1,10 +1,10 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { encodeBase64url } from "@oslojs/encoding";
-import { dev } from "$app/environment";
-import { env } from "$lib/server/env";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { dev } from "$app/env";
+import { env } from "#lib/server/env.js";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import { hashSessionToken } from "./utils";
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
 

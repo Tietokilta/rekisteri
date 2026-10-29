@@ -1,19 +1,19 @@
 <script lang="ts">
   import type { PageData } from "./$types";
   import { untrack } from "svelte";
-  import { invalidateAll } from "$app/navigation";
+  import { refreshAll } from "$app/navigation";
   import { page } from "$app/state";
   import { toast } from "svelte-sonner";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { formatDateTime, formatShortDateTime } from "$lib/utils";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog";
-  import * as Alert from "$lib/components/ui/alert";
-  import { Badge } from "$lib/components/ui/badge";
-  import { Button } from "$lib/components/ui/button";
-  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-  import { Label } from "$lib/components/ui/label";
-  import * as Sheet from "$lib/components/ui/sheet";
-  import * as Table from "$lib/components/ui/table";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { formatDateTime, formatShortDateTime } from "#lib/utils.js";
+  import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+  import * as Alert from "#lib/components/ui/alert/index.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
+  import * as Sheet from "#lib/components/ui/sheet/index.js";
+  import * as Table from "#lib/components/ui/table/index.js";
   import EllipsisVertical from "@lucide/svelte/icons/ellipsis-vertical";
   import CheckInSearch from "./check-in-search.svelte";
   import CorrectionSheet from "./correction-sheet.svelte";
@@ -34,7 +34,7 @@
     updateMeetingTimes,
   } from "../data.remote";
   import { updateMeetingTimesSchema } from "../schema";
-  import { meetingAttendanceSummary } from "$lib/shared/meeting-attendance";
+  import { meetingAttendanceSummary } from "#lib/shared/meeting-attendance.js";
   import { onMount } from "svelte";
   import { Registry } from "./registry.svelte";
   import { isTransientError, ScanQueue, type QueuedScan } from "./scan-queue.svelte";
@@ -53,7 +53,7 @@
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => {
       clearTimeout(timer);
-      timer = setTimeout(() => void invalidateAll().catch(() => {}), 300);
+      timer = setTimeout(() => void refreshAll().catch(() => {}), 300);
     };
     source.addEventListener("changed", refresh);
     // Catch up on changes between the page load and initial subscription, and
@@ -199,7 +199,7 @@
   async function run<T>(action: () => Promise<T>): Promise<T | undefined> {
     try {
       const result = await action();
-      await invalidateAll();
+      await refreshAll();
       return result;
     } catch (cause) {
       toast.error(remoteErrorMessage(cause, $LL.error.updateFailed()));
@@ -240,7 +240,7 @@
         : undefined,
     );
     // The scan is already recorded; a failed refresh only delays the list, so don't report it as a failed scan
-    void invalidateAll().catch(() => {});
+    void refreshAll().catch(() => {});
     return result;
   }
 
@@ -685,7 +685,7 @@
           }
           toast.success($LL.admin.meetings.saveTimes());
           timesOpen = false;
-          await invalidateAll();
+          await refreshAll();
         })}
         class="space-y-4 px-4"
       >

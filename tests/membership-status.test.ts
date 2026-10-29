@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createTestDatabase, stopTestDatabase, type TestDatabase } from "./utils/db";
-import * as table from "$lib/server/db/schema";
-import type { MemberStatus } from "$lib/server/db/schema";
+import * as table from "#lib/server/db/schema.js";
+import type { MemberStatus } from "#lib/server/db/schema.js";
 import { membershipTypeAt, membershipTypesAt } from "../src/lib/server/membership/status";
 
 const now = new Date("2026-10-21T12:00:00Z");

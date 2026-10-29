@@ -1,7 +1,7 @@
-import { sendEmail } from "$lib/server/mailer";
-import { loadLocale } from "$lib/i18n/i18n-util.sync";
-import { i18nObject } from "$lib/i18n/i18n-util";
-import { getCustomizations } from "$lib/server/customization/cache";
+import { sendEmail } from "#lib/server/mailer/index.js";
+import { loadLocale } from "#lib/i18n/i18n-util.sync.js";
+import { i18nObject } from "#lib/i18n/i18n-util.js";
+import { getCustomizations } from "#lib/server/customization/cache.js";
 import type {
   EmailType,
   EmailTemplate,

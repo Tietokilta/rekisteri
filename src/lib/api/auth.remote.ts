@@ -1,7 +1,7 @@
 import { redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
-import * as auth from "$lib/server/auth/session";
-import { route } from "$lib/ROUTES";
+import * as auth from "#lib/server/auth/session.js";
+import { route } from "#lib/ROUTES.js";
 
 export const signOut = form(async () => {
   const event = getRequestEvent();

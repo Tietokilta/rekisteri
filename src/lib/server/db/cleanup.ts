@@ -1,5 +1,5 @@
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import { and, inArray, isNull, like, lt, or } from "drizzle-orm";
 
 /**

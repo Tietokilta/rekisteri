@@ -1,26 +1,26 @@
 import { error, redirect, isRedirect, isHttpError, invalid } from "@sveltejs/kit";
 import { getRequestEvent, query, form } from "$app/server";
 import * as v from "valibot";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 import {
   getUserSecondaryEmails,
   deleteSecondaryEmail,
   getSecondaryEmailById,
   createSecondaryEmail,
   changePrimaryEmail,
-} from "$lib/server/auth/secondary-email";
+} from "#lib/server/auth/secondary-email.js";
 import {
   createEmailOTP,
   sendOTPEmail,
   sendOTPBucket,
   emailCookieName,
   emailOTPCookieName,
-} from "$lib/server/auth/email";
-import { route } from "$lib/ROUTES";
-import { ExpiringTokenBucket } from "$lib/server/auth/rate-limit";
+} from "#lib/server/auth/email.js";
+import { route } from "#lib/ROUTES.js";
+import { ExpiringTokenBucket } from "#lib/server/auth/rate-limit.js";
 import { addSecondaryEmailSchema } from "./secondary-emails.schema";
-import { env } from "$lib/server/env";
-import { getLL } from "$lib/server/i18n";
+import { env } from "#lib/server/env.js";
+import { getLL } from "#lib/server/i18n.js";
 
 // Rate limit: 10 add attempts per user per hour in production, 1000 in test mode
 // SECURITY: Prevents email enumeration attacks

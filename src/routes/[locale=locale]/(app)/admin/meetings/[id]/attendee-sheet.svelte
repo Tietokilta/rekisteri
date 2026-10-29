@@ -1,14 +1,14 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import { invalidateAll } from "$app/navigation";
+  import { refreshAll } from "$app/navigation";
   import { toast } from "svelte-sonner";
-  import { LL } from "$lib/i18n/i18n-svelte";
-  import { matchesSearchTokens } from "$lib/utils";
-  import { singleLine } from "$lib/shared/name";
-  import { Button } from "$lib/components/ui/button";
-  import { Input } from "$lib/components/ui/input";
-  import { Label } from "$lib/components/ui/label";
-  import * as Sheet from "$lib/components/ui/sheet";
+  import { LL } from "#lib/i18n/i18n-svelte.js";
+  import { matchesSearchTokens } from "#lib/utils.js";
+  import { singleLine } from "#lib/shared/name.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
+  import * as Sheet from "#lib/components/ui/sheet/index.js";
   import { updateAttendee } from "../data.remote";
   import type { Registry } from "./registry.svelte";
   import { remoteErrorMessage, type AttendeeRow } from "./types";
@@ -81,7 +81,7 @@
           }
           toast.success($LL.admin.meetings.attendeeUpdated());
           open = false;
-          await invalidateAll();
+          await refreshAll();
         })}
         class="space-y-4 px-4"
         data-testid="attendee-sheet"

@@ -1,9 +1,9 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import { eq, asc, sql } from "drizzle-orm";
-import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
+import { userHasAdminWriteAccess } from "#lib/server/auth/admin.js";
 
 export const load: PageServerLoad = async (event) => {
   // Import is a write-only operation, so only full admins can access it

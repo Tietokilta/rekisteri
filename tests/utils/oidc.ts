@@ -25,7 +25,7 @@ export async function startOidcTestServer() {
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
-  // Under vitest, $env/dynamic is a snapshot taken when Vite starts, so process.env changes don't
+  // Under vitest, $app/env/private is a snapshot taken when Vite starts, so process.env changes don't
   // reach it. Override the parsed env instead, before the DB and provider modules read it.
   const { env } = await import("../../src/lib/server/env");
   Object.assign(env, { DATABASE_URL: testDb.container.getConnectionUri(), PUBLIC_URL: baseUrl, OIDC_ENABLED: true });

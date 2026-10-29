@@ -1,15 +1,15 @@
 <script lang="ts">
-  import * as Card from "$lib/components/ui/card/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { Badge } from "$lib/components/ui/badge/index.js";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { route } from "$lib/ROUTES";
-  import { formatDate } from "$lib/utils";
-  import type { MemberStatus } from "$lib/shared/enums";
-  import type { LocalizedString } from "$lib/server/db/schema";
-  import { retryPayment } from "$lib/api/retry-payment.remote";
-  import { retryPaymentSchema } from "$lib/api/retry-payment.schema";
-  import MemberQrModal from "$lib/components/member-qr-modal.svelte";
+  import * as Card from "#lib/components/ui/card/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { route } from "#lib/ROUTES.js";
+  import { formatDate } from "#lib/utils.js";
+  import type { MemberStatus } from "#lib/shared/enums.js";
+  import type { LocalizedString } from "#lib/server/db/schema.js";
+  import { retryPayment } from "#lib/api/retry-payment.remote.js";
+  import { retryPaymentSchema } from "#lib/api/retry-payment.schema.js";
+  import MemberQrModal from "#lib/components/member-qr-modal.svelte";
 
   // Icons
   import CircleCheck from "@lucide/svelte/icons/circle-check";
@@ -203,7 +203,7 @@
   <Card.Footer class="flex flex-wrap gap-2">
     {#if isAwaitingPayment && currentMembership}
       <form {...retryPayment.preflight(retryPaymentSchema)} class="flex-1">
-        <input type="hidden" name="memberId" value={currentMembership.unique_id} />
+        <input {...retryPayment.fields.memberId.as("hidden", currentMembership.unique_id)} />
         <Button type="submit" class="w-full" disabled={!!retryPayment.pending}>
           {#if retryPayment.pending}
             {$LL.common.loading()}

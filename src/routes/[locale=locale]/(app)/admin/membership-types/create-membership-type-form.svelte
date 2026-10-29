@@ -1,14 +1,14 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import { invalidateAll } from "$app/navigation";
-  import { LL } from "$lib/i18n/i18n-svelte";
+  import { refreshAll } from "$app/navigation";
+  import { LL } from "#lib/i18n/i18n-svelte.js";
   import { createMembershipType } from "./data.remote";
   import { createMembershipTypeSchema } from "./schema";
-  import { Input } from "$lib/components/ui/input";
-  import { Checkbox } from "$lib/components/ui/checkbox";
-  import { Button } from "$lib/components/ui/button";
-  import { Label } from "$lib/components/ui/label";
-  import * as Sheet from "$lib/components/ui/sheet";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Checkbox } from "#lib/components/ui/checkbox/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
+  import * as Sheet from "#lib/components/ui/sheet/index.js";
 
   interface Props {
     onClose: () => void;
@@ -59,7 +59,7 @@
   {...createMembershipType.preflight(createMembershipTypeSchema).enhance(async ({ submit }) => {
     await submit();
     onClose();
-    await invalidateAll();
+    await refreshAll();
   })}
   class="flex flex-1 flex-col gap-5 px-4"
 >

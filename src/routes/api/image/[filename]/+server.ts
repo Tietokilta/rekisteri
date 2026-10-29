@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
 import type { RequestEvent } from "./$types";
-import { getCustomizations } from "$lib/server/customization/cache";
+import { getCustomizations } from "#lib/server/customization/cache.js";
 
 const imageAssets = {
   "logo.svg": { field: "logo", contentType: "image/svg+xml; charset=utf-8", isSvg: true },

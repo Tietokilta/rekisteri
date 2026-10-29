@@ -9,7 +9,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { error, redirect, type Cookies } from "@sveltejs/kit";
 import type { InteractionResults } from "oidc-provider";
-import { env } from "$lib/server/env";
+import { env } from "#lib/server/env.js";
 import { getCookieKeys, getOidcProvider } from "./provider";
 
 type Interaction = InstanceType<ReturnType<typeof getOidcProvider>["Interaction"]>;
@@ -55,5 +55,5 @@ export async function getInteraction(cookies: Cookies, uid: string): Promise<Int
 export async function finishInteraction(interaction: Interaction, result: InteractionResults): Promise<never> {
   interaction.result = "error" in result ? result : { ...interaction.lastSubmission, ...result };
   await interaction.save(interaction.exp - Math.floor(Date.now() / 1000));
-  redirect(303, interaction.returnTo);
+  redirect(303, interaction.returnTo, { external: [env.PUBLIC_URL] });
 }

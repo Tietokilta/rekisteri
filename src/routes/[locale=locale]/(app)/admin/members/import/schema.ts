@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { nameSchema } from "$lib/shared/name";
+import { nameSchema } from "#lib/shared/name.js";
 
 export const csvRowSchema = v.object({
   firstNames: v.pipe(nameSchema, v.minLength(1)),

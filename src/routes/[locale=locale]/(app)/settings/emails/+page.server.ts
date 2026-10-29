@@ -1,7 +1,7 @@
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { getUserSecondaryEmails } from "$lib/server/auth/secondary-email";
-import { getLL } from "$lib/server/i18n";
+import { getUserSecondaryEmails } from "#lib/server/auth/secondary-email.js";
+import { getLL } from "#lib/server/i18n.js";
 
 export const load: PageServerLoad = async ({ locals }) => {
   if (!locals.user) {

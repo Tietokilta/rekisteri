@@ -1,16 +1,19 @@
 <script lang="ts">
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { Badge } from "$lib/components/ui/badge";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
   import Lock from "@lucide/svelte/icons/lock";
-  import ScopeIcon from "$lib/components/oidc-icon.svelte";
-  import { OPENID_CLAIMS, ALL_CLAIMS, OIDC_SCOPES, OPTIONAL_CLAIMS } from "$lib/shared/oidc";
+  import ScopeIcon from "#lib/components/oidc-icon.svelte";
+  import { OPENID_CLAIMS, ALL_CLAIMS, OIDC_SCOPES, OPTIONAL_CLAIMS } from "#lib/shared/oidc.js";
 
   let {
     scopes = $bindable([]),
-    namePrefix = "scope_claim",
+    claimsName,
+    testIdPrefix = "scope_claim",
   }: {
     scopes: string[];
-    namePrefix?: string;
+    /** Form-scoped name of the remote form's `idTokenClaims` array field */
+    claimsName: string;
+    testIdPrefix?: string;
   } = $props();
 
   const oidcAdmin = $derived($LL.admin.settings.oidc);
@@ -47,7 +50,7 @@
     <div
       class="space-y-2.5 rounded-lg border border-orange-500/30 bg-orange-500/5 p-3.5 text-xs text-orange-950 dark:text-orange-200"
     >
-      <input type="hidden" name="idTokenClaims[]" value="openid" />
+      <input type="hidden" name={claimsName} value="openid" />
       <div class="flex items-center justify-between gap-2 font-semibold text-orange-900 dark:text-orange-300">
         <div class="flex items-center gap-1.5">
           <ScopeIcon scopeId="openid" class="size-3.5 shrink-0 text-orange-600 dark:text-orange-400" />
@@ -99,7 +102,7 @@
 
             <input
               type="checkbox"
-              name={`${namePrefix}_${scope.key}`}
+              data-testid={`${testIdPrefix}_${scope.key}`}
               checked={enabled}
               onchange={(e) => (scopes = toggleScope(scopes, scope.key, e.currentTarget.checked))}
               class="size-4 shrink-0 rounded border-gray-300 text-primary focus:ring-primary"
@@ -122,7 +125,7 @@
 
     <!-- Hidden inputs for active claims form submit -->
     {#each scopes as s (s)}
-      <input type="hidden" name="idTokenClaims[]" value={s} />
+      <input type="hidden" name={claimsName} value={s} />
     {/each}
   </div>
 </div>

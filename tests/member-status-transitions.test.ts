@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createTestDatabase, stopTestDatabase, type TestDatabase } from "./utils/db";
-import * as table from "$lib/server/db/schema";
+import * as table from "#lib/server/db/schema.js";
 import { eq } from "drizzle-orm";
 import type { MemberStatus } from "../src/lib/shared/enums";
 import { MEMBER_STATUS_VALUES } from "../src/lib/shared/enums";
-import { isValidTransition, validateTransition, getValidTargetStatuses } from "$lib/server/utils/member";
+import { isValidTransition, validateTransition, getValidTargetStatuses } from "#lib/server/utils/member.js";
 
 /**
  * Member status state machine tests.

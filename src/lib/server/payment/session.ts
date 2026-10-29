@@ -1,17 +1,17 @@
-import { stripe } from "$lib/server/payment";
-import * as table from "$lib/server/db/schema";
-import { db } from "$lib/server/db";
+import { stripe } from "#lib/server/payment/index.js";
+import * as table from "#lib/server/db/schema.js";
+import { db } from "#lib/server/db/index.js";
 import { eq } from "drizzle-orm";
-import { env } from "$lib/server/env";
-import type { Locale } from "$lib/i18n/routing";
+import { env } from "#lib/server/env.js";
+import type { Locale } from "#lib/i18n/routing.js";
 import Stripe from "stripe";
 import { checkAutoApprovalEligibility } from "./auto-approval";
-import type { AuditAction } from "$lib/server/audit";
+import type { AuditAction } from "#lib/server/audit.js";
 import { encodeBase32LowerCase } from "@oslojs/encoding";
-import { sendMemberEmail } from "$lib/server/emails";
-import { getMembershipName } from "$lib/server/utils/membership";
-import { getUserLocale } from "$lib/server/utils/user";
-import { formatFullName, getDisplayFirstName } from "$lib/utils";
+import { sendMemberEmail } from "#lib/server/emails/index.js";
+import { getMembershipName } from "#lib/server/utils/membership.js";
+import { getUserLocale } from "#lib/server/utils/user.js";
+import { formatFullName, getDisplayFirstName } from "#lib/utils.js";
 
 /**
  * Checks if a Stripe error is due to a non-existent customer.

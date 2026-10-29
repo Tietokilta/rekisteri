@@ -1,6 +1,6 @@
-import { i18nObject } from "$lib/i18n/i18n-util";
-import { loadAllLocales } from "$lib/i18n/i18n-util.sync";
-import type { Locales, TranslationFunctions } from "$lib/i18n/i18n-types";
+import { i18nObject } from "#lib/i18n/i18n-util.js";
+import { loadAllLocales } from "#lib/i18n/i18n-util.sync.js";
+import type { Locales, TranslationFunctions } from "#lib/i18n/i18n-types.js";
 
 // Load all locales once at module initialization.
 // Since there are only two locales (fi, en), this is fine to keep in memory.

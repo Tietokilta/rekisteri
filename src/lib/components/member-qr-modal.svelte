@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import QrCodeIcon from "@lucide/svelte/icons/qr-code";
-  import { LL } from "$lib/i18n/i18n-svelte";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import QrImage from "$lib/components/qr-image.svelte";
+  import { LL } from "#lib/i18n/i18n-svelte.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import QrImage from "#lib/components/qr-image.svelte";
 
   type Props = {
     token: string;

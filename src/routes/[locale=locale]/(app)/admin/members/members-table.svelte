@@ -23,14 +23,14 @@
     type RowSelectionState,
     type SortingState,
   } from "@tanstack/svelte-table";
-  import * as Table from "$lib/components/ui/table";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog";
-  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-  import { Badge } from "$lib/components/ui/badge";
-  import { Button } from "$lib/components/ui/button";
-  import { Input } from "$lib/components/ui/input";
-  import { Checkbox } from "$lib/components/ui/checkbox";
-  import * as NativeSelect from "$lib/components/ui/native-select";
+  import * as Table from "#lib/components/ui/table/index.js";
+  import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+  import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Checkbox } from "#lib/components/ui/checkbox/index.js";
+  import * as NativeSelect from "#lib/components/ui/native-select/index.js";
   import { toast } from "svelte-sonner";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
@@ -46,14 +46,14 @@
     downloadFile,
     createExportContext,
     DEFAULT_EXPORT_COLUMNS,
-  } from "$lib/utils/export";
+  } from "#lib/utils/export.js";
   import { untrack } from "svelte";
-  import { goto, invalidateAll } from "$app/navigation";
+  import { goto, refreshAll } from "$app/navigation";
   import { page } from "$app/state";
   import { SvelteURLSearchParams } from "svelte/reactivity";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { isNonEmpty, formatDate, matchesSearchTokens } from "$lib/utils";
-  import { getStripePriceMetadata } from "$lib/api/stripe.remote";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { isNonEmpty, formatDate, matchesSearchTokens } from "#lib/utils.js";
+  import { getStripePriceMetadata } from "#lib/api/stripe.remote.js";
   import {
     approveMember,
     rejectMember,
@@ -66,7 +66,7 @@
     logMemberExport,
   } from "./data.remote";
 
-  import type { LocalizedString, MembershipType } from "$lib/server/db/schema";
+  import type { LocalizedString, MembershipType } from "#lib/server/db/schema.js";
 
   type MembershipData = {
     id: string;
@@ -186,7 +186,7 @@
   }
 
   // Reactive URL search params
-  const urlParams = new SvelteURLSearchParams(page.url.searchParams);
+  const urlParams = new SvelteURLSearchParams(page.url.search);
 
   // Table state - synced with URL
   let sorting = $state<SortingState>(
@@ -321,7 +321,7 @@
       typeChangeAction = null;
       targetMembershipId = "";
       toast.success($LL.admin.members.table.membershipTypeChanged());
-      await invalidateAll();
+      await refreshAll();
     } catch (error) {
       const message =
         error instanceof Error
@@ -383,7 +383,7 @@
 
       // Update URL without reloading
       const newUrl = `${page.url.pathname}${urlParams.toString() ? `?${urlParams.toString()}` : ""}`;
-      goto(newUrl, { replaceState: true, noScroll: true, keepFocus: true });
+      goto(newUrl, { replace: true, reset: false });
     }, 300); // 300ms debounce
   });
 
@@ -836,7 +836,7 @@
       await bulkApproveMembers({ memberIds });
       rowSelection = {};
       showApproveDialog = false;
-      await invalidateAll();
+      await refreshAll();
     } finally {
       bulkActionLoading = false;
     }
@@ -854,7 +854,7 @@
       });
       rowSelection = {};
       showDeemResignedDialog = false;
-      await invalidateAll();
+      await refreshAll();
     } finally {
       bulkActionLoading = false;
     }
@@ -892,7 +892,7 @@
           break;
       }
       individualAction = null;
-      await invalidateAll();
+      await refreshAll();
     } finally {
       individualActionLoading = false;
     }

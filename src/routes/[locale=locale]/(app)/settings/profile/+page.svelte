@@ -1,18 +1,18 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import { Input } from "$lib/components/ui/input/index.js";
+  import { Input } from "#lib/components/ui/input/index.js";
   import type { PageServerData } from "./$types";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { Switch } from "$lib/components/ui/switch";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { Switch } from "#lib/components/ui/switch/index.js";
   import { saveUserInfo } from "../../data.remote";
   import { userInfoSchema } from "../../schema";
-  import { Button } from "$lib/components/ui/button";
-  import { Label } from "$lib/components/ui/label";
-  import * as Card from "$lib/components/ui/card/index.js";
-  import * as NativeSelect from "$lib/components/ui/native-select";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
+  import * as Card from "#lib/components/ui/card/index.js";
+  import * as NativeSelect from "#lib/components/ui/native-select/index.js";
   import { toast } from "svelte-sonner";
-  import { route } from "$lib/ROUTES";
-  import WrapTranslation from "$lib/components/wrap-translation.svelte";
+  import { route } from "#lib/ROUTES.js";
+  import WrapTranslation from "#lib/components/wrap-translation.svelte";
 
   let { data }: { data: PageServerData } = $props();
 

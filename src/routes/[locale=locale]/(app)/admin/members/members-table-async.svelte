@@ -1,6 +1,6 @@
 <script lang="ts">
   import MembersTable from "./members-table.svelte";
-  import type { MembershipType } from "$lib/server/db/schema";
+  import type { MembershipType } from "#lib/server/db/schema.js";
 
   type Props = {
     membersPromise: Promise<Parameters<typeof MembersTable>[1]["data"]>;

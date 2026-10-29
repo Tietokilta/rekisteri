@@ -1,4 +1,4 @@
-import { OIDC_SCOPES, ALL_CLAIMS } from "$lib/shared/oidc";
+import { OIDC_SCOPES, ALL_CLAIMS } from "#lib/shared/oidc.js";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 

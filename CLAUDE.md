@@ -129,8 +129,8 @@ Uses typesafe-i18n for translations:
 - URL pattern: `/{locale}/{path}` (e.g., `/fi/admin/members`, `/en/admin/members`)
 - Locale detection in `src/lib/i18n/routing.ts` via `getLocaleFromPathname()`
 - Middleware in `hooks.server.ts` handles locale detection and HTML lang attribute injection
-- Client-side: Use reactive `$LL` store from `$lib/i18n/i18n-svelte` (e.g., `{$LL.user.welcome()}`)
-- Server-side: Use `i18nObject(locale)` and `loadLocale(locale)` from `$lib/i18n/i18n-util.sync`
+- Client-side: Use reactive `$LL` store from `#lib/i18n/i18n-svelte` (e.g., `{$LL.user.welcome()}`)
+- Server-side: Use `i18nObject(locale)` and `loadLocale(locale)` from `#lib/i18n/i18n-util.sync.js`
 - Generated types ensure compile-time safety for all translations
 
 ### Payment Integration
@@ -151,7 +151,7 @@ Stripe integration for membership payments:
 - `/admin/memberships`: Admin view for managing membership types
 - `/api/webhook/stripe`: Stripe webhook endpoint
 
-Route type safety via `vite-plugin-kit-routes` generates `$lib/ROUTES.ts`.
+Route type safety via `vite-plugin-kit-routes` generates `#lib/ROUTES.ts`.
 
 ### UI Components
 

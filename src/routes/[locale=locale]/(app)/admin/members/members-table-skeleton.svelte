@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+  import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 </script>
 
 <div class="space-y-4" data-testid="members-table-loading">

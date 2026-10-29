@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { LL } from "$lib/i18n/i18n-svelte";
-  import { Input } from "$lib/components/ui/input";
-  import * as Tabs from "$lib/components/ui/tabs";
+  import { LL } from "#lib/i18n/i18n-svelte.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import * as Tabs from "#lib/components/ui/tabs/index.js";
+  import { updateCustomization } from "../data.remote";
 
   let {
     values = $bindable(),
@@ -28,7 +29,7 @@
           <div class="mt-1.5">
             <Input
               type="text"
-              name="organizationNameFi"
+              name={updateCustomization.fields.organizationNameFi.as("text").name}
               id="orgNameFI"
               bind:value={values.organizationNameFi}
               class="w-full"
@@ -44,7 +45,7 @@
           <div class="mt-1.5">
             <Input
               type="text"
-              name="organizationNameEn"
+              name={updateCustomization.fields.organizationNameEn.as("text").name}
               id="orgNameEN"
               bind:value={values.organizationNameEn}
               class="w-full"
@@ -63,7 +64,7 @@
           <div class="mt-1.5">
             <Input
               type="text"
-              name="organizationLegalNameFi"
+              name={updateCustomization.fields.organizationLegalNameFi.as("text").name}
               id="orgLegalNameFI"
               bind:value={values.organizationLegalNameFi}
               class="w-full"
@@ -81,7 +82,7 @@
           <div class="mt-1.5">
             <Input
               type="text"
-              name="organizationLegalNameEn"
+              name={updateCustomization.fields.organizationLegalNameEn.as("text").name}
               id="orgLegalNameEN"
               bind:value={values.organizationLegalNameEn}
               class="w-full"
@@ -100,7 +101,13 @@
             {$LL.admin.settings.organizationDetails.businessId()}
           </label>
           <div class="mt-1.5">
-            <Input type="text" name="businessId" id="businessId" bind:value={values.businessId} class="w-full" />
+            <Input
+              type="text"
+              name={updateCustomization.fields.businessId.as("text").name}
+              id="businessId"
+              bind:value={values.businessId}
+              class="w-full"
+            />
           </div>
           {#if errors.businessId}<p class="mt-2 text-sm text-red-600">{errors.businessId}</p>{/if}
         </div>
@@ -112,7 +119,7 @@
           <div class="mt-1.5">
             <Input
               type="email"
-              name="overseerContact"
+              name={updateCustomization.fields.overseerContact.as("text").name}
               id="overseerContact"
               bind:value={values.overseerContact}
               class="w-full"
@@ -130,7 +137,7 @@
         <div class="mt-1.5">
           <Input
             type="text"
-            name="overseerAddress"
+            name={updateCustomization.fields.overseerAddress.as("text").name}
             id="overseerAddress"
             bind:value={values.overseerAddress}
             class="w-full"

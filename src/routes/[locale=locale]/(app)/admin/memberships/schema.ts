@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { getStripePriceMetadata } from "$lib/api/stripe.remote";
+import { getStripePriceMetadata } from "#lib/api/stripe.remote.js";
 
 export const createMembershipSchema = v.pipeAsync(
   v.object({

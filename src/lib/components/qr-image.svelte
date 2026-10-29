@@ -1,6 +1,6 @@
 <script lang="ts">
   import QRCode from "qrcode";
-  import { LL } from "$lib/i18n/i18n-svelte";
+  import { LL } from "#lib/i18n/i18n-svelte.js";
 
   type Props = {
     token: string;

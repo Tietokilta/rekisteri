@@ -8,11 +8,11 @@ test.describe("App Customization", () => {
 
     // Update app name and accent color
     const newAppName = "Test Registry " + Math.random().toString(36).slice(7);
-    const currentAccentColor = await adminPage.inputValue('input[name="accentColor"]');
+    const currentAccentColor = await adminPage.inputValue("#accentColor");
     const newAccentColor = currentAccentColor.toLowerCase() === "#ff0000" ? "#00ff00" : "#ff0000";
 
-    await adminPage.fill('input[name="appNameEn"]', newAppName);
-    await adminPage.fill('input[name="accentColor"]', newAccentColor);
+    await adminPage.fill("#appNameEN", newAppName);
+    await adminPage.fill("#accentColor", newAccentColor);
 
     await adminPage.getByTestId("save-customizations").click();
 
@@ -23,7 +23,7 @@ test.describe("App Customization", () => {
     ).toBeVisible();
 
     // Verify changes are reflected on the page (synced via $effect)
-    await expect(adminPage.locator('input[name="appNameEn"]')).toHaveValue(newAppName);
+    await expect(adminPage.locator("#appNameEN")).toHaveValue(newAppName);
 
     // Verify changes on a public page
     await adminPage.goto("/en");
@@ -67,10 +67,10 @@ test.describe("App Customization", () => {
     const newBusinessId = "1234567-8";
     const newContact = "test@example.com";
 
-    await adminPage.fill('input[name="organizationNameEn"]', newOrgName);
-    await adminPage.fill('input[name="organizationLegalNameEn"]', newOrgLegalName);
-    await adminPage.fill('input[name="businessId"]', newBusinessId);
-    await adminPage.fill('input[name="overseerContact"]', newContact);
+    await adminPage.fill("#orgNameEN", newOrgName);
+    await adminPage.fill("#orgLegalNameEN", newOrgLegalName);
+    await adminPage.fill("#businessId", newBusinessId);
+    await adminPage.fill("#overseerContact", newContact);
 
     await adminPage.getByTestId("save-customizations").click();
     await expect(
@@ -95,8 +95,8 @@ test.describe("App Customization", () => {
     const rulesUrlFi = "https://example.com/saannot-" + Math.random().toString(36).slice(7);
     const rulesUrlEn = "https://example.com/rules-" + Math.random().toString(36).slice(7);
 
-    await adminPage.fill('input[name="organizationRulesUrlFi"]', rulesUrlFi);
-    await adminPage.fill('input[name="organizationRulesUrlEn"]', rulesUrlEn);
+    await adminPage.fill("#rulesUrlFi", rulesUrlFi);
+    await adminPage.fill("#rulesUrlEn", rulesUrlEn);
 
     await adminPage.getByTestId("save-customizations").click();
     await expect(

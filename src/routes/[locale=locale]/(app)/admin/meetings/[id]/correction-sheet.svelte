@@ -1,14 +1,14 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import { invalidateAll } from "$app/navigation";
+  import { refreshAll } from "$app/navigation";
   import { toast } from "svelte-sonner";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { formatDateTime } from "$lib/utils";
-  import { Button } from "$lib/components/ui/button";
-  import { Input } from "$lib/components/ui/input";
-  import { Label } from "$lib/components/ui/label";
-  import * as NativeSelect from "$lib/components/ui/native-select";
-  import * as Sheet from "$lib/components/ui/sheet";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { formatDateTime } from "#lib/utils.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
+  import * as NativeSelect from "#lib/components/ui/native-select/index.js";
+  import * as Sheet from "#lib/components/ui/sheet/index.js";
   import type { PageData } from "./$types";
   import { addMissedAction, correctEvent } from "../data.remote";
   import { addMissedActionSchema, correctEventSchema } from "../schema";
@@ -77,7 +77,7 @@
       }
       toast.success($LL.admin.meetings.saveCorrection());
       open = false;
-      await invalidateAll();
+      await refreshAll();
     };
   }
 </script>

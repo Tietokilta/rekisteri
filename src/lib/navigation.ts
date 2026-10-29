@@ -1,6 +1,6 @@
-import { route } from "$lib/ROUTES";
-import type { TranslationFunctions } from "$lib/i18n/i18n-types";
-import type { Locale } from "$lib/i18n/routing";
+import { route } from "#lib/ROUTES.js";
+import type { TranslationFunctions } from "#lib/i18n/i18n-types.js";
+import type { Locale } from "#lib/i18n/routing.js";
 import type { Component } from "svelte";
 
 // Icons from @lucide/svelte

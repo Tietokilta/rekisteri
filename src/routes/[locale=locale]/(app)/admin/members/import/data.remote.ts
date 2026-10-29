@@ -1,11 +1,11 @@
 import { error } from "@sveltejs/kit";
 import { form, command, getRequestEvent } from "$app/server";
 import * as v from "valibot";
-import { db } from "$lib/server/db";
-import * as table from "$lib/server/db/schema";
+import { db } from "#lib/server/db/index.js";
+import * as table from "#lib/server/db/schema.js";
 import { and, eq, inArray } from "drizzle-orm";
-import { generateUserId } from "$lib/server/auth/utils";
-import { getUsersByEmails } from "$lib/server/auth/secondary-email";
+import { generateUserId } from "#lib/server/auth/utils.js";
+import { getUsersByEmails } from "#lib/server/auth/secondary-email.js";
 import {
   csvRowSchema,
   importMembersSchema,
@@ -13,10 +13,10 @@ import {
   createLegacyMembershipsBatchSchema,
   type CsvRow,
 } from "./schema";
-import { getLL } from "$lib/server/i18n";
-import { userHasAdminWriteAccess } from "$lib/server/auth/admin";
-import { normalizeEmail } from "$lib/utils";
-import { auditFromEvent } from "$lib/server/audit";
+import { getLL } from "#lib/server/i18n.js";
+import { userHasAdminWriteAccess } from "#lib/server/auth/admin.js";
+import { normalizeEmail } from "#lib/utils.js";
+import { auditFromEvent } from "#lib/server/audit.js";
 
 const IMPORT_BATCH_SIZE = 500;
 

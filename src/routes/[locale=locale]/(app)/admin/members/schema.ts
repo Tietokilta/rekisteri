@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { nameSchema } from "$lib/shared/name";
+import { nameSchema } from "#lib/shared/name.js";
 
 export const memberIdSchema = v.object({
   memberId: v.pipe(v.string(), v.minLength(1)),

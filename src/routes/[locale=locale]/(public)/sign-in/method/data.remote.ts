@@ -6,9 +6,9 @@ import {
   emailCookieName,
   sendOTPEmail,
   setEmailOTPCookie,
-} from "$lib/server/auth/email";
-import { route } from "$lib/ROUTES";
-import { getLL } from "$lib/server/i18n";
+} from "#lib/server/auth/email.js";
+import { route } from "#lib/ROUTES.js";
+import { getLL } from "#lib/server/i18n.js";
 
 export const useEmail = form(async () => {
   const event = getRequestEvent();

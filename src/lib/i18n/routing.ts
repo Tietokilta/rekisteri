@@ -1,5 +1,5 @@
 import type { Locales } from "./i18n-types";
-import type { PreferredLanguage } from "$lib/shared/enums";
+import type { PreferredLanguage } from "#lib/shared/enums.js";
 
 export const locales = ["fi", "en"] as const satisfies readonly Locales[];
 export const baseLocale = "fi" as const satisfies Locales;

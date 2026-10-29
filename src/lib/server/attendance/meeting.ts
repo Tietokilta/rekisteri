@@ -1,8 +1,8 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
-import { db } from "$lib/server/db";
+import { db } from "#lib/server/db/index.js";
 import { notifyMeetingChanged } from "./live";
-import { membershipTypeAt } from "$lib/server/membership/status";
-import * as table from "$lib/server/db/schema";
+import { membershipTypeAt } from "#lib/server/membership/status.js";
+import * as table from "#lib/server/db/schema.js";
 import {
   bindEventsToRecess,
   meetingActionWarnings,
@@ -11,7 +11,7 @@ import {
   meetingPresence,
   projectMeetingEvents,
   resolveMeetingEvents,
-} from "$lib/shared/meeting-attendance";
+} from "#lib/shared/meeting-attendance.js";
 
 export type AttendanceTarget = { attendeeId: string } | { userId: string } | { guestName: string };
 

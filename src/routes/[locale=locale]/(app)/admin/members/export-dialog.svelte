@@ -1,15 +1,15 @@
 <script lang="ts">
-  import * as AlertDialog from "$lib/components/ui/alert-dialog";
-  import { Button } from "$lib/components/ui/button";
-  import { Checkbox } from "$lib/components/ui/checkbox";
-  import { Label } from "$lib/components/ui/label";
-  import * as NativeSelect from "$lib/components/ui/native-select";
-  import { Badge } from "$lib/components/ui/badge";
+  import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Checkbox } from "#lib/components/ui/checkbox/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
+  import * as NativeSelect from "#lib/components/ui/native-select/index.js";
+  import { Badge } from "#lib/components/ui/badge/index.js";
   import Download from "@lucide/svelte/icons/download";
   import { toast } from "svelte-sonner";
   import { untrack } from "svelte";
   import { SvelteSet } from "svelte/reactivity";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
   import {
     generateMembersCSV,
     downloadFile,
@@ -18,10 +18,10 @@
     ALL_EXPORT_COLUMNS,
     type ExportColumnKey,
     type ExportableMember,
-  } from "$lib/utils/export";
+  } from "#lib/utils/export.js";
   import { logMemberExport } from "./data.remote";
-  import type { LocalizedString, MembershipType } from "$lib/server/db/schema";
-  import { MEMBER_STATUS_VALUES } from "$lib/shared/enums";
+  import type { LocalizedString, MembershipType } from "#lib/server/db/schema.js";
+  import { MEMBER_STATUS_VALUES } from "#lib/shared/enums.js";
 
   type Props = {
     open: boolean;

@@ -1,7 +1,7 @@
 import { error, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
-import { db } from "$lib/server/db";
-import { resumeOrCreateSession } from "$lib/server/payment/session";
+import { db } from "#lib/server/db/index.js";
+import { resumeOrCreateSession } from "#lib/server/payment/session.js";
 import { retryPaymentSchema } from "./retry-payment.schema";
 
 export const retryPayment = form(retryPaymentSchema, async ({ memberId }) => {
@@ -30,7 +30,7 @@ export const retryPayment = form(retryPaymentSchema, async ({ memberId }) => {
     if (!result?.url) {
       error(400, "Could not create or resume payment session");
     }
-    redirect(303, result.url);
+    redirect(303, result.url, { external: true });
   } catch (e) {
     // Surface user-friendly error messages from resumeOrCreateSession
     if (e instanceof Error && e.message.includes("Your payment is being processed")) {

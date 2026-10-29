@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { and, eq, isNull, lt } from "drizzle-orm";
 import { createTestDatabase, stopTestDatabase, type TestDatabase } from "./utils/db";
-import * as table from "$lib/server/db/schema";
+import * as table from "#lib/server/db/schema.js";
 
 describe("Secondary email cleanup and uniqueness", () => {
   let testDb: TestDatabase;

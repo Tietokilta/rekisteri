@@ -1,16 +1,16 @@
 <script lang="ts">
-  import { invalidateAll } from "$app/navigation";
+  import { refreshAll } from "$app/navigation";
   import { toast } from "svelte-sonner";
-  import { LL, locale } from "$lib/i18n/i18n-svelte";
-  import { formatDateRange as formatDateRangeUtil } from "$lib/utils";
+  import { LL, locale } from "#lib/i18n/i18n-svelte.js";
+  import { formatDateRange as formatDateRangeUtil } from "#lib/utils.js";
   import { createMember } from "./data.remote";
-  import { Input } from "$lib/components/ui/input";
-  import { Textarea } from "$lib/components/ui/textarea";
-  import { Button } from "$lib/components/ui/button";
-  import { Label } from "$lib/components/ui/label";
-  import * as Sheet from "$lib/components/ui/sheet";
-  import * as NativeSelect from "$lib/components/ui/native-select";
-  import type { LocalizedString } from "$lib/server/db/schema";
+  import { Input } from "#lib/components/ui/input/index.js";
+  import { Textarea } from "#lib/components/ui/textarea/index.js";
+  import { Button } from "#lib/components/ui/button/index.js";
+  import { Label } from "#lib/components/ui/label/index.js";
+  import * as Sheet from "#lib/components/ui/sheet/index.js";
+  import * as NativeSelect from "#lib/components/ui/native-select/index.js";
+  import type { LocalizedString } from "#lib/server/db/schema.js";
 
   interface AvailableMembership {
     id: string;
@@ -98,7 +98,7 @@
 
       toast.success($LL.admin.members.memberCreated());
       onClose();
-      await invalidateAll();
+      await refreshAll();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       toast.error(message);
