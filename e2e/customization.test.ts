@@ -178,6 +178,29 @@ test.describe("App Customization", () => {
     await expect(errorToast).toBeHidden();
   });
 
+  test("a new client-side error wins over a stale server-side one", async ({ adminPage }) => {
+    await adminPage.goto("/en/admin/settings");
+
+    // Passes the client-side schema but the server rejects invalid UTF-8
+    await adminPage.setInputFiles("#logo", {
+      name: "broken.svg",
+      mimeType: "image/svg+xml",
+      buffer: Buffer.from([0xff, 0xfe, 0xfd]),
+    });
+    await adminPage.getByTestId("save-customizations").click();
+    await expect(adminPage.locator("text=/Must be a valid UTF-8 SVG image/")).toBeVisible();
+
+    // Kit keeps the logo error until the next server response, which a failing preflight never sends
+    await adminPage.setInputFiles("#logo", []);
+    await adminPage.getByTestId("tab-resignation").click();
+    await adminPage.fill("#rulesUrlEn", "not a url");
+    await adminPage.getByTestId("tab-organization").click();
+    await adminPage.getByTestId("save-customizations").click();
+
+    await expect(adminPage.getByTestId("tab-resignation")).toHaveAttribute("data-state", "active");
+    await expect(adminPage.locator("#rulesUrlEn")).toBeFocused();
+  });
+
   test("a successful save after a server-side validation error stays on the current tab", async ({ adminPage }) => {
     await adminPage.goto("/en/admin/settings");
 

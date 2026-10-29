@@ -123,41 +123,39 @@
 
   let rootErrors = $derived(updateCustomization.fields.allIssues()?.filter((issue) => issue.path.length === 0) ?? []);
 
-  let hasBrandingErrors = $derived(
-    Boolean(
-      errors.accentColor ||
-      errors.appNameFi ||
-      errors.appNameEn ||
-      errors.logo ||
-      errors.logoDark ||
-      errors.favicon ||
-      errors.faviconDark,
-    ),
-  );
+  // Customization fields per tab, in tab order
+  const TAB_FIELDS = {
+    branding: ["accentColor", "appNameFi", "appNameEn", "logo", "logoDark", "favicon", "faviconDark"],
+    organization: [
+      "organizationNameFi",
+      "organizationNameEn",
+      "organizationLegalNameFi",
+      "organizationLegalNameEn",
+      "businessId",
+      "overseerContact",
+      "overseerAddress",
+    ],
+    resignation: [
+      "memberResignRule",
+      "memberResignDefaultReasonFi",
+      "memberResignDefaultReasonEn",
+      "organizationRulesUrlFi",
+      "organizationRulesUrlEn",
+    ],
+    privacyPolicy: ["privacyPolicyFi", "privacyPolicyEn"],
+  } as const satisfies Record<string, readonly (keyof typeof errors)[]>;
 
-  let hasOrganizationErrors = $derived(
-    Boolean(
-      errors.organizationNameFi ||
-      errors.organizationNameEn ||
-      errors.organizationLegalNameFi ||
-      errors.organizationLegalNameEn ||
-      errors.businessId ||
-      errors.overseerContact ||
-      errors.overseerAddress,
-    ),
-  );
+  const tabHasErrors = (tab: keyof typeof TAB_FIELDS) => TAB_FIELDS[tab].some((field) => errors[field]);
+  let hasBrandingErrors = $derived(tabHasErrors("branding"));
+  let hasOrganizationErrors = $derived(tabHasErrors("organization"));
+  let hasResignationErrors = $derived(tabHasErrors("resignation"));
+  let hasPrivacyErrors = $derived(tabHasErrors("privacyPolicy"));
 
-  let hasResignationErrors = $derived(
-    Boolean(
-      errors.memberResignRule ||
-      errors.memberResignDefaultReasonFi ||
-      errors.memberResignDefaultReasonEn ||
-      errors.organizationRulesUrlFi ||
-      errors.organizationRulesUrlEn,
-    ),
-  );
+  const issueKey = (issue: { path: (string | number)[]; message: string }) =>
+    `${issue.path.join(".")}:${issue.message}`;
 
-  let hasPrivacyErrors = $derived(Boolean(errors.privacyPolicyFi || errors.privacyPolicyEn));
+  // Issues from the last server response. Kit keeps them until the next one, also when a later preflight fails.
+  let lastServerIssues = new Set<string>();
 
   // A failed preflight never calls the enhance callback, so react to the issues themselves (set on every
   // failed submit, from preflight or the server): jump to the first tab with errors, show a toast and focus
@@ -171,14 +169,17 @@
     saveAttempted = false;
     if (!issues?.length) return;
 
-    if (hasBrandingErrors) activeTab = "branding";
-    else if (hasOrganizationErrors) activeTab = "organization";
-    else if (hasResignationErrors) activeTab = "resignation";
-    else if (hasPrivacyErrors) activeTab = "privacyPolicy";
+    // Point at what this attempt found, not at server issues left over from an earlier one
+    const fresh = issues.filter((issue) => !lastServerIssues.has(issueKey(issue)));
+    const invalidFields = new Set((fresh.length ? fresh : issues).map((issue) => String(issue.path[0])));
+
+    const tab = (Object.keys(TAB_FIELDS) as (keyof typeof TAB_FIELDS)[]).find((tab) =>
+      TAB_FIELDS[tab].some((field) => invalidFields.has(field)),
+    );
+    if (tab) activeTab = tab;
 
     untrack(() => toast.error($LL.admin.settings.error()));
 
-    const invalidFields = new Set(issues.map((issue) => String(issue.path[0])));
     void tick().then(() => {
       const inputs = updateCustomization.element?.querySelectorAll<HTMLInputElement>("input[name]") ?? [];
       Array.from(inputs)
@@ -312,6 +313,8 @@
         } catch {
           toast.error($LL.admin.settings.error());
           return;
+        } finally {
+          lastServerIssues = new Set(updateCustomization.fields.allIssues()?.map(issueKey));
         }
 
         // Validation errors are handled by the $effect above
