@@ -1,3 +1,10 @@
+<script lang="ts" module>
+  // Issues from the last server response. Kit keeps them until the next one, also when a later preflight fails.
+  // Module scope, because the remote form instance holding them outlives this page.
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- bookkeeping only, must not trigger the issues effect
+  const lastServerIssues = new Set<string>();
+</script>
+
 <script lang="ts">
   import type { PageData } from "./$types";
   import { LL } from "#lib/i18n/i18n-svelte.js";
@@ -6,6 +13,7 @@
   import * as Tabs from "#lib/components/ui/tabs/index.js";
   import { toast } from "svelte-sonner";
 
+  import { tick, untrack } from "svelte";
   import { updateCustomization } from "./data.remote";
   import { updateCustomizationSchema } from "./schema";
 
@@ -122,41 +130,76 @@
 
   let rootErrors = $derived(updateCustomization.fields.allIssues()?.filter((issue) => issue.path.length === 0) ?? []);
 
-  let hasBrandingErrors = $derived(
-    Boolean(
-      errors.accentColor ||
-      errors.appNameFi ||
-      errors.appNameEn ||
-      errors.logo ||
-      errors.logoDark ||
-      errors.favicon ||
-      errors.faviconDark,
-    ),
-  );
+  // Customization fields per tab, in tab order
+  const TAB_FIELDS = {
+    branding: ["accentColor", "appNameFi", "appNameEn", "logo", "logoDark", "favicon", "faviconDark"],
+    organization: [
+      "organizationNameFi",
+      "organizationNameEn",
+      "organizationLegalNameFi",
+      "organizationLegalNameEn",
+      "businessId",
+      "overseerContact",
+      "overseerAddress",
+    ],
+    resignation: [
+      "memberResignRule",
+      "memberResignDefaultReasonFi",
+      "memberResignDefaultReasonEn",
+      "organizationRulesUrlFi",
+      "organizationRulesUrlEn",
+    ],
+    privacyPolicy: ["privacyPolicyFi", "privacyPolicyEn"],
+  } as const satisfies Record<string, readonly (keyof typeof errors)[]>;
 
-  let hasOrganizationErrors = $derived(
-    Boolean(
-      errors.organizationNameFi ||
-      errors.organizationNameEn ||
-      errors.organizationLegalNameFi ||
-      errors.organizationLegalNameEn ||
-      errors.businessId ||
-      errors.overseerContact ||
-      errors.overseerAddress,
-    ),
-  );
+  const tabHasErrors = (tab: keyof typeof TAB_FIELDS) => TAB_FIELDS[tab].some((field) => errors[field]);
+  let hasBrandingErrors = $derived(tabHasErrors("branding"));
+  let hasOrganizationErrors = $derived(tabHasErrors("organization"));
+  let hasResignationErrors = $derived(tabHasErrors("resignation"));
+  let hasPrivacyErrors = $derived(tabHasErrors("privacyPolicy"));
 
-  let hasResignationErrors = $derived(
-    Boolean(
-      errors.memberResignRule ||
-      errors.memberResignDefaultReasonFi ||
-      errors.memberResignDefaultReasonEn ||
-      errors.organizationRulesUrlFi ||
-      errors.organizationRulesUrlEn,
-    ),
-  );
+  const issueKey = (issue: { path: (string | number)[]; message: string }) =>
+    `${issue.path.join(".")}:${issue.message}`;
 
-  let hasPrivacyErrors = $derived(Boolean(errors.privacyPolicyFi || errors.privacyPolicyEn));
+  // A failed preflight never calls the enhance callback, so react to the issues themselves (set on every
+  // failed submit, from preflight or the server): jump to the first tab with errors, show a toast and focus
+  // the first invalid field. Wait until the submission settles, because a passing preflight re-sets the
+  // previous server issues before the request is sent. The form instance and its issues outlive this page,
+  // so only react to saves started on this visit.
+  let saveAttempted = false;
+  $effect(() => {
+    const issues = updateCustomization.fields.allIssues();
+    if (updateCustomization.pending || !saveAttempted) return;
+    saveAttempted = false;
+    if (!issues?.length) return;
+
+    // Point at what this attempt found, not at server issues left over from an earlier one
+    const fresh = issues.filter((issue) => !lastServerIssues.has(issueKey(issue)));
+    const invalidFields = new Set((fresh.length ? fresh : issues).map((issue) => String(issue.path[0])));
+
+    const tab = (Object.keys(TAB_FIELDS) as (keyof typeof TAB_FIELDS)[]).find((tab) =>
+      TAB_FIELDS[tab].some((field) => invalidFields.has(field)),
+    );
+    if (tab) activeTab = tab;
+
+    untrack(() => toast.error($LL.admin.settings.error()));
+
+    void tick().then(() => {
+      const inputs = updateCustomization.element?.querySelectorAll<HTMLInputElement>("input[name]") ?? [];
+      Array.from(inputs)
+        .filter((input) => invalidFields.has(input.name.split("/", 1)[0] ?? ""))
+        // The privacy policy editors submit through a hidden input next to their textarea. In preview mode the
+        // textarea isn't rendered, so focus the editor's Edit toggle instead.
+        .map((input) =>
+          input.type === "hidden"
+            ? (input.parentElement?.querySelector("textarea") ??
+              input.parentElement?.querySelector<HTMLElement>("[data-value='edit']"))
+            : input,
+        )
+        .find((field) => field?.checkVisibility())
+        ?.focus();
+    });
+  });
 
   // Pending removals are only persisted when the form is saved.
   let removeImages = $state({
@@ -268,30 +311,33 @@
     </Tabs.List>
 
     <!-- FORM FOR GENERAL SETTINGS (TABS 1-4) -->
+    <!-- No native validation: the browser can't show its message on an input in an inactive tab, so the
+         submit would silently do nothing. The schema covers the same checks. -->
     <form
       id="customization-form"
+      novalidate
       {...updateCustomization.preflight(updateCustomizationSchema).enhance(async ({ submit }) => {
+        let succeeded: boolean;
         try {
-          await submit();
+          succeeded = await submit();
         } catch {
+          // Not a validation failure, so the issues effect has nothing to report
+          saveAttempted = false;
           toast.error($LL.admin.settings.error());
           return;
+        } finally {
+          lastServerIssues.clear();
+          for (const issue of updateCustomization.fields.allIssues() ?? []) lastServerIssues.add(issueKey(issue));
         }
 
-        if (updateCustomization.fields.allIssues()?.length) {
-          if (hasBrandingErrors) activeTab = "branding";
-          else if (hasOrganizationErrors) activeTab = "organization";
-          else if (hasResignationErrors) activeTab = "resignation";
-          else if (hasPrivacyErrors) activeTab = "privacyPolicy";
-
-          toast.error($LL.admin.settings.error());
-          return;
-        }
+        // Validation errors are handled by the $effect above
+        if (!succeeded) return;
 
         clearImageRemovals();
         values.accentColor = useCustomAccentColor ? accentColorInputValue : "";
         toast.success(updateCustomization.result?.message || $LL.admin.settings.success());
       })}
+      onsubmit={() => (saveAttempted = true)}
       enctype="multipart/form-data"
       class="contents"
     >

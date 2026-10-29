@@ -54,7 +54,7 @@
             />
           </div>
           {#if errors.organizationRulesUrlEn}
-            <p class="mt-2 text-sm text-red-600">{errors.organizationRulesUrlEn}</p>
+            <p class="mt-2 text-sm text-red-600" data-testid="rulesUrlEn-error">{errors.organizationRulesUrlEn}</p>
           {/if}
         </div>
       </div>
