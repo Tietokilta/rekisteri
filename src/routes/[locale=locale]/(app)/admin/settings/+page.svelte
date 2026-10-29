@@ -6,7 +6,9 @@
   import * as Tabs from "#lib/components/ui/tabs/index.js";
   import { toast } from "svelte-sonner";
 
+  import { untrack } from "svelte";
   import { updateCustomization } from "./data.remote";
+  import { updateCustomizationSchema } from "./schema";
 
   import Palette from "@lucide/svelte/icons/palette";
   import Building2 from "@lucide/svelte/icons/building-2";
@@ -157,6 +159,19 @@
 
   let hasPrivacyErrors = $derived(Boolean(errors.privacyPolicyFi || errors.privacyPolicyEn));
 
+  // A failed preflight never calls the enhance callback, so react to the issues themselves (set on every
+  // failed submit, from preflight or the server): jump to the first tab with errors and show a toast.
+  $effect(() => {
+    if (!updateCustomization.fields.allIssues()?.length) return;
+
+    if (hasBrandingErrors) activeTab = "branding";
+    else if (hasOrganizationErrors) activeTab = "organization";
+    else if (hasResignationErrors) activeTab = "resignation";
+    else if (hasPrivacyErrors) activeTab = "privacyPolicy";
+
+    untrack(() => toast.error($LL.admin.settings.error()));
+  });
+
   // Pending removals are only persisted when the form is saved.
   let removeImages = $state({
     logo: false,
@@ -267,13 +282,12 @@
     </Tabs.List>
 
     <!-- FORM FOR GENERAL SETTINGS (TABS 1-4) -->
-    <!-- No native validation or preflight: both block the submit without running the callback below, and an
-         invalid field on an inactive tab is hidden. The server validates with the same schema and the
-         callback switches to the tab with errors. -->
+    <!-- No native validation: the browser can't show its message on an input in an inactive tab, so the
+         submit would silently do nothing. The schema covers the same checks. -->
     <form
       id="customization-form"
       novalidate
-      {...updateCustomization.enhance(async ({ submit }) => {
+      {...updateCustomization.preflight(updateCustomizationSchema).enhance(async ({ submit }) => {
         try {
           await submit();
         } catch {
@@ -281,15 +295,8 @@
           return;
         }
 
-        if (updateCustomization.fields.allIssues()?.length) {
-          if (hasBrandingErrors) activeTab = "branding";
-          else if (hasOrganizationErrors) activeTab = "organization";
-          else if (hasResignationErrors) activeTab = "resignation";
-          else if (hasPrivacyErrors) activeTab = "privacyPolicy";
-
-          toast.error($LL.admin.settings.error());
-          return;
-        }
+        // Validation errors are handled by the $effect above
+        if (updateCustomization.fields.allIssues()?.length) return;
 
         clearImageRemovals();
         values.accentColor = useCustomAccentColor ? accentColorInputValue : "";

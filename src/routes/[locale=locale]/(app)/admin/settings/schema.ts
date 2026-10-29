@@ -21,7 +21,7 @@ export const updateCustomizationSchema = v.object({
   appNameFi: v.pipe(v.string(), v.minLength(1)),
   appNameEn: v.pipe(v.string(), v.minLength(1)),
   businessId: v.optional(v.string()),
-  overseerContact: v.optional(v.union([v.literal(""), v.pipe(v.string(), v.email())])),
+  overseerContact: v.optional(v.union([v.literal(""), v.pipe(v.string(), v.rfcEmail())])),
   overseerAddress: v.optional(v.string()),
   privacyPolicyFi: v.pipe(v.string(), v.minLength(1)),
   privacyPolicyEn: v.pipe(v.string(), v.minLength(1)),
