@@ -69,8 +69,9 @@
   let regeneratingClient = $state<{ id: string; name: string } | null>(null);
   let regeneratedSecret = $state<string | null>(null);
 
-  // The create dialog's form mounts on every open. Start it from the defaults, and reset
-  // the form so the remote form also drops its input and issues from the last submission.
+  // The create dialog's form is keyed on the open state, so it mounts on every open, even
+  // during the close animation. Start it from the defaults, and reset the form so the
+  // remote form also drops its input and issues from the last submission.
   function resetCreateForm(form: HTMLFormElement) {
     createAllowedScopes = [...defaultCreateScopes];
     form.reset();
@@ -104,88 +105,92 @@
     <!-- Create New Application Form / Popup Modal -->
     <AlertDialog.Root open={showCreateOidcModal} onOpenChange={(open) => (showCreateOidcModal = open)}>
       <AlertDialog.Content class="max-h-[85vh] overflow-y-auto p-6 sm:max-w-2xl">
-        <form
-          {...createOidcClient.preflight(createOidcClientSchema).enhance(async ({ submit }) => {
-            await submit();
-            if (!createOidcClient.result?.success) {
-              return;
-            }
+        {#key showCreateOidcModal}
+          {#if showCreateOidcModal}
+            <form
+              {...createOidcClient.preflight(createOidcClientSchema).enhance(async ({ submit }) => {
+                await submit();
+                if (!createOidcClient.result?.success) {
+                  return;
+                }
 
-            if (createOidcClient.result.clientSecret) {
-              newCreatedSecret = createOidcClient.result.clientSecret;
-            }
-            showCreateOidcModal = false;
-            await refreshAll();
-            toast.success(oidcAdmin.toast.createSuccess());
-          })}
-          {@attach resetCreateForm}
-          class="space-y-4"
-        >
-          <div class="flex items-center justify-between border-b border-border/60 pb-3">
-            <AlertDialog.Title class="text-base font-semibold text-foreground">
-              {oidcAdmin.form.createTitle()}
-            </AlertDialog.Title>
-            <div class="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onclick={() => (showCreateOidcModal = false)}>
-                {$LL.common.cancel()}
-              </Button>
-              <Button type="submit" size="sm" disabled={!!createOidcClient.pending}>
-                {$LL.common.create()}
-              </Button>
-            </div>
-          </div>
+                if (createOidcClient.result.clientSecret) {
+                  newCreatedSecret = createOidcClient.result.clientSecret;
+                }
+                showCreateOidcModal = false;
+                await refreshAll();
+                toast.success(oidcAdmin.toast.createSuccess());
+              })}
+              {@attach resetCreateForm}
+              class="space-y-4"
+            >
+              <div class="flex items-center justify-between border-b border-border/60 pb-3">
+                <AlertDialog.Title class="text-base font-semibold text-foreground">
+                  {oidcAdmin.form.createTitle()}
+                </AlertDialog.Title>
+                <div class="flex items-center gap-2">
+                  <Button type="button" variant="outline" size="sm" onclick={() => (showCreateOidcModal = false)}>
+                    {$LL.common.cancel()}
+                  </Button>
+                  <Button type="submit" size="sm" disabled={!!createOidcClient.pending}>
+                    {$LL.common.create()}
+                  </Button>
+                </div>
+              </div>
 
-          <div>
-            <label for="create-app-name" class="block text-xs font-medium text-foreground">
-              {oidcAdmin.form.applicationName()}
-            </label>
-            <Input
-              type="text"
-              id="create-app-name"
-              name={createOidcClient.fields.name.as("text").name}
-              placeholder={oidcAdmin.form.applicationNamePlaceholder()}
-              class="mt-1"
-              required
-            />
-            {#if createOidcClient.fields.name.issues()?.length}
-              <p class="mt-1 text-xs text-destructive">{createOidcClient.fields.name.issues()?.[0]?.message}</p>
-            {/if}
-          </div>
+              <div>
+                <label for="create-app-name" class="block text-xs font-medium text-foreground">
+                  {oidcAdmin.form.applicationName()}
+                </label>
+                <Input
+                  type="text"
+                  id="create-app-name"
+                  name={createOidcClient.fields.name.as("text").name}
+                  placeholder={oidcAdmin.form.applicationNamePlaceholder()}
+                  class="mt-1"
+                  required
+                />
+                {#if createOidcClient.fields.name.issues()?.length}
+                  <p class="mt-1 text-xs text-destructive">{createOidcClient.fields.name.issues()?.[0]?.message}</p>
+                {/if}
+              </div>
 
-          <div>
-            <label for="create-redirect-uris" class="block text-xs font-medium text-foreground">
-              {oidcAdmin.redirectUris()}
-              {$LL.common.onePerLine()}
-            </label>
-            <textarea
-              id="create-redirect-uris"
-              name={createOidcClient.fields.redirectUris.as("text").name}
-              rows={3}
-              placeholder={oidcAdmin.form.redirectUrisPlaceholder()}
-              class="mt-1 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-              required></textarea>
-            {#if createOidcClient.fields.redirectUris.issues()?.length}
-              <p class="mt-1 text-xs text-destructive">
-                {createOidcClient.fields.redirectUris.issues()?.[0]?.message}
-              </p>
-            {/if}
-          </div>
+              <div>
+                <label for="create-redirect-uris" class="block text-xs font-medium text-foreground">
+                  {oidcAdmin.redirectUris()}
+                  {$LL.common.onePerLine()}
+                </label>
+                <textarea
+                  id="create-redirect-uris"
+                  name={createOidcClient.fields.redirectUris.as("text").name}
+                  rows={3}
+                  placeholder={oidcAdmin.form.redirectUrisPlaceholder()}
+                  class="mt-1 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  required></textarea>
+                {#if createOidcClient.fields.redirectUris.issues()?.length}
+                  <p class="mt-1 text-xs text-destructive">
+                    {createOidcClient.fields.redirectUris.issues()?.[0]?.message}
+                  </p>
+                {/if}
+              </div>
 
-          <label class="flex items-start gap-2 text-xs">
-            <Checkbox name={createOidcClient.fields.requireActiveMembership.as("checkbox").name} class="mt-0.5" />
-            <span>
-              <span class="font-medium text-foreground">{oidcAdmin.form.membersOnly()}</span>
-              <span class="block text-muted-foreground">{oidcAdmin.form.membersOnlyDescription()}</span>
-            </span>
-          </label>
+              <label class="flex items-start gap-2 text-xs">
+                <Checkbox name={createOidcClient.fields.requireActiveMembership.as("checkbox").name} class="mt-0.5" />
+                <span>
+                  <span class="font-medium text-foreground">{oidcAdmin.form.membersOnly()}</span>
+                  <span class="block text-muted-foreground">{oidcAdmin.form.membersOnlyDescription()}</span>
+                </span>
+              </label>
 
-          <!-- Configurable Scopes Section -->
-          <OidcClientConfig
-            bind:scopes={createAllowedScopes}
-            claimsName={createOidcClient.fields.idTokenClaims.as("checkbox", "openid").name}
-            testIdPrefix="scope_category_create"
-          />
-        </form>
+              <!-- Configurable Scopes Section -->
+              <OidcClientConfig
+                bind:scopes={createAllowedScopes}
+                claimsName={createOidcClient.fields.idTokenClaims.as("checkbox", "openid").name}
+                testIdPrefix="scope_category_create"
+              />
+            </form>
+          {/if}
+        {/key}
       </AlertDialog.Content>
     </AlertDialog.Root>
 

@@ -159,6 +159,13 @@ test.describe("OIDC applications admin create dialog", () => {
     await openDialog();
     await expectDefaults();
 
+    // Reopening with the keyboard while the close animation is still running
+    await nameInput.fill(name);
+    await scope("offline_access").check();
+    await adminPage.keyboard.press("Escape");
+    await adminPage.keyboard.press("Enter");
+    await expectDefaults();
+
     // A successful create with non-default choices
     await nameInput.fill(name);
     await redirectInput.fill(REDIRECT_URI);
