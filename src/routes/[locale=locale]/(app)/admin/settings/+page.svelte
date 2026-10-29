@@ -7,7 +7,6 @@
   import { toast } from "svelte-sonner";
 
   import { updateCustomization } from "./data.remote";
-  import { updateCustomizationSchema } from "./schema";
 
   import Palette from "@lucide/svelte/icons/palette";
   import Building2 from "@lucide/svelte/icons/building-2";
@@ -268,9 +267,13 @@
     </Tabs.List>
 
     <!-- FORM FOR GENERAL SETTINGS (TABS 1-4) -->
+    <!-- No native validation or preflight: both block the submit without running the callback below, and an
+         invalid field on an inactive tab is hidden. The server validates with the same schema and the
+         callback switches to the tab with errors. -->
     <form
       id="customization-form"
-      {...updateCustomization.preflight(updateCustomizationSchema).enhance(async ({ submit }) => {
+      novalidate
+      {...updateCustomization.enhance(async ({ submit }) => {
         try {
           await submit();
         } catch {

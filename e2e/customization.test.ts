@@ -116,6 +116,26 @@ test.describe("App Customization", () => {
     await expect(rulesLinkEn).toHaveAttribute("href", rulesUrlEn);
   });
 
+  test("saving with an invalid field on another tab switches to that tab and shows the error", async ({
+    adminPage,
+  }) => {
+    await adminPage.goto("/en/admin/settings");
+
+    await adminPage.getByTestId("tab-resignation").click();
+    await adminPage.fill("#rulesUrlEn", "not a url");
+
+    await adminPage.getByTestId("tab-branding").click();
+    await expect(adminPage.locator("#rulesUrlEn")).toBeHidden();
+
+    await adminPage.getByTestId("save-customizations").click();
+
+    await expect(adminPage.getByTestId("tab-resignation")).toHaveAttribute("data-state", "active");
+    await expect(adminPage.locator("#rulesUrlEn")).toBeVisible();
+    await expect(adminPage.locator("#rulesUrlEn")).toHaveValue("not a url");
+    await expect(adminPage.getByTestId("rulesUrlEn-error")).toBeVisible();
+    await expect(adminPage.locator("text=/Failed to update settings/")).toBeVisible();
+  });
+
   test("readonly admin cannot update customizations", async ({ readonlyAdminPage }) => {
     await readonlyAdminPage.goto("/en/admin/settings");
 
