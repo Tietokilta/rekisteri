@@ -188,8 +188,14 @@
       const inputs = updateCustomization.element?.querySelectorAll<HTMLInputElement>("input[name]") ?? [];
       Array.from(inputs)
         .filter((input) => invalidFields.has(input.name.split("/", 1)[0] ?? ""))
-        // The privacy policy editors submit through a hidden input next to their textarea
-        .map((input) => (input.type === "hidden" ? input.parentElement?.querySelector("textarea") : input))
+        // The privacy policy editors submit through a hidden input next to their textarea. In preview mode the
+        // textarea isn't rendered, so focus the editor's Edit toggle instead.
+        .map((input) =>
+          input.type === "hidden"
+            ? (input.parentElement?.querySelector("textarea") ??
+              input.parentElement?.querySelector<HTMLElement>("[data-value='edit']"))
+            : input,
+        )
         .find((field) => field?.checkVisibility())
         ?.focus();
     });

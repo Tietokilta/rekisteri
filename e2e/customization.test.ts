@@ -157,6 +157,21 @@ test.describe("App Customization", () => {
     await expect(adminPage.locator("#privacyPolicyFI")).toBeFocused();
   });
 
+  test("an empty privacy policy in preview mode focuses the editor's Edit toggle", async ({ adminPage }) => {
+    await adminPage.goto("/en/admin/settings");
+
+    await adminPage.getByTestId("tab-privacy-policy").click();
+    await adminPage.fill("#privacyPolicyFI", "");
+    // The FI editor comes first on the tab
+    await adminPage.getByRole("radio", { name: "Preview" }).first().click();
+    await expect(adminPage.locator("#privacyPolicyFI")).toBeHidden();
+    await adminPage.getByTestId("tab-branding").click();
+    await adminPage.getByTestId("save-customizations").click();
+
+    await expect(adminPage.getByTestId("tab-privacy-policy")).toHaveAttribute("data-state", "active");
+    await expect(adminPage.getByRole("radio", { name: "Edit" }).first()).toBeFocused();
+  });
+
   test("errors from an earlier visit don't replay when returning to the page", async ({ adminPage }) => {
     await adminPage.goto("/en/admin/settings");
 
