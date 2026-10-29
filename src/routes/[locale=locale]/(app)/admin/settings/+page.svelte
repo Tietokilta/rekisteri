@@ -6,7 +6,7 @@
   import * as Tabs from "#lib/components/ui/tabs/index.js";
   import { toast } from "svelte-sonner";
 
-  import { untrack } from "svelte";
+  import { tick, untrack } from "svelte";
   import { updateCustomization } from "./data.remote";
   import { updateCustomizationSchema } from "./schema";
 
@@ -160,9 +160,12 @@
   let hasPrivacyErrors = $derived(Boolean(errors.privacyPolicyFi || errors.privacyPolicyEn));
 
   // A failed preflight never calls the enhance callback, so react to the issues themselves (set on every
-  // failed submit, from preflight or the server): jump to the first tab with errors and show a toast.
+  // failed submit, from preflight or the server): jump to the first tab with errors, show a toast and focus
+  // the first invalid field. Wait until the submission settles, because a passing preflight re-sets the
+  // previous server issues before the request is sent.
   $effect(() => {
-    if (!updateCustomization.fields.allIssues()?.length) return;
+    const issues = updateCustomization.fields.allIssues();
+    if (updateCustomization.pending || !issues?.length) return;
 
     if (hasBrandingErrors) activeTab = "branding";
     else if (hasOrganizationErrors) activeTab = "organization";
@@ -170,6 +173,14 @@
     else if (hasPrivacyErrors) activeTab = "privacyPolicy";
 
     untrack(() => toast.error($LL.admin.settings.error()));
+
+    const invalidFields = new Set(issues.map((issue) => String(issue.path[0])));
+    void tick().then(() => {
+      const inputs = updateCustomization.element?.querySelectorAll<HTMLInputElement>("input[name]") ?? [];
+      Array.from(inputs)
+        .find((input) => invalidFields.has(input.name.split("/", 1)[0] ?? "") && input.checkVisibility())
+        ?.focus();
+    });
   });
 
   // Pending removals are only persisted when the form is saved.
@@ -288,15 +299,16 @@
       id="customization-form"
       novalidate
       {...updateCustomization.preflight(updateCustomizationSchema).enhance(async ({ submit }) => {
+        let succeeded: boolean;
         try {
-          await submit();
+          succeeded = await submit();
         } catch {
           toast.error($LL.admin.settings.error());
           return;
         }
 
         // Validation errors are handled by the $effect above
-        if (updateCustomization.fields.allIssues()?.length) return;
+        if (!succeeded) return;
 
         clearImageRemovals();
         values.accentColor = useCustomAccentColor ? accentColorInputValue : "";

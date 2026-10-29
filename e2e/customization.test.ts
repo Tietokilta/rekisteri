@@ -133,7 +133,38 @@ test.describe("App Customization", () => {
     await expect(adminPage.locator("#rulesUrlEn")).toBeVisible();
     await expect(adminPage.locator("#rulesUrlEn")).toHaveValue("not a url");
     await expect(adminPage.getByTestId("rulesUrlEn-error")).toBeVisible();
-    await expect(adminPage.locator("text=/Failed to update settings/")).toBeVisible();
+    await expect(adminPage.locator("#rulesUrlEn")).toBeFocused();
+    await expect(adminPage.locator("text=/Failed to update settings/").first()).toBeVisible();
+
+    // Saving again with the same error after leaving the tab jumps back again
+    await adminPage.getByTestId("tab-branding").click();
+    await expect(adminPage.locator("#rulesUrlEn")).toBeHidden();
+    await adminPage.getByTestId("save-customizations").click();
+
+    await expect(adminPage.getByTestId("tab-resignation")).toHaveAttribute("data-state", "active");
+    await expect(adminPage.locator("#rulesUrlEn")).toBeFocused();
+  });
+
+  test("a successful save after a server-side validation error stays on the current tab", async ({ adminPage }) => {
+    await adminPage.goto("/en/admin/settings");
+
+    // Passes the client-side schema (SVG name and type, small size) but the server rejects invalid UTF-8
+    await adminPage.setInputFiles("#logo", {
+      name: "broken.svg",
+      mimeType: "image/svg+xml",
+      buffer: Buffer.from([0xff, 0xfe, 0xfd]),
+    });
+    await adminPage.getByTestId("save-customizations").click();
+    await expect(adminPage.locator("text=/Must be a valid UTF-8 SVG image/")).toBeVisible();
+
+    await adminPage.setInputFiles("#logo", []);
+    await adminPage.getByTestId("tab-organization").click();
+    await adminPage.getByTestId("save-customizations").click();
+
+    await expect(
+      adminPage.locator("text=/Settings updated successfully|Asetukset tallennettu onnistuneesti/"),
+    ).toBeVisible();
+    await expect(adminPage.getByTestId("tab-organization")).toHaveAttribute("data-state", "active");
   });
 
   test("readonly admin cannot update customizations", async ({ readonlyAdminPage }) => {
