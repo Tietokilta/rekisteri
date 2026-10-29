@@ -162,10 +162,14 @@
   // A failed preflight never calls the enhance callback, so react to the issues themselves (set on every
   // failed submit, from preflight or the server): jump to the first tab with errors, show a toast and focus
   // the first invalid field. Wait until the submission settles, because a passing preflight re-sets the
-  // previous server issues before the request is sent.
+  // previous server issues before the request is sent. The form instance and its issues outlive this page,
+  // so only react to saves started on this visit.
+  let saveAttempted = false;
   $effect(() => {
     const issues = updateCustomization.fields.allIssues();
-    if (updateCustomization.pending || !issues?.length) return;
+    if (updateCustomization.pending || !saveAttempted) return;
+    saveAttempted = false;
+    if (!issues?.length) return;
 
     if (hasBrandingErrors) activeTab = "branding";
     else if (hasOrganizationErrors) activeTab = "organization";
@@ -178,7 +182,10 @@
     void tick().then(() => {
       const inputs = updateCustomization.element?.querySelectorAll<HTMLInputElement>("input[name]") ?? [];
       Array.from(inputs)
-        .find((input) => invalidFields.has(input.name.split("/", 1)[0] ?? "") && input.checkVisibility())
+        .filter((input) => invalidFields.has(input.name.split("/", 1)[0] ?? ""))
+        // The privacy policy editors submit through a hidden input next to their textarea
+        .map((input) => (input.type === "hidden" ? input.parentElement?.querySelector("textarea") : input))
+        .find((field) => field?.checkVisibility())
         ?.focus();
     });
   });
@@ -314,6 +321,7 @@
         values.accentColor = useCustomAccentColor ? accentColorInputValue : "";
         toast.success(updateCustomization.result?.message || $LL.admin.settings.success());
       })}
+      onsubmit={() => (saveAttempted = true)}
       enctype="multipart/form-data"
       class="contents"
     >

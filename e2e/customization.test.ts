@@ -145,6 +145,39 @@ test.describe("App Customization", () => {
     await expect(adminPage.locator("#rulesUrlEn")).toBeFocused();
   });
 
+  test("an empty privacy policy focuses its editor", async ({ adminPage }) => {
+    await adminPage.goto("/en/admin/settings");
+
+    await adminPage.getByTestId("tab-privacy-policy").click();
+    await adminPage.fill("#privacyPolicyFI", "");
+    await adminPage.getByTestId("tab-branding").click();
+    await adminPage.getByTestId("save-customizations").click();
+
+    await expect(adminPage.getByTestId("tab-privacy-policy")).toHaveAttribute("data-state", "active");
+    await expect(adminPage.locator("#privacyPolicyFI")).toBeFocused();
+  });
+
+  test("errors from an earlier visit don't replay when returning to the page", async ({ adminPage }) => {
+    await adminPage.goto("/en/admin/settings");
+
+    await adminPage.getByTestId("tab-resignation").click();
+    await adminPage.fill("#rulesUrlEn", "not a url");
+    await adminPage.getByTestId("save-customizations").click();
+    const errorToast = adminPage.locator("text=/Failed to update settings/");
+    await expect(errorToast).toBeVisible();
+    await expect(errorToast).toBeHidden({ timeout: 10_000 });
+
+    // Client-side navigation keeps the remote form instance (and its issues) alive
+    await adminPage.locator('a[href="/en/admin/members"]').first().click();
+    await expect(adminPage).toHaveURL(/\/en\/admin\/members/);
+    await adminPage.goBack();
+    await expect(adminPage).toHaveURL(/\/en\/admin\/settings/);
+
+    await expect(adminPage.getByTestId("tab-branding")).toHaveAttribute("data-state", "active");
+    await expect(adminPage.locator("#rulesUrlEn")).toBeHidden();
+    await expect(errorToast).toBeHidden();
+  });
+
   test("a successful save after a server-side validation error stays on the current tab", async ({ adminPage }) => {
     await adminPage.goto("/en/admin/settings");
 
