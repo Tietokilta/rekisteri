@@ -22,7 +22,6 @@
       "description": "Every lockfile change needs a manual fetchPnpmDeps hash bump in flake.nix, so batch non-major npm updates into one weekly PR",
       "matchManagers": ["npm"],
       "matchUpdateTypes": ["minor", "patch"],
-      "matchCurrentVersion": "!/^[~^]?v?0\\./",
       "groupName": "non-major dependencies"
     },
     {
@@ -51,7 +50,7 @@
       "allowedVersions": "<25"
     },
     {
-      "description": "One weekly PR for GitHub Actions; main.yml publishes and deploys, so review it",
+      "description": "Group GitHub Actions updates (majors stay separate); main.yml publishes and deploys, so review it",
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions"
     }
