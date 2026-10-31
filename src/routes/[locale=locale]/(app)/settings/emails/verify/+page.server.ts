@@ -5,6 +5,7 @@ import {
   emailCookieName,
   getEmailOTPFromRequest,
   sendOTPEmail,
+  setEmailCookie,
   setEmailOTPCookie,
 } from "#lib/server/auth/email.js";
 import { route } from "#lib/ROUTES.js";
@@ -19,6 +20,7 @@ export const load: PageServerLoad = async (event) => {
   if (otp === null || Date.now() >= otp.expiresAt.getTime()) {
     otp = await createEmailOTP(email);
     sendOTPEmail(otp.email, otp.code, event.locals.locale);
+    setEmailCookie(event, otp.email, otp.expiresAt);
     setEmailOTPCookie(event, otp);
   }
   return {

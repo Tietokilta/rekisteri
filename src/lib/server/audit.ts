@@ -9,6 +9,7 @@ export type AuditAction =
   | "auth.logout"
   | "auth.passkey_registered"
   | "auth.passkey_deleted"
+  | "auth.account_switch"
   | "member.approve"
   | "member.auto_approve"
   | "member.reject"
