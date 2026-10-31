@@ -95,6 +95,7 @@
     email: string | null;
     firstNames: string | null;
     lastName: string | null;
+    preferredName: string | null;
     homeMunicipality: string | null;
     preferredLanguage: "unspecified" | "finnish" | "english" | null;
     isAllowedEmails: boolean | null;
@@ -106,6 +107,7 @@
     email: null;
     firstNames: null;
     lastName: null;
+    preferredName: null;
     homeMunicipality: null;
     preferredLanguage: null;
     isAllowedEmails: null;
@@ -139,6 +141,7 @@
     email: string | null;
     firstNames: string | null;
     lastName: string | null;
+    preferredName: string | null;
     homeMunicipality: string | null;
     preferredLanguage: "unspecified" | "finnish" | "english" | null;
     isAllowedEmails: boolean | null;
@@ -713,11 +716,13 @@
     enableRowSelection: true,
     getRowId: (row) => row.id,
     globalFilterFn: (row, columnId, filterValue) => {
-      const { organizationName, firstNames, lastName, email, homeMunicipality, secondaryEmails } = row.original;
+      const { organizationName, firstNames, preferredName, lastName, email, homeMunicipality, secondaryEmails } =
+        row.original;
 
       return matchesSearchTokens(filterValue, [
         organizationName,
         firstNames,
+        preferredName,
         lastName,
         email,
         homeMunicipality,

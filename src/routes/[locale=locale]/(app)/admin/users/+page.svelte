@@ -72,7 +72,9 @@
 
   const availableSecondaryUsers = $derived(
     data.users.filter(
-      (u) => u.id !== primaryUser?.id && matchesSearchTokens(secondarySearchQuery, [u.email, u.firstNames, u.lastName]),
+      (u) =>
+        u.id !== primaryUser?.id &&
+        matchesSearchTokens(secondarySearchQuery, [u.email, u.firstNames, u.preferredName, u.lastName]),
     ),
   );
 
@@ -116,7 +118,7 @@
 
   // Filter function
   function matchesSearch(user: (typeof data.users)[number]) {
-    return matchesSearchTokens(searchQuery, [user.email, user.firstNames, user.lastName, user.id]);
+    return matchesSearchTokens(searchQuery, [user.email, user.firstNames, user.preferredName, user.lastName, user.id]);
   }
 
   const filteredAdmins = $derived(admins.filter(matchesSearch));
