@@ -4,6 +4,7 @@
   import AppSidebar from "#lib/components/app-sidebar.svelte";
   import MobileNav from "#lib/components/mobile-nav.svelte";
   import Footer from "#lib/components/footer.svelte";
+  import AccountSwitchNotice from "#lib/components/account-switch-notice.svelte";
 
   let { children, data }: { children: import("svelte").Snippet; data: LayoutServerData } = $props();
 </script>
@@ -13,6 +14,11 @@
   <SidebarInset class="min-w-0">
     <div class="flex min-h-svh flex-col">
       <main class="flex-1">
+        {#if data.accountSwitch}
+          <div class="container mx-auto max-w-2xl px-4 pt-8">
+            <AccountSwitchNotice notice={data.accountSwitch} />
+          </div>
+        {/if}
         {@render children()}
       </main>
       <Footer />

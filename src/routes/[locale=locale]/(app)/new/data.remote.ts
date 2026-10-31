@@ -52,8 +52,7 @@ export const payMembership = form(payMembershipSchema, async ({ membershipId, de
 
     // Check secondary emails
     const secondaryEmails = await getUserSecondaryEmails(event.locals.user.id);
-    const aaltoEmail = secondaryEmails.find((e) => e.domain === "aalto.fi");
-    const hasValidSecondaryAalto = !!aaltoEmail && isSecondaryEmailValid(aaltoEmail);
+    const hasValidSecondaryAalto = secondaryEmails.some((e) => e.domain === "aalto.fi" && isSecondaryEmailValid(e));
 
     // Primary email is always valid, secondary needs verification check
     const hasValidAaltoEmail = isPrimaryAalto || hasValidSecondaryAalto;
