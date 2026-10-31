@@ -22,7 +22,7 @@ export const saveUserInfo = form(userInfoSchema, async (data) => {
         // don't allow changing email here
         firstNames: data.firstNames,
         lastName: data.lastName,
-        preferredName: data.preferredName || data.firstNames.split(" ")[0],
+        preferredName: data.preferredName || null,
         homeMunicipality: data.homeMunicipality,
         preferredLanguage: data.preferredLanguage,
         isAllowedEmails: data.isAllowedEmails,

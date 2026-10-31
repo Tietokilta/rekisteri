@@ -113,7 +113,8 @@
         <Input
           {...saveUserInfo.fields.preferredName.as("text")}
           id="preferredName"
-          placeholder={data.user.firstNames?.split(" ")[0] ?? ""}
+          autocomplete="nickname"
+          placeholder={data.user.firstNames ?? ""}
           onblur={handleBlur}
           oninput={handleInput}
           data-testid="preferredName-input"

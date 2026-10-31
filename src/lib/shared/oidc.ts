@@ -77,6 +77,18 @@ export const OPTIONAL_CLAIMS: readonly OidcClaimDefinition[] = [
     description: { fi: "Käyttäjän sukunimi", en: "User's family name" },
   },
   {
+    key: "nickname",
+    scope: "profile",
+    title: { fi: "Kutsumanimi", en: "Nickname" },
+    description: { fi: "Nimi, jolla käyttäjää kutsutaan, jos se on asetettu", en: "The name the user goes by, if set" },
+  },
+  {
+    key: "name",
+    scope: "profile",
+    title: { fi: "Nimi", en: "Name" },
+    description: { fi: "Kutsumanimi tai etunimet ja sukunimi", en: "Nickname or given names, and family name" },
+  },
+  {
     key: "locale",
     scope: "profile",
     title: { fi: "Asiointikieli", en: "Preferred language" },
@@ -156,7 +168,7 @@ export const OIDC_SCOPES: readonly OidcScope[] = [
     key: "profile",
     title: { fi: "Profiili", en: "Profile" },
     icon: "User",
-    claims: ["given_name", "family_name", "locale", "aalto_email_verified"],
+    claims: ["given_name", "family_name", "nickname", "name", "locale", "aalto_email_verified"],
   },
   {
     key: "email",

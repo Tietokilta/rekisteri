@@ -21,6 +21,7 @@ import { DrizzleOidcAdapter } from "./adapter";
 import { env } from "#lib/server/env.js";
 import { preferredLanguageToLocale } from "#lib/i18n/routing.js";
 import { OIDC_SCOPES } from "#lib/shared/oidc.js";
+import { formatDisplayName } from "#lib/utils.js";
 import { verifyClientSecret } from "./secret";
 import { createAuditLog } from "#lib/server/audit.js";
 import { sessionCookieName, validateSessionToken } from "#lib/server/auth/session.js";
@@ -330,6 +331,8 @@ const configuration: Configuration = {
         if (hasScope("profile")) {
           accountClaims.given_name = u.firstNames || undefined;
           accountClaims.family_name = u.lastName || undefined;
+          accountClaims.nickname = u.preferredName || undefined;
+          accountClaims.name = formatDisplayName({ ...u, email: null }) || undefined;
           accountClaims.locale = preferredLanguageToLocale(u.preferredLanguage) || "fi";
           // Not student status: staff have aalto.fi addresses too
           accountClaims.aalto_email_verified =

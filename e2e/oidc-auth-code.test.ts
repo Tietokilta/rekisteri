@@ -357,6 +357,8 @@ test.describe("OIDC Authorization Code Flow (E2E)", () => {
         "auth_time",
         "given_name",
         "family_name",
+        "nickname",
+        "name",
         "locale",
         "aalto_email_verified",
         "email",
