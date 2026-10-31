@@ -991,6 +991,25 @@ test.describe("Meeting attendance", () => {
     expect(attendees.map((attendee) => attendee.userId)).toEqual([user.id]);
   });
 
+  test("finds a person by preferred name and logs them under it", async ({ adminPage, db }) => {
+    const id = await createMeeting(db, { started: true });
+    meetingIds.push(id);
+    const user = await createUser(db);
+    userIds.push(user.id);
+    await db.update(table.user).set({ preferredName: "Mitti" }).where(eq(table.user.id, user.id));
+    const displayName = `Mitti ${user.lastName}`;
+    await adminPage.goto(meetingUrl(id));
+
+    const search = adminPage.getByTestId("meeting-search");
+    await search.fill(displayName);
+    await expect(adminPage.getByTestId("search-result").first()).toContainText(displayName);
+    await search.press("Enter");
+
+    await expect(attendeeRow(adminPage, displayName)).toBeVisible();
+    const attendees = await db.select().from(table.meetingAttendee).where(eq(table.meetingAttendee.meetingId, id));
+    expect(attendees.map((attendee) => attendee.displayName)).toEqual([displayName]);
+  });
+
   test("keeps the first match selected when the pointer rests over the results", async ({ adminPage, db }) => {
     const id = await createMeeting(db, { started: true });
     meetingIds.push(id);

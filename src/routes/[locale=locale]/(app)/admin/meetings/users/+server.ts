@@ -15,6 +15,7 @@ export const GET: RequestHandler = async (event) => {
         email: table.user.email,
         firstNames: table.user.firstNames,
         lastName: table.user.lastName,
+        preferredName: table.user.preferredName,
       })
       .from(table.user),
     membershipTypesAt(db, new Date()),

@@ -14,6 +14,7 @@
 
   import { OIDC_SCOPES } from "#lib/shared/oidc.js";
   import { route } from "#lib/ROUTES.js";
+  import { formatDisplayName } from "#lib/utils.js";
 
   let { data }: { data: PageData } = $props();
 
@@ -53,7 +54,7 @@
       >
         <div class="min-w-0 flex-1 text-xs">
           <p class="font-medium text-foreground">
-            {[data.user.firstNames, data.user.lastName].filter(Boolean).join(" ") || data.user.email}
+            {formatDisplayName(data.user)}
           </p>
           <p class="truncate text-muted-foreground">{data.user.email}</p>
         </div>
