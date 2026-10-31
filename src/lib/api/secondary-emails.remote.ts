@@ -6,7 +6,6 @@ import {
   getUserSecondaryEmails,
   deleteSecondaryEmail,
   getSecondaryEmailById,
-  createSecondaryEmail,
   changePrimaryEmail,
 } from "#lib/server/auth/secondary-email.js";
 import {
@@ -20,6 +19,7 @@ import { route } from "#lib/ROUTES.js";
 import { ExpiringTokenBucket } from "#lib/server/auth/rate-limit.js";
 import { addSecondaryEmailSchema } from "./secondary-emails.schema";
 import { env } from "#lib/server/env.js";
+import { startSecondaryEmailVerification } from "#lib/server/auth/email-verification.js";
 import { getLL } from "#lib/server/i18n.js";
 
 // Rate limit: 10 add attempts per user per hour in production, 1000 in test mode
@@ -159,7 +159,8 @@ export const changePrimaryEmailForm = form(
  * Add a new secondary email via form submission
  */
 export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ email, next }, issue) => {
-  const { locals, cookies } = getRequestEvent();
+  const event = getRequestEvent();
+  const { locals } = event;
 
   // Lazy cleanup to prevent memory leaks
   addEmailBucket.cleanup();
@@ -175,39 +176,24 @@ export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ emai
     throw error(429, LL.secondaryEmail.tooManyAttempts());
   }
 
+  // The address may belong to another account, so also apply the per-recipient limit used by sign-in
+  sendOTPBucket.cleanup();
+  if (!sendOTPBucket.consume(email, 1)) {
+    throw error(429, LL.secondaryEmail.tooManyAttempts());
+  }
+
   // Translation map for errors thrown by createSecondaryEmail / extractDomain
   const errorTranslations: Record<string, string> = {
     "Invalid email format": LL.secondaryEmail.invalidEmail(),
     "Invalid email format: missing domain": LL.secondaryEmail.invalidEmail(),
-    "Could not add this email. Please try a different email address.": LL.secondaryEmail.couldNotAdd(),
+    "This is already your primary email": LL.secondaryEmail.alreadyPrimary(),
     "Maximum 10 secondary emails allowed": LL.secondaryEmail.limitReached(),
   };
 
   try {
-    // Create unverified secondary email
-    await createSecondaryEmail(locals.user.id, email);
-
-    // Create OTP and send
-    const otp = await createEmailOTP(email);
-    sendOTPEmail(email, otp.code, locals.locale);
-
-    // Set cookies for verification (matching email.ts pattern)
-    cookies.set(emailCookieName, email, {
-      expires: otp.expiresAt,
-      path: "/",
-      httpOnly: true,
-      secure: !dev && !env.TEST,
-      sameSite: "lax",
-    });
-
-    // Set OTP cookie (otp.id is already encoded, don't double-encode it)
-    cookies.set(emailOTPCookieName, otp.id, {
-      expires: otp.expiresAt,
-      path: "/",
-      httpOnly: true,
-      secure: !dev && !env.TEST,
-      sameSite: "lax",
-    });
+    // Add the unverified email and send a code. Whether another account uses the
+    // address is only checked after the code is verified (no email enumeration).
+    await startSecondaryEmailVerification(event, locals.user.id, email);
 
     const verifyUrl = route("/[locale=locale]/settings/emails/verify", { locale: locals.locale });
     redirect(303, next ? `${verifyUrl}?next=${encodeURIComponent(next)}` : verifyUrl);
