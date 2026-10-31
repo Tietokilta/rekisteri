@@ -7,12 +7,12 @@ import {
   sendOTPEmail,
   setEmailOTPCookie,
 } from "#lib/server/auth/email.js";
-import { route } from "#lib/ROUTES.js";
+import { signInRestartHref } from "#lib/server/auth/sign-in-next.js";
 
 export const load: PageServerLoad = async (event) => {
   const email = event.cookies.get(emailCookieName);
   if (typeof email !== "string") {
-    return redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
+    return redirect(302, signInRestartHref(event));
   }
 
   let otp = await getEmailOTPFromRequest(event);

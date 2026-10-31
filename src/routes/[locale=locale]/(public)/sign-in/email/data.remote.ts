@@ -18,11 +18,10 @@ import { getUserByEmail, deleteUnverifiedSecondaryEmailClaims } from "#lib/serve
 import { generateUserId } from "#lib/server/auth/utils.js";
 import * as table from "#lib/server/db/schema.js";
 import { db } from "#lib/server/db/index.js";
-import { route } from "#lib/ROUTES.js";
+import { consumeSignInNext, signInRestartHref } from "#lib/server/auth/sign-in-next.js";
 import { auditLogin, auditLoginFailed } from "#lib/server/audit.js";
 import { verifyCodeSchema } from "./schema";
 import { getLL } from "#lib/server/i18n.js";
-import { takeReturnTo } from "#lib/server/oidc/return-to.js";
 
 const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
 
@@ -111,10 +110,7 @@ export const verifyCode = form(verifyCodeSchema, async ({ code }, issue) => {
   deleteEmailOTP(otp.id);
   deleteEmailOTPCookie(event);
 
-  const returnTo = takeReturnTo(event.cookies);
-  if (returnTo) redirect(302, returnTo);
-
-  redirect(302, route("/[locale=locale]", { locale: event.locals.locale }));
+  redirect(302, consumeSignInNext(event));
 });
 
 export const resendEmail = form(async () => {
@@ -161,5 +157,5 @@ export const changeEmail = form(async () => {
   deleteEmailOTPCookie(event);
 
   // Redirect back to sign-in page
-  redirect(303, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
+  redirect(303, signInRestartHref(event));
 });

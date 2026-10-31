@@ -1,13 +1,13 @@
 import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { route } from "#lib/ROUTES.js";
+import { signInHref } from "#lib/server/auth/sign-in-next.js";
 import { db } from "#lib/server/db/index.js";
 import * as table from "#lib/server/db/schema.js";
 import { eq, desc } from "drizzle-orm";
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.user) {
-    return redirect(302, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
+    return redirect(302, signInHref(event));
   }
 
   const result = await db

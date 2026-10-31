@@ -11,6 +11,7 @@ const fi = {
     title: "Navigaatio",
     dashboard: "Jäsenkortti",
     membership: "Jäsenhistoria",
+    buyMembership: "Osta jäsenyys",
     settings: "Asetukset",
     profile: "Profiili",
     passkeys: "Avaimet",
@@ -44,6 +45,20 @@ const fi = {
     completeProfile: "Siirry profiiliin",
     paymentSuccess: "Maksu onnistui!",
     paymentSuccessDescription: "Jäsenyytesi päivittyy hetken kuluttua.",
+    onboarding: {
+      title: "Hae jäsenyyttä",
+      done: "Valmis",
+      detailsTitle: "Omat tiedot",
+      detailsDescription: "Nimi ja kotikunta",
+      detailsAction: "Täytä tiedot",
+      detailsEdit: "Muokkaa",
+      membershipTitle: "Valitse jäsenyystyyppi",
+      membershipDescription: "Jos opiskelet Aallossa, vahvista myös aalto.fi-sähköpostiosoitteesi.",
+      membershipAction: "Valitse jäsenyys",
+      paymentTitle: "Maksa jäsenmaksu",
+      decisionTitle: "Hallituksen hyväksyntä",
+      decisionDescription: "Saat sähköpostin, kun jäsenyytesi on hyväksytty.",
+    },
   },
 
   // Member Card

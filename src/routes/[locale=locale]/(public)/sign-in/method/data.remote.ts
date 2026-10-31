@@ -9,6 +9,7 @@ import {
 } from "#lib/server/auth/email.js";
 import { route } from "#lib/ROUTES.js";
 import { getLL } from "#lib/server/i18n.js";
+import { signInRestartHref } from "#lib/server/auth/sign-in-next.js";
 
 export const useEmail = form(async () => {
   const event = getRequestEvent();
@@ -36,5 +37,5 @@ export const changeEmail = form(async () => {
   deleteEmailCookie(event);
 
   // Redirect back to sign-in page
-  redirect(303, route("/[locale=locale]/sign-in", { locale: event.locals.locale }));
+  redirect(303, signInRestartHref(event));
 });
