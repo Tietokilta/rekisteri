@@ -4,7 +4,7 @@ import { signInHref } from "#lib/server/auth/sign-in-next.js";
 import { db } from "#lib/server/db/index.js";
 import * as table from "#lib/server/db/schema.js";
 import { eq, desc, gt, gte, and, isNotNull } from "drizzle-orm";
-import { getUserSecondaryEmails, isSecondaryEmailValid } from "#lib/server/auth/secondary-email.js";
+import { getUserSecondaryEmails, isSecondaryEmailValid, needsPersonalEmail } from "#lib/server/auth/secondary-email.js";
 import { BLOCKING_MEMBER_STATUSES } from "#lib/shared/enums.js";
 import { checkAutoApprovalEligibility } from "#lib/server/payment/auto-approval.js";
 
@@ -70,9 +70,13 @@ export const load: PageServerLoad = async (event) => {
   const isPrimaryAalto = primaryEmailDomain === "aalto.fi";
 
   const secondaryEmails = await getUserSecondaryEmails(user.id);
-  const aaltoSecondaryEmail = secondaryEmails.find((e) => e.domain === "aalto.fi");
-  const hasValidSecondaryAalto = !!aaltoSecondaryEmail && isSecondaryEmailValid(aaltoSecondaryEmail);
-  const hasExpiredSecondaryAalto = aaltoSecondaryEmail && !isSecondaryEmailValid(aaltoSecondaryEmail);
+  const aaltoSecondaryEmails = secondaryEmails.filter((e) => e.domain === "aalto.fi");
+  // A valid address wins over unverified or expired ones, e.g. a mistyped address left behind
+  const validSecondaryAalto = aaltoSecondaryEmails.find((e) => isSecondaryEmailValid(e));
+  const expiredSecondaryAalto = aaltoSecondaryEmails.find((e) => e.verifiedAt && !isSecondaryEmailValid(e));
+  const aaltoSecondaryEmail = validSecondaryAalto ?? expiredSecondaryAalto;
+  const hasValidSecondaryAalto = !!validSecondaryAalto;
+  const hasExpiredSecondaryAalto = !validSecondaryAalto && !!expiredSecondaryAalto;
 
   // Primary email is always considered valid (no expiration tracking for primary)
   // TODO: Consider adding expiration tracking for primary emails with expiring domains
@@ -86,5 +90,8 @@ export const load: PageServerLoad = async (event) => {
     hasValidAaltoEmail,
     hasExpiredAaltoEmail,
     aaltoEmailExpiry: isPrimaryAalto ? null : aaltoSecondaryEmail?.expiresAt,
+    validAaltoEmail: isPrimaryAalto ? user.email : hasValidSecondaryAalto ? (aaltoSecondaryEmail?.email ?? null) : null,
+    expiredAaltoEmail: hasExpiredAaltoEmail ? (aaltoSecondaryEmail?.email ?? null) : null,
+    needsPersonalEmail: await needsPersonalEmail(user),
   };
 };

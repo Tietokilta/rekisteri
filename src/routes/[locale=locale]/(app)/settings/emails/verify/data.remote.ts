@@ -1,6 +1,5 @@
 import { error, invalid, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
-import { timingSafeEqual } from "node:crypto";
 import {
   createEmailOTP,
   deleteEmailCookie,
@@ -12,72 +11,32 @@ import {
   sendOTPBucket,
   setEmailOTPCookie,
 } from "#lib/server/auth/email.js";
-import { ExpiringTokenBucket } from "#lib/server/auth/rate-limit.js";
 import { route } from "#lib/ROUTES.js";
 import { resolveNext } from "#lib/utils/next.js";
-import { getUserSecondaryEmails, markSecondaryEmailVerified } from "#lib/server/auth/secondary-email.js";
+import { confirmSecondaryEmail } from "#lib/server/auth/email-verification.js";
 import { verifyCodeSchema } from "./schema";
 import { getLL } from "#lib/server/i18n.js";
-
-const otpVerifyBucket = new ExpiringTokenBucket<string>(5, 60 * 30);
 
 export const verifyCode = form(verifyCodeSchema, async ({ code, next }, issue) => {
   const event = getRequestEvent();
 
   const LL = getLL(event.locals.locale);
 
-  // Lazy cleanup to prevent memory leaks
-  otpVerifyBucket.cleanup();
-
-  let otp = await getEmailOTPFromRequest(event);
-  if (otp === null) {
-    error(401, LL.error.notAuthenticated());
-  }
-
-  if (!otpVerifyBucket.check(otp.email, 1)) {
-    error(429, LL.error.tooManyRequests());
-  }
-
-  if (!otpVerifyBucket.consume(otp.email, 1)) {
-    error(429, LL.error.tooManyRequests());
-  }
-
-  if (Date.now() >= otp.expiresAt.getTime()) {
-    otp = await createEmailOTP(otp.email);
-    sendOTPEmail(otp.email, otp.code, event.locals.locale);
-    return {
-      message: LL.auth.codeExpiredResent(),
-    };
-  }
-
-  const capitalizedCode = code.toLocaleUpperCase("en");
-
-  // Use constant-time comparison to prevent timing attacks
-  const expectedBuffer = Buffer.from(otp.code, "utf8");
-  const providedBuffer = Buffer.from(capitalizedCode.padEnd(otp.code.length, "\0"), "utf8");
-  const isValid = expectedBuffer.length === providedBuffer.length && timingSafeEqual(expectedBuffer, providedBuffer);
-  if (!isValid) {
-    return invalid(issue.code(LL.auth.incorrectCode()));
-  }
-
-  // Find the secondary email record for this user
   if (!event.locals.user) {
     error(401, LL.error.notAuthenticated());
   }
 
-  const secondaryEmails = await getUserSecondaryEmails(event.locals.user.id);
-  const emailToVerify = secondaryEmails.find((e) => e.email === otp.email);
-
-  if (!emailToVerify) {
-    error(404, LL.auth.emailNotFound());
+  const result = await confirmSecondaryEmail(event, event.locals.user.id, code);
+  if (result.status === "invalid") {
+    return invalid(issue.code(LL.auth.incorrectCode()));
   }
-
-  // Mark as verified
-  await markSecondaryEmailVerified(emailToVerify.id, event.locals.user.id);
-
-  deleteEmailCookie(event);
-  deleteEmailOTP(otp.id);
-  deleteEmailOTPCookie(event);
+  if (result.status === "expired_resent") {
+    return { message: LL.auth.codeExpiredResent() };
+  }
+  if (result.status === "conflict") {
+    // Shown only now that the user has proven they control the address
+    return { conflict: result.email };
+  }
 
   // If the user was redirected here from another page (e.g. purchase flow),
   // redirect back there instead of the default emails management page.
