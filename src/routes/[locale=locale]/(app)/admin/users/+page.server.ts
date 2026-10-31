@@ -18,6 +18,7 @@ export const load: PageServerLoad = async (event) => {
       email: table.user.email,
       firstNames: table.user.firstNames,
       lastName: table.user.lastName,
+      preferredName: table.user.preferredName,
       adminRole: table.user.adminRole,
       createdAt: table.user.createdAt,
       lastActiveAt: table.user.lastActiveAt,
