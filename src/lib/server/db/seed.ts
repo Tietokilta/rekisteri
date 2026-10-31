@@ -230,6 +230,7 @@ try {
         preferredLanguage: f.default({ defaultValue: "unspecified" }),
         adminRole: f.default({ defaultValue: "none" }),
         stripeCustomerId: f.default({ defaultValue: null }),
+        preferredName: f.default({ defaultValue: null }),
       },
     },
   }));

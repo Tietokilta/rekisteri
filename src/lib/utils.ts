@@ -33,11 +33,26 @@ export function formatFullName(
 }
 
 /**
- * Get a display-friendly first name for a user.
+ * Format the name a user goes by: their preferred name, or their first names if none is set, and last name.
+ * Returns the email as fallback if no name parts are available.
+ */
+export function formatDisplayName(
+  user: { firstNames?: string | null; lastName?: string | null; preferredName?: string | null; email?: string | null },
+  fallback?: string,
+): string {
+  return formatFullName({ ...user, firstNames: user.preferredName || user.firstNames }, fallback);
+}
+
+/**
+ * Get a display-friendly first name for a user: their preferred name, or their first given name.
  * Falls back to the email prefix (part before @) if no first name is set.
  */
-export function getDisplayFirstName(user: { firstNames?: string | null; email: string }): string {
-  const firstName = user.firstNames?.split(" ", 1)[0];
+export function getDisplayFirstName(user: {
+  firstNames?: string | null;
+  preferredName?: string | null;
+  email: string;
+}): string {
+  const firstName = user.preferredName || user.firstNames?.split(" ", 1)[0];
   return firstName || user.email.split("@", 1)[0] || user.email;
 }
 

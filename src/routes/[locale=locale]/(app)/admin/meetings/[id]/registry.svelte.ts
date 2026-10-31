@@ -3,6 +3,7 @@ export type RegistryUser = {
   email: string;
   firstNames: string | null;
   lastName: string | null;
+  preferredName: string | null;
   membershipTypeId: string | null;
 };
 

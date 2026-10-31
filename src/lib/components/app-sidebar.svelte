@@ -6,7 +6,7 @@
   import { route } from "#lib/ROUTES.js";
   import { signOut } from "#lib/api/auth.remote.js";
   import { getMainNavItems, getSettingsNavItems, getAdminNavItems, type NavItem } from "#lib/navigation.js";
-  import { formatFullName } from "#lib/utils.js";
+  import { formatDisplayName } from "#lib/utils.js";
   import { hasAdminAccess, type AdminRole } from "#lib/shared/enums.js";
 
   // Icons from @lucide/svelte
@@ -19,6 +19,7 @@
       email: string;
       firstNames?: string | null;
       lastName?: string | null;
+      preferredName?: string | null;
       adminRole: AdminRole;
     };
   }
@@ -35,7 +36,7 @@
   }
 
   // Get user display name
-  const displayName = $derived(formatFullName(user, user.email));
+  const displayName = $derived(formatDisplayName(user, user.email));
 
   const logoUrl = $derived(page.data.customizations.logoUrl ?? page.data.customizations.logoDarkUrl);
   const logoDarkUrl = $derived(page.data.customizations.logoDarkUrl ?? page.data.customizations.logoUrl);
