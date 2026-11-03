@@ -640,6 +640,9 @@
                         <Button
                           size="sm"
                           variant="outline"
+                          aria-label={row.physicalPresent
+                            ? $LL.admin.meetings.checkOut()
+                            : $LL.admin.meetings.checkIn()}
                           onclick={() => record({ attendeeId: row.id }, row.physicalPresent ? "out" : "in")}
                         >
                           <!-- Short labels on phones, so the button fits beside the name -->
