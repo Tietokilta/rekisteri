@@ -124,7 +124,7 @@
         conflicts: data.warnings.filter((warning) => warning.attendeeId === person.id).length,
       }))
       // By name, so rows don't move under the operator's finger as people come and go
-      .toSorted((a, b) => a.displayName.localeCompare(b.displayName)),
+      .toSorted((a, b) => a.displayName.localeCompare(b.displayName, $locale)),
   );
   // A closed meeting lists who attended at all, longest stay first, instead of who is in the room now
   const closedAt = $derived(data.meeting.closedAt ? new Date(data.meeting.closedAt) : null);
@@ -135,7 +135,7 @@
       .toSorted(
         (a, b) =>
           (summary[b.id]?.presentMs ?? 0) - (summary[a.id]?.presentMs ?? 0) ||
-          a.displayName.localeCompare(b.displayName),
+          a.displayName.localeCompare(b.displayName, $locale),
       ),
   );
   const filteredRows = $derived(
@@ -640,9 +640,6 @@
                         <Button
                           size="sm"
                           variant="outline"
-                          aria-label={row.physicalPresent
-                            ? $LL.admin.meetings.checkOut()
-                            : $LL.admin.meetings.checkIn()}
                           onclick={() => record({ attendeeId: row.id }, row.physicalPresent ? "out" : "in")}
                         >
                           <!-- Short labels on phones, so the button fits beside the name -->
