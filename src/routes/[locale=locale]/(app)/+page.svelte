@@ -46,9 +46,6 @@
 
 <div class="container mx-auto max-w-2xl px-4 py-8">
   <div class="space-y-4">
-    {#if data.needsPersonalEmail}
-      <PersonalEmailPrompt userId={data.user.id} domain={data.user.email.split("@", 2)[1] ?? ""} />
-    {/if}
     {#if isNewApplicant}
       <OnboardingChecklist {isProfileComplete} />
     {:else if isProfileComplete}
@@ -60,6 +57,9 @@
       />
     {:else}
       <ProfileIncompleteCard />
+    {/if}
+    {#if data.needsPersonalEmail}
+      <PersonalEmailPrompt domain={data.user.email.split("@", 2)[1] ?? ""} />
     {/if}
   </div>
 </div>

@@ -7,6 +7,7 @@ import { eq, desc, gt, gte, and, isNotNull, count } from "drizzle-orm";
 import { ensureUserHasQrToken } from "#lib/server/attendance/qr-token.js";
 import { BLOCKING_MEMBER_STATUSES } from "#lib/shared/enums.js";
 import { needsPersonalEmail } from "#lib/server/auth/secondary-email.js";
+import { isPersonalEmailPromptDismissed } from "#lib/server/auth/personal-email-prompt.js";
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.user) {
@@ -62,6 +63,7 @@ export const load: PageServerLoad = async (event) => {
     memberships,
     qrToken,
     hasAvailableMemberships,
-    needsPersonalEmail: await needsPersonalEmail(event.locals.user),
+    needsPersonalEmail:
+      !isPersonalEmailPromptDismissed(event, event.locals.user.id) && (await needsPersonalEmail(event.locals.user)),
   };
 };

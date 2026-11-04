@@ -27,7 +27,6 @@ async function getStudentMembership(db: PostgresJsDatabase<Schema>) {
 async function openStudentVerification(page: Page, membershipId: string) {
   await page.goto(route("/[locale=locale]/new", { locale: "fi" }), { waitUntil: "networkidle" });
   await page.locator(`input[type="radio"][value="${membershipId}"]`).check();
-  await page.getByTestId("is-student").check();
 }
 
 async function sendAndEnterCode(page: Page, db: PostgresJsDatabase<Schema>, email: string) {
@@ -42,7 +41,6 @@ async function sendAndEnterCode(page: Page, db: PostgresJsDatabase<Schema>, emai
 
 // The aalto.fi address only shows as verified once signed in to the account that owns it
 async function expectSignedInAs(page: Page, email: string) {
-  await page.getByTestId("is-student").check();
   await expect(page.getByTestId("student-email-verified")).toContainText(email);
 }
 
@@ -68,6 +66,7 @@ test.describe("Student email verification on the membership page", () => {
       await openStudentVerification(isolatedPage, membership.id);
       const buyButton = isolatedPage.getByRole("button", { name: /osta jäsenyys/i });
       await expect(buyButton).toBeDisabled();
+      await expect(buyButton).toHaveAccessibleDescription(/vahvista aalto\.fi-sähköpostiosoitteesi/i);
 
       await sendAndEnterCode(isolatedPage, db, email);
 
@@ -277,7 +276,6 @@ test.describe("Student email verification on the membership page", () => {
       await expect(isolatedPage.getByTestId("student-email-verified")).toContainText(email);
 
       await isolatedPage.reload();
-      await isolatedPage.getByTestId("is-student").check();
       await expect(isolatedPage.getByTestId("student-email-verified")).toContainText(email);
     } finally {
       await db.delete(table.emailOTP).where(inArray(table.emailOTP.email, [typo, email]));

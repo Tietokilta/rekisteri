@@ -23,7 +23,6 @@
   interface PurchaseFormState {
     membershipId: string;
     description: string;
-    isStudent: boolean;
   }
 
   const formPersist = new PersistedState<PurchaseFormState | null>("purchase-form-state", null, {
@@ -46,15 +45,13 @@
   // Check if profile is complete
   const isProfileComplete = $derived(Boolean(data.user.firstNames && data.user.lastName && data.user.homeMunicipality));
 
-  let isStudent = $state(false);
   let restored = $state(false);
   let requireStudentVerification = $derived(
     availableMemberships.find((e) => e.id === payMembership.fields.membershipId.value())?.requiresStudentVerification ??
       false,
   );
-  let disableForm = $derived(
-    (requireStudentVerification && (!isStudent || !data.hasValidAaltoEmail)) || filteredMemberships.length === 0,
-  );
+  const needsStudentEmail = $derived(requireStudentVerification && !data.hasValidAaltoEmail);
+  let disableForm = $derived(needsStudentEmail || filteredMemberships.length === 0);
 
   const rulesUrl = $derived(page.data.customizations?.organizationRulesUrl?.[$locale]);
 
@@ -66,7 +63,6 @@
     formPersist.current = {
       membershipId: payMembership.fields.membershipId.value() ?? "",
       description: textarea?.value ?? "",
-      isStudent,
     };
   });
 
@@ -82,7 +78,6 @@
     }
     formPersist.current = null;
 
-    isStudent = saved.isStudent;
     await tick();
 
     if (saved.membershipId) {
@@ -113,7 +108,7 @@
 <div class="container mx-auto max-w-2xl px-4 py-8">
   {#if data.needsPersonalEmail}
     <div class="mb-4">
-      <PersonalEmailPrompt userId={data.user.id} domain={data.user.email.split("@", 2)[1] ?? ""} />
+      <PersonalEmailPrompt domain={data.user.email.split("@", 2)[1] ?? ""} />
     </div>
   {/if}
   {#if !isProfileComplete}
@@ -205,24 +200,15 @@
         </form>
 
         {#if requireStudentVerification}
-          <div class="mt-4 space-y-3">
-            <div class="rounded-lg border p-4">
-              <label class="flex cursor-pointer items-start gap-3">
-                <input type="checkbox" data-testid="is-student" bind:checked={isStudent} class="mt-1 rounded" />
-                <span class="text-sm">{$LL.membership.isStudent()}</span>
-              </label>
-            </div>
-
-            {#if isStudent}
-              <StudentEmailVerification
-                domain="aalto.fi"
-                verifiedEmail={data.validAaltoEmail}
-                verifiedUntil={data.aaltoEmailExpiry ?? null}
-                expiredEmail={data.expiredAaltoEmail}
-                expiredAt={data.expiredAaltoEmail ? (data.aaltoEmailExpiry ?? null) : null}
-                next={route("/[locale=locale]/new", { locale: $locale })}
-              />
-            {/if}
+          <div class="mt-4">
+            <StudentEmailVerification
+              domain="aalto.fi"
+              verifiedEmail={data.validAaltoEmail}
+              verifiedUntil={data.aaltoEmailExpiry ?? null}
+              expiredEmail={data.expiredAaltoEmail}
+              expiredAt={data.expiredAaltoEmail ? (data.aaltoEmailExpiry ?? null) : null}
+              next={route("/[locale=locale]/new", { locale: $locale })}
+            />
           </div>
         {/if}
 
@@ -231,7 +217,8 @@
           type="submit"
           form="pay-membership-form"
           disabled={disableForm || !!payMembership.pending}
-          class={disableForm ? "mt-4 w-full cursor-not-allowed opacity-50" : "mt-4 w-full"}
+          aria-describedby={needsStudentEmail ? "buy-disabled-reason" : undefined}
+          class="mt-4 w-full"
         >
           {$LL.membership.buy()}
           {#if payMembership.fields.membershipId.value()}
@@ -249,6 +236,11 @@
             {/if}
           {/if}
         </Button>
+        {#if needsStudentEmail}
+          <p id="buy-disabled-reason" class="mt-2 text-sm text-muted-foreground">
+            {$LL.membership.verifyStudentEmailToBuy({ domain: "aalto.fi" })}
+          </p>
+        {/if}
       </Card.Content>
     </Card.Root>
   {/if}
