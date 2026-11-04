@@ -31,7 +31,7 @@
 
 <Card.Root data-testid="onboarding-checklist">
   <Card.Header>
-    <Card.Title>{$LL.dashboard.onboarding.title()}</Card.Title>
+    <Card.Title><h1>{$LL.dashboard.onboarding.title()}</h1></Card.Title>
   </Card.Header>
   <Card.Content>
     <ol class="divide-y">

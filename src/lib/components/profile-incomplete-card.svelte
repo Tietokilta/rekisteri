@@ -26,7 +26,7 @@
         <User class="size-12" />
       </Empty.Media>
       <Empty.Content>
-        <Empty.Title>{title ?? $LL.dashboard.profileIncomplete()}</Empty.Title>
+        <Empty.Title><h1>{title ?? $LL.dashboard.profileIncomplete()}</h1></Empty.Title>
         <Empty.Description>{description ?? $LL.dashboard.profileIncompleteDescription()}</Empty.Description>
       </Empty.Content>
     </Empty.Root>

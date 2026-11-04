@@ -169,7 +169,7 @@
 
 <Card.Root class={statusConfig.cardClass}>
   <Card.Header>
-    <Card.Title>{$LL.dashboard.membershipStatus()}</Card.Title>
+    <Card.Title><h1>{$LL.dashboard.membershipStatus()}</h1></Card.Title>
     <Card.Action>
       <Badge variant={statusConfig.variant}>
         {@const Icon = statusConfig.icon}
