@@ -129,5 +129,12 @@ test.describe("Form Validation UX - Reward Early, Validate Late", () => {
 
     // The browser's own required-field bubble would block the submit and skip this
     await expect(adminPage.getByTestId("firstNames-error")).toHaveText("Tämä kenttä on pakollinen");
+
+    // Focus moves to the invalid field, and fixing it clears the error without a blur
+    const firstNamesInput = adminPage.getByTestId("firstNames-input");
+    await expect(firstNamesInput).toBeFocused();
+    await expect(firstNamesInput).toHaveAccessibleDescription("Tämä kenttä on pakollinen");
+    await firstNamesInput.pressSequentially("Test");
+    await expect(adminPage.getByTestId("firstNames-error")).not.toBeVisible();
   });
 });
