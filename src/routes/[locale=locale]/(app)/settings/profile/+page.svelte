@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from "svelte";
+  import { tick, untrack } from "svelte";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { Input } from "#lib/components/ui/input/index.js";
@@ -45,6 +45,15 @@
     saveUserInfo.validate();
   }
 
+  // A failed preflight blocks the submit without any announcement, so after a
+  // save attempt validate every field and move focus to the first invalid one
+  async function handleSaveClick() {
+    hasValidated = true;
+    await saveUserInfo.validate({ all: true, preflightOnly: true });
+    await tick();
+    document.querySelector<HTMLElement>('#profile-form [aria-invalid="true"]')?.focus();
+  }
+
   function issueMessage(message: string) {
     return message === REQUIRED_FIELD_MESSAGE ? $LL.common.fieldRequired() : message;
   }
@@ -75,6 +84,7 @@
           toast.error($LL.user.saveError());
         }
       })}
+      id="profile-form"
       class="flex flex-col gap-4"
       novalidate
     >
@@ -105,10 +115,13 @@
           required
           onblur={handleBlur}
           oninput={handleInput}
+          aria-describedby="firstNames-error"
           data-testid="firstNames-input"
         />
         {#each saveUserInfo.fields.firstNames.issues() as issue, i (i)}
-          <p class="text-sm text-destructive" data-testid="firstNames-error">{issueMessage(issue.message)}</p>
+          <p id="firstNames-error" class="text-sm text-destructive" data-testid="firstNames-error">
+            {issueMessage(issue.message)}
+          </p>
         {/each}
       </div>
 
@@ -121,10 +134,13 @@
           required
           onblur={handleBlur}
           oninput={handleInput}
+          aria-describedby="lastName-error"
           data-testid="lastName-input"
         />
         {#each saveUserInfo.fields.lastName.issues() as issue, i (i)}
-          <p class="text-sm text-destructive" data-testid="lastName-error">{issueMessage(issue.message)}</p>
+          <p id="lastName-error" class="text-sm text-destructive" data-testid="lastName-error">
+            {issueMessage(issue.message)}
+          </p>
         {/each}
       </div>
 
@@ -137,10 +153,13 @@
           required
           onblur={handleBlur}
           oninput={handleInput}
+          aria-describedby="homeMunicipality-error"
           data-testid="homeMunicipality-input"
         />
         {#each saveUserInfo.fields.homeMunicipality.issues() as issue, i (i)}
-          <p class="text-sm text-destructive" data-testid="homeMunicipality-error">{issueMessage(issue.message)}</p>
+          <p id="homeMunicipality-error" class="text-sm text-destructive" data-testid="homeMunicipality-error">
+            {issueMessage(issue.message)}
+          </p>
         {/each}
       </div>
 
@@ -172,7 +191,7 @@
         <Switch {...saveUserInfo.fields.isAllowedEmails.as("checkbox")} id="isAllowedEmails" />
       </div>
 
-      <Button type="submit" disabled={!!saveUserInfo.pending}>{$LL.common.save()}</Button>
+      <Button type="submit" disabled={!!saveUserInfo.pending} onclick={handleSaveClick}>{$LL.common.save()}</Button>
     </form>
   </Card.Content>
 </Card.Root>
