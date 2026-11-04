@@ -7,7 +7,7 @@
   import { signInSchema } from "./schema";
 </script>
 
-<main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
+<div class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
   <h1 class="font-mono text-lg">{$LL.auth.signInOrCreateAccount()}</h1>
   <p class="max-w-xs text-center text-sm text-balance text-muted-foreground">{$LL.auth.signInDescription()}</p>
   <form {...signIn.preflight(signInSchema)} class="flex w-full max-w-xs flex-col gap-4">
@@ -26,6 +26,6 @@
     <Button type="submit" disabled={!!signIn.pending}>{$LL.auth.continue()}</Button>
   </form>
   {#each signIn.fields.allIssues() as issue, i (i)}
-    <p style="color: red">{issue.message}</p>
+    <p class="text-sm text-destructive">{issue.message}</p>
   {/each}
-</main>
+</div>
