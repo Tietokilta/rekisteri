@@ -19,7 +19,7 @@
   }
 </script>
 
-<main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
+<div class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
   <h1 class="font-mono text-lg">{$LL.auth.signIn()}</h1>
   <p class="max-w-xs">{$LL.auth.codeSentTo({ email: data.email })}</p>
   <div class="flex w-full max-w-xs flex-col gap-4">
@@ -39,14 +39,14 @@
           {#snippet children({ cells })}
             <InputOTP.Group>
               {#each cells as cell, i (i)}
-                <InputOTP.Slot {cell} />
+                <InputOTP.Slot {cell} class="h-10 w-8 sm:w-10" />
               {/each}
             </InputOTP.Group>
           {/snippet}
         </InputOTP.Root>
       </div>
       {#each verifyCode.fields.allIssues() as issue, i (i)}
-        <p class="text-red-500" data-testid="otp-error">{issue.message}</p>
+        <p class="text-sm text-destructive" data-testid="otp-error">{issue.message}</p>
       {/each}
       <Button type="submit" disabled={!!verifyCode.pending}>{$LL.auth.verify()}</Button>
     </form>
@@ -60,4 +60,4 @@
       <Button type="submit" variant="outline" disabled={!!changeEmail.pending}>{$LL.auth.changeEmail()}</Button>
     </form>
   </div>
-</main>
+</div>

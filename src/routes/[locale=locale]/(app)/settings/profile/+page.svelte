@@ -7,7 +7,7 @@
   import { LL, locale } from "#lib/i18n/i18n-svelte.js";
   import { Switch } from "#lib/components/ui/switch/index.js";
   import { saveUserInfo } from "../../data.remote";
-  import { userInfoSchema } from "../../schema";
+  import { REQUIRED_FIELD_MESSAGE, userInfoSchema } from "../../schema";
   import { Button } from "#lib/components/ui/button/index.js";
   import { Label } from "#lib/components/ui/label/index.js";
   import * as Card from "#lib/components/ui/card/index.js";
@@ -45,6 +45,10 @@
     saveUserInfo.validate();
   }
 
+  function issueMessage(message: string) {
+    return message === REQUIRED_FIELD_MESSAGE ? $LL.common.fieldRequired() : message;
+  }
+
   function handleInput() {
     // Only validate on input after initial validation
     if (hasValidated) {
@@ -55,7 +59,7 @@
 
 <Card.Root>
   <Card.Header>
-    <Card.Title>{$LL.settings.profile.title()}</Card.Title>
+    <Card.Title><h1>{$LL.settings.profile.title()}</h1></Card.Title>
     <Card.Description>{$LL.settings.profile.description()}</Card.Description>
   </Card.Header>
   <Card.Content>
@@ -97,12 +101,13 @@
           {...saveUserInfo.fields.firstNames.as("text")}
           id="firstNames"
           autocomplete="given-name"
+          required
           onblur={handleBlur}
           oninput={handleInput}
           data-testid="firstNames-input"
         />
         {#each saveUserInfo.fields.firstNames.issues() as issue, i (i)}
-          <p class="text-sm text-destructive" data-testid="firstNames-error">{issue.message}</p>
+          <p class="text-sm text-destructive" data-testid="firstNames-error">{issueMessage(issue.message)}</p>
         {/each}
       </div>
 
@@ -112,12 +117,13 @@
           {...saveUserInfo.fields.lastName.as("text")}
           id="lastName"
           autocomplete="family-name"
+          required
           onblur={handleBlur}
           oninput={handleInput}
           data-testid="lastName-input"
         />
         {#each saveUserInfo.fields.lastName.issues() as issue, i (i)}
-          <p class="text-sm text-destructive" data-testid="lastName-error">{issue.message}</p>
+          <p class="text-sm text-destructive" data-testid="lastName-error">{issueMessage(issue.message)}</p>
         {/each}
       </div>
 
@@ -127,12 +133,13 @@
           {...saveUserInfo.fields.homeMunicipality.as("text")}
           id="homeMunicipality"
           autocomplete="address-level2"
+          required
           onblur={handleBlur}
           oninput={handleInput}
           data-testid="homeMunicipality-input"
         />
         {#each saveUserInfo.fields.homeMunicipality.issues() as issue, i (i)}
-          <p class="text-sm text-destructive" data-testid="homeMunicipality-error">{issue.message}</p>
+          <p class="text-sm text-destructive" data-testid="homeMunicipality-error">{issueMessage(issue.message)}</p>
         {/each}
       </div>
 
@@ -156,7 +163,7 @@
         {/each}
       </div>
 
-      <div class="space-y flex flex-row items-center justify-between rounded-lg border p-4">
+      <div class="flex flex-row items-center justify-between rounded-lg border p-4">
         <div class="space-y-0.5">
           <Label for="isAllowedEmails">{$LL.user.allowEmails()}</Label>
           <p class="text-sm text-muted-foreground">{$LL.user.allowEmailsDescription()}</p>

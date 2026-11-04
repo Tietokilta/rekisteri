@@ -121,7 +121,7 @@
   {:else}
     <Card.Root>
       <Card.Header>
-        <Card.Title>{$LL.membership.buy()}</Card.Title>
+        <Card.Title><h1>{$LL.membership.buy()}</h1></Card.Title>
         <Card.Description>{$LL.membership.select()}</Card.Description>
       </Card.Header>
       <!-- Show membership options when profile is complete -->
@@ -133,7 +133,8 @@
               <Alert.Description>{$LL.membership.noAvailableMemberships()}</Alert.Description>
             </Alert.Root>
           {/if}
-          <div class="space-y-3">
+          <fieldset class="min-w-0 space-y-3">
+            <legend class="sr-only">{$LL.membership.select()}</legend>
             {#each filteredMemberships as membership (membership.id)}
               {@const typeName =
                 $locale === "fi" ? membership.membershipType.name.fi : membership.membershipType.name.en}
@@ -143,19 +144,20 @@
                   : membership.membershipType.description.en
                 : null}
               <label
-                class="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors focus-within:border-primary hover:border-primary has-checked:border-primary has-checked:bg-accent"
+                class="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors focus-within:border-primary hover:border-primary has-checked:border-primary has-checked:bg-accent/50"
               >
                 <input {...payMembership.fields.membershipId.as("radio", membership.id)} required class="mt-1" />
                 <div class="flex flex-col gap-1">
-                  <svelte:boundary>
-                    {@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
-                    <span class="font-medium">
-                      {typeName} ({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
-                    </span>
-                    {#snippet failed()}
-                      <span class="font-medium text-destructive">{$LL.admin.memberships.failedToLoadPrice()}</span>
-                    {/snippet}
-                  </svelte:boundary>
+                  <span class="font-medium">
+                    {typeName}
+                    <svelte:boundary>
+                      {@const priceMetadata = await getStripePriceMetadata(membership.stripePriceId)}
+                      ({formatPrice(priceMetadata.priceCents, priceMetadata.currency, $locale)})
+                      {#snippet failed()}
+                        <span class="font-normal text-muted-foreground">({$LL.membership.priceUnavailable()})</span>
+                      {/snippet}
+                    </svelte:boundary>
+                  </span>
                   <span class="text-sm text-muted-foreground">
                     {formatDate(new Date(membership.startTime), $locale)}
                     – {formatDate(new Date(membership.endTime), $locale)}
@@ -183,7 +185,7 @@
                 {$LL.membership.moreInfoInBylaws()}
               </a>
             {/if}
-          </div>
+          </fieldset>
 
           {#if payMembership.fields.membershipId.value()}
             <div class="space-y-2">
@@ -278,6 +280,9 @@
               {/if}
             {/if}
           </Button>
+          {#each payMembership.fields.allIssues() as issue, i (i)}
+            <p class="text-sm text-destructive" data-testid="pay-membership-error">{issue.message}</p>
+          {/each}
         </form>
       </Card.Content>
     </Card.Root>

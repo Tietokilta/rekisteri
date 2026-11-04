@@ -4,6 +4,9 @@
   import { dev } from "$app/env";
   import { route } from "#lib/ROUTES.js";
   import { page } from "$app/state";
+  import { cn } from "#lib/utils.js";
+
+  let { class: className }: { class?: string } = $props();
 
   const versionSha = publicEnv.PUBLIC_GIT_COMMIT_SHA ?? "development";
   const showVersionSha = versionSha !== "development" || dev;
@@ -15,7 +18,7 @@
   const customizations = $derived(page.data.customizations);
 </script>
 
-<footer class="mt-auto border-t border-border/40 bg-muted/50">
+<footer class={cn("mt-auto border-t border-border/40 bg-muted/50", className)}>
   <div class="container mx-auto max-w-[1400px] px-4 py-4">
     <!-- Compact inline layout -->
     <div class="flex flex-wrap items-start justify-between gap-4 text-xs text-muted-foreground">
