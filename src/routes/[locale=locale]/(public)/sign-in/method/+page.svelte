@@ -76,7 +76,7 @@
   }
 </script>
 
-<main class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
+<div class="my-8 flex flex-1 flex-col items-center gap-4 p-4">
   <Card.Root class="w-full max-w-md">
     <Card.Header>
       <Card.Title>{$LL.auth.signInOrCreateAccount()}</Card.Title>
@@ -122,7 +122,7 @@
       </form>
     </Card.Content>
   </Card.Root>
-</main>
+</div>
 
 {#snippet passkeyButton()}
   <div class="relative">

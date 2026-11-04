@@ -1,4 +1,4 @@
-import { error, redirect } from "@sveltejs/kit";
+import { error, invalid, redirect } from "@sveltejs/kit";
 import { form, getRequestEvent } from "$app/server";
 import { db } from "#lib/server/db/index.js";
 import * as table from "#lib/server/db/schema.js";
@@ -9,7 +9,7 @@ import { payMembershipSchema } from "./schema";
 import { BLOCKING_MEMBER_STATUSES } from "#lib/shared/enums.js";
 import { getLL } from "#lib/server/i18n.js";
 
-export const payMembership = form(payMembershipSchema, async ({ membershipId, description }) => {
+export const payMembership = form(payMembershipSchema, async ({ membershipId, description }, issue) => {
   const event = getRequestEvent();
 
   const LL = getLL(event.locals.locale);
@@ -36,13 +36,13 @@ export const payMembership = form(payMembershipSchema, async ({ membershipId, de
 
   // Check for overlapping memberships
   if (latestEndDate && membership && membership.startTime < latestEndDate) {
-    error(400, LL.membership.alreadyHaveMembershipForPeriod());
+    return invalid(LL.membership.alreadyHaveMembershipForPeriod());
   }
 
   // Description is required for memberships without student verification
   const trimmedDescription = description?.trim() || null;
   if (!membership?.requiresStudentVerification && !trimmedDescription) {
-    error(400, LL.membership.descriptionRequired());
+    return invalid(issue.description(LL.membership.descriptionRequired()));
   }
 
   if (membership?.requiresStudentVerification) {
@@ -59,18 +59,18 @@ export const payMembership = form(payMembershipSchema, async ({ membershipId, de
     const hasValidAaltoEmail = isPrimaryAalto || hasValidSecondaryAalto;
 
     if (!hasValidAaltoEmail) {
-      error(400, LL.membership.studentVerificationRequired());
+      return invalid(LL.membership.studentVerificationRequired());
     }
   }
 
-  const paymentSession = await createSession(
-    event.locals.user.id,
-    membershipId,
-    event.locals.locale,
-    trimmedDescription,
-  );
+  let paymentSession;
+  try {
+    paymentSession = await createSession(event.locals.user.id, membershipId, event.locals.locale, trimmedDescription);
+  } catch (err) {
+    console.error("Failed to create payment session:", err);
+  }
   if (!paymentSession?.url) {
-    error(400, LL.membership.paymentSessionFailed());
+    return invalid(LL.membership.paymentSessionFailed());
   }
   redirect(303, paymentSession.url, { external: true });
 });

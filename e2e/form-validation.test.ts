@@ -49,8 +49,9 @@ test.describe("Form Validation UX - Reward Early, Validate Late", () => {
     // Blur by clicking another field
     await lastNameInput.click();
 
-    // Now error should be visible after blur
-    await expect(firstNamesError).toBeVisible();
+    // Now error should be visible after blur, in Finnish
+    await expect(firstNamesError).toHaveText("Tämä kenttä on pakollinen");
+    await expect(firstNamesInput).toHaveAttribute("required");
 
     // Restore original value
     await firstNamesInput.fill(originalValue);
