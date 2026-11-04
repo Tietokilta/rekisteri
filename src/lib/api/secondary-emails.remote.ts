@@ -21,6 +21,7 @@ import { addSecondaryEmailSchema } from "./secondary-emails.schema";
 import { env } from "#lib/server/env.js";
 import { startSecondaryEmailVerification } from "#lib/server/auth/email-verification.js";
 import { getLL } from "#lib/server/i18n.js";
+import { dismissPersonalEmailPromptFor } from "#lib/server/auth/personal-email-prompt.js";
 
 // Rate limit: 10 add attempts per user per hour in production, 1000 in test mode
 // SECURITY: Prevents email enumeration attacks
@@ -209,4 +210,15 @@ export const addSecondaryEmailForm = form(addSecondaryEmailSchema, async ({ emai
     }
     return invalid(issue.email(LL.error.genericError()));
   }
+});
+
+/**
+ * Hide the personal email prompt for a while
+ */
+export const dismissPersonalEmailPrompt = form(async () => {
+  const event = getRequestEvent();
+  if (!event.locals.user) {
+    error(401, getLL(event.locals.locale).error.notAuthenticated());
+  }
+  dismissPersonalEmailPromptFor(event, event.locals.user.id);
 });

@@ -5,6 +5,7 @@ import { db } from "#lib/server/db/index.js";
 import * as table from "#lib/server/db/schema.js";
 import { eq, desc, gt, gte, and, isNotNull } from "drizzle-orm";
 import { getUserSecondaryEmails, isSecondaryEmailValid, needsPersonalEmail } from "#lib/server/auth/secondary-email.js";
+import { isPersonalEmailPromptDismissed } from "#lib/server/auth/personal-email-prompt.js";
 import { BLOCKING_MEMBER_STATUSES } from "#lib/shared/enums.js";
 import { checkAutoApprovalEligibility } from "#lib/server/payment/auto-approval.js";
 
@@ -92,6 +93,6 @@ export const load: PageServerLoad = async (event) => {
     aaltoEmailExpiry: isPrimaryAalto ? null : aaltoSecondaryEmail?.expiresAt,
     validAaltoEmail: isPrimaryAalto ? user.email : hasValidSecondaryAalto ? (aaltoSecondaryEmail?.email ?? null) : null,
     expiredAaltoEmail: hasExpiredAaltoEmail ? (aaltoSecondaryEmail?.email ?? null) : null,
-    needsPersonalEmail: await needsPersonalEmail(user),
+    needsPersonalEmail: !isPersonalEmailPromptDismissed(event, user.id) && (await needsPersonalEmail(user)),
   };
 };
