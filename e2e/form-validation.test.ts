@@ -116,4 +116,18 @@ test.describe("Form Validation UX - Reward Early, Validate Late", () => {
     await firstNamesInput.fill(originalValue);
     await lastNameInput.click();
   });
+
+  test("should show the localized error when saving an empty field without touching it", async ({ adminPage }) => {
+    await adminPage.goto(route("/[locale=locale]/settings/profile", { locale: "fi" }), { waitUntil: "networkidle" });
+
+    // Empty the field without focusing it, as for a new user's blank profile
+    await adminPage.getByTestId("firstNames-input").evaluate((input: HTMLInputElement) => {
+      input.value = "";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await adminPage.getByRole("button", { name: "Tallenna" }).click();
+
+    // The browser's own required-field bubble would block the submit and skip this
+    await expect(adminPage.getByTestId("firstNames-error")).toHaveText("Tämä kenttä on pakollinen");
+  });
 });
