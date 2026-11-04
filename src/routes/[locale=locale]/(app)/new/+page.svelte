@@ -281,7 +281,7 @@
             {/if}
           </Button>
           {#each payMembership.fields.allIssues() as issue, i (i)}
-            <p class="text-sm text-destructive" data-testid="pay-membership-error">{issue.message}</p>
+            <p class="text-sm text-destructive" role="alert" data-testid="pay-membership-error">{issue.message}</p>
           {/each}
         </form>
       </Card.Content>
