@@ -45,9 +45,10 @@
       "groupName": "ESLint"
     },
     {
-      "description": "Runtime is nodejs_24 from nixpkgs (flake.nix); bump @types/node together with it",
-      "matchPackageNames": ["@types/node"],
-      "allowedVersions": "<25"
+      "description": "Runtime is nodejs_26 from nixpkgs (flake.nix), which Renovate can't bump; do Node majors by hand together with engines and @types/node",
+      "matchPackageNames": ["node", "@types/node"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     },
     {
       "description": "Group GitHub Actions updates (majors stay separate); main.yml publishes and deploys, so review it",

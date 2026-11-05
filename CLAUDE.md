@@ -173,7 +173,7 @@ Required for development:
 
 ## Important Notes
 
-- Node.js version: `^24.5.0` (specified in package.json engines)
+- Node.js version: `^26.0.0` (specified in package.json engines)
 - Package manager: pnpm (`10.28.0`)
 - Using `rolldown-vite` instead of standard Vite (via overrides)
 - Schema changes require `pnpm db:generate` and `pnpm db:migrate`

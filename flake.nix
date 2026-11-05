@@ -20,8 +20,8 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          nodejs = pkgs.nodejs_24;
-          pnpm = pkgs.pnpm_11;
+          nodejs = pkgs.nodejs_26;
+          pnpm = pkgs.pnpm_11.override { nodejs-slim = pkgs.nodejs-slim_26; };
 
           default = pkgs.stdenv.mkDerivation (finalAttrs: {
             pname = "rekisteri";
@@ -54,7 +54,7 @@
               inherit (finalAttrs) pname version src;
               inherit pnpm;
               fetcherVersion = 4;
-              hash = "sha256-d1KJV3+2F+1M7RI6YC15WVnIgpjFO1zmr/w2yhh/qdg=";
+              hash = "sha256-A1IsqUerRHcNGD9n+PrIhsy/pGSl+O3ewyBJIhFOHuM=";
             };
 
             installPhase = ''
@@ -107,8 +107,8 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          nodejs = pkgs.nodejs_24;
-          pnpm = pkgs.pnpm_11;
+          nodejs = pkgs.nodejs_26;
+          pnpm = pkgs.pnpm_11.override { nodejs-slim = pkgs.nodejs-slim_26; };
         in
         {
           default = pkgs.mkShell {
