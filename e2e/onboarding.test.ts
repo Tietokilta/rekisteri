@@ -149,6 +149,31 @@ test.describe("Onboarding checklist", () => {
     );
   });
 
+  test("the personal email prompt comes after the checklist and stays hidden after Later", async ({
+    isolatedPage,
+    isolatedUser,
+    db,
+  }) => {
+    await db
+      .update(table.user)
+      .set({ email: `test-onboarding-${crypto.randomUUID()}@aalto.fi` })
+      .where(eq(table.user.id, isolatedUser.id));
+
+    await isolatedPage.goto(route("/[locale=locale]", { locale: "fi" }));
+    const prompt = isolatedPage.getByTestId("personal-email-prompt");
+    await expect(
+      isolatedPage.locator('[data-testid="onboarding-checklist"] ~ [data-testid="personal-email-prompt"]'),
+    ).toBeVisible();
+
+    await prompt.getByRole("button", { name: /myöhemmin/i }).click();
+    await expect(prompt).toBeHidden();
+
+    // Not rendered by the server either, so it doesn't flash on the next load
+    const html = await (await isolatedPage.request.get(route("/[locale=locale]", { locale: "fi" }))).text();
+    expect(html).toContain('data-testid="onboarding-checklist"');
+    expect(html).not.toContain('data-testid="personal-email-prompt"');
+  });
+
   test("user with a profile but no membership continues to choose a membership", async ({ isolatedPage }) => {
     await isolatedPage.goto(route("/[locale=locale]", { locale: "fi" }));
 
