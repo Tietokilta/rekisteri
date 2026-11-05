@@ -18,6 +18,7 @@
   import { toast } from "svelte-sonner";
   import { refreshAll } from "$app/navigation";
   import { formatFullName, matchesSearchTokens } from "#lib/utils.js";
+  import LegalName from "#lib/components/legal-name.svelte";
   import { ADMIN_ROLE_VALUES, type AdminRole } from "#lib/shared/enums.js";
 
   const { data }: PageProps = $props();
@@ -218,9 +219,9 @@
               <p class="mb-2 text-sm font-medium">{$LL.admin.users.merge.primaryUser()}</p>
               <div class="rounded-md border bg-muted p-3">
                 <p class="font-mono text-sm">{primaryUser.email}</p>
-                {#if formatFullName(primaryUser)}
+                {#if primaryUser.firstNames || primaryUser.lastName}
                   <p class="text-sm text-muted-foreground">
-                    {formatFullName(primaryUser)}
+                    <LegalName user={primaryUser} />
                   </p>
                 {/if}
               </div>
@@ -247,9 +248,9 @@
                   >
                     <div>
                       <p class="font-mono text-sm">{user.email}</p>
-                      {#if formatFullName(user)}
+                      {#if user.firstNames || user.lastName}
                         <p class="text-sm text-muted-foreground">
-                          {formatFullName(user)}
+                          <LegalName {user} />
                         </p>
                       {/if}
                     </div>
@@ -280,9 +281,9 @@
                 </p>
                 <div class="rounded-md border border-primary/20 bg-primary/5 p-3">
                   <p class="font-mono text-sm">{primaryUser.email}</p>
-                  {#if formatFullName(primaryUser)}
+                  {#if primaryUser.firstNames || primaryUser.lastName}
                     <p class="text-sm text-muted-foreground">
-                      {formatFullName(primaryUser)}
+                      <LegalName user={primaryUser} />
                     </p>
                   {/if}
                   <Badge variant={getRoleBadgeVariant(primaryUser.adminRole)} class="mt-2">
@@ -297,9 +298,9 @@
                 </p>
                 <div class="rounded-md border border-destructive/20 bg-destructive/5 p-3">
                   <p class="font-mono text-sm">{secondaryUser.email}</p>
-                  {#if formatFullName(secondaryUser)}
+                  {#if secondaryUser.firstNames || secondaryUser.lastName}
                     <p class="text-sm text-muted-foreground">
-                      {formatFullName(secondaryUser)}
+                      <LegalName user={secondaryUser} />
                     </p>
                   {/if}
                   <Badge variant={getRoleBadgeVariant(secondaryUser.adminRole)} class="mt-2">
@@ -427,7 +428,7 @@
                 <Table.Cell class="w-[200px] font-mono text-xs">{user.id}</Table.Cell>
                 <Table.Cell class="w-[250px]">{user.email}</Table.Cell>
                 <Table.Cell class="w-[200px]">
-                  {formatFullName(user) || "-"}
+                  {#if user.firstNames || user.lastName}<LegalName {user} />{:else}{formatFullName(user) || "-"}{/if}
                 </Table.Cell>
                 <Table.Cell class="w-[120px]">
                   <Badge variant={getRoleBadgeVariant(user.adminRole)}>
@@ -532,7 +533,7 @@
                 <Table.Cell class="w-[200px] font-mono text-xs">{user.id}</Table.Cell>
                 <Table.Cell class="w-[250px]">{user.email}</Table.Cell>
                 <Table.Cell class="w-[200px]">
-                  {formatFullName(user) || "-"}
+                  {#if user.firstNames || user.lastName}<LegalName {user} />{:else}{formatFullName(user) || "-"}{/if}
                 </Table.Cell>
                 <Table.Cell class="w-[120px]">-</Table.Cell>
                 <Table.Cell class="w-[250px]">
