@@ -3,7 +3,7 @@
   import { Badge } from "#lib/components/ui/badge/index.js";
   import { Button } from "#lib/components/ui/button/index.js";
   import { Input } from "#lib/components/ui/input/index.js";
-  import { matchesSearchTokens } from "#lib/utils.js";
+  import { formatDisplayName, matchesSearchTokens } from "#lib/utils.js";
   import { singleLine } from "#lib/shared/name.js";
   import type { AttendeeRow, RecordTarget } from "./types";
   import type { Registry, RegistryUser } from "./registry.svelte";
@@ -44,20 +44,26 @@
     const local = attendees
       .filter((person) => {
         const user = person.userId ? userById.get(person.userId) : undefined;
-        return matchesSearchTokens(trimmed, [person.displayName, user?.firstNames, user?.lastName, user?.email]);
+        return matchesSearchTokens(trimmed, [
+          person.displayName,
+          user?.firstNames,
+          user?.preferredName,
+          user?.lastName,
+          user?.email,
+        ]);
       })
       .slice(0, 8)
       .map((attendee): Row => ({ key: `attendee:${attendee.id}`, kind: "attendee", attendee }));
     const knownUsers = new Set(attendees.map((person) => person.userId).filter(Boolean));
     const matches = registry.users
       .filter((user) => !knownUsers.has(user.id))
-      .filter((user) => matchesSearchTokens(trimmed, [user.firstNames, user.lastName, user.email]))
+      .filter((user) => matchesSearchTokens(trimmed, [user.firstNames, user.preferredName, user.lastName, user.email]))
       .slice(0, 10)
       .map((user): Row => ({
         key: `user:${user.id}`,
         kind: "user",
         user,
-        name: [user.firstNames, user.lastName].filter(Boolean).join(" ") || user.email,
+        name: formatDisplayName(user),
       }));
     // No guest row while the registry loads (so a member isn't added as a guest), or for an email address
     // Also none when the name is already a guest here, so the same person isn't split across two rows

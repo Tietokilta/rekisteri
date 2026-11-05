@@ -3,6 +3,7 @@ import { db } from "#lib/server/db/index.js";
 import { notifyMeetingChanged } from "./live";
 import { membershipTypeAt } from "#lib/server/membership/status.js";
 import * as table from "#lib/server/db/schema.js";
+import { formatDisplayName } from "#lib/utils.js";
 import {
   bindEventsToRecess,
   meetingActionWarnings,
@@ -106,7 +107,7 @@ export async function recordMeetingEvent(input: NewAttendanceEvent) {
             id: crypto.randomUUID(),
             meetingId: input.meetingId,
             userId: person.id,
-            displayName: [person.firstNames, person.lastName].filter(Boolean).join(" ") || person.email,
+            displayName: formatDisplayName(person),
             membershipTypeId: null,
           })
           .onConflictDoNothing()
@@ -310,7 +311,7 @@ export async function updateMeetingAttendee(input: {
       const person = await tx.query.user.findFirst({ where: { id: input.target.userId } });
       if (!person) throw new Error("User not found");
       userId = person.id;
-      displayName = [person.firstNames, person.lastName].filter(Boolean).join(" ") || person.email;
+      displayName = formatDisplayName(person);
       const existing = await tx.query.meetingAttendee.findFirst({
         where: { meetingId: input.meetingId, userId: person.id },
       });
