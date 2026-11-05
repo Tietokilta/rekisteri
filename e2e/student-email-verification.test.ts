@@ -75,6 +75,7 @@ test.describe("Student email verification on the membership page", () => {
       // Form state is kept because the page never changed
       await expect(isolatedPage.locator(`input[type="radio"][value="${membership.id}"]`)).toBeChecked();
       await expect(buyButton).toBeEnabled();
+      await expect(buyButton).toHaveAccessibleDescription(/ostamalla vahvistat, että opiskelet aalto-yliopistossa/i);
     } finally {
       await db.delete(table.emailOTP).where(eq(table.emailOTP.email, email));
       await db.delete(table.secondaryEmail).where(eq(table.secondaryEmail.userId, isolatedUser.id));

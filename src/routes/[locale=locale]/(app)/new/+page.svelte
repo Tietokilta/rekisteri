@@ -217,7 +217,7 @@
           type="submit"
           form="pay-membership-form"
           disabled={disableForm || !!payMembership.pending}
-          aria-describedby={needsStudentEmail ? "buy-disabled-reason" : undefined}
+          aria-describedby={requireStudentVerification ? "buy-student-note" : undefined}
           class="mt-4 w-full"
         >
           {$LL.membership.buy()}
@@ -236,9 +236,12 @@
             {/if}
           {/if}
         </Button>
-        {#if needsStudentEmail}
-          <p id="buy-disabled-reason" class="mt-2 text-sm text-muted-foreground">
-            {$LL.membership.verifyStudentEmailToBuy({ domain: "aalto.fi" })}
+        <!-- Staff have aalto.fi addresses too, so buying is where the user declares they are a student -->
+        {#if requireStudentVerification}
+          <p id="buy-student-note" class="mt-2 text-sm text-muted-foreground">
+            {needsStudentEmail
+              ? $LL.membership.verifyStudentEmailToBuy({ domain: "aalto.fi" })
+              : $LL.membership.studentDeclaration()}
           </p>
         {/if}
       </Card.Content>
