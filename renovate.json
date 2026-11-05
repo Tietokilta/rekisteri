@@ -51,6 +51,11 @@
       "enabled": false
     },
     {
+      "description": "drizzle publishes commit-hash canaries (e.g. 1.0.0-rc.5-ab785fc) next to real rc releases; skip them",
+      "matchPackageNames": ["drizzle-kit", "drizzle-orm", "drizzle-seed"],
+      "allowedVersions": "!/-[0-9a-f]{7,}$/"
+    },
+    {
       "description": "Group GitHub Actions updates (majors stay separate); main.yml publishes and deploys, so review it",
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions"
