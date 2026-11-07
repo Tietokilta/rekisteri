@@ -45,7 +45,7 @@
       "groupName": "ESLint"
     },
     {
-      "description": "Runtime is nodejs_26 from nixpkgs (flake.nix), which Renovate can't bump; do Node majors by hand together with engines and @types/node",
+      "description": "Runtime is nodejs_26 from nixpkgs (flake.nix), which Renovate can't bump; do Node majors by hand together with devEngines and @types/node",
       "matchPackageNames": ["node", "@types/node"],
       "matchUpdateTypes": ["major"],
       "enabled": false
@@ -54,6 +54,11 @@
       "description": "drizzle publishes commit-hash canaries (e.g. 1.0.0-rc.5-ab785fc) next to real rc releases; skip them",
       "matchPackageNames": ["drizzle-kit", "drizzle-orm", "drizzle-seed"],
       "allowedVersions": "!/-[0-9a-f]{7,}$/"
+    },
+    {
+      "description": "The Nix build uses pnpm_12 from nixpkgs, and pnpm records its own version in pnpm-lock.yaml; bump pnpm by hand to the version nixpkgs ships",
+      "matchPackageNames": ["pnpm"],
+      "enabled": false
     },
     {
       "description": "Group GitHub Actions updates (majors stay separate); main.yml publishes and deploys, so review it",
