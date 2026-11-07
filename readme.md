@@ -4,11 +4,11 @@ New project for a membership registry. [Live production deployment at rekisteri.
 
 ## Developing
 
-Pre-requisites [Node.js v24](https://nodejs.org/en/download).
+Pre-requisites [Node.js v26](https://nodejs.org/en/download) and [pnpm](https://pnpm.io/installation), or run `nix develop` to get both.
 
 ```bash
-# enable corepack (pnpm)
-corepack enable
+# install pnpm (Node 26 no longer ships corepack); it switches to the version in package.json itself
+npm install -g pnpm
 
 # install deps
 pnpm install

@@ -20,8 +20,8 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          nodejs = pkgs.nodejs_24;
-          pnpm = pkgs.pnpm_11;
+          nodejs = pkgs.nodejs_26;
+          pnpm = pkgs.pnpm_12.override { nodejs-slim = pkgs.nodejs-slim_26; };
 
           default = pkgs.stdenv.mkDerivation (finalAttrs: {
             pname = "rekisteri";
@@ -54,7 +54,7 @@
               inherit (finalAttrs) pname version src;
               inherit pnpm;
               fetcherVersion = 4;
-              hash = "sha256-d1KJV3+2F+1M7RI6YC15WVnIgpjFO1zmr/w2yhh/qdg=";
+              hash = "sha256-2jqedahQrxw0Sko4LJEJDVJofukAgTMW22KUD6vQZh4=";
             };
 
             installPhase = ''
@@ -67,7 +67,8 @@
               cp -r drizzle $out/lib/drizzle
               cp src/start-with-migrations.ts $out/lib/start.ts
               cp src/oidc-mount.ts $out/lib/oidc-mount.ts
-              pnpm prune --prod
+              rm -rf node_modules
+              pnpm install --prod --offline --frozen-lockfile --ignore-scripts
               cp -r node_modules $out/lib
 
 
@@ -107,8 +108,8 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          nodejs = pkgs.nodejs_24;
-          pnpm = pkgs.pnpm_11;
+          nodejs = pkgs.nodejs_26;
+          pnpm = pkgs.pnpm_12.override { nodejs-slim = pkgs.nodejs-slim_26; };
         in
         {
           default = pkgs.mkShell {

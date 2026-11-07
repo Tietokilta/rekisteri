@@ -48,7 +48,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/svelte-table": "^9.3.1",
     "@testcontainers/postgresql": "^12.2.1",
-    "@types/node": "^24.19.2",
+    "@types/node": "^26.6.6",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^8.0.2",
     "@types/oidc-provider": "^9.12.1",
@@ -106,9 +106,13 @@
     "typesafe-i18n": "^5.27.1",
     "valibot": "^1.5.0"
   },
-  "packageManager": "pnpm@11.20.0",
-  "engines": {
-    "node": ">=22.22.0 <25.0.0"
+  "packageManager": "pnpm@12.9.0",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "^26.0.0",
+      "onFail": "error"
+    }
   },
   "imports": {
     "#lib/*": "./src/lib/*"
