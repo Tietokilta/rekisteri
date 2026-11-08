@@ -8,6 +8,7 @@
   import MembershipCard from "#lib/components/membership-card.svelte";
   import ProfileIncompleteCard from "#lib/components/profile-incomplete-card.svelte";
   import OnboardingChecklist from "#lib/components/onboarding-checklist.svelte";
+  import PersonalEmailPrompt from "#lib/components/personal-email-prompt.svelte";
   import { formatFullName } from "#lib/utils.js";
 
   let { data }: { data: PageServerData } = $props();
@@ -56,6 +57,9 @@
       />
     {:else}
       <ProfileIncompleteCard />
+    {/if}
+    {#if data.needsPersonalEmail}
+      <PersonalEmailPrompt domain={data.user.email.split("@", 2)[1] ?? ""} />
     {/if}
   </div>
 </div>

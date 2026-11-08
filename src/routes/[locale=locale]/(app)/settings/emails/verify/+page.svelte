@@ -10,16 +10,31 @@
   import type { PageData } from "./$types";
   import { verifyCode, resendEmail, cancelVerification } from "./data.remote";
   import { verifyCodeSchema } from "./schema";
+  import EmailAccountConflict from "#lib/components/email-account-conflict.svelte";
+  import { refreshAll } from "$app/navigation";
 
   let { data }: { data: PageData } = $props();
 
   const next = $derived(page.url.searchParams.get("next") ?? "");
 
-  let verifyFormEl: HTMLFormElement;
+  // Set when the address turned out to have its own account. The form result outlives client-side
+  // navigation, so ignore one left over from verifying another address.
+  // A result whose code expired on the conflict screen is set aside, so the new code can be entered.
+  let expiredResult = $state.raw<typeof verifyCode.result>();
+  const conflict = $derived(
+    verifyCode.result &&
+      verifyCode.result !== expiredResult &&
+      "conflict" in verifyCode.result &&
+      verifyCode.result.conflict === data.email
+      ? verifyCode.result.conflict
+      : null,
+  );
+
+  let verifyFormEl = $state<HTMLFormElement>();
 
   async function handleComplete() {
     await tick();
-    verifyFormEl.requestSubmit();
+    verifyFormEl?.requestSubmit();
   }
 </script>
 
@@ -31,47 +46,59 @@
     >
   </Card.Header>
   <Card.Content>
-    <div class="flex w-full flex-col gap-4">
-      <form bind:this={verifyFormEl} {...verifyCode.preflight(verifyCodeSchema)} class="contents">
-        {#if next}<input {...verifyCode.fields.next.as("hidden", next)} />{/if}
-        <div class="flex flex-col gap-2">
-          <Label for="code">{$LL.secondaryEmail.code()}</Label>
-          <InputOTP.Root
-            id="code"
-            maxlength={8}
-            pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
-            inputmode="text"
-            name={verifyCode.fields.code.as("text").name}
-            required
-            class="justify-center capitalize"
-            data-testid="otp-input"
-            onComplete={handleComplete}
+    {#if conflict}
+      <EmailAccountConflict
+        code={verifyCode.fields.code.value() ?? ""}
+        next={next || undefined}
+        onCodeExpired={(resent) => {
+          expiredResult = verifyCode.result;
+          // Without a code to enter, reloading returns to the email list
+          if (!resent) void refreshAll();
+        }}
+      />
+    {:else}
+      <div class="flex w-full flex-col gap-4">
+        <form bind:this={verifyFormEl} {...verifyCode.preflight(verifyCodeSchema)} class="contents">
+          {#if next}<input {...verifyCode.fields.next.as("hidden", next)} />{/if}
+          <div class="flex flex-col gap-2">
+            <Label for="code">{$LL.secondaryEmail.code()}</Label>
+            <InputOTP.Root
+              id="code"
+              maxlength={8}
+              pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+              inputmode="text"
+              name={verifyCode.fields.code.as("text").name}
+              required
+              class="justify-center capitalize"
+              data-testid="otp-input"
+              onComplete={handleComplete}
+            >
+              {#snippet children({ cells })}
+                <InputOTP.Group>
+                  {#each cells as cell, i (i)}
+                    <InputOTP.Slot {cell} />
+                  {/each}
+                </InputOTP.Group>
+              {/snippet}
+            </InputOTP.Root>
+          </div>
+          {#each verifyCode.fields.allIssues() as issue, i (i)}
+            <p class="text-red-500" data-testid="otp-error">{issue.message}</p>
+          {/each}
+          <Button type="submit" data-testid="verify-otp" disabled={!!verifyCode.pending}>{$LL.auth.verify()}</Button>
+        </form>
+        <form {...resendEmail} class="contents">
+          <Button type="submit" variant="outline" disabled={!!resendEmail.pending}>{$LL.auth.resendCode()}</Button>
+          {#if resendEmail.result?.message}
+            <p>{resendEmail.result.message}</p>
+          {/if}
+        </form>
+        <form {...cancelVerification} class="contents">
+          <Button type="submit" variant="outline" disabled={!!cancelVerification.pending}
+            >{$LL.auth.passkey.cancel()}</Button
           >
-            {#snippet children({ cells })}
-              <InputOTP.Group>
-                {#each cells as cell, i (i)}
-                  <InputOTP.Slot {cell} />
-                {/each}
-              </InputOTP.Group>
-            {/snippet}
-          </InputOTP.Root>
-        </div>
-        {#each verifyCode.fields.allIssues() as issue, i (i)}
-          <p class="text-red-500" data-testid="otp-error">{issue.message}</p>
-        {/each}
-        <Button type="submit" data-testid="verify-otp" disabled={!!verifyCode.pending}>{$LL.auth.verify()}</Button>
-      </form>
-      <form {...resendEmail} class="contents">
-        <Button type="submit" variant="outline" disabled={!!resendEmail.pending}>{$LL.auth.resendCode()}</Button>
-        {#if resendEmail.result?.message}
-          <p>{resendEmail.result.message}</p>
-        {/if}
-      </form>
-      <form {...cancelVerification} class="contents">
-        <Button type="submit" variant="outline" disabled={!!cancelVerification.pending}
-          >{$LL.auth.passkey.cancel()}</Button
-        >
-      </form>
-    </div>
+        </form>
+      </div>
+    {/if}
   </Card.Content>
 </Card.Root>
