@@ -19,6 +19,7 @@
     disabled,
     started,
     typeName,
+    typeColor,
     onAct,
   }: {
     attendees: AttendeeRow[];
@@ -26,6 +27,7 @@
     disabled: boolean;
     started: boolean;
     typeName: (id: string | null) => string;
+    typeColor: (id: string | null) => string;
     onAct: (target: RecordTarget, direction: "in" | "out") => void;
   } = $props();
 
@@ -146,18 +148,22 @@
           data-testid="search-result"
           aria-selected={index === highlighted}
           class={[
-            "flex items-center gap-3 border-l-4 px-3 py-2",
+            "flex flex-wrap items-center gap-x-3 gap-y-1.5 border-l-4 px-3 py-2 sm:flex-nowrap",
             index === highlighted ? "border-l-primary bg-primary/10" : "border-l-transparent hover:bg-muted/50",
           ]}
         >
           {#if row.kind === "attendee"}
-            <div class="min-w-0 flex-1">
+            <div class="min-w-0 basis-full sm:flex-1 sm:basis-0">
               <p class="truncate font-medium">{row.attendee.displayName}</p>
-              <p class="truncate text-xs text-muted-foreground">
-                {row.attendee.isGuest ? $LL.admin.meetings.guest() : typeName(row.attendee.typeId)}
+              <p class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span class={["size-2 shrink-0 rounded-full", typeColor(row.attendee.typeId)]} aria-hidden="true"
+                ></span>
+                <span class="truncate">
+                  {row.attendee.isGuest ? $LL.admin.meetings.guest() : typeName(row.attendee.typeId)}
+                </span>
               </p>
             </div>
-            <Badge variant={row.attendee.status === "present" ? "default" : "outline"}>
+            <Badge class="ml-auto sm:ml-0" variant={row.attendee.status === "present" ? "default" : "outline"}>
               {row.attendee.status === "present"
                 ? $LL.admin.meetings.present()
                 : row.attendee.status === "pending"
@@ -176,13 +182,16 @@
               {#if index === highlighted}{@render enterHint()}{/if}</Button
             >
           {:else if row.kind === "user"}
-            <div class="min-w-0 flex-1">
+            <div class="min-w-0 basis-full sm:flex-1 sm:basis-0">
               <p class="truncate font-medium">{row.name}</p>
-              <p class="truncate text-xs text-muted-foreground">
-                {row.user.email} · {typeName(row.user.membershipTypeId)}
+              <p class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span class={["size-2 shrink-0 rounded-full", typeColor(row.user.membershipTypeId)]} aria-hidden="true"
+                ></span>
+                <span class="truncate">{row.user.email} · {typeName(row.user.membershipTypeId)}</span>
               </p>
             </div>
             <Button
+              class="ml-auto sm:ml-0"
               size="sm"
               variant={index === highlighted ? "default" : "outline"}
               {disabled}
@@ -190,10 +199,11 @@
               >{$LL.admin.meetings.checkIn()}{#if index === highlighted}{@render enterHint()}{/if}</Button
             >
           {:else}
-            <p class="min-w-0 flex-1 text-sm text-muted-foreground">
+            <p class="min-w-0 basis-full text-sm break-words text-muted-foreground sm:flex-1 sm:basis-0">
               {$LL.admin.meetings.addGuestNamed({ name: row.name })}
             </p>
             <Button
+              class="ml-auto sm:ml-0"
               size="sm"
               variant={index === highlighted ? "default" : "outline"}
               {disabled}
