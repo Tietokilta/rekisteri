@@ -53,6 +53,7 @@
   import { SvelteURLSearchParams } from "svelte/reactivity";
   import { LL, locale } from "#lib/i18n/i18n-svelte.js";
   import { isNonEmpty, formatDate, matchesSearchTokens } from "#lib/utils.js";
+  import LegalName from "#lib/components/legal-name.svelte";
   import { getStripePriceMetadata } from "#lib/api/stripe.remote.js";
   import {
     approveMember,
@@ -95,6 +96,7 @@
     email: string | null;
     firstNames: string | null;
     lastName: string | null;
+    preferredName: string | null;
     homeMunicipality: string | null;
     preferredLanguage: "unspecified" | "finnish" | "english" | null;
     isAllowedEmails: boolean | null;
@@ -106,6 +108,7 @@
     email: null;
     firstNames: null;
     lastName: null;
+    preferredName: null;
     homeMunicipality: null;
     preferredLanguage: null;
     isAllowedEmails: null;
@@ -139,6 +142,7 @@
     email: string | null;
     firstNames: string | null;
     lastName: string | null;
+    preferredName: string | null;
     homeMunicipality: string | null;
     preferredLanguage: "unspecified" | "finnish" | "english" | null;
     isAllowedEmails: boolean | null;
@@ -713,11 +717,13 @@
     enableRowSelection: true,
     getRowId: (row) => row.id,
     globalFilterFn: (row, columnId, filterValue) => {
-      const { organizationName, firstNames, lastName, email, homeMunicipality, secondaryEmails } = row.original;
+      const { organizationName, firstNames, preferredName, lastName, email, homeMunicipality, secondaryEmails } =
+        row.original;
 
       return matchesSearchTokens(filterValue, [
         organizationName,
         firstNames,
+        preferredName,
         lastName,
         email,
         homeMunicipality,
@@ -1175,6 +1181,8 @@
                       <ChevronRight class="size-4" />
                     {/if}
                   </Button>
+                {:else if cell.column.id === "name" && isPersonMember(row.original) && (row.original.firstNames || row.original.lastName)}
+                  <LegalName user={row.original} />
                 {:else if cell.column.id === "status"}
                   <Badge variant={getStatusColor(row.original.status)}>
                     {formatStatus(row.original.status)}

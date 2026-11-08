@@ -200,6 +200,7 @@ export const load: PageServerLoad = async (event) => {
           email: currentUser.email,
           firstNames: currentUser.firstNames,
           lastName: currentUser.lastName,
+          preferredName: currentUser.preferredName,
         }
       : null,
   };
