@@ -49,8 +49,9 @@ test.describe("Form Validation UX - Reward Early, Validate Late", () => {
     // Blur by clicking another field
     await lastNameInput.click();
 
-    // Now error should be visible after blur
-    await expect(firstNamesError).toBeVisible();
+    // Now error should be visible after blur, in Finnish
+    await expect(firstNamesError).toHaveText("Tämä kenttä on pakollinen");
+    await expect(firstNamesInput).toHaveAttribute("required");
 
     // Restore original value
     await firstNamesInput.fill(originalValue);
@@ -114,5 +115,26 @@ test.describe("Form Validation UX - Reward Early, Validate Late", () => {
     // Restore original value
     await firstNamesInput.fill(originalValue);
     await lastNameInput.click();
+  });
+
+  test("should show the localized error when saving an empty field without touching it", async ({ adminPage }) => {
+    await adminPage.goto(route("/[locale=locale]/settings/profile", { locale: "fi" }), { waitUntil: "networkidle" });
+
+    // Empty the field without focusing it, as for a new user's blank profile
+    await adminPage.getByTestId("firstNames-input").evaluate((input: HTMLInputElement) => {
+      input.value = "";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await adminPage.getByRole("button", { name: "Tallenna" }).click();
+
+    // The browser's own required-field bubble would block the submit and skip this
+    await expect(adminPage.getByTestId("firstNames-error")).toHaveText("Tämä kenttä on pakollinen");
+
+    // Focus moves to the invalid field, and fixing it clears the error without a blur
+    const firstNamesInput = adminPage.getByTestId("firstNames-input");
+    await expect(firstNamesInput).toBeFocused();
+    await expect(firstNamesInput).toHaveAccessibleDescription("Tämä kenttä on pakollinen");
+    await firstNamesInput.pressSequentially("Test");
+    await expect(adminPage.getByTestId("firstNames-error")).not.toBeVisible();
   });
 });

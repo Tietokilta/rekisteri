@@ -231,7 +231,7 @@ test.describe("Passkey Authentication", () => {
 
     // Should navigate to OTP entry
     await adminPage.waitForURL(/sign-in\/email/);
-    // Page shows "Lähetimme 8-numeroisen koodin" (We sent an 8-digit code)
+    // Page shows "Lähetimme 8-merkkisen koodin" (We sent an 8-character code)
     await expect(adminPage.getByText(/lähetimme.*koodin/i)).toBeVisible();
   });
 });

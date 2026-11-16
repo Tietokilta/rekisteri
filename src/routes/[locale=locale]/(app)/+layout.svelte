@@ -12,10 +12,11 @@
   <AppSidebar user={data.user} />
   <SidebarInset class="min-w-0">
     <div class="flex min-h-svh flex-col">
-      <main class="flex-1">
+      <div class="flex-1">
         {@render children()}
-      </main>
-      <Footer />
+      </div>
+      <!-- Leave room below the footer for the mobile menu button -->
+      <Footer class="pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-0" />
     </div>
   </SidebarInset>
 </SidebarProvider>
