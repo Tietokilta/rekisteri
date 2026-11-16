@@ -3,7 +3,7 @@
   import { refreshAll } from "$app/navigation";
   import { toast } from "svelte-sonner";
   import { LL } from "#lib/i18n/i18n-svelte.js";
-  import { matchesSearchTokens } from "#lib/utils.js";
+  import { formatDisplayName, matchesSearchTokens } from "#lib/utils.js";
   import { singleLine } from "#lib/shared/name.js";
   import { Button } from "#lib/components/ui/button/index.js";
   import { Input } from "#lib/components/ui/input/index.js";
@@ -40,7 +40,9 @@
     trimmed.length < 2
       ? []
       : registry.users
-          .filter((user) => matchesSearchTokens(trimmed, [user.firstNames, user.lastName, user.email]))
+          .filter((user) =>
+            matchesSearchTokens(trimmed, [user.firstNames, user.preferredName, user.lastName, user.email]),
+          )
           .slice(0, 8),
   );
   const selectedUser = $derived(registry.users.find((user) => user.id === selectedUserId));
@@ -53,10 +55,6 @@
       (selectedUserId ? selectedUserId === attendee.userId : !attendee.userId && guestName === attendee.displayName),
   );
   const canSave = $derived((selectedUserId || (guestName && !guestName.includes("@"))) && !unchanged && reason.trim());
-
-  function fullName(user: { firstNames: string | null; lastName: string | null; email: string }) {
-    return [user.firstNames, user.lastName].filter(Boolean).join(" ") || user.email;
-  }
 </script>
 
 <Sheet.Root bind:open>
@@ -129,7 +127,7 @@
                   data-testid="attendee-member-option"
                 >
                   <span class="min-w-0 flex-1">
-                    <span class="block truncate font-medium">{fullName(user)}</span>
+                    <span class="block truncate font-medium">{formatDisplayName(user)}</span>
                     <span class="block truncate text-xs text-muted-foreground">
                       {user.email} · {typeName(user.membershipTypeId)}
                     </span>

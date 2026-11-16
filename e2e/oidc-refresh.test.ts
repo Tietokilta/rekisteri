@@ -11,6 +11,7 @@ import {
   createTestContext,
   waitForCallbackUrl,
   validateIdTokenSecurityAndClaims,
+  decodeJwt,
   validateTokenResponseFormat,
   getBaseUrl,
 } from "./helpers/oidc";
@@ -109,6 +110,10 @@ test.describe("OIDC Authorization Code Flow with Refresh Token (E2E)", () => {
 
     // Verify ID Token security & claims
     validateIdTokenSecurityAndClaims(tokenData.id_token, clientId, adminUser.id);
+    const admin = await db.query.user.findFirst({ where: { id: adminUser.id } });
+    const { payload } = decodeJwt(tokenData.id_token as string);
+    expect(payload.name).toBe(`${admin?.firstNames} ${admin?.lastName}`);
+    expect(payload.nickname).toBeUndefined();
 
     // Test that the refresh token WORKS immediately
     const refreshRes = await exchangeRefreshToken(request, tokenData.refresh_token as string);
