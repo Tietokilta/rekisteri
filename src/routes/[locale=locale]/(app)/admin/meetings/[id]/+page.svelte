@@ -14,6 +14,7 @@
   import { Label } from "#lib/components/ui/label/index.js";
   import * as Sheet from "#lib/components/ui/sheet/index.js";
   import * as Table from "#lib/components/ui/table/index.js";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import EllipsisVertical from "@lucide/svelte/icons/ellipsis-vertical";
   import CheckInSearch from "./check-in-search.svelte";
   import CorrectionSheet from "./correction-sheet.svelte";
@@ -37,6 +38,7 @@
   import { meetingAttendanceSummary } from "#lib/shared/meeting-attendance.js";
   import { onMount } from "svelte";
   import { Registry } from "./registry.svelte";
+  import { membershipTypeColors, noTypeColor } from "./type-colors";
   import { isTransientError, ScanQueue, type QueuedScan } from "./scan-queue.svelte";
   import { remoteErrorMessage, type AttendeeRow, type CorrectionTarget, type RecordTarget } from "./types";
 
@@ -121,11 +123,8 @@
         lastActionAt: lastActionAt[person.id] ?? null,
         conflicts: data.warnings.filter((warning) => warning.attendeeId === person.id).length,
       }))
-      .toSorted(
-        (a, b) =>
-          (b.lastActionAt?.getTime() ?? 0) - (a.lastActionAt?.getTime() ?? 0) ||
-          a.displayName.localeCompare(b.displayName),
-      ),
+      // By name, so rows don't move under the operator's finger as people come and go
+      .toSorted((a, b) => a.displayName.localeCompare(b.displayName, $locale)),
   );
   // A closed meeting lists who attended at all, longest stay first, instead of who is in the room now
   const closedAt = $derived(data.meeting.closedAt ? new Date(data.meeting.closedAt) : null);
@@ -136,7 +135,7 @@
       .toSorted(
         (a, b) =>
           (summary[b.id]?.presentMs ?? 0) - (summary[a.id]?.presentMs ?? 0) ||
-          a.displayName.localeCompare(b.displayName),
+          a.displayName.localeCompare(b.displayName, $locale),
       ),
   );
   const filteredRows = $derived(
@@ -153,6 +152,12 @@
   const presentRows = $derived(closedAt ? attendedRows : rows.filter((row) => row.status === "present"));
   const memberCount = $derived(presentRows.filter((row) => row.typeId).length);
   const guestCount = $derived(presentRows.length - memberCount);
+  const typeColors = $derived(membershipTypeColors(data.types.map((type) => type.id)));
+  const typeCounts = $derived(
+    data.types
+      .map((type) => ({ type, count: presentRows.filter((row) => row.typeId === type.id).length }))
+      .filter(({ count }) => count > 0),
+  );
 
   const latestUndoable = $derived(
     data.resolvedEvents
@@ -189,6 +194,10 @@
   function typeName(id: string | null) {
     if (!id) return $LL.admin.meetings.noMembership();
     return data.types.find((type) => type.id === id)?.name[$locale] ?? id;
+  }
+
+  function typeColor(id: string | null) {
+    return (id && typeColors.get(id)) || noTypeColor;
   }
 
   function modeName(mode: "track_exits" | "reset_all") {
@@ -330,6 +339,21 @@
   }
 </script>
 
+{#snippet statusBadges(row: AttendeeRow)}
+  <Badge variant={row.status === "present" ? "default" : "outline"}>
+    {row.status === "present"
+      ? $LL.admin.meetings.present()
+      : row.status === "pending"
+        ? data.meeting.startsAt
+          ? $LL.admin.meetings.pendingReentry()
+          : $LL.admin.meetings.pendingStart()
+        : $LL.admin.meetings.away()}
+  </Badge>
+  {#if row.conflicts}
+    <Badge variant="destructive">{row.conflicts}</Badge>
+  {/if}
+{/snippet}
+
 <svelte:window
   onkeydown={handleUndoKey}
   onfocus={() => data.canWrite && registry.load()}
@@ -386,17 +410,23 @@
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
                 {#snippet child({ props })}
-                  <Button {...props} variant="outline">{$LL.admin.meetings.startRecess()}</Button>
+                  <Button {...props} variant="outline">
+                    {$LL.admin.meetings.startRecess()}
+                    <ChevronDown />
+                  </Button>
                 {/snippet}
               </DropdownMenu.Trigger>
               <DropdownMenu.Content align="end" class="w-80">
                 <DropdownMenu.Item
+                  class="flex-col items-start gap-0.5"
                   onclick={() => run(() => startRecess({ meetingId: data.meeting.id, mode: "track_exits" }))}
                 >
-                  {$LL.admin.meetings.startShortRecess()}
+                  <span class="font-medium">{$LL.admin.meetings.shortRecess()}</span>
+                  <span class="text-xs text-muted-foreground">{$LL.admin.meetings.shortRecessHint()}</span>
                 </DropdownMenu.Item>
-                <DropdownMenu.Item onclick={() => (longRecessDialogOpen = true)}>
-                  {$LL.admin.meetings.startLongRecess()}
+                <DropdownMenu.Item class="flex-col items-start gap-0.5" onclick={() => (longRecessDialogOpen = true)}>
+                  <span class="font-medium">{$LL.admin.meetings.longRecess()}</span>
+                  <span class="text-xs text-muted-foreground">{$LL.admin.meetings.longRecessHint()}</span>
                 </DropdownMenu.Item>
               </DropdownMenu.Content>
             </DropdownMenu.Root>
@@ -444,12 +474,13 @@
           ? $LL.admin.meetings.attendedTotal({ members: String(memberCount), guests: String(guestCount) })
           : $LL.admin.meetings.presentNow({ members: String(memberCount), guests: String(guestCount) })}
       </p>
-      <ul class="hidden flex-wrap gap-1.5 sm:flex">
-        {#each data.types as type (type.id)}
+      <ul class="flex flex-wrap gap-1.5" data-testid="type-counts">
+        {#each typeCounts as { type, count } (type.id)}
           <li>
             <Badge variant="secondary">
+              <span class={["size-2 rounded-full", typeColor(type.id)]} aria-hidden="true"></span>
               {type.name[$locale]}
-              {presentRows.filter((row) => row.typeId === type.id).length}
+              {count}
             </Badge>
           </li>
         {/each}
@@ -477,6 +508,7 @@
         disabled={!canAct}
         started={!!data.meeting.startsAt}
         {typeName}
+        {typeColor}
         onAct={record}
       />
       {#if activeRecess}
@@ -543,7 +575,7 @@
                 <Table.Head class="hidden sm:table-cell">{$LL.admin.meetings.firstArrival()}</Table.Head>
                 <Table.Head class="hidden sm:table-cell">{$LL.admin.meetings.lastDeparture()}</Table.Head>
               {:else}
-                <Table.Head>{$LL.admin.meetings.status()}</Table.Head>
+                <Table.Head class="hidden sm:table-cell">{$LL.admin.meetings.status()}</Table.Head>
                 <Table.Head class="hidden lg:table-cell">{$LL.admin.meetings.lastAction()}</Table.Head>
               {/if}
               <Table.Head class="text-right"></Table.Head>
@@ -554,12 +586,24 @@
               <Table.Row data-testid="attendee-row">
                 <Table.Cell class="max-w-56">
                   <p class="truncate font-medium">{row.displayName}</p>
-                  <p class="truncate text-xs text-muted-foreground lg:hidden">
-                    {row.isGuest ? $LL.admin.meetings.guest() : typeName(row.typeId)}
+                  <p class="flex items-center gap-1.5 text-xs text-muted-foreground lg:hidden">
+                    <span class={["size-2 shrink-0 rounded-full", typeColor(row.typeId)]} aria-hidden="true"></span>
+                    <span class="min-w-0 truncate"
+                      >{row.isGuest ? $LL.admin.meetings.guest() : typeName(row.typeId)}</span
+                    >
                   </p>
+                  {#if !closedAt}
+                    <!-- Phones have no status column -->
+                    <div class="mt-1 flex flex-wrap items-center gap-1 sm:hidden">
+                      {@render statusBadges(row)}
+                    </div>
+                  {/if}
                 </Table.Cell>
                 <Table.Cell class="hidden lg:table-cell">
-                  {row.isGuest ? $LL.admin.meetings.guest() : typeName(row.typeId)}
+                  <span class="flex items-center gap-1.5">
+                    <span class={["size-2 shrink-0 rounded-full", typeColor(row.typeId)]} aria-hidden="true"></span>
+                    {row.isGuest ? $LL.admin.meetings.guest() : typeName(row.typeId)}
+                  </span>
                 </Table.Cell>
                 {#if closedAt}
                   {@const stay = summary[row.id]}
@@ -580,20 +624,9 @@
                       : $LL.admin.meetings.untilEnd()}
                   </Table.Cell>
                 {:else}
-                  <Table.Cell>
+                  <Table.Cell class="hidden sm:table-cell">
                     <div class="flex flex-wrap items-center gap-1">
-                      <Badge variant={row.status === "present" ? "default" : "outline"}>
-                        {row.status === "present"
-                          ? $LL.admin.meetings.present()
-                          : row.status === "pending"
-                            ? data.meeting.startsAt
-                              ? $LL.admin.meetings.pendingReentry()
-                              : $LL.admin.meetings.pendingStart()
-                            : $LL.admin.meetings.away()}
-                      </Badge>
-                      {#if row.conflicts}
-                        <Badge variant="destructive">{row.conflicts}</Badge>
-                      {/if}
+                      {@render statusBadges(row)}
                     </div>
                   </Table.Cell>
                   <Table.Cell class="hidden text-muted-foreground lg:table-cell">
@@ -609,7 +642,13 @@
                           variant="outline"
                           onclick={() => record({ attendeeId: row.id }, row.physicalPresent ? "out" : "in")}
                         >
-                          {row.physicalPresent ? $LL.admin.meetings.checkOut() : $LL.admin.meetings.checkIn()}
+                          <!-- Short labels on phones, so the button fits beside the name -->
+                          <span class="sm:hidden">
+                            {row.physicalPresent ? $LL.admin.meetings.scanOut() : $LL.admin.meetings.scanIn()}
+                          </span>
+                          <span class="hidden sm:inline">
+                            {row.physicalPresent ? $LL.admin.meetings.checkOut() : $LL.admin.meetings.checkIn()}
+                          </span>
                         </Button>
                       {/if}
                       <DropdownMenu.Root>
