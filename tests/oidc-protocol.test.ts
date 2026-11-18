@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
 import * as table from "../src/lib/server/db/schema";
+import { OIDC_SCOPES } from "../src/lib/shared/oidc";
 import {
   REDIRECT_URI,
   authorize,
@@ -62,6 +63,27 @@ describe("OIDC protocol", () => {
       code_challenge_methods_supported: ["S256"],
       token_endpoint_auth_methods_supported: ["client_secret_basic", "client_secret_post"],
     });
+  });
+
+  it("advertises every scope and claim from shared/oidc in discovery, including access and admin_role", async () => {
+    const config = await (await fetch(`${server.baseUrl}/.well-known/openid-configuration`)).json();
+    for (const scope of OIDC_SCOPES) {
+      expect(config.scopes_supported).toContain(scope.key);
+    }
+    expect(config.scopes_supported).toContain("access");
+    expect(config.claims_supported).toContain("admin_role");
+  });
+
+  it("accepts a client registered with the access scope", async () => {
+    await createClient(server.db, {
+      clientId: "access-scope-client",
+      secret: "access-scope-secret",
+      scopes: ["openid", "access"],
+    });
+    const location = await redirectFor(authorizeUrl({ client_id: "access-scope-client", scope: "openid access" }));
+    // A client whose scopes the provider doesn't support fails with invalid_client_metadata
+    expect(location.searchParams.get("error")).toBeNull();
+    expect(location.pathname.startsWith("/oidc/login/")).toBe(true);
   });
 
   it("rejects the implicit flow", async () => {

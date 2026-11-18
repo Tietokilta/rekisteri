@@ -820,6 +820,7 @@ Terveisin,
         showing: "Näytetään {start:number}–{end:number} / {total:number} käyttäjää",
         roleAdmin: "Ylläpitäjä",
         roleReadonly: "Lukuoikeus",
+        roleNoreadext: "Ulkoinen käyttäjä",
         roleNone: "Käyttäjä",
       },
 

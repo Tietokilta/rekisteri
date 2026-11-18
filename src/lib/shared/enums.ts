@@ -6,10 +6,11 @@
 /**
  * Available admin role values.
  * - none: Regular user with no admin access
+ * - noreadext: User of external applications (via OIDC); same capabilities as `none`, no admin access
  * - readonly: Can view all admin pages but cannot make changes
  * - admin: Full admin access with read/write permissions
  */
-export const ADMIN_ROLE_VALUES = ["none", "readonly", "admin"] as const;
+export const ADMIN_ROLE_VALUES = ["none", "noreadext", "readonly", "admin"] as const;
 export type AdminRole = (typeof ADMIN_ROLE_VALUES)[number];
 
 /**

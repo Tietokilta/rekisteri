@@ -815,6 +815,7 @@ Best regards,
         showing: "Showing {start}–{end} of {total} users",
         roleAdmin: "Admin",
         roleReadonly: "Read-only",
+        roleNoreadext: "External user",
         roleNone: "User",
       },
 

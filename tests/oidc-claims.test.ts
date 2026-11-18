@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { eq } from "drizzle-orm";
 import * as table from "../src/lib/server/db/schema";
 import {
+  authorize,
   createClient,
   decodeJwtPayload,
   getTokens,
@@ -59,7 +61,7 @@ describe("OIDC claims per scope", () => {
     await createClient(server.db, {
       clientId: CLIENT_ID,
       secret: SECRET,
-      scopes: ["openid", "profile", "email", "membership"],
+      scopes: ["openid", "profile", "email", "membership", "access"],
     });
   }, 120_000);
 
@@ -80,6 +82,7 @@ describe("OIDC claims per scope", () => {
     });
     expect(claims.email).toBeUndefined();
     expect(claims.active_memberships).toBeUndefined();
+    expect(claims.admin_role).toBeUndefined();
   });
 
   it("aalto_email_verified counts only secondary aalto.fi addresses whose verification hasn't expired", async () => {
@@ -136,6 +139,57 @@ describe("OIDC claims per scope", () => {
     expect((await claimsFor("former-member", "openid membership")).active_memberships).toEqual([]);
   });
 
+  it("access scope reports the user's admin role, including noreadext", async () => {
+    for (const role of ["none", "noreadext", "readonly", "admin"] as const) {
+      const userId = `access-${role}`;
+      await createUser(userId, `${userId}@example.com`, { adminRole: role });
+
+      const claims = await claimsFor(userId, "openid access");
+      expect(claims.admin_role).toBe(role);
+      // Nothing from the other scopes
+      expect(claims.given_name).toBeUndefined();
+      expect(claims.email).toBeUndefined();
+      expect(claims.active_memberships).toBeUndefined();
+    }
+  });
+
+  it("access scope reflects role changes in later tokens", async () => {
+    await createUser("access-change", "access-change@example.com", { adminRole: "none" });
+    expect((await claimsFor("access-change", "openid access")).admin_role).toBe("none");
+
+    await server.db.update(table.user).set({ adminRole: "noreadext" }).where(eq(table.user.id, "access-change"));
+    expect((await claimsFor("access-change", "openid access")).admin_role).toBe("noreadext");
+  });
+
+  it("access scope combines with the other scopes", async () => {
+    await createUser("access-combined", "access-combined@example.com", { adminRole: "noreadext" });
+
+    const claims = await claimsFor("access-combined", "openid profile email access");
+    expect(claims).toMatchObject({
+      sub: "access-combined",
+      given_name: "Testi",
+      email: "access-combined@example.com",
+      admin_role: "noreadext",
+    });
+  });
+
+  it("rejects the access scope for a client that isn't allowed it", async () => {
+    await createClient(server.db, {
+      clientId: "no-access-client",
+      secret: "no-access-secret",
+      scopes: ["openid", "profile"],
+    });
+    await createUser("no-access-user", "no-access@example.com", { adminRole: "admin" });
+
+    const { location } = await authorize(server, {
+      clientId: "no-access-client",
+      userId: "no-access-user",
+      scope: "openid profile access",
+    });
+    expect(location.searchParams.get("error")).toBe("invalid_scope");
+    expect(location.searchParams.get("code")).toBeNull();
+  });
+
   it("returns only the scopes the request asked for, even if the client may use more", async () => {
     await createUser("openid-only", "openid-only@aalto.fi");
 
@@ -148,7 +202,7 @@ describe("OIDC claims per scope", () => {
     expect(tokens.scope).toBe("openid");
     const claims = decodeJwtPayload(tokens.id_token);
     expect(claims.sub).toBe("openid-only");
-    for (const claim of ["given_name", "email", "aalto_email_verified", "active_memberships"]) {
+    for (const claim of ["given_name", "email", "aalto_email_verified", "active_memberships", "admin_role"]) {
       expect(claims[claim]).toBeUndefined();
     }
   });

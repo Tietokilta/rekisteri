@@ -1,0 +1,1 @@
+ALTER TYPE "admin_role" ADD VALUE 'noreadext' BEFORE 'readonly';

@@ -24,7 +24,7 @@ export const load: PageServerLoad = async (event) => {
     })
     .from(table.user)
     .orderBy(
-      sql`CASE ${table.user.adminRole} WHEN 'admin' THEN 0 WHEN 'readonly' THEN 1 ELSE 2 END`,
+      sql`CASE ${table.user.adminRole} WHEN 'admin' THEN 0 WHEN 'readonly' THEN 1 WHEN 'noreadext' THEN 2 ELSE 3 END`,
       asc(table.user.email),
     );
 
