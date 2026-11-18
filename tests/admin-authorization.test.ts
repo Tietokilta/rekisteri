@@ -16,6 +16,7 @@ import { userHasAdminAccess, userHasAdminWriteAccess, userIsReadOnlyAdmin } from
  *
  * Tests the three-tier admin role system:
  * - none: Regular users with no admin access
+ * - noreadext: External-app user, same capabilities as none
  * - readonly: Can view admin pages but cannot make changes
  * - admin: Full admin access with read/write permissions
  */
@@ -26,18 +27,21 @@ describe("hasAdminAccess (role)", () => {
   it("returns true for admin", () => expect(hasAdminAccess("admin")).toBe(true));
   it("returns true for readonly", () => expect(hasAdminAccess("readonly")).toBe(true));
   it("returns false for none", () => expect(hasAdminAccess("none")).toBe(false));
+  it("returns false for noreadext", () => expect(hasAdminAccess("noreadext")).toBe(false));
 });
 
 describe("hasAdminWriteAccess (role)", () => {
   it("returns true for admin", () => expect(hasAdminWriteAccess("admin")).toBe(true));
   it("returns false for readonly", () => expect(hasAdminWriteAccess("readonly")).toBe(false));
   it("returns false for none", () => expect(hasAdminWriteAccess("none")).toBe(false));
+  it("returns false for noreadext", () => expect(hasAdminWriteAccess("noreadext")).toBe(false));
 });
 
 describe("isReadOnlyAdmin (role)", () => {
   it("returns true for readonly", () => expect(isReadOnlyAdmin("readonly")).toBe(true));
   it("returns false for admin", () => expect(isReadOnlyAdmin("admin")).toBe(false));
   it("returns false for none", () => expect(isReadOnlyAdmin("none")).toBe(false));
+  it("returns false for noreadext", () => expect(isReadOnlyAdmin("noreadext")).toBe(false));
 });
 
 // ─── Server-side null-safe wrappers (from server/auth/admin.ts) ────────────
@@ -102,6 +106,12 @@ describe("Role hierarchy", () => {
     expect(hasAdminWriteAccess("none")).toBe(false);
   });
 
+  it("noreadext has neither read nor write access, like none", () => {
+    expect(hasAdminAccess("noreadext")).toBe(false);
+    expect(hasAdminWriteAccess("noreadext")).toBe(false);
+    expect(isReadOnlyAdmin("noreadext")).toBe(false);
+  });
+
   it("write access implies read access", () => {
     for (const role of ADMIN_ROLE_VALUES) {
       if (hasAdminWriteAccess(role)) {
@@ -112,9 +122,10 @@ describe("Role hierarchy", () => {
 
   it("all roles are covered in ADMIN_ROLE_VALUES", () => {
     expect(ADMIN_ROLE_VALUES).toContain("none");
+    expect(ADMIN_ROLE_VALUES).toContain("noreadext");
     expect(ADMIN_ROLE_VALUES).toContain("readonly");
     expect(ADMIN_ROLE_VALUES).toContain("admin");
-    expect(ADMIN_ROLE_VALUES.length).toBe(3);
+    expect(ADMIN_ROLE_VALUES.length).toBe(4);
   });
 });
 
@@ -202,6 +213,23 @@ describe("Admin role database operations", () => {
     });
 
     expect(user?.adminRole).toBe("readonly");
+  });
+
+  it("can update user role from none to noreadext and back", async () => {
+    const { db } = testDb;
+    const userId = crypto.randomUUID();
+
+    await db.insert(table.user).values({
+      id: userId,
+      email: `test-noreadext-${userId}@example.com`,
+      adminRole: "none",
+    });
+
+    await db.update(table.user).set({ adminRole: "noreadext" }).where(eq(table.user.id, userId));
+    expect((await db.query.user.findFirst({ where: { id: userId } }))?.adminRole).toBe("noreadext");
+
+    await db.update(table.user).set({ adminRole: "none" }).where(eq(table.user.id, userId));
+    expect((await db.query.user.findFirst({ where: { id: userId } }))?.adminRole).toBe("none");
   });
 
   it("can update user role from readonly to none", async () => {

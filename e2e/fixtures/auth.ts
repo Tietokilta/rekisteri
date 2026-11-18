@@ -1,11 +1,12 @@
 import { test as base, type Page } from "@playwright/test";
 import path from "node:path";
 import fs from "node:fs";
+import type { AdminRole } from "#lib/shared/enums.js";
 
 export type UserInfo = {
   id: string;
   email: string;
-  adminRole: "none" | "readonly" | "admin";
+  adminRole: AdminRole;
 };
 
 type AuthFixtures = {

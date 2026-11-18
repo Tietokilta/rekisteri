@@ -18,7 +18,7 @@
   import { toast } from "svelte-sonner";
   import { refreshAll } from "$app/navigation";
   import { formatFullName, matchesSearchTokens } from "#lib/utils.js";
-  import { ADMIN_ROLE_VALUES, type AdminRole } from "#lib/shared/enums.js";
+  import { ADMIN_ROLE_VALUES, hasAdminAccess, type AdminRole } from "#lib/shared/enums.js";
 
   const { data }: PageProps = $props();
 
@@ -110,9 +110,9 @@
     }
   }
 
-  // Split users into admins (admin or readonly) and non-admins
-  const admins = $derived(data.users.filter((u) => u.adminRole !== "none"));
-  const regularUsers = $derived(data.users.filter((u) => u.adminRole === "none"));
+  // Split users into admins (admin or readonly) and non-admins (none or noreadext)
+  const admins = $derived(data.users.filter((u) => hasAdminAccess(u.adminRole)));
+  const regularUsers = $derived(data.users.filter((u) => !hasAdminAccess(u.adminRole)));
 
   // Filter function
   function matchesSearch(user: (typeof data.users)[number]) {
@@ -171,6 +171,8 @@
         return $LL.admin.users.table.roleAdmin();
       case "readonly":
         return $LL.admin.users.table.roleReadonly();
+      case "noreadext":
+        return $LL.admin.users.table.roleNoreadext();
       default:
         return $LL.admin.users.table.roleNone();
     }
@@ -465,6 +467,7 @@
                         <Select.Content>
                           <Select.Item value="admin">{$LL.admin.users.table.roleAdmin()}</Select.Item>
                           <Select.Item value="readonly">{$LL.admin.users.table.roleReadonly()}</Select.Item>
+                          <Select.Item value="noreadext">{$LL.admin.users.table.roleNoreadext()}</Select.Item>
                           <Select.Item value="none">{$LL.admin.users.table.roleNone()}</Select.Item>
                         </Select.Content>
                       </Select.Root>
@@ -561,6 +564,7 @@
                         <Select.Content>
                           <Select.Item value="admin">{$LL.admin.users.table.roleAdmin()}</Select.Item>
                           <Select.Item value="readonly">{$LL.admin.users.table.roleReadonly()}</Select.Item>
+                          <Select.Item value="noreadext">{$LL.admin.users.table.roleNoreadext()}</Select.Item>
                           <Select.Item value="none">{$LL.admin.users.table.roleNone()}</Select.Item>
                         </Select.Content>
                       </Select.Root>

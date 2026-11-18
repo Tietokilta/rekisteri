@@ -5,7 +5,7 @@
  */
 
 // Membership is a private (custom) scope.
-export type OidcScopeKey = "openid" | "profile" | "email" | "membership" | "offline_access";
+export type OidcScopeKey = "openid" | "profile" | "email" | "membership" | "offline_access" | "access";
 
 export interface OidcScope {
   readonly key: OidcScopeKey;
@@ -133,6 +133,12 @@ export const OPTIONAL_CLAIMS: readonly OidcClaimDefinition[] = [
       en: "Array of active membership type identifiers",
     },
   },
+  {
+    key: "admin_role",
+    scope: "access",
+    title: { fi: "Rooli", en: "Role" },
+    description: { fi: "Käyttäjän rooli", en: "User's role" },
+  },
 ] as const;
 
 export const ALL_CLAIMS = [...OPENID_CLAIMS, ...OPTIONAL_CLAIMS];
@@ -169,5 +175,11 @@ export const OIDC_SCOPES: readonly OidcScope[] = [
     title: { fi: "Jäsenyys", en: "Membership" },
     icon: "IdCard",
     claims: ["active_memberships"],
+  },
+  {
+    key: "access",
+    title: { fi: "Oikeudet", en: "Access" },
+    icon: "Lock",
+    claims: ["admin_role"],
   },
 ] as const;

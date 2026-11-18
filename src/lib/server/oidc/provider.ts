@@ -352,6 +352,11 @@ const configuration: Configuration = {
           accountClaims.active_memberships = membershipType ? [membershipType] : [];
         }
 
+        // --- Access claims ---
+        if (hasScope("access")) {
+          accountClaims.admin_role = u.adminRole;
+        }
+
         return accountClaims;
       },
     };

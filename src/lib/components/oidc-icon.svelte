@@ -5,6 +5,7 @@
   import Mail from "@lucide/svelte/icons/mail";
   import IdCard from "@lucide/svelte/icons/id-card";
   import Key from "@lucide/svelte/icons/key";
+  import Lock from "@lucide/svelte/icons/lock";
   import { OIDC_SCOPES } from "#lib/shared/oidc.js";
 
   let { scopeId, class: className = "size-3.5" }: { scopeId: string; class?: string } = $props();
@@ -15,6 +16,7 @@
     User,
     Mail,
     IdCard,
+    Lock,
   };
 
   const resolvedIconName = $derived.by(() => {

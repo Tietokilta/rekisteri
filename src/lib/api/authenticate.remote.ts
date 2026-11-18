@@ -10,6 +10,7 @@ import { dev } from "$app/env";
 import * as v from "valibot";
 import { getLL } from "#lib/server/i18n.js";
 import { consumeSignInNext } from "#lib/server/auth/sign-in-next.js";
+import type { AdminRole } from "#lib/shared/enums.js";
 
 // Rate limit: 10 authentication attempts per hour per email
 const authBucket = new RefillingTokenBucket<string>(10, 60 * 60);
@@ -69,7 +70,7 @@ export const verifyAuthentication = command(
   ): Promise<{
     success: boolean;
     redirectTo: string;
-    user: { id: string; email: string; adminRole: "none" | "readonly" | "admin" };
+    user: { id: string; email: string; adminRole: AdminRole };
   }> => {
     const event = getRequestEvent();
     const { cookies, request, getClientAddress, locals } = event;
